@@ -7,6 +7,7 @@ library;
 
 import 'board.dart';
 import 'move.dart';
+import 'notation.dart';
 import 'piece.dart';
 
 /// Résultat d'une application de poussées sur un plateau déjà muté.
@@ -474,3 +475,89 @@ bool campCanFugue(Board board, Camp camp) {
   }
   return false;
 }
+
+/// Cases effectivement poussées par un coup — portage de
+/// `_ai_compute_push_targets` (main.py).
+///
+/// La case poussée est, dans chaque direction retenue, la première case
+/// occupée vue depuis l'arrivée. Sert à reconstruire la notation d'un coup
+/// dont on n'a que le résultat : coup de l'IA, coup reçu du réseau, replay.
+List<Cell> pushTargetsOf(Board before, Move move) {
+  if (move.pushDirsUsed.isEmpty) return const [];
+  final dest = move.to;
+
+  // Plateau après le seul déplacement, avant les poussées.
+  final moved = before.clone();
+  moved.set(dest.col, dest.row, moved.atCell(move.from));
+  moved.setCell(move.from, null);
+
+  final targets = <Cell>[];
+  for (final (dc, dr) in move.pushDirsUsed) {
+    final tc = dest.col + dc, tr = dest.row + dr;
+    if (Board.onBoard(tc, tr) && moved.at(tc, tr) != null) {
+      targets.add(Cell(tc, tr));
+    }
+  }
+  return targets;
+}
+
+/// Retrouve le coup correspondant à une notation `.nmc`.
+///
+/// Renvoie `null` si aucun coup légal ne porte cette notation — un coup reçu
+/// d'ailleurs peut être corrompu, et il vaut mieux le refuser que jouer autre
+/// chose.
+Move? resolveNotation(Board board, Camp camp, String notation) {
+  final wanted = _normalizeNotation(notation);
+  if (wanted.isEmpty) return null;
+
+  for (final mv in generateMoves(board, camp)) {
+    final candidate = _normalizeNotation(notationOn(board, mv));
+    if (candidate == wanted) return mv;
+  }
+  return null;
+}
+
+/// Retire les marques de fin de partie, qui ne font pas partie du coup.
+String _normalizeNotation(String n) {
+  var s = n.trim();
+  while (s.endsWith('#')) {
+    s = s.substring(0, s.length - 1);
+  }
+  return s.trim();
+}
+
+/// Toutes les cases que ce coup POURRAIT pousser depuis son arrivée.
+///
+/// À distinguer de [pushTargetsOf], qui ne donne que celles effectivement
+/// poussées. La notation a besoin des deux : elle écrit `Départ-Arrivée>` quand
+/// tout a été poussé, et nomme les cibles sinon. Les confondre rendrait toutes
+/// les variantes d'un même déplacement indiscernables.
+List<Cell> pushableCellsOf(Board before, Move move) {
+  final piece = before.atCell(move.from);
+  if (piece == null || !piece.isSquare) return const [];
+  final dest = move.to;
+  if (!dest.onBoard) return const [];
+
+  final moved = before.clone();
+  moved.set(dest.col, dest.row, piece);
+  moved.setCell(move.from, null);
+
+  final out = <Cell>[];
+  for (final (dc, dr) in pushDirsFor(piece.type)) {
+    final c = dest.col + dc, r = dest.row + dr;
+    if (Board.onBoard(c, r) && moved.at(c, r) != null) out.add(Cell(c, r));
+  }
+  return out;
+}
+
+/// Notation d'un coup, en calculant tout ce qu'il faut depuis le plateau.
+///
+/// À préférer à [notationOfMove] partout où l'on dispose du plateau d'avant :
+/// passer soi-même les cases poussées et les cases poussables, c'est pouvoir
+/// se tromper, et une notation ambiguë rend deux coups indiscernables à la
+/// relecture.
+String notationOn(Board before, Move move) => notationOfMove(
+  move,
+  pushTargets: pushTargetsOf(before, move),
+  pushableCells: pushableCellsOf(before, move),
+);

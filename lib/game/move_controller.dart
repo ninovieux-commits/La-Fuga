@@ -601,7 +601,7 @@ class MoveController {
 
     final mover = turn;
     final slides = _slidesBetween(board, move.board);
-    final notation = notationOfMove(move, pushTargets: pushTargets);
+    final notation = notationOn(board, move);
     final hadEjection = move.ejected > 0;
 
     board = move.board;

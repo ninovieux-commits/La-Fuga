@@ -14,8 +14,7 @@ import 'dart:async';
 import 'dart:isolate';
 
 import '../board.dart';
-import '../move.dart';
-import '../notation.dart';
+import '../move_generator.dart';
 import '../piece.dart';
 import 'evaluation.dart';
 import 'search.dart';
@@ -244,10 +243,10 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
     );
   }
 
-  final pushTargets = _pushTargets(board, move);
+  final pushTargets = pushTargetsOf(board, move);
   return ThinkResult(
     id: req.id,
-    notation: notationOfMove(move, pushTargets: pushTargets),
+    notation: notationOn(board, move),
     board: move.board.toJson(),
     kind: move.kind.name,
     fugue: move.fugue,
@@ -266,26 +265,4 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
     ],
     elapsedMicros: stopwatch.elapsedMicroseconds,
   );
-}
-
-/// Cases effectivement poussées par un coup, pour reconstruire la notation.
-///
-/// Portage de `_ai_compute_push_targets` : la case poussée est la première
-/// case occupée dans chaque direction retenue, vue depuis l'arrivée.
-List<Cell> _pushTargets(Board before, Move move) {
-  if (move.pushDirsUsed.isEmpty) return const [];
-  final dest = move.to;
-  // Plateau après le seul déplacement, avant les poussées.
-  final moved = before.clone();
-  moved.set(dest.col, dest.row, moved.atCell(move.from));
-  moved.setCell(move.from, null);
-
-  final targets = <Cell>[];
-  for (final (dc, dr) in move.pushDirsUsed) {
-    final tc = dest.col + dc, tr = dest.row + dr;
-    if (Board.onBoard(tc, tr) && moved.at(tc, tr) != null) {
-      targets.add(Cell(tc, tr));
-    }
-  }
-  return targets;
 }

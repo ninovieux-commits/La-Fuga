@@ -118,8 +118,17 @@ String buildMoveNotation({
   return '$startStr-$endStr';
 }
 
-/// Notation d'un coup produit par le générateur (chemin IA / analyse).
-String notationOfMove(Move move, {List<Cell> pushTargets = const []}) {
+/// Notation d'un coup produit par le générateur (chemin IA, réseau, analyse).
+///
+/// [pushTargets] sont les cases effectivement poussées, [pushableCells] toutes
+/// celles qui auraient pu l'être. Les deux sont nécessaires : sans la seconde,
+/// toutes les variantes de poussée d'un même déplacement porteraient la même
+/// notation et deviendraient indiscernables à la relecture.
+String notationOfMove(
+  Move move, {
+  List<Cell> pushTargets = const [],
+  List<Cell> pushableCells = const [],
+}) {
   if (move.fugue) {
     return buildMoveNotation(start: move.from, end: null);
   }
@@ -137,7 +146,7 @@ String notationOfMove(Move move, {List<Cell> pushTargets = const []}) {
       end: move.to,
       isPush: true,
       pushTargets: pushTargets,
-      pushableDirs: pushTargets,
+      pushableDirs: pushableCells.isEmpty ? pushTargets : pushableCells,
     );
   }
   return buildMoveNotation(start: move.from, end: move.to);

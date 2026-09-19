@@ -1,5 +1,11 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # Scripts de diagnostic ponctuels : ce ne sont pas du code d'application,
+    # ils impriment volontairement sur la sortie standard.
+    - tool/diag/**
+
 linter:
   rules:
     - prefer_final_locals
