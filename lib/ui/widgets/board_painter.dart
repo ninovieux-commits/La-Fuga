@@ -10,6 +10,7 @@ import 'package:flutter/rendering.dart';
 import '../../engine/board.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
+import 'logo_painter.dart';
 import 'piece_painter.dart';
 import 'theme_image_cache.dart';
 
@@ -91,6 +92,17 @@ final class BoardBackgroundPainter extends CustomPainter {
         canvas.drawRect(g.cellRect(c, r), gridPaint);
       }
     }
+
+    // Rosace au centre du plateau, en contours seuls : elle passe sous les
+    // pièces sans gêner la lecture de la position.
+    paintLogoOutline(
+      canvas,
+      boardRect.center.dx,
+      boardRect.center.dy,
+      g.cellSize * 0.42,
+      color: palette.grid,
+      strokeWidth: 1.6,
+    );
   }
 
   @override

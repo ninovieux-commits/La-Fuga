@@ -97,13 +97,13 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Sons (4 instruments, note par case, glissandos)
 - [x] Menu, réglages, persistance de la configuration
 - [x] Thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey)
+- [x] Rosace du logo au centre du plateau
 - [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
 - [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
 - [x] Correspondance : défis, parties, nulle, abandon, rejeu de l'historique
 
 ### Écarts connus, à combler
 
-- Le logo central du plateau (rosace à 8 segments) n'est pas dessiné.
 - Firebase est volontairement absent de `pubspec.yaml` tant que
   `google-services.json` n'est pas fourni : le déclarer sans ce fichier ferait
   échouer la compilation pour une fonctionnalité pas encore écrite.
