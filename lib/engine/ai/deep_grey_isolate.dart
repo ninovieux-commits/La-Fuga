@@ -14,9 +14,11 @@ import 'dart:async';
 import 'dart:isolate';
 
 import '../board.dart';
+import '../move.dart';
 import '../move_generator.dart';
 import '../piece.dart';
 import 'evaluation.dart';
+import 'opening_book.dart';
 import 'search.dart';
 import 'weights.dart';
 
@@ -30,6 +32,8 @@ final class ThinkRequest {
     this.moveNumber,
     this.seenPositions = const {},
     this.weights = const {},
+    this.bookMove,
+    this.avoidManeuver = false,
   });
 
   /// Identifiant de la demande : permet d'ignorer une réponse périmée.
@@ -45,6 +49,13 @@ final class ThinkRequest {
   final int? moveNumber;
   final Map<String, int> seenPositions;
   final Map<String, double> weights;
+
+  /// Coup du livre d'ouvertures pour cette position, s'il y en a un. Le livre
+  /// lui-même reste côté interface : seule la notation traverse.
+  final String? bookMove;
+
+  /// Interdit une troisième manœuvre de groupe consécutive.
+  final bool avoidManeuver;
 }
 
 /// Coup choisi par l'isolate.
@@ -144,6 +155,8 @@ final class DeepGreyEngine {
     int? moveNumber,
     Map<String, int> seenPositions = const {},
     DeepGreyWeights? weights,
+    String? bookMove,
+    bool avoidManeuver = false,
   }) async {
     if (!isRunning) await start();
     final id = _nextId++;
@@ -158,6 +171,8 @@ final class DeepGreyEngine {
         moveNumber: moveNumber,
         seenPositions: seenPositions,
         weights: weights?.values ?? const {},
+        bookMove: bookMove,
+        avoidManeuver: avoidManeuver,
       ),
     );
     return completer.future;
@@ -201,6 +216,39 @@ void _deepGreyMain(SendPort toMain) {
   });
 }
 
+/// Le coup du livre, s'il est jouable sans danger.
+Move? _bookMove(Board board, Camp camp, String? booked) {
+  if (booked == null || booked.isEmpty) return null;
+
+  final opp = camp.opposite;
+  for (final mv in generateMoves(board, camp)) {
+    if (bookNotation(notationOn(board, mv)) != booked) continue;
+
+    final danger =
+        mv.fugueBy == opp ||
+        (mv.ejAlly > 0 && !mv.fugue && mv.fugueBy != camp && mv.matOn != opp);
+    return danger ? null : mv;
+  }
+  return null;
+}
+
+/// Le meilleur coup à un demi-coup de vue, manœuvres exclues.
+Move? _bestNonManeuver(Board board, Camp camp, SearchContext ctx) {
+  Move? best;
+  double? bestScore;
+  for (final mv in generateMoves(board, camp)) {
+    if (mv.kind == MoveKind.maneuver) continue;
+    final score =
+        evaluate(mv.board, camp, weights: ctx.weights, cache: ctx.cache) +
+        moveBonus(mv, camp);
+    if (bestScore == null || score > bestScore) {
+      bestScore = score;
+      best = mv;
+    }
+  }
+  return best;
+}
+
 ThinkResult _think(ThinkRequest req, EvalCache cache) {
   final stopwatch = Stopwatch()..start();
   cache.clear();
@@ -213,7 +261,13 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
     seenPositions: req.seenPositions,
   );
 
-  final move = req.deepMode
+  // ── Livre d'ouvertures ──
+  // Une position connue se rejoue sans réfléchir — sous garde-fou : on refuse
+  // un coup du livre qui donnerait la fugue à l'adversaire, ou qui éjecterait
+  // nos propres pièces sans rien gagner.
+  var move = _bookMove(board, camp, req.bookMove);
+
+  move ??= req.deepMode
       ? chooseMoveTopN(board, camp, moveNumber: req.moveNumber, context: ctx)
       : chooseMove(
           board,
@@ -222,6 +276,13 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
           moveNumber: req.moveNumber,
           context: ctx,
         );
+
+  // ── Anti allers-retours de groupe ──
+  // Deux manœuvres d'affilée suffisent : à la troisième, on joue le meilleur
+  // coup qui n'en est pas une, plutôt que de faire du surplace.
+  if (req.avoidManeuver && move != null && move.kind == MoveKind.maneuver) {
+    move = _bestNonManeuver(board, camp, ctx) ?? move;
+  }
 
   stopwatch.stop();
 

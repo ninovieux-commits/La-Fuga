@@ -11,7 +11,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../engine/ai/deep_grey_isolate.dart';
+import '../../engine/ai/opening_book.dart';
+import '../../engine/ai/weights.dart';
 import '../../engine/board.dart';
+import '../../engine/move.dart';
 import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
@@ -21,6 +24,7 @@ import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../theme/themes.dart';
+import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
 import '../widgets/game_board_view.dart';
 
@@ -32,6 +36,7 @@ class GameScreen extends StatefulWidget {
     this.aiDeepMode = false,
     this.themeName = kDefaultTheme,
     this.archive,
+    this.memory,
   });
 
   /// Cadence de la partie.
@@ -48,6 +53,9 @@ class GameScreen extends StatefulWidget {
   /// Où ranger la partie une fois finie. Injectable pour les tests.
   final GameArchive? archive;
 
+  /// Ce que Deep Grey a appris des parties précédentes. Injectable aussi.
+  final AiMemory? memory;
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -58,6 +66,14 @@ class _GameScreenState extends State<GameScreen> {
   final DeepGreyEngine _engine = DeepGreyEngine();
   final SoundPlayer _sounds = SoundPlayer();
   late final GameArchive _archive = widget.archive ?? GameArchive();
+  late final AiMemory _memory = widget.memory ?? AiMemory();
+
+  /// Poids et livre d'ouvertures, chargés au lancement de la partie.
+  DeepGreyWeights? _weights;
+  OpeningBook? _book;
+
+  /// Manœuvres de groupe jouées d'affilée par l'IA.
+  int _consecutiveManeuvers = 0;
 
   /// Une partie ne s'archive qu'une fois, quel que soit le chemin par lequel
   /// elle se termine.
@@ -78,9 +94,24 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     _game = MoveController();
     _clock = GameClock(widget.cadence);
-    if (widget.aiCamp != null) _engine.start();
+    if (widget.aiCamp != null) {
+      _engine.start();
+      _loadAiMemory();
+    }
     _sounds.init();
     _startTicking();
+  }
+
+  /// Charge ce que Deep Grey a appris. La partie peut commencer avant : sans
+  /// cette mémoire, l'IA joue simplement avec ses poids par défaut.
+  Future<void> _loadAiMemory() async {
+    final weights = await _memory.weights();
+    final book = await _memory.book();
+    if (!mounted) return;
+    setState(() {
+      _weights = weights;
+      _book = book;
+    });
   }
 
   @override
@@ -156,6 +187,9 @@ class _GameScreenState extends State<GameScreen> {
       deepMode: widget.aiDeepMode,
       moveNumber: _game.history.length + 1,
       seenPositions: _aiPositionCounts,
+      weights: _weights,
+      bookMove: _book?.lookup(_game.board, aiCamp),
+      avoidManeuver: _consecutiveManeuvers >= 2,
     );
     if (!mounted) return;
 
@@ -179,6 +213,10 @@ class _GameScreenState extends State<GameScreen> {
       aiCamp,
     ).firstWhere((m) => m.board.key == resultKey);
     final pushTargets = [for (final c in result.pushTargets) Cell(c[0], c[1])];
+
+    _consecutiveManeuvers = move.kind == MoveKind.maneuver
+        ? _consecutiveManeuvers + 1
+        : 0;
 
     final applied = _game.applyGeneratedMove(move, pushTargets: pushTargets);
     final key = _game.board.ownPiecesKey(aiCamp);
@@ -231,6 +269,7 @@ class _GameScreenState extends State<GameScreen> {
 
     if (_archived) return;
     _archived = true;
+    if (loser != null) unawaited(_learn(loser.opposite));
     final (first, second) = _players;
     unawaited(
       _archive.store(
@@ -245,6 +284,27 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
     );
+  }
+
+  /// Deep Grey apprend de la partie qui vient de finir.
+  ///
+  /// Les poids s'ajustent à chaque partie, gagnée ou perdue. Le livre
+  /// d'ouvertures, lui, ne retient que les coups de celui qui a **battu**
+  /// l'IA : c'est ainsi qu'elle progresse contre ce qui l'a mise en défaut.
+  Future<void> _learn(Camp winner) async {
+    if (widget.aiCamp == null) return;
+
+    final weights = _weights ?? await _memory.weights();
+    await _memory.saveWeights(weights.learn(winner, _game.board));
+
+    if (winner == widget.aiCamp) return;
+    final book = _book ?? await _memory.book();
+    final learned = book.recordWinningLine(
+      initialBoard: Board.initial(),
+      moves: List.of(_game.history),
+      winner: winner,
+    );
+    if (learned) await _memory.saveBook(book);
   }
 
   String _campLabel(Camp camp) => camp == Camp.blanc ? T('Blanc') : T('Noir');
@@ -268,6 +328,7 @@ class _GameScreenState extends State<GameScreen> {
       _game = MoveController();
       _clock.reset();
       _aiPositionCounts.clear();
+      _consecutiveManeuvers = 0;
       _lastMoveCells = {};
       _verdict = null;
       _archived = false;
