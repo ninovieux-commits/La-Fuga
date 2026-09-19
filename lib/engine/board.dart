@@ -41,9 +41,14 @@ final class Cell {
 /// Les 8 directions, dans l'ordre de balayage du moteur Python
 /// (`for dc in (-1,0,1): for dr in (-1,0,1)`), en sautant (0,0).
 const List<(int, int)> kAllDirs = [
-  (-1, -1), (-1, 0), (-1, 1),
-  (0, -1), (0, 1),
-  (1, -1), (1, 0), (1, 1),
+  (-1, -1),
+  (-1, 0),
+  (-1, 1),
+  (0, -1),
+  (0, 1),
+  (1, -1),
+  (1, 0),
+  (1, 1),
 ];
 
 /// Directions dans lesquelles un Soldat pousse (diagonales).
@@ -64,9 +69,12 @@ final class Board {
 
   /// Plateau vide.
   factory Board.empty() => Board._(
-        List.generate(kCols, (_) => List<Piece?>.filled(kRows, null),
-            growable: false),
-      );
+    List.generate(
+      kCols,
+      (_) => List<Piece?>.filled(kRows, null),
+      growable: false,
+    ),
+  );
 
   /// Position de départ standard (`_setup_pieces`).
   ///
@@ -111,8 +119,8 @@ final class Board {
 
   /// Copie. Les pièces sont immuables : on ne duplique que les colonnes.
   Board clone() => Board._(
-        List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
-      );
+    List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
+  );
 
   Piece? at(int c, int r) {
     if (c < 0 || c >= kCols || r < 0 || r >= kRows) return null;
@@ -227,9 +235,9 @@ final class Board {
 
   /// Sérialisation pour passage à un `Isolate` et pour les snapshots.
   List<List<Map<String, String>?>> toJson() => [
-        for (var c = 0; c < kCols; c++)
-          [for (var r = 0; r < kRows; r++) _cols[c][r]?.toJson()],
-      ];
+    for (var c = 0; c < kCols; c++)
+      [for (var r = 0; r < kRows; r++) _cols[c][r]?.toJson()],
+  ];
 
   static Board fromJson(List<dynamic> j) {
     final b = Board.empty();

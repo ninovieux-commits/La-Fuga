@@ -149,7 +149,13 @@ List<Move> generateMoves(Board board, Camp camp) {
 }
 
 void _generateRoundMoves(
-    Board board, Camp camp, int c, int r, Piece p, List<Move> moves) {
+  Board board,
+  Camp camp,
+  int c,
+  int r,
+  Piece p,
+  List<Move> moves,
+) {
   // Une ronde isolée est immobile.
   if (!board.hasRoundNeighbour(c, r)) return;
 
@@ -162,13 +168,15 @@ void _generateRoundMoves(
     if (p.isHeir && Board.isFugueDest(nc, nr, p)) {
       final nb = board.clone();
       nb.set(c, r, null);
-      moves.add(Move(
-        board: nb,
-        kind: MoveKind.fugue,
-        fugue: true,
-        from: Cell(c, r),
-        movedCells: [Cell(nc, nr)],
-      ));
+      moves.add(
+        Move(
+          board: nb,
+          kind: MoveKind.fugue,
+          fugue: true,
+          from: Cell(c, r),
+          movedCells: [Cell(nc, nr)],
+        ),
+      );
       continue;
     }
     if (!Board.onBoard(nc, nr)) continue;
@@ -177,12 +185,14 @@ void _generateRoundMoves(
     final nb = board.clone();
     nb.set(nc, nr, nb.at(c, r));
     nb.set(c, r, null);
-    moves.add(Move(
-      board: nb,
-      kind: MoveKind.move,
-      from: Cell(c, r),
-      movedCells: [Cell(nc, nr)],
-    ));
+    moves.add(
+      Move(
+        board: nb,
+        kind: MoveKind.move,
+        from: Cell(c, r),
+        movedCells: [Cell(nc, nr)],
+      ),
+    );
   }
 
   // ── Sauts simples et multisauts ──
@@ -196,7 +206,7 @@ void _generateRoundMoves(
   final jumpDestinations = <Cell>{};
   // (col, row, cases visitées, dernière ronde sautée)
   final toExplore = <(int, int, Set<Cell>, Cell?)>[
-    (c, r, {Cell(c, r)}, null)
+    (c, r, {Cell(c, r)}, null),
   ];
 
   while (toExplore.isNotEmpty) {
@@ -218,13 +228,15 @@ void _generateRoundMoves(
         if (jumped != null && jumped.isRound) {
           final nb = board.clone();
           nb.set(c, r, null);
-          moves.add(Move(
-            board: nb,
-            kind: MoveKind.fugue,
-            fugue: true,
-            from: Cell(c, r),
-            movedCells: [Cell(nc, nr)],
-          ));
+          moves.add(
+            Move(
+              board: nb,
+              kind: MoveKind.fugue,
+              fugue: true,
+              from: Cell(c, r),
+              movedCells: [Cell(nc, nr)],
+            ),
+          );
         }
         continue;
       }
@@ -241,12 +253,14 @@ void _generateRoundMoves(
         final nb = board.clone();
         nb.set(nc, nr, nb.at(c, r));
         nb.set(c, r, null);
-        moves.add(Move(
-          board: nb,
-          kind: MoveKind.jump,
-          from: Cell(c, r),
-          movedCells: [dest],
-        ));
+        moves.add(
+          Move(
+            board: nb,
+            kind: MoveKind.jump,
+            from: Cell(c, r),
+            movedCells: [dest],
+          ),
+        );
       }
       toExplore.add((nc, nr, {...visited, dest}, Cell(mc, mr)));
     }
@@ -254,7 +268,13 @@ void _generateRoundMoves(
 }
 
 void _generateSquareMoves(
-    Board board, Camp camp, int c, int r, Piece p, List<Move> moves) {
+  Board board,
+  Camp camp,
+  int c,
+  int r,
+  Piece p,
+  List<Move> moves,
+) {
   // Une carrée isolée est immobile.
   if (!board.hasSquareNeighbour(c, r)) return;
 
@@ -269,12 +289,14 @@ void _generateSquareMoves(
     nb.set(c, r, null);
 
     if (!pushActivated(p.type, dc, dr)) {
-      moves.add(Move(
-        board: nb,
-        kind: MoveKind.square,
-        from: Cell(c, r),
-        movedCells: [Cell(nc, nr)],
-      ));
+      moves.add(
+        Move(
+          board: nb,
+          kind: MoveKind.square,
+          from: Cell(c, r),
+          movedCells: [Cell(nc, nr)],
+        ),
+      );
       continue;
     }
 
@@ -288,12 +310,14 @@ void _generateSquareMoves(
     }
 
     // Variante sans poussée : toujours proposée.
-    moves.add(Move(
-      board: nb.clone(),
-      kind: MoveKind.square,
-      from: Cell(c, r),
-      movedCells: [Cell(nc, nr)],
-    ));
+    moves.add(
+      Move(
+        board: nb.clone(),
+        kind: MoveKind.square,
+        from: Cell(c, r),
+        movedCells: [Cell(nc, nr)],
+      ),
+    );
 
     // Puis toutes les combinaisons non vides de directions poussées.
     final nDirs = availableDirs.length;
@@ -303,20 +327,21 @@ void _generateSquareMoves(
           if (mask & (1 << i) != 0) availableDirs[i],
       ];
       final nbVar = nb.clone();
-      final out =
-          applyPushes(nbVar, nc, nr, p.type, camp, dirsToUse: chosen);
-      moves.add(Move(
-        board: nbVar,
-        kind: MoveKind.square,
-        from: Cell(c, r),
-        movedCells: [Cell(nc, nr)],
-        fugueBy: out.fugueBy,
-        matOn: out.matOn,
-        ejAlly: out.ejAlly,
-        ejOpp: out.ejOpp,
-        totalPushed: out.totalPushed,
-        pushDirsUsed: chosen,
-      ));
+      final out = applyPushes(nbVar, nc, nr, p.type, camp, dirsToUse: chosen);
+      moves.add(
+        Move(
+          board: nbVar,
+          kind: MoveKind.square,
+          from: Cell(c, r),
+          movedCells: [Cell(nc, nr)],
+          fugueBy: out.fugueBy,
+          matOn: out.matOn,
+          ejAlly: out.ejAlly,
+          ejOpp: out.ejOpp,
+          totalPushed: out.totalPushed,
+          pushDirsUsed: chosen,
+        ),
+      );
     }
   }
 
@@ -358,13 +383,15 @@ void _generateSquareMoves(
     ];
     final fromOrdered = <Cell>[master, ...others];
 
-    moves.add(Move(
-      board: nb,
-      kind: MoveKind.maneuver,
-      from: master,
-      movedCells: moved,
-      fromCells: fromOrdered,
-    ));
+    moves.add(
+      Move(
+        board: nb,
+        kind: MoveKind.maneuver,
+        from: master,
+        movedCells: moved,
+        fromCells: fromOrdered,
+      ),
+    );
   }
 }
 
@@ -378,12 +405,14 @@ void _generateKnightMoves(Board board, int c, int r, List<Move> moves) {
     final nb = board.clone();
     nb.set(nc, nr, nb.at(c, r));
     nb.set(c, r, null);
-    moves.add(Move(
-      board: nb,
-      kind: MoveKind.knight,
-      from: Cell(c, r),
-      movedCells: [Cell(nc, nr)],
-    ));
+    moves.add(
+      Move(
+        board: nb,
+        kind: MoveKind.knight,
+        from: Cell(c, r),
+        movedCells: [Cell(nc, nr)],
+      ),
+    );
   }
 }
 
@@ -399,8 +428,7 @@ bool playerHasAnyMove(Board board, Camp camp) {
 
       if (p.isKnight) {
         for (final (dc, dr) in kAllDirs) {
-          if (board.isEmpty(c + dc, r + dr) &&
-              Board.onBoard(c + dc, r + dr)) {
+          if (board.isEmpty(c + dc, r + dr) && Board.onBoard(c + dc, r + dr)) {
             return true;
           }
         }

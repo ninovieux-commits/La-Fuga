@@ -77,5 +77,20 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Assets repris du dépôt Kivy
 - [x] CI de compilation APK
 - [x] IA Deep Grey sur isolate
+- [x] Plateforme Android (manifeste, permissions, minSdk 24, portrait)
+- [x] Rendu GPU du plateau et des pièces, écran de jeu contre Deep Grey
 - [ ] Couche réseau
-- [ ] Écrans
+- [ ] Écrans complets (chrono, chat, en ligne, correspondance, thèmes à images)
+
+### Écarts connus, à combler
+
+- L'interaction est pour l'instant « choisir une pièce, choisir une arrivée ».
+  Kivy propose une interaction **incrémentale** : on pousse direction par
+  direction, on compose un groupe pour une manœuvre, on enchaîne les sauts et
+  on valide en recliquant la pièce. À porter avec l'écran de jeu complet.
+- Les thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey) ne sont
+  pas encore branchés : le rendu géométrique sert de repli universel.
+- Le logo central du plateau (rosace à 8 segments) n'est pas dessiné.
+- Firebase est volontairement absent de `pubspec.yaml` tant que
+  `google-services.json` n'est pas fourni : le déclarer sans ce fichier ferait
+  échouer la compilation pour une fonctionnalité pas encore écrite.

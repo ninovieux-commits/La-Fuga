@@ -22,24 +22,33 @@ void main() {
 
       final mv = chooseMove(b, Camp.blanc, depth: 2);
       expect(mv, isNotNull);
-      expect(mv!.fugue, isTrue, reason: 'la victoire immédiate passe avant tout');
+      expect(
+        mv!.fugue,
+        isTrue,
+        reason: 'la victoire immédiate passe avant tout',
+      );
     });
 
     test('ne se laisse pas fuguer quand il peut l éviter', () {
       final b = Board.initial();
       final mv = chooseMove(b, Camp.blanc, depth: 2);
       expect(mv, isNotNull);
-      expect(mv!.fugueBy, isNot(Camp.noir),
-          reason: 'ne jamais offrir la fugue à l adversaire');
+      expect(
+        mv!.fugueBy,
+        isNot(Camp.noir),
+        reason: 'ne jamais offrir la fugue à l adversaire',
+      );
     });
 
     test("n'éjecte pas ses propres pièces sans gagner", () {
       final b = Board.initial();
       final mv = chooseMove(b, Camp.blanc, depth: 2)!;
       if (mv.ejAlly > 0) {
-        expect(mv.fugue || mv.fugueBy == Camp.blanc || mv.matOn == Camp.noir,
-            isTrue,
-            reason: 'auto-éjection tolérée seulement si le coup gagne');
+        expect(
+          mv.fugue || mv.fugueBy == Camp.blanc || mv.matOn == Camp.noir,
+          isTrue,
+          reason: 'auto-éjection tolérée seulement si le coup gagne',
+        );
       }
     });
 
@@ -56,8 +65,11 @@ void main() {
         final mv = chooseMove(b, camp, depth: 2);
         if (mv == null) break;
         final legal = generateMoves(b, camp);
-        expect(legal.map((m) => m.board.key), contains(mv.board.key),
-            reason: 'demi-coup $ply');
+        expect(
+          legal.map((m) => m.board.key),
+          contains(mv.board.key),
+          reason: 'demi-coup $ply',
+        );
         if (mv.fugue || mv.matOn != null || mv.fugueBy != null) break;
         b = mv.board;
         camp = camp.opposite;
@@ -68,8 +80,10 @@ void main() {
       final b = Board.initial();
       final mv = chooseMoveTopN(b, Camp.blanc, topN: 5);
       expect(mv, isNotNull);
-      expect(generateMoves(b, Camp.blanc).map((m) => m.board.key),
-          contains(mv!.board.key));
+      expect(
+        generateMoves(b, Camp.blanc).map((m) => m.board.key),
+        contains(mv!.board.key),
+      );
     });
   });
 
@@ -116,9 +130,11 @@ void main() {
       final before = DeepGreyWeights();
       final after = before.learn(Camp.blanc, Board.initial());
       for (final cat in kWeightCategories) {
-        expect((after[cat] - before[cat]).abs(),
-            lessThanOrEqualTo(kWeightStep + 1e-9),
-            reason: cat);
+        expect(
+          (after[cat] - before[cat]).abs(),
+          lessThanOrEqualTo(kWeightStep + 1e-9),
+          reason: cat,
+        );
       }
     });
 
@@ -160,16 +176,18 @@ void main() {
       final w = DeepGreyWeights();
       final scoreSafe = evaluate(safe, Camp.blanc, weights: w);
       final scoreThreat = evaluate(threatened, Camp.blanc, weights: w);
-      expect(scoreThreat, lessThan(scoreSafe),
-          reason: 'se faire fuguer est le pire');
+      expect(
+        scoreThreat,
+        lessThan(scoreSafe),
+        reason: 'se faire fuguer est le pire',
+      );
     });
 
     test('la hiérarchie des coups décisifs est respectée', () {
       final b = Board.empty();
       b.set(3, 7, Piece.blancHeritier);
       b.set(3, 6, Piece.blancNurse);
-      final fugueMove =
-          generateMoves(b, Camp.blanc).firstWhere((m) => m.fugue);
+      final fugueMove = generateMoves(b, Camp.blanc).firstWhere((m) => m.fugue);
       expect(moveBonus(fugueMove, Camp.blanc), 200000);
     });
   });
@@ -221,8 +239,11 @@ void main() {
       await ticker;
 
       expect(result.hasMove, isTrue);
-      expect(ticks, greaterThan(0),
-          reason: 'le thread appelant doit continuer à tourner');
+      expect(
+        ticks,
+        greaterThan(0),
+        reason: 'le thread appelant doit continuer à tourner',
+      );
     });
 
     test('plusieurs réflexions successives sur le même isolate', () async {
@@ -239,8 +260,7 @@ void main() {
     test('une position sans coup renvoie un résultat vide', () async {
       final b = Board.empty();
       b.set(0, 0, Piece.blancNurse);
-      final r =
-          await engine.think(board: b, camp: Camp.blanc, deepMode: false);
+      final r = await engine.think(board: b, camp: Camp.blanc, deepMode: false);
       expect(r.hasMove, isFalse);
       expect(r.notation, isNull);
     });

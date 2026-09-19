@@ -90,7 +90,10 @@ String buildMoveNotation({
   if (endStr == null) return '$startStr*';
 
   if (isManeuver) {
-    final pieces = maneuverPieces.map(cellToNotationOf).whereType<String>().join();
+    final pieces = maneuverPieces
+        .map(cellToNotationOf)
+        .whereType<String>()
+        .join();
     return '($pieces)-$endStr';
   }
 
@@ -100,11 +103,15 @@ String buildMoveNotation({
     // n'écrit rien après le chevron.
     final pushed = pushTargets.toSet();
     final all = pushableDirs.toSet();
-    if (all.isNotEmpty && pushed.length == all.length && pushed.containsAll(all)) {
+    if (all.isNotEmpty &&
+        pushed.length == all.length &&
+        pushed.containsAll(all)) {
       return base;
     }
-    final targets =
-        pushTargets.map(cellToNotationOf).whereType<String>().join();
+    final targets = pushTargets
+        .map(cellToNotationOf)
+        .whereType<String>()
+        .join();
     return base + targets;
   }
 

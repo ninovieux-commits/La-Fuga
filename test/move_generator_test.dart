@@ -19,24 +19,24 @@ String pyCell(Cell c) => '(${c.col}, ${c.row})';
 
 /// Même signature que `signature()` dans `tool/gen_vectors.py`.
 String signatureOf(Move m) => [
-      m.board.key,
-      switch (m.kind) {
-        MoveKind.move => 'move',
-        MoveKind.jump => 'jump',
-        MoveKind.fugue => 'fugue',
-        MoveKind.square => 'square',
-        MoveKind.maneuver => 'maneuver',
-        MoveKind.knight => 'knight',
-      },
-      m.fugue ? 'F' : '-',
-      m.fugueBy?.wire ?? '-',
-      m.matOn?.wire ?? '-',
-      '${m.ejAlly}',
-      '${m.ejOpp}',
-      '${m.totalPushed}',
-      pyCell(m.from),
-      m.movedCells.map(pyCell).join(','),
-    ].join('|');
+  m.board.key,
+  switch (m.kind) {
+    MoveKind.move => 'move',
+    MoveKind.jump => 'jump',
+    MoveKind.fugue => 'fugue',
+    MoveKind.square => 'square',
+    MoveKind.maneuver => 'maneuver',
+    MoveKind.knight => 'knight',
+  },
+  m.fugue ? 'F' : '-',
+  m.fugueBy?.wire ?? '-',
+  m.matOn?.wire ?? '-',
+  '${m.ejAlly}',
+  '${m.ejOpp}',
+  '${m.totalPushed}',
+  pyCell(m.from),
+  m.movedCells.map(pyCell).join(','),
+].join('|');
 
 void main() {
   group('Générateur de coups — fidélité au moteur Python', () {
@@ -66,20 +66,30 @@ void main() {
         final moves = generateMoves(board, camp);
         final actualSigs = moves.map(signatureOf).toList()..sort();
 
-        expect(moves.length, expectedCount,
-            reason: 'position #$i (${camp.wire}) : nombre de coups différent\n'
-                '${board.render()}');
-        expect(actualSigs, expectedSigs,
-            reason: 'position #$i (${camp.wire}) : coups différents\n'
-                '${board.render()}');
+        expect(
+          moves.length,
+          expectedCount,
+          reason:
+              'position #$i (${camp.wire}) : nombre de coups différent\n'
+              '${board.render()}',
+        );
+        expect(
+          actualSigs,
+          expectedSigs,
+          reason:
+              'position #$i (${camp.wire}) : coups différents\n'
+              '${board.render()}',
+        );
 
         checkedPositions++;
         checkedMoves += moves.length;
       }
 
       // ignore: avoid_print
-      print('$checkedPositions positions, $checkedMoves coups vérifiés '
-          'contre le moteur Python');
+      print(
+        '$checkedPositions positions, $checkedMoves coups vérifiés '
+        'contre le moteur Python',
+      );
     });
   });
 
@@ -88,8 +98,11 @@ void main() {
       final b = Board.initial();
       expect(b.at(3, 0), Piece.blancHeritier, reason: 'Héritier blanc en fa1');
       expect(b.at(3, 1), Piece.blancNurse, reason: 'Nurse blanche en fa2');
-      expect(b.at(3, 2), Piece.blancChevalier,
-          reason: 'Chevalier blanc en fa3');
+      expect(
+        b.at(3, 2),
+        Piece.blancChevalier,
+        reason: 'Chevalier blanc en fa3',
+      );
       expect(b.at(3, 7), Piece.noirHeritier, reason: 'Héritier noir en fa8');
       expect(b.at(3, 6), Piece.noirNurse, reason: 'Nurse noire en fa7');
       expect(b.at(3, 5), Piece.noirChevalier, reason: 'Chevalier noir en fa6');
@@ -135,8 +148,14 @@ void main() {
       b.set(3, 3, Piece.blancGarde); // pousseur, après déplacement
       b.set(3, 4, Piece.noirNurse); // pièce poussée
       b.set(3, 5, Piece.noirChevalier); // mur
-      final out = applyPushes(b, 3, 3, PieceType.garde, Camp.blanc,
-          dirsToUse: const [(0, 1)]);
+      final out = applyPushes(
+        b,
+        3,
+        3,
+        PieceType.garde,
+        Camp.blanc,
+        dirsToUse: const [(0, 1)],
+      );
       expect(out.totalPushed, 0, reason: 'rien ne bouge');
       expect(b.at(3, 4), Piece.noirNurse, reason: 'la nurse reste en place');
       expect(b.at(3, 5), Piece.noirChevalier);
@@ -146,8 +165,14 @@ void main() {
       final b = Board.empty();
       b.set(3, 6, Piece.blancGarde);
       b.set(3, 7, Piece.noirNurse); // au bord
-      final out = applyPushes(b, 3, 6, PieceType.garde, Camp.blanc,
-          dirsToUse: const [(0, 1)]);
+      final out = applyPushes(
+        b,
+        3,
+        6,
+        PieceType.garde,
+        Camp.blanc,
+        dirsToUse: const [(0, 1)],
+      );
       expect(out.ejOpp, 1);
       expect(out.ejAlly, 0);
       expect(b.at(3, 7), isNull, reason: 'la nurse a quitté le plateau');
@@ -157,8 +182,14 @@ void main() {
       final b = Board.empty();
       b.set(0, 6, Piece.blancGarde);
       b.set(0, 7, Piece.noirHeritier); // colonne do : hors zone de ralliement
-      final out = applyPushes(b, 0, 6, PieceType.garde, Camp.blanc,
-          dirsToUse: const [(0, 1)]);
+      final out = applyPushes(
+        b,
+        0,
+        6,
+        PieceType.garde,
+        Camp.blanc,
+        dirsToUse: const [(0, 1)],
+      );
       expect(out.matOn, Camp.noir);
       expect(out.fugueBy, isNull);
     });
@@ -167,8 +198,14 @@ void main() {
       final b = Board.empty();
       b.set(3, 6, Piece.noirGarde);
       b.set(3, 7, Piece.blancHeritier); // colonne fa, poussé vers row 8
-      final out = applyPushes(b, 3, 6, PieceType.garde, Camp.noir,
-          dirsToUse: const [(0, 1)]);
+      final out = applyPushes(
+        b,
+        3,
+        6,
+        PieceType.garde,
+        Camp.noir,
+        dirsToUse: const [(0, 1)],
+      );
       expect(out.fugueBy, Camp.blanc, reason: 'Blanc fugue');
       expect(out.matOn, isNull);
       expect(out.ejOpp, 0);
@@ -229,8 +266,11 @@ void main() {
       final b = Board.empty();
       b.set(3, 7, Piece.blancHeritier);
       b.set(3, 6, Piece.blancNurse); // voisine : l'Héritier peut bouger
-      expect(campCanFugue(b, Camp.blanc), isTrue,
-          reason: 'fa8 → ralliement row 8');
+      expect(
+        campCanFugue(b, Camp.blanc),
+        isTrue,
+        reason: 'fa8 → ralliement row 8',
+      );
       expect(campCanFugue(b, Camp.noir), isFalse);
     });
   });

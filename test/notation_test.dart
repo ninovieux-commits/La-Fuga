@@ -46,13 +46,19 @@ void main() {
 
   group('parseCellsConcat', () {
     test('découpe une concaténation de cases', () {
-      expect(parseCellsConcat('Do1Mi3Sol5'),
-          [const Cell(0, 0), const Cell(2, 2), const Cell(4, 4)]);
+      expect(parseCellsConcat('Do1Mi3Sol5'), [
+        const Cell(0, 0),
+        const Cell(2, 2),
+        const Cell(4, 4),
+      ]);
     });
 
     test('gère les notes de longueurs différentes', () {
-      expect(parseCellsConcat('Ré2Si8Fa1'),
-          [const Cell(1, 1), const Cell(6, 7), const Cell(3, 0)]);
+      expect(parseCellsConcat('Ré2Si8Fa1'), [
+        const Cell(1, 1),
+        const Cell(6, 7),
+        const Cell(3, 0),
+      ]);
     });
 
     test('rejette une chaîne mal formée', () {

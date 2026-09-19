@@ -73,8 +73,11 @@ void main() {
           for (var r = 0; r < kRows; r++) {
             final p = b.at(c, r);
             if (p == null) continue;
-            counts.update('${p.type.wire}/${p.camp.wire}', (v) => v + 1,
-                ifAbsent: () => 1);
+            counts.update(
+              '${p.type.wire}/${p.camp.wire}',
+              (v) => v + 1,
+              ifAbsent: () => 1,
+            );
           }
         }
         for (final camp in ['Blanc', 'Noir']) {

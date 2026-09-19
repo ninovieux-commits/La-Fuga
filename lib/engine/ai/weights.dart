@@ -35,9 +35,7 @@ const double kWeightStep = 0.03;
 /// catégorie absente.
 final class DeepGreyWeights {
   DeepGreyWeights([Map<String, double>? values])
-      : _values = {
-          for (final cat in kWeightCategories) cat: values?[cat] ?? 1.0,
-        };
+    : _values = {for (final cat in kWeightCategories) cat: values?[cat] ?? 1.0};
 
   final Map<String, double> _values;
 
@@ -69,8 +67,9 @@ final class DeepGreyWeights {
   /// [kWeightStep].
   DeepGreyWeights learn(Camp winner, Board finalBoard) {
     final contribs = categoryContributions(finalBoard, winner);
-    final total =
-        contribs.values.fold<double>(0, (a, v) => a + v.abs()).clamp(1e-9, double.infinity);
+    final total = contribs.values
+        .fold<double>(0, (a, v) => a + v.abs())
+        .clamp(1e-9, double.infinity);
 
     final next = <String, double>{};
     for (final cat in kWeightCategories) {
@@ -78,8 +77,9 @@ final class DeepGreyWeights {
       var delta = kWeightStep * (contrib / total);
       if (delta > kWeightStep) delta = kWeightStep;
       if (delta < -kWeightStep) delta = -kWeightStep;
-      final updated =
-          (this[cat] + delta).clamp(kWeightMin, kWeightMax).toDouble();
+      final updated = (this[cat] + delta)
+          .clamp(kWeightMin, kWeightMax)
+          .toDouble();
       next[cat] = double.parse(updated.toStringAsFixed(4));
     }
     return DeepGreyWeights(next);

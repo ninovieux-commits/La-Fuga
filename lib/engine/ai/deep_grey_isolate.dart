@@ -150,15 +150,17 @@ final class DeepGreyEngine {
     final id = _nextId++;
     final completer = Completer<ThinkResult>();
     _pending[id] = completer;
-    _toIsolate!.send(ThinkRequest(
-      id: id,
-      board: board.toJson(),
-      camp: camp.wire,
-      deepMode: deepMode,
-      moveNumber: moveNumber,
-      seenPositions: seenPositions,
-      weights: weights?.values ?? const {},
-    ));
+    _toIsolate!.send(
+      ThinkRequest(
+        id: id,
+        board: board.toJson(),
+        camp: camp.wire,
+        deepMode: deepMode,
+        moveNumber: moveNumber,
+        seenPositions: seenPositions,
+        weights: weights?.values ?? const {},
+      ),
+    );
     return completer.future;
   }
 
@@ -214,8 +216,13 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
 
   final move = req.deepMode
       ? chooseMoveTopN(board, camp, moveNumber: req.moveNumber, context: ctx)
-      : chooseMove(board, camp,
-          depth: 2, moveNumber: req.moveNumber, context: ctx);
+      : chooseMove(
+          board,
+          camp,
+          depth: 2,
+          moveNumber: req.moveNumber,
+          context: ctx,
+        );
 
   stopwatch.stop();
 
@@ -249,13 +256,13 @@ ThinkResult _think(ThinkRequest req, EvalCache cache) {
     ejAlly: move.ejAlly,
     ejOpp: move.ejOpp,
     from: [
-      [move.from.col, move.from.row]
+      [move.from.col, move.from.row],
     ],
     movedCells: [
-      for (final c in move.movedCells) [c.col, c.row]
+      for (final c in move.movedCells) [c.col, c.row],
     ],
     pushTargets: [
-      for (final c in pushTargets) [c.col, c.row]
+      for (final c in pushTargets) [c.col, c.row],
     ],
     elapsedMicros: stopwatch.elapsedMicroseconds,
   );

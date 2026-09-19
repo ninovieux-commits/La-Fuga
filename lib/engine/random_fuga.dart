@@ -97,7 +97,10 @@ Board? buildRandomFugaBoard(String code) {
   }
 
   // Les 8 emplacements de carrées, lus en U : do2, do1, milieu, si1, si2.
-  final milieu = [for (var c = 1; c <= 5; c++) if (c != colH) c];
+  final milieu = [
+    for (var c = 1; c <= 5; c++)
+      if (c != colH) c,
+  ];
   final slots = <(int, int)>[
     (0, 1),
     (0, 0),
@@ -108,8 +111,11 @@ Board? buildRandomFugaBoard(String code) {
   final gardeIdx = kRfCombos[parsed.disposition - 1].toSet();
   for (var i = 0; i < slots.length; i++) {
     final (c, r) = slots[i];
-    board.set(c, r,
-        gardeIdx.contains(i) ? Piece.blancGarde : Piece.blancSoldat);
+    board.set(
+      c,
+      r,
+      gardeIdx.contains(i) ? Piece.blancGarde : Piece.blancSoldat,
+    );
   }
 
   // ── Camp Noir : symétrie des pièces blanches ──

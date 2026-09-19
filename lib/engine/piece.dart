@@ -23,8 +23,7 @@ enum Camp {
   /// Sens de progression sur l'axe des rangées.
   int get forward => this == Camp.blanc ? 1 : -1;
 
-  static Camp fromWire(String s) =>
-      s == 'Noir' ? Camp.noir : Camp.blanc;
+  static Camp fromWire(String s) => s == 'Noir' ? Camp.noir : Camp.blanc;
 }
 
 /// Les cinq types de pièces.
@@ -47,13 +46,13 @@ enum PieceType {
   bool get isSquare => this == PieceType.soldat || this == PieceType.garde;
 
   static PieceType fromWire(String s) => switch (s) {
-        'Héritier' => PieceType.heritier,
-        'Nurse' => PieceType.nurse,
-        'Soldat' => PieceType.soldat,
-        'Garde' => PieceType.garde,
-        'Chevalier' => PieceType.chevalier,
-        _ => throw ArgumentError('Type de pièce inconnu : $s'),
-      };
+    'Héritier' => PieceType.heritier,
+    'Nurse' => PieceType.nurse,
+    'Soldat' => PieceType.soldat,
+    'Garde' => PieceType.garde,
+    'Chevalier' => PieceType.chevalier,
+    _ => throw ArgumentError('Type de pièce inconnu : $s'),
+  };
 }
 
 /// Une pièce est immuable : le moteur déplace des références, il ne mute
@@ -84,17 +83,17 @@ final class Piece {
   static const Piece noirChevalier = Piece(PieceType.chevalier, Camp.noir);
 
   static Piece of(PieceType type, Camp camp) => switch ((type, camp)) {
-        (PieceType.heritier, Camp.blanc) => blancHeritier,
-        (PieceType.nurse, Camp.blanc) => blancNurse,
-        (PieceType.soldat, Camp.blanc) => blancSoldat,
-        (PieceType.garde, Camp.blanc) => blancGarde,
-        (PieceType.chevalier, Camp.blanc) => blancChevalier,
-        (PieceType.heritier, Camp.noir) => noirHeritier,
-        (PieceType.nurse, Camp.noir) => noirNurse,
-        (PieceType.soldat, Camp.noir) => noirSoldat,
-        (PieceType.garde, Camp.noir) => noirGarde,
-        (PieceType.chevalier, Camp.noir) => noirChevalier,
-      };
+    (PieceType.heritier, Camp.blanc) => blancHeritier,
+    (PieceType.nurse, Camp.blanc) => blancNurse,
+    (PieceType.soldat, Camp.blanc) => blancSoldat,
+    (PieceType.garde, Camp.blanc) => blancGarde,
+    (PieceType.chevalier, Camp.blanc) => blancChevalier,
+    (PieceType.heritier, Camp.noir) => noirHeritier,
+    (PieceType.nurse, Camp.noir) => noirNurse,
+    (PieceType.soldat, Camp.noir) => noirSoldat,
+    (PieceType.garde, Camp.noir) => noirGarde,
+    (PieceType.chevalier, Camp.noir) => noirChevalier,
+  };
 
   /// Clé compacte d'une case, façon `_dg_board_key` : première lettre du type
   /// + première lettre du camp. 'H'/'N'/'S'/'G'/'C' × 'B'/'N'.
@@ -102,9 +101,10 @@ final class Piece {
 
   Map<String, String> toJson() => {'type': type.wire, 'camp': camp.wire};
 
-  static Piece fromJson(Map<String, dynamic> j) =>
-      Piece.of(PieceType.fromWire(j['type'] as String),
-          Camp.fromWire(j['camp'] as String));
+  static Piece fromJson(Map<String, dynamic> j) => Piece.of(
+    PieceType.fromWire(j['type'] as String),
+    Camp.fromWire(j['camp'] as String),
+  );
 
   @override
   String toString() => '${type.wire}(${camp.wire})';

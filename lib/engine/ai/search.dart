@@ -20,9 +20,9 @@ final class SearchContext {
     EvalCache? cache,
     this.seenPositions = const {},
     Random? random,
-  })  : weights = weights ?? DeepGreyWeights(),
-        cache = cache ?? EvalCache(),
-        random = random ?? Random();
+  }) : weights = weights ?? DeepGreyWeights(),
+       cache = cache ?? EvalCache(),
+       random = random ?? Random();
 
   final DeepGreyWeights weights;
   final EvalCache cache;
@@ -198,7 +198,8 @@ Move? chooseMove(
         sc = ctx.eval(nb, camp) + bonus + repPenalty;
       } else {
         oppMoves.sort(
-            (a, b) => _oppPriority(a, camp, opp) - _oppPriority(b, camp, opp));
+          (a, b) => _oppPriority(a, camp, opp) - _oppPriority(b, camp, opp),
+        );
         double? worst;
         for (final omv in oppMoves) {
           final s = _scoreOppReply(omv, nb, camp, opp, depth, ctx);
@@ -272,8 +273,13 @@ Move? chooseMoveTopN(
 
   final candidates = myMoves.where((mv) => !_isForbidden(mv, camp)).toList();
   if (candidates.isEmpty) {
-    return chooseMove(board, camp,
-        depth: 2, moveNumber: moveNumber, context: ctx);
+    return chooseMove(
+      board,
+      camp,
+      depth: 2,
+      moveNumber: moveNumber,
+      context: ctx,
+    );
   }
 
   // Passe 1 : profondeur 2 sur tous les candidats.
