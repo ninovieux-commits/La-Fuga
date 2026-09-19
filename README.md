@@ -41,6 +41,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Deep Grey | choix de coup, poids appris, et isolate non bloquant |
 | Géométrie | orientation, ralliements, aller-retour pixel ↔ case |
 | Réseau | chemins et clés de chaque route, réconciliation du thème |
+| Langues | 415 clés × 9 langues, complétude et repli |
 
 ```bash
 flutter test
@@ -82,6 +83,7 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Plateforme Android (manifeste, permissions, minSdk 24, portrait)
 - [x] Rendu GPU du plateau et des pièces, écran de jeu contre Deep Grey
 - [x] Couche réseau (HTTP + Socket.IO)
+- [x] 10 langues (415 clés), 17 thèmes
 - [ ] Écrans complets (chrono, chat, en ligne, correspondance, thèmes à images)
 
 ### Écarts connus, à combler

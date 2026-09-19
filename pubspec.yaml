@@ -30,6 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/
+    - assets/i18n/
     - assets/images/
     - assets/logos/
     - assets/sounds/cloche/
