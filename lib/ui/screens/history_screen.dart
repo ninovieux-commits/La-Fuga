@@ -11,10 +11,21 @@ import '../../theme/themes.dart';
 import 'replay_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  HistoryScreen({super.key, required this.online, LocalGamesStore? local})
-    : local = local ?? LocalGamesStore();
+  HistoryScreen({
+    super.key,
+    required this.online,
+    LocalGamesStore? local,
+    this.opponent,
+    this.mode,
+  }) : local = local ?? LocalGamesStore();
 
   final OnlineService online;
+
+  /// Ne montrer que les parties jouées contre ce joueur.
+  final String? opponent;
+
+  /// Avec [opponent] : `direct` ou `corr`, pour ne garder qu'un seul mode.
+  final String? mode;
 
   /// Magasin des parties locales. Injectable pour les tests.
   final LocalGamesStore local;
@@ -54,7 +65,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       if (r.isOk) {
         account = [
           for (final g in r.get<List<dynamic>>('games') ?? const [])
-            Map<String, dynamic>.from(g as Map),
+            if (g is Map)
+              if (_keep(Map<String, dynamic>.from(g)))
+                Map<String, dynamic>.from(g),
         ];
       }
     }
@@ -65,6 +78,23 @@ class _HistoryScreenState extends State<HistoryScreen>
       _localGames = local;
       _accountGames = account;
     });
+  }
+
+  /// Filtre tête-à-tête : les parties contre un adversaire donné, dans un
+  /// mode donné. Le mode se lit dans l'identifiant, comme en Kivy :
+  /// `online_corr…` pour la correspondance, `online_…` pour le direct.
+  bool _keep(Map<String, dynamic> game) {
+    final opponent = widget.opponent;
+    if (opponent == null) return true;
+
+    final uid = '${game['game_uid'] ?? ''}';
+    final isCorr = uid.startsWith('online_corr');
+    if (widget.mode == 'corr' && !isCorr) return false;
+    if (widget.mode == 'direct' && isCorr) return false;
+
+    final lower = opponent.toLowerCase();
+    return '${game['joueur1'] ?? ''}'.toLowerCase() == lower ||
+        '${game['joueur2'] ?? ''}'.toLowerCase() == lower;
   }
 
   Future<void> _openAccountGame(Map<String, dynamic> game) async {
@@ -103,7 +133,11 @@ class _HistoryScreenState extends State<HistoryScreen>
       appBar: AppBar(
         backgroundColor: palette.clair,
         foregroundColor: Colors.white,
-        title: Text(T('Historique')),
+        title: Text(
+          widget.opponent == null
+              ? T('Historique')
+              : '${T("Historique")} · ${widget.opponent}',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

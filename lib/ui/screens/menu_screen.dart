@@ -10,9 +10,11 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
+import 'account_screen.dart';
 import 'correspondence_screen.dart';
 import 'game_screen.dart';
 import 'history_screen.dart';
+import 'login_screen.dart';
 import 'online_lobby_screen.dart';
 import 'settings_screen.dart';
 
@@ -97,6 +99,21 @@ class _MenuScreenState extends State<MenuScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Le compte : son profil si l'on est connecté, la connexion sinon.
+  Future<void> _openAccount() async {
+    final online = OnlineService.instance;
+    if (!online.isLoggedIn) {
+      final ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => LoginScreen(online: online)),
+      );
+      if (ok != true || !mounted) return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => AccountScreen(online: online)),
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _openSettings() async {
     await Navigator.of(
       context,
@@ -172,11 +189,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 const SizedBox(height: 16),
                 _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
                 _button(palette, T('Historique'), onTap: _openHistory),
-                _button(
-                  palette,
-                  T('Mon compte'),
-                  onTap: () => _notYet(T('Mon compte')),
-                ),
+                _button(palette, T('Mon compte'), onTap: _openAccount),
                 _button(palette, T('Réglages'), onTap: _openSettings),
                 const SizedBox(height: 24),
                 Center(
