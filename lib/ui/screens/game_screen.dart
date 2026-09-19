@@ -16,6 +16,7 @@ import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
 import '../../game/move_controller.dart';
+import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../widgets/board_geometry.dart';
@@ -49,6 +50,7 @@ class _GameScreenState extends State<GameScreen> {
   late MoveController _game;
   late GameClock _clock;
   final DeepGreyEngine _engine = DeepGreyEngine();
+  final SoundPlayer _sounds = SoundPlayer();
 
   /// Configurations de pièces déjà vues par l'IA : alimente sa pénalité anti
   /// allers-retours.
@@ -66,12 +68,14 @@ class _GameScreenState extends State<GameScreen> {
     _game = MoveController();
     _clock = GameClock(widget.cadence);
     if (widget.aiCamp != null) _engine.start();
+    _sounds.init();
     _startTicking();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _sounds.dispose();
     _engine.dispose();
     super.dispose();
   }
@@ -104,6 +108,9 @@ class _GameScreenState extends State<GameScreen> {
     final result = _game.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
+    if (result.notation != null) {
+      _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
+    }
     setState(() {
       if (result.notation != null) _rememberLastMove(result);
       if (result.effect == ControllerEffect.gameOver) {
@@ -159,6 +166,7 @@ class _GameScreenState extends State<GameScreen> {
     final key = _game.board.ownPiecesKey(aiCamp);
     _aiPositionCounts[key] = (_aiPositionCounts[key] ?? 0) + 1;
 
+    _sounds.playNotation(applied.notation, hadEjection: applied.hadEjection);
     setState(() {
       _thinking = false;
       _lastThinkMicros = result.elapsedMicros;
@@ -185,6 +193,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _restart() {
+    _sounds.stopAll();
     setState(() {
       _game = MoveController();
       _clock.reset();

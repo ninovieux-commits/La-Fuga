@@ -4,13 +4,20 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'ui/screens/game_screen.dart';
+import 'i18n/translations.dart';
+import 'state/settings.dart';
+import 'ui/screens/menu_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // L'app Kivy est verrouillée en portrait (orientation = portrait dans
-  // buildozer.spec) : le plateau est calé sur la largeur de l'écran.
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // L'app Kivy est verrouillée en portrait (buildozer.spec) : le plateau est
+  // calé sur la largeur de l'écran.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  final settings = await Settings.load();
+  await Translations.load(settings.language);
+
   runApp(const FugaApp());
 }
 
@@ -32,7 +39,7 @@ class FugaApp extends StatelessWidget {
       // de pixels purs mis à l'échelle sur la largeur.
       builder: (context, child) =>
           MediaQuery.withNoTextScaling(child: child ?? const SizedBox.shrink()),
-      home: const GameScreen(),
+      home: const MenuScreen(),
     );
   }
 }

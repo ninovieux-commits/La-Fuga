@@ -44,6 +44,9 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Langues | 415 clés × 9 langues, complétude et repli |
 | Interaction | poussée dir. par dir., multisaut, manœuvre, fins de partie |
 | Chrono | décompte, drapeau, synchro réseau |
+| Sons | note par case, glissandos, ordre dans le temps |
+| Réglages | valeurs par défaut, persistance, axes de thème |
+| Écrans | démarrage, menu, réglages, lancement d'une partie |
 
 ```bash
 flutter test
@@ -87,9 +90,10 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Couche réseau (HTTP + Socket.IO)
 - [x] 10 langues (415 clés), 17 thèmes
 - [x] Interaction incrémentale de Kivy + chrono
-- [ ] Écrans restants (menu, tuto, historique, lecteur, conversations, compte)
+- [x] Sons (4 instruments, note par case, glissandos)
+- [x] Menu, réglages, persistance de la configuration
+- [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
 - [ ] Modes en ligne et correspondance branchés sur l'écran de jeu
-- [ ] Sons (4 instruments, notes liées aux cases)
 
 ### Écarts connus, à combler
 
