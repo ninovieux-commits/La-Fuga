@@ -42,6 +42,8 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Géométrie | orientation, ralliements, aller-retour pixel ↔ case |
 | Réseau | chemins et clés de chaque route, réconciliation du thème |
 | Langues | 415 clés × 9 langues, complétude et repli |
+| Interaction | poussée dir. par dir., multisaut, manœuvre, fins de partie |
+| Chrono | décompte, drapeau, synchro réseau |
 
 ```bash
 flutter test
@@ -84,14 +86,13 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Rendu GPU du plateau et des pièces, écran de jeu contre Deep Grey
 - [x] Couche réseau (HTTP + Socket.IO)
 - [x] 10 langues (415 clés), 17 thèmes
-- [ ] Écrans complets (chrono, chat, en ligne, correspondance, thèmes à images)
+- [x] Interaction incrémentale de Kivy + chrono
+- [ ] Écrans restants (menu, tuto, historique, lecteur, conversations, compte)
+- [ ] Modes en ligne et correspondance branchés sur l'écran de jeu
+- [ ] Sons (4 instruments, notes liées aux cases)
 
 ### Écarts connus, à combler
 
-- L'interaction est pour l'instant « choisir une pièce, choisir une arrivée ».
-  Kivy propose une interaction **incrémentale** : on pousse direction par
-  direction, on compose un groupe pour une manœuvre, on enchaîne les sauts et
-  on valide en recliquant la pièce. À porter avec l'écran de jeu complet.
 - Les thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey) ne sont
   pas encore branchés : le rendu géométrique sert de repli universel.
 - Le logo central du plateau (rosace à 8 segments) n'est pas dessiné.
