@@ -47,6 +47,8 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Sons | note par case, glissandos, ordre dans le temps |
 | Réglages | valeurs par défaut, persistance, axes de thème |
 | Écrans | démarrage, menu, réglages, lancement d'une partie |
+| Notation inverse | tout coup produit se relit en le même coup |
+| Partie en ligne | coups, horloges, nulle, abandon, chat, match |
 
 ```bash
 flutter test

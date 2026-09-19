@@ -65,8 +65,48 @@ abstract final class FugaEvents {
   ];
 }
 
+/// Ce qu'une partie attend de sa connexion temps réel.
+///
+/// Extrait en interface pour qu'une partie en ligne se teste sans serveur :
+/// c'est précisément la couche la plus pénible à déboguer en production.
+abstract interface class GameSocket {
+  /// Abonne un callback à un événement serveur.
+  void on(String event, void Function(Map<String, dynamic>) handler);
+
+  /// Retire l'abonnement à un événement.
+  void off(String event);
+
+  /// Transmet un coup à l'adversaire.
+  void jouerCoup({
+    required String gameId,
+    required String notation,
+    int? clockBlanc,
+    int? clockNoir,
+    int? clockMe,
+  });
+
+  /// Propose la nulle.
+  void proposerNulle(String gameId);
+
+  /// Signale la fin d'une partie. [loserColor] nul = nulle.
+  void finPartie({
+    required String gameId,
+    required String methode,
+    String? loserColor,
+  });
+
+  /// Envoie un message dans le chat de la partie.
+  void chat(String gameId, String texte);
+
+  /// Signale qu'on est prêt pour la partie suivante du match.
+  void pretPartieSuivante(String gameId);
+
+  /// Abandonne le match en cours.
+  void abandonnerMatch(String gameId);
+}
+
 /// Connexion temps réel : matchmaking, défis et parties.
-class FugaSocket {
+class FugaSocket implements GameSocket {
   FugaSocket({required this.serverUrl});
 
   final String serverUrl;
@@ -85,10 +125,12 @@ class FugaSocket {
 
   /// Abonne un callback à un événement serveur. Un seul par événement, comme
   /// en Kivy.
+  @override
   void on(String event, void Function(Map<String, dynamic>) handler) {
     _handlers[event] = handler;
   }
 
+  @override
   void off(String event) => _handlers.remove(event);
 
   /// Se connecte et s'authentifie.
@@ -183,6 +225,7 @@ class FugaSocket {
   /// toujours `null`. On envoie ici les **trois** clés : `clock_me` fait
   /// fonctionner la synchro sans toucher au serveur, les deux autres gardent
   /// la compatibilité avec un client Kivy à l'autre bout.
+  @override
   void jouerCoup({
     required String gameId,
     required String notation,
@@ -197,10 +240,12 @@ class FugaSocket {
     'clock_me': clockMe,
   });
 
+  @override
   void proposerNulle(String gameId) =>
       _emit('proposer_nulle', {'game_id': gameId});
 
   /// Signale la fin d'une partie. `loserColor` nul = nulle.
+  @override
   void finPartie({
     required String gameId,
     required String methode,
@@ -211,6 +256,7 @@ class FugaSocket {
     'loser_color': loserColor,
   });
 
+  @override
   void chat(String gameId, String texte) =>
       _emit('chat', {'game_id': gameId, 'texte': texte});
 
@@ -218,9 +264,11 @@ class FugaSocket {
   void envoyerEtat(String gameId, Map<String, dynamic> etat) =>
       _emit('envoyer_etat', {'game_id': gameId, ...etat});
 
+  @override
   void pretPartieSuivante(String gameId) =>
       _emit('pret_partie_suivante', {'game_id': gameId});
 
+  @override
   void abandonnerMatch(String gameId) =>
       _emit('abandonner_match', {'game_id': gameId});
 
