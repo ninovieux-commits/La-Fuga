@@ -11,6 +11,10 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Exigé par flutter_local_notifications : rend les API java.time
+        // disponibles sous Android 8. Sans cela, :app:checkDebugAarMetadata
+        // refuse la dépendance.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -20,10 +24,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Identique au couple package.domain + package.name de buildozer.spec,
+        // pour que l'APK Flutter remplace l'APK Kivy sur le téléphone.
         applicationId = "org.lafuga.lafuga"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24  // = android.minapi de buildozer.spec
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,8 +35,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signé avec la clé de debug pour l'instant, comme le faisait
+            // buildozer. À remplacer par une vraie clé avant publication.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -41,4 +44,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
