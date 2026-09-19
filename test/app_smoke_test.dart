@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/screens/correspondence_screen.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:lafuga/ui/screens/login_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
@@ -125,5 +126,18 @@ void main() {
 
     await tapVisible(tester, find.text('Inscription').last);
     expect(find.text('Email (optionnel)'), findsOneWidget);
+  });
+
+  testWidgets('la correspondance demande aussi de se connecter', (
+    tester,
+  ) async {
+    await bootApp(tester);
+
+    await tapVisible(tester, find.text('Correspondance'));
+
+    expect(find.byType(CorrespondenceScreen), findsOneWidget);
+    expect(find.text('Connexion requise'), findsOneWidget);
+    // Sans session, pas de bouton pour défier quelqu'un.
+    expect(find.text('Défier'), findsNothing);
   });
 }

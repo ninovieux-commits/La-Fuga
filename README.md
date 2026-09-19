@@ -49,6 +49,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Écrans | démarrage, menu, réglages, lancement d'une partie |
 | Notation inverse | tout coup produit se relit en le même coup |
 | Partie en ligne | coups, horloges, nulle, abandon, chat, match |
+| Correspondance | lecture des parties, rejeu, atomicité du coup final |
 
 ```bash
 flutter test
@@ -96,7 +97,7 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Menu, réglages, persistance de la configuration
 - [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
 - [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
-- [ ] Correspondance branchée sur l'écran de jeu
+- [x] Correspondance : défis, parties, nulle, abandon, rejeu de l'historique
 
 ### Écarts connus, à combler
 

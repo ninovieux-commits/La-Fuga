@@ -9,6 +9,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
+import 'correspondence_screen.dart';
 import 'game_screen.dart';
 import 'online_lobby_screen.dart';
 import 'settings_screen.dart';
@@ -76,6 +77,15 @@ class _MenuScreenState extends State<MenuScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _playCorrespondence() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CorrespondenceScreen(online: OnlineService.instance),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _openSettings() async {
     await Navigator.of(
       context,
@@ -131,11 +141,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               _button(palette, T('Jouer en local'), onTap: _playLocal),
               _button(palette, T('Jouer en ligne'), onTap: _playOnline),
-              _button(
-                palette,
-                T('Correspondance'),
-                onTap: () => _notYet(T('Correspondance')),
-              ),
+              _button(palette, T('Correspondance'), onTap: _playCorrespondence),
               const SizedBox(height: 16),
               _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
               _button(
