@@ -8,7 +8,9 @@ import '../../game/clock.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../../net/online_service.dart';
 import 'game_screen.dart';
+import 'online_lobby_screen.dart';
 import 'settings_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -60,6 +62,15 @@ class _MenuScreenState extends State<MenuScreen> {
           aiCamp: null, // deux joueurs sur le même appareil
           themeName: _axes.general,
         ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _playOnline() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OnlineLobbyScreen(online: OnlineService.instance),
       ),
     );
     if (mounted) setState(() {});
@@ -119,11 +130,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 primary: true,
               ),
               _button(palette, T('Jouer en local'), onTap: _playLocal),
-              _button(
-                palette,
-                T('Jouer en ligne'),
-                onTap: () => _notYet(T('Jouer en ligne')),
-              ),
+              _button(palette, T('Jouer en ligne'), onTap: _playOnline),
               _button(
                 palette,
                 T('Correspondance'),

@@ -90,9 +90,8 @@ class OnlineGame {
     required this.socket,
     required this.info,
     required Cadence cadence,
-    void Function(OnlineEvent event)? onChanged,
+    this.onChanged,
   }) : clock = GameClock(cadence),
-       _onChanged = onChanged,
        game = MoveController(
          board: info.randomCode == null
              ? Board.initial()
@@ -107,7 +106,9 @@ class OnlineGame {
   final MoveController game;
   final GameClock clock;
 
-  final void Function(OnlineEvent event)? _onChanged;
+  /// Appelé à chaque changement. Modifiable : la partie peut être créée
+  /// avant que l'écran qui l'affiche n'existe.
+  void Function(OnlineEvent event)? onChanged;
 
   Timer? _ticker;
 
@@ -341,7 +342,7 @@ class OnlineGame {
     _notify(OnlineEvent.gameOver);
   }
 
-  void _notify(OnlineEvent event) => _onChanged?.call(event);
+  void _notify(OnlineEvent event) => onChanged?.call(event);
 
   void dispose() {
     _ticker?.cancel();

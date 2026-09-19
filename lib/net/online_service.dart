@@ -40,6 +40,14 @@ class OnlineService {
           ),
       _settings = settings ?? Settings.instance;
 
+  static OnlineService? _instance;
+
+  /// Instance de l'application. Créée une fois au démarrage.
+  static OnlineService get instance => _instance ??= OnlineService();
+
+  /// Remplace l'instance — pour les tests.
+  static set instance(OnlineService service) => _instance = service;
+
   final OnlineClient _client;
   final Settings _settings;
 

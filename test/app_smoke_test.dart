@@ -7,7 +7,9 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
+import 'package:lafuga/ui/screens/login_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/ui/screens/online_lobby_screen.dart';
 import 'package:lafuga/ui/screens/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -93,5 +95,35 @@ void main() {
     expect(find.text('Deep Grey'), findsNothing);
     expect(find.text('Blanc'), findsOneWidget);
     expect(find.text('Noir'), findsOneWidget);
+  });
+
+  testWidgets('le salon en ligne demande de se connecter', (tester) async {
+    await bootApp(tester);
+
+    await tapVisible(tester, find.text('Jouer en ligne'));
+
+    expect(find.byType(OnlineLobbyScreen), findsOneWidget);
+    // Sans session enregistrée, on ne propose pas de chercher une partie :
+    // on demande d'abord de se connecter.
+    expect(find.text('Connexion requise'), findsOneWidget);
+    expect(find.text('Chercher une partie'), findsNothing);
+  });
+
+  testWidgets("l'écran de connexion bascule vers l'inscription", (
+    tester,
+  ) async {
+    await bootApp(tester);
+    await tapVisible(tester, find.text('Jouer en ligne'));
+    await tapVisible(tester, find.text('Se connecter'));
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(
+      find.text('Email (optionnel)'),
+      findsNothing,
+      reason: 'le champ e-mail ne sert qu à l inscription',
+    );
+
+    await tapVisible(tester, find.text('Inscription').last);
+    expect(find.text('Email (optionnel)'), findsOneWidget);
   });
 }

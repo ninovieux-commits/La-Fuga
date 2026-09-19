@@ -95,7 +95,8 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Sons (4 instruments, note par case, glissandos)
 - [x] Menu, réglages, persistance de la configuration
 - [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
-- [ ] Modes en ligne et correspondance branchés sur l'écran de jeu
+- [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
+- [ ] Correspondance branchée sur l'écran de jeu
 
 ### Écarts connus, à combler
 

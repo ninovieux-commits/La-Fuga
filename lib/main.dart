@@ -1,10 +1,13 @@
 /// Point d'entrée de La Fuga.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'i18n/translations.dart';
+import 'net/online_service.dart';
 import 'state/settings.dart';
 import 'ui/screens/menu_screen.dart';
 
@@ -17,6 +20,10 @@ Future<void> main() async {
 
   final settings = await Settings.load();
   await Translations.load(settings.language);
+
+  // Reconnexion au compte, sans bloquer l'affichage : le menu doit
+  // apparaître tout de suite, connecté ou non.
+  unawaited(OnlineService.instance.tryAutoLogin());
 
   runApp(const FugaApp());
 }
