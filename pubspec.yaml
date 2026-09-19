@@ -1,0 +1,46 @@
+name: lafuga
+description: La Fuga — jeu de plateau, portage Flutter de l'application Kivy.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  socket_io_client: ^3.0.2
+  shared_preferences: ^2.3.3
+  path_provider: ^2.1.5
+  audioplayers: ^6.1.0
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
+  flutter_local_notifications: ^18.0.1
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  test: ^1.25.8
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+    - assets/images/
+    - assets/logos/
+    - assets/sounds/cloche/
+    - assets/sounds/guitare/
+    - assets/sounds/orgue/
+    - assets/sounds/piano/
+    - assets/themes/theme_deepgrey/
+    - assets/themes/themebataille/
+    - assets/themes/themedragon/
+    - assets/themes/themefleurs/
+    - assets/themes/themeinsectes/
+  fonts:
+    - family: NotoSansCJK
+      fonts:
+        - asset: assets/fonts/NotoSansCJKsc-Regular.otf

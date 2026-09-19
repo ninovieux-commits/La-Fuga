@@ -1,0 +1,112 @@
+name: Compiler l'APK Android
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Compiler en mode release (sinon debug)"
+        type: boolean
+        default: false
+
+# Un seul build à la fois par branche : un nouveau push annule le précédent.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.35.5"
+
+jobs:
+  # ── Étage 1 : vérifications rapides. Inutile de compiler un APK si le
+  # moteur de règles est cassé : ce job échoue en ~2 min au lieu de ~15.
+  verifier:
+    name: Analyse et tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupérer les dépendances
+        run: flutter pub get
+
+      - name: Vérifier le formatage
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyse statique
+        run: flutter analyze --no-fatal-infos
+
+      - name: Tests (dont la fidélité du moteur au moteur Python)
+        run: flutter test --reporter expanded
+
+  build-android:
+    name: APK Android
+    runs-on: ubuntu-latest
+    needs: verifier
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupérer les dépendances
+        run: flutter pub get
+
+      - name: Compiler l'APK
+        id: build
+        run: |
+          if [ "${{ inputs.release }}" = "true" ]; then
+            echo "Mode release"
+            flutter build apk --release --target-platform android-arm64
+            echo "apk=build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
+            echo "nom=lafuga-apk-release" >> "$GITHUB_OUTPUT"
+          else
+            echo "Mode debug"
+            flutter build apk --debug --target-platform android-arm64
+            echo "apk=build/app/outputs/flutter-apk/app-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "nom=lafuga-apk-debug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Récapitulatif
+        if: always()
+        run: |
+          APK="${{ steps.build.outputs.apk }}"
+          if [ -f "$APK" ]; then
+            TAILLE=$(du -h "$APK" | cut -f1)
+            echo "### APK compilé" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Fichier : \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Taille : **$TAILLE**" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Commit : \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### APK introuvable" >> "$GITHUB_STEP_SUMMARY"
+            echo "Attendu à \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Publier l'APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.nom || 'lafuga-apk' }}
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          retention-days: 30
