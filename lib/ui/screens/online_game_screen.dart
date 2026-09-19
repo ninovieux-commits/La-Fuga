@@ -221,6 +221,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                 groupSelection: _g.game.groupSelection,
                 highlighted: _g.game.availablePushCells.toSet(),
                 lastMoveCells: _lastMoveCells,
+                pieceTheme: axes.pieces,
+                boardTheme: axes.board,
               ),
             ),
             _banner(palette, bottomCamp),

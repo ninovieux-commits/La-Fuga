@@ -50,6 +50,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Notation inverse | tout coup produit se relit en le même coup |
 | Partie en ligne | coups, horloges, nulle, abandon, chat, match |
 | Correspondance | lecture des parties, rejeu, atomicité du coup final |
+| Images de thème | fichiers existants, dix pièces par thème, pubspec à jour |
 
 ```bash
 flutter test
@@ -95,14 +96,13 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Interaction incrémentale de Kivy + chrono
 - [x] Sons (4 instruments, note par case, glissandos)
 - [x] Menu, réglages, persistance de la configuration
+- [x] Thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey)
 - [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
 - [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
 - [x] Correspondance : défis, parties, nulle, abandon, rejeu de l'historique
 
 ### Écarts connus, à combler
 
-- Les thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey) ne sont
-  pas encore branchés : le rendu géométrique sert de repli universel.
 - Le logo central du plateau (rosace à 8 segments) n'est pas dessiné.
 - Firebase est volontairement absent de `pubspec.yaml` tant que
   `google-services.json` n'est pas fourni : le déclarer sans ce fichier ferait

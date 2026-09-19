@@ -19,8 +19,8 @@ import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
-import '../widgets/board_geometry.dart';
-import '../widgets/board_painter.dart';
+import '../../state/settings.dart';
+import '../widgets/game_board_view.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -212,6 +212,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final axes = Settings.instance.themeAxes;
     final palette = paletteOf(widget.themeName);
     // Les Blancs sont en bas, sauf si le joueur humain tient les Noirs.
     final flipped = widget.aiCamp != Camp.blanc;
@@ -223,48 +224,17 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             _playerBanner(palette, flipped ? Camp.noir : Camp.blanc),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
-                  final geometry = BoardGeometry(size: size, flipped: flipped);
-                  return GestureDetector(
-                    onTapUp: (details) {
-                      final cell = geometry.pixelToCell(details.localPosition);
-                      if (cell != null) _onTapCell(cell);
-                    },
-                    child: Stack(
-                      children: [
-                        // Le décor ne dépend que du thème et de la taille :
-                        // isolé derrière son RepaintBoundary, il n'est pas
-                        // redessiné à chaque coup.
-                        RepaintBoundary(
-                          child: CustomPaint(
-                            size: size,
-                            painter: BoardBackgroundPainter(
-                              geometry: geometry,
-                              palette: palette,
-                            ),
-                          ),
-                        ),
-                        CustomPaint(
-                          size: size,
-                          painter: BoardPiecesPainter(
-                            geometry: geometry,
-                            palette: palette,
-                            board: _game.board,
-                            selected: _game.selected,
-                            groupSelection: _game.groupSelection,
-                            destinations: _game.availablePushCells.toSet(),
-                            lastMoveCells: _lastMoveCells,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              child: GameBoardView(
+                board: _game.board,
+                palette: palette,
+                flipped: flipped,
+                onTapCell: _onTapCell,
+                selected: _game.selected,
+                groupSelection: _game.groupSelection,
+                highlighted: _game.availablePushCells.toSet(),
+                lastMoveCells: _lastMoveCells,
+                pieceTheme: axes.pieces,
+                boardTheme: axes.board,
               ),
             ),
             _playerBanner(palette, flipped ? Camp.blanc : Camp.noir),
@@ -275,49 +245,14 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Bandeau d'un camp : nom, chrono, et accentuation quand c'est son tour.
   Widget _playerBanner(ThemePalette palette, Camp camp) {
-    final isTurn = _game.turn == camp && !_game.gameOver;
-    final base = camp == Camp.blanc ? palette.clair : palette.fonce;
-    final dim = camp == Camp.blanc ? palette.clairDim : palette.fonceDim;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      color: isTurn ? base : dim,
-      child: Row(
-        children: [
-          Text(
-            widget.aiCamp == camp ? 'Deep Grey' : _campLabel(camp),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          if (widget.aiCamp == camp && _thinking) ...[
-            const SizedBox(width: 10),
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            ),
-          ],
-          const Spacer(),
-          Text(
-            _clock.displayFor(camp),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
+    return PlayerBanner(
+      label: widget.aiCamp == camp ? 'Deep Grey' : _campLabel(camp),
+      clock: _clock.displayFor(camp),
+      palette: palette,
+      isWhite: camp == Camp.blanc,
+      isTurn: _game.turn == camp && !_game.gameOver,
+      busy: widget.aiCamp == camp && _thinking,
     );
   }
 

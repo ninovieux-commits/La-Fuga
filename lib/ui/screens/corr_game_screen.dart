@@ -231,6 +231,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
                     groupSelection: c.groupSelection,
                     highlighted: c.availablePushCells.toSet(),
                     lastMoveCells: _lastMoveCells,
+                    pieceTheme: axes.pieces,
+                    boardTheme: axes.board,
                   ),
                 ),
                 _footer(),

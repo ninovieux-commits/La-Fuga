@@ -11,13 +11,21 @@ import '../../engine/board.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'piece_painter.dart';
+import 'theme_image_cache.dart';
 
 /// Décor : zones de ralliement, fond du plateau, grille. Statique.
 final class BoardBackgroundPainter extends CustomPainter {
-  const BoardBackgroundPainter({required this.geometry, required this.palette});
+  const BoardBackgroundPainter({
+    required this.geometry,
+    required this.palette,
+    this.images,
+  });
 
   final BoardGeometry geometry;
   final ThemePalette palette;
+
+  /// Images du thème, quand il en a.
+  final LoadedThemeImages? images;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -57,7 +65,22 @@ final class BoardBackgroundPainter extends CustomPainter {
       g.cellSize * kCols,
       g.cellSize * kRows,
     );
-    canvas.drawRect(boardRect, Paint()..color = palette.board);
+    final boardImage = images?.board;
+    if (boardImage != null) {
+      canvas.drawImageRect(
+        boardImage,
+        Rect.fromLTWH(
+          0,
+          0,
+          boardImage.width.toDouble(),
+          boardImage.height.toDouble(),
+        ),
+        boardRect,
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+    } else {
+      canvas.drawRect(boardRect, Paint()..color = palette.board);
+    }
 
     final gridPaint = Paint()
       ..color = palette.grid
@@ -73,6 +96,7 @@ final class BoardBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(BoardBackgroundPainter old) =>
       old.palette != palette ||
+      old.images != images ||
       old.geometry.cellSize != geometry.cellSize ||
       old.geometry.flipped != geometry.flipped;
 }
@@ -87,6 +111,7 @@ final class BoardPiecesPainter extends CustomPainter {
     this.groupSelection = const {},
     this.destinations = const {},
     this.lastMoveCells = const {},
+    this.images,
   });
 
   final BoardGeometry geometry;
@@ -104,6 +129,9 @@ final class BoardPiecesPainter extends CustomPainter {
 
   /// Cases touchées par le dernier coup joué.
   final Set<Cell> lastMoveCells;
+
+  /// Images du thème, quand il en a.
+  final LoadedThemeImages? images;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -164,6 +192,7 @@ final class BoardPiecesPainter extends CustomPainter {
           outlineWidth: width,
           flipped: g.flipped,
           boardColor: palette.board,
+          images: images,
         );
       }
     }
@@ -172,6 +201,7 @@ final class BoardPiecesPainter extends CustomPainter {
   @override
   bool shouldRepaint(BoardPiecesPainter old) =>
       old.board.key != board.key ||
+      old.images != images ||
       old.selected != selected ||
       old.palette != palette ||
       old.geometry.flipped != geometry.flipped ||

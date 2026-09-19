@@ -7,6 +7,7 @@ import '../../engine/piece.dart';
 import '../../game/clock.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
+import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
 import 'correspondence_screen.dart';
@@ -123,49 +124,66 @@ class _MenuScreenState extends State<MenuScreen> {
     final palette = paletteOf(_axes.general);
     final menuPalette = paletteOf(_axes.menu);
 
+    // Fond d'écran du thème, quand il en a un. Sinon la couleur du thème.
+    final background = imagesFor(_axes.menu)?.background;
+
     return Scaffold(
       backgroundColor: menuPalette.menu,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _title(palette),
-              const SizedBox(height: 24),
-              _button(
-                palette,
-                T('Jouer contre Deep Grey'),
-                onTap: _playAgainstDeepGrey,
-                primary: true,
-              ),
-              _button(palette, T('Jouer en local'), onTap: _playLocal),
-              _button(palette, T('Jouer en ligne'), onTap: _playOnline),
-              _button(palette, T('Correspondance'), onTap: _playCorrespondence),
-              const SizedBox(height: 16),
-              _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
-              _button(
-                palette,
-                T('Historique'),
-                onTap: () => _notYet(T('Historique')),
-              ),
-              _button(
-                palette,
-                T('Mon compte'),
-                onTap: () => _notYet(T('Mon compte')),
-              ),
-              _button(palette, T('Réglages'), onTap: _openSettings),
-              const SizedBox(height: 24),
-              Center(
-                child: TextButton(
-                  onPressed: _showStory,
-                  child: Text(
-                    T("L'histoire de La Fuga"),
-                    style: TextStyle(color: palette.clair),
-                  ),
+      body: Container(
+        decoration: background == null
+            ? null
+            : BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(background),
+                  fit: BoxFit.cover,
                 ),
               ),
-            ],
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _title(palette),
+                const SizedBox(height: 24),
+                _button(
+                  palette,
+                  T('Jouer contre Deep Grey'),
+                  onTap: _playAgainstDeepGrey,
+                  primary: true,
+                ),
+                _button(palette, T('Jouer en local'), onTap: _playLocal),
+                _button(palette, T('Jouer en ligne'), onTap: _playOnline),
+                _button(
+                  palette,
+                  T('Correspondance'),
+                  onTap: _playCorrespondence,
+                ),
+                const SizedBox(height: 16),
+                _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
+                _button(
+                  palette,
+                  T('Historique'),
+                  onTap: () => _notYet(T('Historique')),
+                ),
+                _button(
+                  palette,
+                  T('Mon compte'),
+                  onTap: () => _notYet(T('Mon compte')),
+                ),
+                _button(palette, T('Réglages'), onTap: _openSettings),
+                const SizedBox(height: 24),
+                Center(
+                  child: TextButton(
+                    onPressed: _showStory,
+                    child: Text(
+                      T("L'histoire de La Fuga"),
+                      style: TextStyle(color: palette.clair),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

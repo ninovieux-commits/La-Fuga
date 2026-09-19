@@ -10,6 +10,7 @@ import 'dart:ui';
 
 import '../../engine/piece.dart';
 import '../../theme/themes.dart';
+import 'theme_image_cache.dart';
 
 /// Dessine une pièce dans le carré [rect].
 ///
@@ -27,7 +28,23 @@ void paintPiece(
   Set<(int, int)> pushHighlightDirs = const {},
   bool flipped = true,
   Color boardColor = const Color(0xFF8C8C8C),
+  LoadedThemeImages? images,
 }) {
+  // Thème à images : on dessine l'image de la pièce. Si elle manque, on
+  // retombe sur le rendu géométrique plutôt que de laisser un trou.
+  final themed = images?.pieceFor(piece);
+  if (themed != null) {
+    _paintPieceImage(
+      canvas,
+      rect,
+      themed,
+      cornerRadius: images!.cornerRadius,
+      outline: outline,
+      outlineWidth: outlineWidth,
+    );
+    return;
+  }
+
   final sz = rect.width;
   final pad = sz * 0.04;
   final inner = sz - 2 * pad;
@@ -162,5 +179,49 @@ void _paintDots(
       radius,
       Paint()..color = isBig ? bigColor : accent,
     );
+  }
+}
+
+/// Dessine l'image d'une pièce dans sa case.
+///
+/// [cornerRadius] arrondit les coins : certaines images portent un filigrane
+/// dans un angle, et l'arrondi le fait disparaître sans que cela se voie.
+void _paintPieceImage(
+  Canvas canvas,
+  Rect rect,
+  Image image, {
+  required double cornerRadius,
+  Color? outline,
+  double outlineWidth = 2,
+}) {
+  final pad = rect.width * 0.04;
+  final box = rect.deflate(pad);
+
+  canvas.save();
+  if (cornerRadius > 0) {
+    final radius = Radius.circular(box.width * cornerRadius);
+    canvas.clipRRect(RRect.fromRectAndRadius(box, radius));
+  }
+  canvas.drawImageRect(
+    image,
+    Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+    box,
+    Paint()..filterQuality = FilterQuality.medium,
+  );
+  canvas.restore();
+
+  if (outline != null) {
+    final paint = Paint()
+      ..color = outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = outlineWidth;
+    if (cornerRadius > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box, Radius.circular(box.width * cornerRadius)),
+        paint,
+      );
+    } else {
+      canvas.drawRect(box, paint);
+    }
   }
 }
