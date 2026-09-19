@@ -38,6 +38,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Générateur de coups | 149 positions, **6 983 coups** identiques au moteur Python |
 | Random Fuga | les **3 500** positions identiques à `rf_build_board` |
 | Notation `.nmc` | aller-retour sur les 56 cases + toutes les formes de coups |
+| Deep Grey | choix de coup, poids appris, et isolate non bloquant |
 
 ```bash
 flutter test
@@ -75,6 +76,6 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Random Fuga
 - [x] Assets repris du dépôt Kivy
 - [x] CI de compilation APK
-- [ ] IA Deep Grey sur isolate
+- [x] IA Deep Grey sur isolate
 - [ ] Couche réseau
 - [ ] Écrans
