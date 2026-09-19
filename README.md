@@ -39,6 +39,8 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Random Fuga | les **3 500** positions identiques à `rf_build_board` |
 | Notation `.nmc` | aller-retour sur les 56 cases + toutes les formes de coups |
 | Deep Grey | choix de coup, poids appris, et isolate non bloquant |
+| Géométrie | orientation, ralliements, aller-retour pixel ↔ case |
+| Réseau | chemins et clés de chaque route, réconciliation du thème |
 
 ```bash
 flutter test
@@ -79,7 +81,7 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] IA Deep Grey sur isolate
 - [x] Plateforme Android (manifeste, permissions, minSdk 24, portrait)
 - [x] Rendu GPU du plateau et des pièces, écran de jeu contre Deep Grey
-- [ ] Couche réseau
+- [x] Couche réseau (HTTP + Socket.IO)
 - [ ] Écrans complets (chrono, chat, en ligne, correspondance, thèmes à images)
 
 ### Écarts connus, à combler
