@@ -11,10 +11,12 @@ on:
         type: boolean
         default: false
 
-# Un seul build à la fois par branche : un nouveau push annule le précédent.
+# Sur une pull request, un nouveau push annule le build précédent : seul le
+# dernier état compte. Sur main en revanche, chaque commit garde son APK —
+# annuler ferait perdre l'artefact d'un commit déjà poussé.
 concurrency:
-  group: apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: apk-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   FLUTTER_VERSION: "3.35.5"
