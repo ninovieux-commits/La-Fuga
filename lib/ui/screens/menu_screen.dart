@@ -12,6 +12,7 @@ import '../../theme/themes.dart';
 import '../../net/online_service.dart';
 import 'correspondence_screen.dart';
 import 'game_screen.dart';
+import 'history_screen.dart';
 import 'online_lobby_screen.dart';
 import 'settings_screen.dart';
 
@@ -82,6 +83,15 @@ class _MenuScreenState extends State<MenuScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CorrespondenceScreen(online: OnlineService.instance),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openHistory() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => HistoryScreen(online: OnlineService.instance),
       ),
     );
     if (mounted) setState(() {});
@@ -161,11 +171,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 const SizedBox(height: 16),
                 _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
-                _button(
-                  palette,
-                  T('Historique'),
-                  onTap: () => _notYet(T('Historique')),
-                ),
+                _button(palette, T('Historique'), onTap: _openHistory),
                 _button(
                   palette,
                   T('Mon compte'),

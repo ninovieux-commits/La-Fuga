@@ -15,9 +15,11 @@ import '../../engine/board.dart';
 import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
+import '../../game/game_archive.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
+import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../../state/settings.dart';
 import '../widgets/game_board_view.dart';
@@ -29,6 +31,7 @@ class GameScreen extends StatefulWidget {
     this.aiCamp = Camp.noir,
     this.aiDeepMode = false,
     this.themeName = kDefaultTheme,
+    this.archive,
   });
 
   /// Cadence de la partie.
@@ -42,6 +45,9 @@ class GameScreen extends StatefulWidget {
 
   final String themeName;
 
+  /// Où ranger la partie une fois finie. Injectable pour les tests.
+  final GameArchive? archive;
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -51,6 +57,11 @@ class _GameScreenState extends State<GameScreen> {
   late GameClock _clock;
   final DeepGreyEngine _engine = DeepGreyEngine();
   final SoundPlayer _sounds = SoundPlayer();
+  late final GameArchive _archive = widget.archive ?? GameArchive();
+
+  /// Une partie ne s'archive qu'une fois, quel que soit le chemin par lequel
+  /// elle se termine.
+  bool _archived = false;
 
   /// Configurations de pièces déjà vues par l'IA : alimente sa pénalité anti
   /// allers-retours.
@@ -90,10 +101,11 @@ class _GameScreenState extends State<GameScreen> {
       final loser = _clock.tick(_game.turn);
       setState(() {
         if (loser != null) {
-          _game.gameOver = true;
-          _verdict =
-              '${T("Temps écoulé")} — '
-              '${_campLabel(loser.opposite)} ${T("gagne")}';
+          _finish(
+            'temps',
+            loser,
+            '${T("Temps écoulé")} — ${_campLabel(loser.opposite)} ${T("gagne")}',
+          );
         }
       });
     });
@@ -114,7 +126,11 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       if (result.notation != null) _rememberLastMove(result);
       if (result.effect == ControllerEffect.gameOver) {
-        _verdict = _verdictText(result);
+        _finish(
+          result.endReason ?? 'nulle',
+          result.loser,
+          _verdictText(result),
+        );
       }
     });
 
@@ -146,9 +162,11 @@ class _GameScreenState extends State<GameScreen> {
     if (!result.hasMove) {
       setState(() {
         _thinking = false;
-        _game.gameOver = true;
-        _verdict =
-            '${T("Papatte")} — ${_campLabel(aiCamp.opposite)} ${T("gagne")}';
+        _finish(
+          'papatte',
+          aiCamp,
+          '${T("Papatte")} — ${_campLabel(aiCamp.opposite)} ${T("gagne")}',
+        );
       });
       return;
     }
@@ -172,9 +190,61 @@ class _GameScreenState extends State<GameScreen> {
       _lastThinkMicros = result.elapsedMicros;
       _rememberLastMove(applied);
       if (applied.effect == ControllerEffect.gameOver) {
-        _verdict = _verdictText(applied);
+        _finish(
+          applied.endReason ?? 'nulle',
+          applied.loser,
+          _verdictText(applied),
+        );
       }
     });
+  }
+
+  /// Les deux joueurs, dans l'ordre d'affichage — portage de `_players`.
+  ///
+  /// Contre Deep Grey, l'humain porte son pseudo quand il est connecté : son
+  /// historique de compte doit être à son nom.
+  late final (String, String) _players = widget.aiCamp == null
+      ? ('Joueur 1', 'Joueur 2')
+      : (OnlineService.instance.pseudo ?? 'Joueur 1', 'deep grey');
+
+  /// Nom du joueur qui tient [camp].
+  String _playerOf(Camp camp) {
+    final (first, second) = _players;
+    // Deep Grey tient son camp ; en local, Joueur 1 a les Blancs.
+    final blancIsFirst = widget.aiCamp != Camp.blanc;
+    return (camp == Camp.blanc) == blancIsFirst ? first : second;
+  }
+
+  /// Termine la partie : verdict à l'écran, marque de fin sur le dernier coup,
+  /// puis archivage. À appeler depuis un `setState`.
+  void _finish(String method, Camp? loser, String verdict) {
+    _verdict = verdict;
+    _game.gameOver = true;
+
+    final end = nmcMethod(method);
+    final marked = withEndSuffix(_game.history, end);
+    if (!identical(marked, _game.history)) {
+      _game.history
+        ..clear()
+        ..addAll(marked);
+    }
+
+    if (_archived) return;
+    _archived = true;
+    final (first, second) = _players;
+    unawaited(
+      _archive.store(
+        buildArchive(
+          player1: first,
+          player2: second,
+          blanc: _playerOf(Camp.blanc),
+          winner: loser == null ? null : _playerOf(loser.opposite),
+          method: method,
+          history: List.of(_game.history),
+          cadence: widget.cadence.label,
+        ),
+      ),
+    );
   }
 
   String _campLabel(Camp camp) => camp == Camp.blanc ? T('Blanc') : T('Noir');
@@ -200,6 +270,7 @@ class _GameScreenState extends State<GameScreen> {
       _aiPositionCounts.clear();
       _lastMoveCells = {};
       _verdict = null;
+      _archived = false;
       _thinking = false;
       _lastThinkMicros = null;
     });

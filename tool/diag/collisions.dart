@@ -23,16 +23,18 @@ void main() {
     }
 
     for (final entry in byNotation.entries) {
-      final distinct = entry.value
-          .map((i) => moves[i].board.key)
-          .toSet();
+      final distinct = entry.value.map((i) => moves[i].board.key).toSet();
       if (distinct.length > 1) {
-        print('demi-coup $ply (${camp.wire}) : « ${entry.key} » '
-            '-> ${distinct.length} plateaux differents');
+        print(
+          'demi-coup $ply (${camp.wire}) : « ${entry.key} » '
+          '-> ${distinct.length} plateaux differents',
+        );
         for (final i in entry.value) {
           final m = moves[i];
-          print('   kind=${m.kind.name} from=${m.from} to=${m.to} '
-              'pushDirs=${m.pushDirsUsed} ejAlly=${m.ejAlly} ejOpp=${m.ejOpp}');
+          print(
+            '   kind=${m.kind.name} from=${m.from} to=${m.to} '
+            'pushDirs=${m.pushDirsUsed} ejAlly=${m.ejAlly} ejOpp=${m.ejOpp}',
+          );
         }
         return;
       }
