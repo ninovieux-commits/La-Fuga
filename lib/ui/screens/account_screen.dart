@@ -12,6 +12,7 @@ import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';
@@ -143,6 +144,10 @@ class _AccountScreenState extends State<AccountScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _push(Widget screen) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => screen));
+
   Future<void> _openHistory(String mode) async {
     final profile = _profile;
     if (profile == null) return;
@@ -165,18 +170,39 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(profile?.pseudo ?? T('Mon compte')),
-        actions: [
-          if (profile?.isSelf ?? false)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: T('Se déconnecter'),
-              onPressed: _logout,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: SizedBox(
+            height: 44,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: (profile?.isSelf ?? false) ? 6 : 10,
+                  child: FugaButton(
+                    text: T('Revenir au menu'),
+                    color: palette.clair,
+                    fontSize: 13,
+                    height: double.infinity,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                if (profile?.isSelf ?? false) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 4,
+                    child: FugaButton(
+                      text: T('Se déconnecter'),
+                      fontSize: 12,
+                      height: double.infinity,
+                      onPressed: _logout,
+                    ),
+                  ),
+                ],
+              ],
             ),
-        ],
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -187,14 +213,12 @@ class _AccountScreenState extends State<AccountScreen> {
               children: [
                 _identity(profile, palette),
                 if (!profile.isSelf) ..._headToHead(profile),
-                if (profile.isSelf)
-                  _action(T('Changer la photo'), Icons.image, _pickPhoto),
+                if (profile.isSelf) _action(T('Changer la photo'), _pickPhoto),
                 _title(T('Description')),
                 _description(profile),
                 if (profile.isSelf)
                   _action(
                     T('Modifier la description'),
-                    Icons.edit,
                     () => _editText(
                       title: T('Description'),
                       initial: profile.description,
@@ -224,10 +248,27 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                 ],
                 _title(T('Historique')),
-                _action(
-                  T('Historique en ligne'),
-                  Icons.history,
-                  () => _openHistory('direct'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _action(
+                        T('Historique local'),
+                        () => _push(
+                          HistoryScreen(
+                            online: widget.online,
+                            mode: HistoryMode.local,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _action(
+                        T('Historique en ligne'),
+                        () => _push(HistoryScreen(online: widget.online)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -272,14 +313,15 @@ class _AccountScreenState extends State<AccountScreen> {
   List<Widget> _headToHead(Profile profile) => [
     _title(T('Moi contre %s :').replaceAll('%s', profile.pseudo)),
     _action(
-      '${T("En direct")} : ${profile.direct.mine} - ${profile.direct.theirs}',
-      Icons.bolt,
+      T('En direct : %d - %d')
+          .replaceFirst('%d', '${profile.direct.mine}')
+          .replaceFirst('%d', '${profile.direct.theirs}'),
       () => _openHistory('direct'),
     ),
     _action(
-      '${T("Correspondance")} : '
-      '${profile.correspondence.mine} - ${profile.correspondence.theirs}',
-      Icons.mail_outline,
+      T('Correspondance : %d - %d')
+          .replaceFirst('%d', '${profile.correspondence.mine}')
+          .replaceFirst('%d', '${profile.correspondence.theirs}'),
       () => _openHistory('corr'),
     ),
   ];
@@ -292,7 +334,6 @@ class _AccountScreenState extends State<AccountScreen> {
     ),
     _action(
       T("Renseigner ou changer l'adresse mail"),
-      Icons.alternate_email,
       () => _editText(
         title: T('Adresse mail'),
         initial: profile.email,
@@ -399,17 +440,10 @@ class _AccountScreenState extends State<AccountScreen> {
     ),
   );
 
-  Widget _action(String label, IconData icon, VoidCallback onTap) => Padding(
+  /// Les boutons du profil, tels que Kivy les dessine : pleins, gris, sans
+  /// icône.
+  Widget _action(String label, VoidCallback onTap) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
-    child: OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Align(alignment: Alignment.centerLeft, child: Text(label)),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white24),
-        minimumSize: const Size.fromHeight(44),
-      ),
-    ),
+    child: FugaButton(text: label, fontSize: 12, height: 40, onPressed: onTap),
   );
 }

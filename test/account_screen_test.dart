@@ -107,11 +107,11 @@ void main() {
     server.replies['/get_profile'] = profile();
     await open(tester);
 
-    expect(
-      find.text('Nino'),
-      findsNWidgets(2),
-      reason: 'le titre de l écran et la fiche',
-    );
+    // Kivy n'a pas de barre de titre sur le profil : le pseudo n'apparaît
+    // qu'une fois, dans la fiche d'identité.
+    expect(find.text('Nino'), findsOneWidget);
+    expect(find.text('Revenir au menu'), findsOneWidget);
+    expect(find.text('Se déconnecter'), findsOneWidget);
     expect(find.textContaining('1620'), findsOneWidget);
     expect(find.textContaining('1480'), findsOneWidget, reason: 'mélo Random');
     expect(find.text('Joue vite.'), findsOneWidget);

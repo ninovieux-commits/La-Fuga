@@ -163,8 +163,12 @@ void main() {
       reason: 'le champ e-mail ne sert qu à l inscription',
     );
 
-    await tapVisible(tester, find.text('Inscription').last);
+    // Le bouton de bascule porte la question, comme en Kivy.
+    await tapVisible(tester, find.text('Pas encore inscrit ?'));
+
     expect(find.text('Email (optionnel)'), findsOneWidget);
+    expect(find.text('Créer le compte'), findsOneWidget);
+    expect(find.text("J'ai déjà un compte"), findsOneWidget);
   });
 
   testWidgets('les messages demandent aussi un compte', (tester) async {
