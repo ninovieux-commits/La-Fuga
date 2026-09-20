@@ -14,9 +14,14 @@ on:
 # Sur une pull request, un nouveau push annule le build précédent : seul le
 # dernier état compte. Sur main en revanche, chaque commit garde son APK —
 # annuler ferait perdre l'artefact d'un commit déjà poussé.
+#
+# Le tri se fait par le NOM du groupe, pas par cancel-in-progress : une
+# expression y renvoyant « false » annulait quand même (deux builds de main
+# l'ont été). Hors pull request, le groupe porte donc le numéro du run, donc
+# il est unique, donc il n'y a jamais rien à annuler.
 concurrency:
-  group: apk-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: apk-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   FLUTTER_VERSION: "3.35.5"
