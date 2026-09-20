@@ -13,6 +13,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
@@ -67,8 +68,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
   Widget build(BuildContext context) {
     final palette = paletteOf(_axes.general);
 
-    return Scaffold(
-      backgroundColor: paletteOf(_axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

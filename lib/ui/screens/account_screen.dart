@@ -13,6 +13,7 @@ import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
 import 'history_screen.dart';
@@ -226,8 +227,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final palette = paletteOf(axes.general);
     final profile = _profile;
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(10),

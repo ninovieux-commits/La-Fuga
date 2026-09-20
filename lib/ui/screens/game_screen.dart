@@ -28,6 +28,7 @@ import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
@@ -576,8 +577,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final topCamp = flipped ? Camp.noir : Camp.blanc;
     final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
-    return Scaffold(
-      backgroundColor: palette.menu,
+    return FugaScaffold(
       body: SafeArea(
         child: GameLayout(
           topBar: _topBar(palette, topCamp),

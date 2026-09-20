@@ -16,6 +16,10 @@ import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/photo_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
+/// ils n'apparaissent qu'au tout premier démarrage.
+const Map<String, Object> _launched = {'lang_chosen': true, 'tuto_seen': true};
+
 /// Serveur simulé : chaque route répond ce qu'on lui a dit de répondre, et
 /// l'on peut relire ce qui lui a été envoyé.
 final class _Server {
@@ -48,7 +52,7 @@ void main() {
   late OnlineService online;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(_launched);
     await Settings.load();
     await Translations.load('fr');
     server = _Server();

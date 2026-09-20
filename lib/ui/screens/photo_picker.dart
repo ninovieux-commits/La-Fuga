@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
-import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
 
@@ -29,13 +29,11 @@ class PhotoPickerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final axes = Settings.instance.themeAxes;
     final choices = photoChoices();
 
     // Kivy l'ouvre en popup : un titre, une grille de quatre colonnes, et
     // « Fermer » en bas.
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

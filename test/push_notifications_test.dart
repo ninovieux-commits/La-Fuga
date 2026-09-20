@@ -21,6 +21,10 @@ import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 
+/// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
+/// ils n'apparaissent qu'au tout premier démarrage.
+const Map<String, Object> _launched = {'lang_chosen': true, 'tuto_seen': true};
+
 /// Permission simulée : accordée ou non, et on note ce qui a été demandé.
 final class FakePermission implements NotificationPermission {
   FakePermission({this.isGranted = true});
@@ -75,7 +79,7 @@ void main() {
     late OnlineService online;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues(_launched);
       await Settings.load();
       await Translations.load('fr');
 

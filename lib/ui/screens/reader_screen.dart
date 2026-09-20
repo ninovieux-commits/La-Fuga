@@ -11,6 +11,7 @@ import '../../game/replay_controller.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'replay_screen.dart';
@@ -68,8 +69,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -101,7 +101,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   maxLines: null,
                   minLines: null,
                   textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 13, color: Colors.black),
                   decoration: const InputDecoration(
                     filled: true,
                     fillColor: Colors.white,

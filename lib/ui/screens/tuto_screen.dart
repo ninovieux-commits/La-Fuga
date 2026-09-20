@@ -11,6 +11,7 @@ import '../../game/tuto.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/tuto_overlay.dart';
@@ -35,8 +36,7 @@ class _TutoScreenState extends State<TutoScreen> {
     final palette = paletteOf(axes.general);
     final banner = _tuto.step.banner;
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

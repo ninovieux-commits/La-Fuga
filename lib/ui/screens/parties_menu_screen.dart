@@ -10,6 +10,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'history_screen.dart';
@@ -57,8 +58,7 @@ class PartiesMenuScreen extends StatelessWidget {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

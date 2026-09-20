@@ -19,6 +19,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/theme_preview.dart';
 import 'theme_composer_screen.dart';
@@ -121,8 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final axes = _settings.themeAxes;
     final palette = paletteOf(axes.general);
 
-    return Scaffold(
-      backgroundColor: kFugaGrey,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

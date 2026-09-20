@@ -26,6 +26,10 @@ abstract final class SettingsKeys {
   static const instrument = 'instrument';
   static const serverUrl = 'server_url';
   static const slideSpeed = 'slide_speed';
+
+  /// Premier lancement : la langue a-t-elle été choisie, le tuto vu ?
+  static const langChosen = 'lang_chosen';
+  static const tutoSeen = 'tuto_seen';
   static const onlineToken = 'online_token';
   static const onlinePseudo = 'online_pseudo';
   static const onlineMelo = 'online_melo';
@@ -108,6 +112,17 @@ class Settings {
   /// `server_url` de `config.txt`.
   String get serverUrl =>
       _prefs.getString(SettingsKeys.serverUrl) ?? kDefaultServerUrl;
+
+  /// Au tout premier lancement, Kivy demande la langue puis lance le tuto.
+  bool get languageChosen => _prefs.getBool(SettingsKeys.langChosen) ?? false;
+
+  Future<void> markLanguageChosen() =>
+      _prefs.setBool(SettingsKeys.langChosen, true);
+
+  bool get tutorialSeen => _prefs.getBool(SettingsKeys.tutoSeen) ?? false;
+
+  Future<void> markTutorialSeen() =>
+      _prefs.setBool(SettingsKeys.tutoSeen, true);
 
   Future<void> setServerUrl(String value) =>
       _prefs.setString(SettingsKeys.serverUrl, value.trim());

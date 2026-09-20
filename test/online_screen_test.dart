@@ -14,11 +14,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'online_game_test.dart' show FakeSocket, makeGame;
 
+/// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
+/// ils n'apparaissent qu'au tout premier démarrage.
+const Map<String, Object> _launched = {'lang_chosen': true, 'tuto_seen': true};
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(_launched);
     await Settings.load();
     await Translations.load('fr');
   });

@@ -11,6 +11,7 @@ import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
@@ -96,8 +97,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
     final topCamp = _flipped ? Camp.noir : Camp.blanc;
     final bottomCamp = _flipped ? Camp.blanc : Camp.noir;
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: GameLayout(
           topBar: GameTopBar(

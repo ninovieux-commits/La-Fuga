@@ -27,6 +27,7 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../widgets/corr_slot.dart';
+import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
@@ -104,6 +105,22 @@ class MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     unawaited(_connectWhenReady());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
+  }
+
+  /// Tout premier lancement : la langue, puis le tuto — comme au démarrage de
+  /// Kivy. Chacun ne se montre qu'une fois.
+  Future<void> _firstLaunch() async {
+    final settings = Settings.instance;
+    if (!settings.languageChosen) {
+      await askFirstLanguage(context);
+      if (!mounted) return;
+      // La langue change tous les textes : on redessine le menu.
+      setState(() {});
+    }
+    if (settings.tutorialSeen || !mounted) return;
+    await settings.markTutorialSeen();
+    if (mounted) await _openTuto();
   }
 
   /// La reconnexion automatique tourne pendant que le menu s'affiche : on
@@ -400,6 +417,7 @@ class MenuScreenState extends State<MenuScreen> {
 
   Future<void> _searchPlayer() async {
     if (!await _requireLogin()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     final pseudo = _searchField.text.trim();
     if (pseudo.isEmpty) return;
 
@@ -613,10 +631,15 @@ class MenuScreenState extends State<MenuScreen> {
   // ── Autres écrans ─────────────────────────────────────────────────────────
 
   Future<void> _push(Widget screen) async {
+    // Le champ de recherche garde le focus : sans cela le clavier se
+    // rouvrirait tout seul au retour sur le menu.
+    FocusManager.instance.primaryFocus?.unfocus();
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => screen));
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {});
   }
 
   Future<void> _openMessages() async {
@@ -861,108 +884,121 @@ class MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _content(ThemePalette palette) => SingleChildScrollView(
-    controller: _scroll,
-    padding: const EdgeInsets.fromLTRB(16, 56, 16, 24),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Image.asset(
-          'assets/images/titre.webp',
-          height: 90,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: _showStory,
-          child: Image.asset(
-            'assets/logos/logo_${_axes.logo}.webp',
-            height: 84,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
-                Image.asset('assets/logos/logo_original.webp', height: 84),
-          ),
-        ),
-        const SizedBox(height: 14),
+  Widget _content(ThemePalette palette) {
+    // Kivy taille le titre et le logo en fraction de la HAUTEUR de l'écran :
+    // 16 % et 13 %. Des hauteurs fixes les rapetissaient sur grand écran.
+    final height = MediaQuery.of(context).size.height;
+    final titleHeight = height * 0.16;
+    final logoHeight = height * 0.13;
 
-        Text(
-          T('Cadence (min / joueur)'),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: palette.fonceDim,
+    return SingleChildScrollView(
+      controller: _scroll,
+      padding: const EdgeInsets.fromLTRB(16, 56, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Image.asset(
+            'assets/images/titre.webp',
+            height: titleHeight,
+            fit: BoxFit.contain,
           ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          key: _tourKeys['cad'],
-          children: [
-            for (final c in Cadence.toutes)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: FugaButton(
-                    text: c.label,
-                    fontSize: 13,
-                    height: 40,
-                    color: _cadence == c ? palette.fonce : kFugaGrey,
-                    onPressed: () => setState(() => _cadence = c),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _showStory,
+            child: Image.asset(
+              'assets/logos/logo_${_axes.logo}.webp',
+              height: logoHeight,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/logos/logo_original.webp',
+                height: logoHeight,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          Text(
+            T('Cadence (min / joueur)'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: palette.fonceDim,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            key: _tourKeys['cad'],
+            children: [
+              for (final c in Cadence.toutes)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: FugaButton(
+                      text: c.label,
+                      fontSize: 13,
+                      height: 40,
+                      color: _cadence == c ? palette.fonce : kFugaGrey,
+                      onPressed: () => setState(() => _cadence = c),
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 14),
+            ],
+          ),
+          const SizedBox(height: 14),
 
-        _wide(
-          FugaButton(
-            key: _tourKeys['local'],
-            text: T('Jouer en local'),
-            color: palette.clair,
-            onPressed: _startLocal,
+          _wide(
+            FugaButton(
+              key: _tourKeys['local'],
+              text: T('Jouer en local'),
+              color: palette.clair,
+              onPressed: _startLocal,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _wide(
-          FugaButton(
-            key: _tourKeys['online'],
-            text: T('Jouer en ligne'),
-            color: palette.fonce,
-            onPressed: _searching ? null : _playOnline,
+          const SizedBox(height: 8),
+          _wide(
+            FugaButton(
+              key: _tourKeys['online'],
+              text: T('Jouer en ligne'),
+              color: palette.fonce,
+              onPressed: _searching ? null : _playOnline,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _wide(_searchRow()),
-        const SizedBox(height: 8),
-        _wide(
-          FugaButton(
-            text: _unreadMessages > 0
-                ? '${T('Messages')}  ($_unreadMessages)'
-                : T('Messages'),
-            onPressed: _openMessages,
+          const SizedBox(height: 8),
+          _wide(_searchRow()),
+          const SizedBox(height: 8),
+          _wide(
+            FugaButton(
+              text: _unreadMessages > 0
+                  ? '${T('Messages')}  ($_unreadMessages)'
+                  : T('Messages'),
+              onPressed: _openMessages,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _wide(
-          FugaButton(text: T('Jouer contre Deep Grey'), onPressed: _startVsAi),
-        ),
-        const SizedBox(height: 8),
-        _wide(
-          FugaButton(
-            key: _tourKeys['plus'],
-            text: T('Plus'),
-            onPressed: _openPlus,
+          const SizedBox(height: 8),
+          _wide(
+            FugaButton(
+              text: T('Jouer contre Deep Grey'),
+              onPressed: _startVsAi,
+            ),
           ),
-        ),
-        const SizedBox(height: 18),
+          const SizedBox(height: 8),
+          _wide(
+            FugaButton(
+              key: _tourKeys['plus'],
+              text: T('Plus'),
+              onPressed: _openPlus,
+            ),
+          ),
+          const SizedBox(height: 18),
 
-        _corrHeader(palette),
-        const SizedBox(height: 8),
-        _corrGrid(palette),
-      ],
-    ),
-  );
+          _corrHeader(palette),
+          const SizedBox(height: 8),
+          _corrGrid(palette),
+        ],
+      ),
+    );
+  }
 
   /// Les boutons principaux font 70 % de la largeur, centrés, comme en Kivy.
   Widget _wide(Widget child) =>

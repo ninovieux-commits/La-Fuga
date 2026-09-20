@@ -15,8 +15,7 @@ import '../../i18n/translations.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
 import '../../state/local_games.dart';
-import '../../state/settings.dart';
-import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
@@ -217,10 +216,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final axes = Settings.instance.themeAxes;
-
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: Column(
           children: [

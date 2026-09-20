@@ -18,6 +18,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
@@ -251,8 +252,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final topCamp = flipped ? Camp.noir : Camp.blanc;
     final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: GameLayout(
           topBar: GameTopBar(

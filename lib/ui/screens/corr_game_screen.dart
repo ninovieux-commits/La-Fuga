@@ -14,6 +14,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
@@ -296,8 +297,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     final flipped = _flipOverride ?? (_g.myCamp == Camp.blanc);
     final c = _controller;
 
-    return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+    return FugaScaffold(
       body: SafeArea(
         child: c == null
             ? Column(

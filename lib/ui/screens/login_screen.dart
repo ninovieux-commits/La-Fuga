@@ -15,6 +15,7 @@ import '../../net/push_notifications.dart';
 import '../../state/local_games.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -118,8 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
 
-    return Scaffold(
-      backgroundColor: palette.menu,
+    return FugaScaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -168,6 +168,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _pseudo,
                 autocorrect: false,
                 enableSuggestions: false,
+                // Champs blancs : le texte saisi doit être noir, sinon il est
+                // illisible avec le thème sombre de l'application.
+                style: const TextStyle(color: Colors.black, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: T('Pseudo'),
                   filled: true,
@@ -182,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextField(
                       controller: _password,
                       obscureText: !_passwordShown,
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
                       decoration: InputDecoration(
                         hintText: T('Mot de passe'),
                         filled: true,
@@ -210,6 +214,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
+                  style: const TextStyle(color: Colors.black, fontSize: 16),
                   decoration: InputDecoration(
                     hintText: T('Email (optionnel)'),
                     filled: true,
