@@ -10,13 +10,14 @@ import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
 
 /// Toutes les photos proposées, dans l'ordre.
 List<String> photoChoices() => [
   kDeepGreyPhoto,
-  for (final theme in kThemes.keys) 'logo|$theme',
-  for (final theme in kThemes.keys)
+  for (final theme in kThemeOrder) 'logo|$theme',
+  for (final theme in kThemeOrder)
     for (final piece in kProfilePieces) ...[
       '$theme|${piece.wire}',
       '$theme|${piece.wire}|${Camp.noir.wire}',
@@ -29,27 +30,53 @@ class PhotoPickerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
-    final palette = paletteOf(axes.general);
     final choices = photoChoices();
 
+    // Kivy l'ouvre en popup : un titre, une grille de quatre colonnes, et
+    // « Fermer » en bas.
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(T('Choisis ta photo de profil')),
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-        ),
-        itemCount: choices.length,
-        itemBuilder: (context, i) => InkWell(
-          onTap: () => Navigator.of(context).pop(choices[i]),
-          child: ProfilePhoto(photo: choices[i], size: 64),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text(
+                T('Choisis ta photo de profil'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(4),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                ),
+                itemCount: choices.length,
+                itemBuilder: (context, i) => InkWell(
+                  onTap: () => Navigator.of(context).pop(choices[i]),
+                  child: Center(
+                    child: ProfilePhoto(photo: choices[i], size: 64),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: FugaButton(
+                text: T('Fermer'),
+                fontSize: 13,
+                height: 44,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
         ),
       ),
     );

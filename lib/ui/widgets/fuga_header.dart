@@ -15,6 +15,8 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.onBack,
     this.titleSize = 28,
+    this.titleColor = Colors.black,
+    this.bold = false,
   });
 
   /// Intitulé du bouton de retour, barre chevron comprise : `< Menu`.
@@ -26,6 +28,12 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   /// Kivy varie la taille du titre d'un écran à l'autre : 32 pour
   /// l'historique, 28 pour ses deux listes, 26 pour le lecteur.
   final double titleSize;
+
+  /// Noir partout, sauf sur le composeur de thèmes où Kivy l'écrit en blanc.
+  final Color titleColor;
+
+  /// Les titres en gras (messagerie, composeur) ne sont pas en italique.
+  final bool bold;
 
   static const double _sideWidth = 110;
 
@@ -56,8 +64,9 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: titleSize,
-                fontStyle: FontStyle.italic,
-                color: Colors.black,
+                fontStyle: bold ? FontStyle.normal : FontStyle.italic,
+                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                color: titleColor,
               ),
             ),
           ),

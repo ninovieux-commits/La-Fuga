@@ -23,27 +23,6 @@ import '../widgets/fuga_button.dart';
 import '../widgets/theme_preview.dart';
 import 'theme_composer_screen.dart';
 
-/// Ordre des thèmes dans le sélecteur — `THEME_ORDER` de Kivy.
-const List<String> kThemeOrder = [
-  'original',
-  'foret',
-  'ocean',
-  'volcan',
-  'hemo',
-  'spatial',
-  'imperial',
-  'royal',
-  'terre',
-  'bonbon',
-  'arcenciel',
-  'etoile',
-  'medieval',
-  'fleur',
-  'insectes',
-  'dragon',
-  'deepgrey',
-];
-
 /// Nom affiché de chaque instrument — `INSTRUMENT_LABELS` de Kivy.
 const Map<String, String> kInstrumentLabels = {
   'piano': 'Piano',

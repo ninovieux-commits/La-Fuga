@@ -13,6 +13,8 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
+import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
 
 /// Les cinq axes, dans l'ordre de Kivy.
@@ -67,26 +69,37 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
 
     return Scaffold(
       backgroundColor: paletteOf(_axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(T('Composer le thème')),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          for (final (axis, label) in kThemeAxisLabels) _section(axis, label),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12),
-        child: FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: palette.clair,
-            minimumSize: const Size.fromHeight(48),
-          ),
-          onPressed: _apply,
-          child: Text(T('Appliquer')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            FugaHeader(
+              back: T('< Retour'),
+              title: T('Composer le thème'),
+              titleSize: 17,
+              titleColor: Colors.white,
+              bold: true,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(8),
+                children: [
+                  for (final (axis, label) in kThemeAxisLabels)
+                    _section(axis, label),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+              child: FugaButton(
+                text: T('Appliquer'),
+                color: palette.clair,
+                fontSize: 15,
+                height: 48,
+                onPressed: _apply,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -114,7 +127,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             children: [
-              for (final theme in kThemes.keys)
+              for (final theme in kThemeOrder)
                 _cell(axis, theme, chosen: theme == selected),
             ],
           ),

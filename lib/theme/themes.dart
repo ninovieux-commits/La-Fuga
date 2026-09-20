@@ -85,15 +85,6 @@ const Map<String, ThemePalette> kThemes = {
     menu: Color.fromRGBO(199, 199, 199, 1),
     grid: Color.fromRGBO(112, 112, 112, 1),
   ),
-  'deepgrey': ThemePalette(
-    clair: Color.fromRGBO(128, 128, 128, 1),
-    fonce: Color.fromRGBO(128, 128, 128, 1),
-    clairDim: Color.fromRGBO(64, 64, 64, 1),
-    fonceDim: Color.fromRGBO(64, 64, 64, 1),
-    board: Color.fromRGBO(128, 128, 128, 1),
-    menu: Color.fromRGBO(184, 184, 184, 1),
-    grid: Color.fromRGBO(102, 102, 102, 1),
-  ),
   'foret': ThemePalette(
     clair: Color.fromRGBO(115, 199, 76, 1),
     fonce: Color.fromRGBO(33, 102, 33, 1),
@@ -229,7 +220,38 @@ const Map<String, ThemePalette> kThemes = {
     menu: Color.fromRGBO(128, 128, 128, 1),
     grid: Color.fromRGBO(89, 51, 31, 1),
   ),
+  'deepgrey': ThemePalette(
+    clair: Color.fromRGBO(128, 128, 128, 1),
+    fonce: Color.fromRGBO(128, 128, 128, 1),
+    clairDim: Color.fromRGBO(64, 64, 64, 1),
+    fonceDim: Color.fromRGBO(64, 64, 64, 1),
+    board: Color.fromRGBO(128, 128, 128, 1),
+    menu: Color.fromRGBO(184, 184, 184, 1),
+    grid: Color.fromRGBO(102, 102, 102, 1),
+  ),
 };
+
+/// Ordre d'affichage des thèmes — `THEME_ORDER` de Kivy. C'est celui des
+/// sélecteurs, du composeur et du choix de photo.
+const List<String> kThemeOrder = [
+  'original',
+  'foret',
+  'ocean',
+  'volcan',
+  'hemo',
+  'spatial',
+  'imperial',
+  'royal',
+  'terre',
+  'bonbon',
+  'arcenciel',
+  'etoile',
+  'medieval',
+  'fleur',
+  'insectes',
+  'dragon',
+  'deepgrey',
+];
 
 /// Nom affiché de chaque thème.
 const Map<String, String> kThemeLabels = {

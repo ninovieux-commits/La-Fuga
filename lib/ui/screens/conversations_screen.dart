@@ -10,6 +10,8 @@ import '../../net/online_service.dart';
 import '../../net/socket_client.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
+import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
@@ -81,59 +83,115 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
-    final palette = paletteOf(axes.general);
     final conversations = _conversations ?? const <Conversation>[];
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(T('Messages')),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _load,
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
-          : conversations.isEmpty
-          ? Center(child: Text(T('Aucune conversation pour le moment.')))
-          : ListView.separated(
-              itemCount: conversations.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final c = conversations[i];
-                final preview = c.lastFromMe
-                    ? '${T("Vous : ")}${c.lastText}'
-                    : c.lastText;
-                return ListTile(
-                  leading: ProfilePhoto(
-                    photo: avatarPhotoFor(c.pseudo, c.photo),
-                    size: 44,
-                  ),
-                  title: Text(
-                    c.pseudo,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Text(
-                    preview,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  trailing: c.unread > 0 ? _badge(c.unread) : null,
-                  onTap: () => _open(c.pseudo),
-                );
-              },
+      body: SafeArea(
+        child: Column(
+          children: [
+            FugaHeader(
+              back: T('< Retour'),
+              title: T('Messages'),
+              titleSize: 18,
+              bold: true,
+              onBack: () => Navigator.of(context).pop(),
             ),
+            Expanded(
+              child: _loading
+                  ? _notice(T('Chargement…'))
+                  : _error != null
+                  ? _notice(
+                      _error!,
+                      color: const Color.fromRGBO(153, 77, 77, 1),
+                    )
+                  : conversations.isEmpty
+                  ? _notice(T('Aucune conversation pour le moment.'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                      itemCount: conversations.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) => _row(conversations[i]),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _notice(String text, {Color color = const Color(0xFF666666)}) =>
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: color,
+            ),
+          ),
+        ),
+      );
+
+  /// Une conversation : carte grise, avatar, pseudo, aperçu du dernier
+  /// message, et la pastille des non-lus.
+  Widget _row(Conversation c) {
+    final preview = c.lastFromMe ? '${T("Vous : ")}${c.lastText}' : c.lastText;
+
+    return Material(
+      color: kFugaGrey,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _open(c.pseudo),
+        child: SizedBox(
+          height: 64,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                ProfilePhoto(
+                  photo: avatarPhotoFor(c.pseudo, c.photo),
+                  size: 46,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        c.pseudo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        preview,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color.fromRGBO(209, 209, 209, 1),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (c.unread > 0) _badge(c.unread),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -271,29 +329,35 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(widget.pseudo),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center(child: Text(_error!))
-                : _messages.isEmpty
-                ? Center(child: Text(T('Aucun message. Écrivez le premier !')))
-                : ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(10),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, i) => _bubble(_messages[i], palette),
-                  ),
-          ),
-          _composer(palette),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            FugaHeader(
+              back: T('< Retour'),
+              title: widget.pseudo,
+              titleSize: 18,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(child: Text(_error!))
+                  : _messages.isEmpty
+                  ? Center(
+                      child: Text(T('Aucun message. Écrivez le premier !')),
+                    )
+                  : ListView.builder(
+                      controller: _scroll,
+                      padding: const EdgeInsets.all(10),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) =>
+                          _bubble(_messages[i], palette),
+                    ),
+            ),
+            _composer(palette),
+          ],
+        ),
       ),
     );
   }
@@ -313,12 +377,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
         m.pending == false ? '${m.text}  ${T("(non envoyé)")}' : m.text,
         textAlign: m.fromMe ? TextAlign.right : TextAlign.left,
         style: TextStyle(
+          // Le doré de Kivy pour mes messages, le blanc cassé pour les
+          // siens : `(1, 0.82, 0.4)` et `(0.95, 0.95, 0.95)`.
           color: m.pending == false
               ? Colors.redAccent
               : m.fromMe
-              ? palette.clair
-              : Colors.white,
-          fontSize: 15,
+              ? const Color.fromRGBO(255, 209, 102, 1)
+              : const Color.fromRGBO(242, 242, 242, 1),
+          fontSize: 16,
         ),
       ),
     );
