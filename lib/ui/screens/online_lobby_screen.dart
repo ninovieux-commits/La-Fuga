@@ -26,7 +26,7 @@ class OnlineLobbyScreen extends StatefulWidget {
 }
 
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
-  Cadence _cadence = Cadence.blitz5;
+  Cadence _cadence = Cadence.parDefaut;
 
   final TextEditingController _searchField = TextEditingController();
   ChallengeService? _challenges;
@@ -34,8 +34,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   /// Joueur défié, tant qu'on attend sa réponse.
   String? _challenged;
 
-  /// `partie` pour une partie unique, sinon un nombre de points.
-  String _objectif = 'partie';
+  /// Toujours « partie » : l'app Kivy n'offre plus d'objectif en points.
+  static const String _objectif = 'partie';
 
   bool _randomFuga = false;
   bool _searching = false;
@@ -161,7 +161,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     challenges.challenge(
       pseudo,
       objectif: _objectif,
-      cadence: _cadence.label,
+      cadence: _cadence.wire,
       random: _randomFuga,
     );
 
@@ -325,10 +325,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   /// C'est le serveur qui fait foi : il peut apparier deux joueurs sur une
   /// cadence qui n'est pas exactement celle demandée.
   Cadence _cadenceFromLabel(String label) {
-    for (final c in Cadence.toutes) {
-      if (c.label == label) return c;
-    }
-    return _cadence;
+    return Cadence.fromWire(label);
   }
 
   Future<void> _connect() async {
@@ -346,7 +343,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     if (socket == null) return;
     socket.chercherPartie(
       objectif: _objectif,
-      cadence: _cadence.label,
+      cadence: _cadence.wire,
       random: _randomFuga,
     );
     setState(() {
@@ -469,35 +466,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           children: [
             for (final c in Cadence.toutes)
               ChoiceChip(
-                label: Text(
-                  c == Cadence.illimitee ? T('Zen (illimité)') : c.label,
-                ),
+                label: Text(c.label),
                 selected: _cadence == c,
                 onSelected: _searching
                     ? null
                     : (_) => setState(() => _cadence = c),
-              ),
-          ],
-        ),
-
-        const SizedBox(height: 20),
-        Text(
-          T('Objectif'),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final o in ['partie', '3', '5', '10'])
-              ChoiceChip(
-                label: Text(
-                  o == 'partie' ? T('Partie unique') : '$o ${T('points')}',
-                ),
-                selected: _objectif == o,
-                onSelected: _searching
-                    ? null
-                    : (_) => setState(() => _objectif = o),
               ),
           ],
         ),

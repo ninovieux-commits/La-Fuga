@@ -47,14 +47,15 @@ class _MenuScreenState extends State<MenuScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
-          cadence: choice.cadence,
+          // Une partie contre Deep Grey est toujours sans chrono, comme en
+          // Kivy : on s'entraîne, on ne court pas après la pendule.
+          cadence: Cadence.zen,
           // Le joueur choisit SA couleur : Deep Grey prend l'autre.
           aiCamp: choice.playerCamp.opposite,
           aiDeepMode: choice.deepMode,
           themeName: _axes.general,
           initialBoard: choice.board,
           randomCode: choice.randomCode,
-          objectif: choice.objectif,
         ),
       ),
     );
@@ -78,7 +79,6 @@ class _MenuScreenState extends State<MenuScreen> {
           themeName: _axes.general,
           initialBoard: choice.board,
           randomCode: choice.randomCode,
-          objectif: choice.objectif,
         ),
       ),
     );
@@ -118,7 +118,7 @@ class _MenuScreenState extends State<MenuScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
-          cadence: Cadence.illimitee,
+          cadence: Cadence.zen,
           aiCamp: null,
           themeName: _axes.general,
           analysis: true,
@@ -383,7 +383,6 @@ final class _GameChoice {
     required this.cadence,
     required this.playerCamp,
     required this.deepMode,
-    required this.objectif,
     this.randomCode,
   });
 
@@ -394,9 +393,6 @@ final class _GameChoice {
 
   /// Mode profond de Deep Grey.
   final bool deepMode;
-
-  /// `partie` ou le nombre de points du match.
-  final String objectif;
 
   /// Code Random Fuga tiré au sort, ou `null` pour la position standard.
   final String? randomCode;
@@ -418,11 +414,10 @@ class _GameSetupSheet extends StatefulWidget {
 }
 
 class _GameSetupSheetState extends State<_GameSetupSheet> {
-  Cadence _cadence = Cadence.illimitee;
+  Cadence _cadence = Cadence.parDefaut;
   Camp _camp = Camp.blanc;
   bool _deep = false;
   bool _random = false;
-  String _objectif = 'partie';
 
   @override
   Widget build(BuildContext context) {
@@ -474,30 +469,9 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
             children: [
               for (final c in Cadence.toutes)
                 ChoiceChip(
-                  label: Text(
-                    c == Cadence.illimitee ? T('Zen (illimité)') : c.label,
-                  ),
+                  label: Text(c.label),
                   selected: _cadence == c,
                   onSelected: (_) => setState(() => _cadence = c),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            T('Objectif'),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final o in ['partie', '3', '5', '10'])
-                ChoiceChip(
-                  label: Text(
-                    o == 'partie' ? T('Partie unique') : '$o ${T('points')}',
-                  ),
-                  selected: _objectif == o,
-                  onSelected: (_) => setState(() => _objectif = o),
                 ),
             ],
           ),
@@ -532,7 +506,6 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
                 cadence: _cadence,
                 playerCamp: _camp,
                 deepMode: _deep,
-                objectif: _objectif,
                 // Le code est tiré ici : il doit finir dans le `.nmc`, sans
                 // quoi la partie serait irrejouable.
                 randomCode: _random ? randomFugaCode() : null,

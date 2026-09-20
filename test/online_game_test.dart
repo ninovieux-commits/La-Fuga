@@ -88,7 +88,7 @@ final class FakeSocket implements GameSocket {
 
 OnlineGame makeGame({
   Camp myCamp = Camp.blanc,
-  Cadence cadence = Cadence.illimitee,
+  Cadence cadence = Cadence.zen,
   String? randomCode,
   FakeSocket? socket,
   void Function(OnlineEvent)? onChanged,
@@ -125,7 +125,7 @@ void main() {
         'adversaire': 'Nino',
         'adversaire_melo': 1620,
         'objectif': '5',
-        'cadence': '5min',
+        'cadence': '5',
         'random_code': '.03-09',
       });
       expect(info.gameId, 'abc');
@@ -156,7 +156,7 @@ void main() {
   group('Mon tour', () {
     test('un coup validé part au serveur', () {
       final socket = FakeSocket();
-      final g = makeGame(socket: socket, cadence: Cadence.blitz5);
+      final g = makeGame(socket: socket, cadence: Cadence.cinq);
       final notation = playFirstMove(g);
 
       expect(socket.didSend('jouer_coup'), isTrue);
@@ -167,7 +167,7 @@ void main() {
 
     test("l'horloge part sous les TROIS clés", () {
       final socket = FakeSocket();
-      final g = makeGame(socket: socket, cadence: Cadence.blitz5);
+      final g = makeGame(socket: socket, cadence: Cadence.cinq);
       playFirstMove(g);
 
       final sent = socket.lastOf('jouer_coup')!;
@@ -212,7 +212,7 @@ void main() {
       final g = makeGame(
         myCamp: Camp.noir,
         socket: socket,
-        cadence: Cadence.blitz5,
+        cadence: Cadence.cinq,
       );
 
       final move = generateMoves(g.game.board, Camp.blanc).first;
@@ -442,7 +442,7 @@ void main() {
           'game_id': 'g2',
           'adversaire': 'Ana',
           'ma_couleur': g.myCamp == Camp.blanc ? 'Noir' : 'Blanc',
-          'cadence': '5min',
+          'cadence': '5',
         }),
       );
 

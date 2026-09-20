@@ -62,7 +62,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
-          cadence: Cadence.illimitee,
+          cadence: Cadence.zen,
           aiCamp: againstAi ? step.turn.opposite : null,
           initialBoard: step.board.clone(),
           initialTurn: step.turn,

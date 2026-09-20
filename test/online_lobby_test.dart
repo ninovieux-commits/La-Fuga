@@ -173,7 +173,7 @@ void main() {
       // Pas de pumpAndSettle : l'indicateur de recherche tourne sans fin.
       await tester.pump();
 
-      expect(socket.lastOf('chercher_partie')!['cadence'], '5min');
+      expect(socket.lastOf('chercher_partie')!['cadence'], '15');
       expect(socket.lastOf('chercher_partie')!['objectif'], 'partie');
       expect(find.text('Annuler'), findsOneWidget);
     });

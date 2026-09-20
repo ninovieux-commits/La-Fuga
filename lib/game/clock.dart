@@ -6,29 +6,45 @@ library;
 
 import '../engine/piece.dart';
 
-/// Cadence d'une partie, en secondes par camp. `null` = illimité.
+/// Cadence d'une partie, en secondes par camp. `null` = sans chrono.
+///
+/// Les valeurs sont **celles de Kivy**, et c'est important : `wire` est ce qui
+/// part au serveur (`chercher_partie`, `defier`) et ce qui s'écrit dans le
+/// `.nmc`. Un autre mot, et le matchmaking n'apparierait jamais un joueur
+/// Flutter avec un joueur Kivy.
 final class Cadence {
-  const Cadence(this.seconds, this.label);
+  const Cadence(this.seconds, this.wire);
 
   /// Secondes allouées à chaque camp, ou `null` pour une partie sans chrono.
   final int? seconds;
 
-  /// Libellé affiché, tel que le serveur l'attend (`cadence` du matchmaking).
-  final String label;
+  /// Valeur transmise au serveur : `5`, `15`, `30` ou `zen`.
+  final String wire;
 
-  static const Cadence illimitee = Cadence(null, 'illimité');
-  static const Cadence blitz3 = Cadence(180, '3min');
-  static const Cadence blitz5 = Cadence(300, '5min');
-  static const Cadence rapide10 = Cadence(600, '10min');
-  static const Cadence longue30 = Cadence(1800, '30min');
+  /// Sans chrono. Les parties contre Deep Grey, l'analyse et la
+  /// correspondance sont toujours en Zen.
+  static const Cadence zen = Cadence(null, 'zen');
 
-  static const List<Cadence> toutes = [
-    illimitee,
-    blitz3,
-    blitz5,
-    rapide10,
-    longue30,
-  ];
+  static const Cadence cinq = Cadence(300, '5');
+  static const Cadence quinze = Cadence(900, '15');
+  static const Cadence trente = Cadence(1800, '30');
+
+  /// Les trois cadences proposées au menu, comme en Kivy.
+  static const List<Cadence> toutes = [cinq, quinze, trente];
+
+  /// Cadence par défaut du menu.
+  static const Cadence parDefaut = quinze;
+
+  /// Libellé affiché : « 15 min », ou « Zen ».
+  String get label => this == zen ? 'Zen' : '$wire min';
+
+  /// Retrouve une cadence à partir de ce que dit le serveur.
+  static Cadence fromWire(String? value) => switch (value) {
+    '5' => cinq,
+    '15' => quinze,
+    '30' => trente,
+    _ => zen,
+  };
 }
 
 /// Chronomètre à deux camps.

@@ -32,7 +32,7 @@ import '../widgets/game_board_view.dart';
 class GameScreen extends StatefulWidget {
   const GameScreen({
     super.key,
-    this.cadence = Cadence.illimitee,
+    this.cadence = Cadence.zen,
     this.aiCamp = Camp.noir,
     this.aiDeepMode = false,
     this.themeName = kDefaultTheme,
@@ -135,7 +135,7 @@ class _GameScreenState extends State<GameScreen> {
       firstBlanc: _playerOf(Camp.blanc),
     );
     _game = _newGame();
-    _clock = GameClock(widget.analysis ? Cadence.illimitee : widget.cadence);
+    _clock = GameClock(widget.analysis ? Cadence.zen : widget.cadence);
     if (_aiCamp != null) {
       _engine.start();
       _loadAiMemory();
@@ -331,7 +331,7 @@ class _GameScreenState extends State<GameScreen> {
           winner: loser == null ? null : _playerOf(loser.opposite),
           method: method,
           history: List.of(_game.history),
-          cadence: widget.cadence.label,
+          cadence: widget.cadence.wire,
           randomCode: widget.randomCode,
         ),
       ),

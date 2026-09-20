@@ -27,7 +27,7 @@ void main() {
 
   group('Décompte', () {
     test('seul le camp au trait perd du temps', () {
-      final c = GameClock(Cadence.blitz5);
+      final c = GameClock(Cadence.cinq);
       c.tick(Camp.blanc);
       c.tick(Camp.blanc);
       expect(c.remainingFor(Camp.blanc), 298);
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('sans chrono, rien ne s écoule', () {
-      final c = GameClock(Cadence.illimitee);
+      final c = GameClock(Cadence.zen);
       expect(c.isUnlimited, isTrue);
       expect(c.tick(Camp.blanc), isNull);
       expect(c.remainingFor(Camp.blanc), isNull);
@@ -61,7 +61,7 @@ void main() {
 
   group('Synchronisation et remise à zéro', () {
     test('on peut forcer le temps restant (synchro en ligne)', () {
-      final c = GameClock(Cadence.rapide10);
+      final c = GameClock(Cadence.quinze);
       c.setRemaining(Camp.noir, 123);
       expect(c.remainingFor(Camp.noir), 123);
       expect(c.displayFor(Camp.noir), '02:03');
@@ -70,23 +70,32 @@ void main() {
     test('une valeur nulle venue du réseau est ignorée', () {
       // Le serveur relaie `clock_adverse: null` quand il n'a rien reçu : on ne
       // doit pas écraser un chrono correct avec du vide.
-      final c = GameClock(Cadence.rapide10);
+      final c = GameClock(Cadence.quinze);
       c.setRemaining(Camp.noir, null);
-      expect(c.remainingFor(Camp.noir), 600);
+      expect(c.remainingFor(Camp.noir), 900);
     });
 
     test('reset rend leur temps aux deux camps', () {
-      final c = GameClock(Cadence.blitz3);
+      final c = GameClock(Cadence.cinq);
       c.tick(Camp.blanc);
       c.tick(Camp.noir);
       c.reset();
-      expect(c.remainingFor(Camp.blanc), 180);
-      expect(c.remainingFor(Camp.noir), 180);
+      expect(c.remainingFor(Camp.blanc), 300);
+      expect(c.remainingFor(Camp.noir), 300);
     });
   });
 
-  test('les cadences proposées couvrent de l illimité à 30 minutes', () {
-    expect(Cadence.toutes.first, Cadence.illimitee);
-    expect(Cadence.toutes.map((c) => c.seconds), [null, 180, 300, 600, 1800]);
+  test('les cadences sont celles de Kivy, valeurs transmises comprises', () {
+    // Ce qui part au serveur doit être « 5 », « 15 », « 30 » ou « zen » :
+    // un autre mot et le matchmaking n apparierait jamais deux joueurs.
+    expect(Cadence.toutes.map((c) => c.wire), ['5', '15', '30']);
+    expect(Cadence.toutes.map((c) => c.seconds), [300, 900, 1800]);
+    expect(Cadence.zen.wire, 'zen');
+    expect(Cadence.zen.seconds, isNull);
+    expect(Cadence.parDefaut, Cadence.quinze);
+    expect(Cadence.fromWire('30'), Cadence.trente);
+    expect(Cadence.fromWire('zen'), Cadence.zen);
+    expect(Cadence.fromWire('nawak'), Cadence.zen, reason: 'repli sans chrono');
+    expect(Cadence.quinze.label, '15 min');
   });
 }
