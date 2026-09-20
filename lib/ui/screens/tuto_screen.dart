@@ -11,8 +11,10 @@ import '../../game/tuto.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/tuto_overlay.dart';
+import 'settings_screen.dart';
 
 class TutoScreen extends StatefulWidget {
   const TutoScreen({super.key, this.controller});
@@ -35,36 +37,81 @@ class _TutoScreenState extends State<TutoScreen> {
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(T(_tuto.step.title)),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Text(
-                '${_tuto.index + 1} / ${_tuto.stepCount}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           children: [
+            // Kivy : pause à gauche, progression à droite. Pas de titre.
+            Expanded(flex: 6, child: _topBar()),
             Expanded(
-              child: banner == null
-                  ? _board(palette, axes)
-                  : _banner(banner, palette),
+              flex: 66,
+              child: banner == null ? _board(palette, axes) : _banner(banner),
             ),
-            _textBox(),
-            _nav(palette),
+            Expanded(flex: 17, child: _textBox()),
+            Expanded(flex: 11, child: _nav(palette)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _topBar() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 95,
+          child: FugaButton(
+            text: T('Pause'),
+            fontSize: 13,
+            height: double.infinity,
+            onPressed: _openPause,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '${_tuto.index + 1} / ${_tuto.stepCount}',
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Color.fromRGBO(38, 38, 38, 1),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// La pause du tuto : réglages, ou fermer — `_open_pause`.
+  Future<void> _openPause() async {
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kFugaGrey,
+        title: Text(T('Pause'), style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FugaButton(
+              text: T('Réglages'),
+              fontSize: 16,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SettingsScreen(fromMenu: false),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            FugaButton(
+              text: T('Fermer le tuto'),
+              color: palette.clair,
+              fontSize: 16,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (leave == true && mounted) Navigator.of(context).pop(false);
   }
 
   Widget _board(ThemePalette palette, ThemeAxes axes) => Stack(
@@ -97,15 +144,16 @@ class _TutoScreenState extends State<TutoScreen> {
     ],
   );
 
-  /// Grand texte de transition, à la place du plateau.
-  Widget _banner(String text, ThemePalette palette) => Center(
+  /// Grand texte de transition, à la place du plateau. Le bleu est fixe chez
+  /// Kivy : `(0.13, 0.45, 0.85)`.
+  Widget _banner(String text) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
       child: Text(
         T(text),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: palette.clair,
+        style: const TextStyle(
+          color: Color.fromRGBO(33, 115, 217, 1),
           fontSize: 30,
           fontWeight: FontWeight.bold,
         ),
@@ -129,36 +177,40 @@ class _TutoScreenState extends State<TutoScreen> {
     ),
   );
 
+  /// « < Précédent » en gris, « Suivant > » en foncé — les couleurs de Kivy.
+  /// Une touche indisponible s'estompe au lieu de disparaître.
   Widget _nav(ThemePalette palette) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     child: Row(
       children: [
         Expanded(
-          child: OutlinedButton(
-            onPressed: _tuto.atFirst ? null : () => setState(_tuto.previous),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white24),
-              minimumSize: const Size.fromHeight(48),
+          child: Opacity(
+            opacity: _tuto.atFirst ? 0.35 : 1,
+            child: FugaButton(
+              text: T('< Précédent'),
+              fontSize: 15,
+              height: double.infinity,
+              onPressed: _tuto.atFirst ? null : () => setState(_tuto.previous),
             ),
-            child: Text(T('< Précédent')),
           ),
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: FilledButton(
-            onPressed: !_tuto.canGoNext
-                ? null
-                : _tuto.atLast
-                // La dernière touche rend la main au menu en demandant sa
-                // visite guidée, comme en Kivy.
-                ? () => Navigator.of(context).pop(true)
-                : () => setState(_tuto.next),
-            style: FilledButton.styleFrom(
-              backgroundColor: palette.clair,
-              minimumSize: const Size.fromHeight(48),
+          child: Opacity(
+            opacity: _tuto.canGoNext ? 1 : 0.35,
+            child: FugaButton(
+              text: _tuto.atLast ? T('Le menu >') : T('Suivant >'),
+              color: palette.fonce,
+              fontSize: 15,
+              height: double.infinity,
+              onPressed: !_tuto.canGoNext
+                  ? null
+                  : _tuto.atLast
+                  // La dernière touche rend la main au menu en demandant sa
+                  // visite guidée, comme en Kivy.
+                  ? () => Navigator.of(context).pop(true)
+                  : () => setState(_tuto.next),
             ),
-            child: Text(_tuto.atLast ? T('Le menu >') : T('Suivant >')),
           ),
         ),
       ],

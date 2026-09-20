@@ -9,6 +9,7 @@ import 'package:lafuga/game/tuto.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -48,10 +49,10 @@ void main() {
 
   testWidgets('Précédent est fermé sur la première étape', (tester) async {
     await open(tester);
-    final prev = tester.widget<OutlinedButton>(
+    final prev = tester.widget<FugaButton>(
       find.ancestor(
         of: find.text('< Précédent'),
-        matching: find.byType(OutlinedButton),
+        matching: find.byType(FugaButton),
       ),
     );
     expect(prev.onPressed, isNull);
@@ -62,10 +63,10 @@ void main() {
   ) async {
     final tuto = await open(tester, step: 1);
 
-    FilledButton next() => tester.widget<FilledButton>(
+    FugaButton next() => tester.widget<FugaButton>(
       find.ancestor(
         of: find.text('Suivant >'),
-        matching: find.byType(FilledButton),
+        matching: find.byType(FugaButton),
       ),
     );
     expect(next().onPressed, isNull, reason: 'étape interactive non faite');
