@@ -12,9 +12,11 @@ import '../../game/move_controller.dart';
 import '../../game/online_game.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
+import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/player_panel.dart';
 
 class OnlineGameScreen extends StatefulWidget {
   const OnlineGameScreen({
@@ -249,14 +251,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       subtitle = 'Mélo ${_g.newMelo} (${d >= 0 ? '+' : ''}$d)';
     }
 
-    return PlayerBanner(
-      label: label,
+    // Les gestes (↶ ½ X) n'appartiennent qu'à MON panneau : en ligne, je ne
+    // peux ni annuler ni abandonner à la place de l'adversaire.
+    final canAct = isMine && !_g.game.gameOver;
+
+    return PlayerPanel(
+      name: label,
       subtitle: subtitle,
       clock: _g.clock.displayFor(camp),
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: _g.game.turn == camp && !_g.game.gameOver,
+      captures: _g.game.captured[camp.opposite] ?? const [],
+      photo: isMine ? (OnlineService.instance.session?.photo ?? '') : '',
+      score: _g.scoreLine.isEmpty
+          ? null
+          : (camp == Camp.blanc ? '${_g.scoreBlanc}' : '${_g.scoreNoir}'),
       busy: !isMine && !_g.opponentConnected,
+      mirrored: isMine,
+      onUndo: canAct && _g.game.canValidate
+          ? () {
+              if (_g.game.cancelCurrentMove()) setState(() {});
+            }
+          : null,
+      onDraw: canAct ? _g.offerDraw : null,
+      onResign: canAct ? _confirmResign : null,
     );
   }
 
