@@ -21,6 +21,7 @@ import '../../theme/themes.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/move_strip.dart';
+import '../widgets/name_menu.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
@@ -305,18 +306,29 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
   Widget _banner(ThemePalette palette, Camp camp) {
     final isMine = camp == _g.myCamp;
-    final label = isMine ? widget.myPseudo : _g.info.opponent;
-    String? subtitle;
+    // En ligne, Kivy écrit le mélo à côté du nom : « Nino  (1500) ».
+    final melo = isMine
+        ? (_g.newMelo ?? OnlineService.instance.session?.melo ?? 1500)
+        : _g.info.opponentMelo;
+    var label = '${isMine ? widget.myPseudo : _g.info.opponent}  ($melo)';
+    var nameColor = kPanelInk;
+
+    // Adversaire déconnecté : son nom porte le décompte, en rouge — c'est lui
+    // qui perd le match si le compte arrive à zéro.
     if (!isMine && !_g.opponentConnected) {
       final delay = _g.disconnectGrace;
-      subtitle = delay == null
-          ? T('Hors ligne')
-          : '${T('Hors ligne')} · ${delay}s';
-    } else if (!isMine) {
-      subtitle = 'Mélo ${_g.info.opponentMelo}';
-    } else if (_g.newMelo != null) {
-      final d = _g.meloDelta ?? 0;
-      subtitle = 'Mélo ${_g.newMelo} (${d >= 0 ? '+' : ''}$d)';
+      label = delay == null || delay <= 0
+          ? T('%s (abandon…)').replaceFirst('%s', _g.info.opponent)
+          : T(
+              '%s (déco %ds)',
+            ).replaceFirst('%s', _g.info.opponent).replaceFirst('%d', '$delay');
+      nameColor = const Color.fromRGBO(230, 102, 102, 1);
+    }
+
+    String? subtitle;
+    if (isMine && _g.meloDelta != null) {
+      final d = _g.meloDelta!;
+      subtitle = '${d >= 0 ? '+' : ''}$d';
     }
 
     // Les gestes (↶ ½ X) n'appartiennent qu'à MON panneau : en ligne, je ne
@@ -325,6 +337,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
     return PlayerPanel(
       name: label,
+      nameColor: nameColor,
+      onNameTap: () => showNameMenu(
+        context,
+        online: OnlineService.instance,
+        pseudo: isMine
+            ? (OnlineService.instance.pseudo ?? '')
+            : _g.info.opponent,
+      ),
       subtitle: subtitle,
       clock: _g.clock.displayFor(camp),
       palette: palette,

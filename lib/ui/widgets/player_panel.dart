@@ -91,6 +91,8 @@ class PlayerPanel extends StatelessWidget {
     this.photo = '',
     this.score,
     this.subtitle,
+    this.nameColor = kPanelInk,
+    this.onNameTap,
     this.busy = false,
     this.mirrored = false,
     this.onUndo,
@@ -114,6 +116,14 @@ class PlayerPanel extends StatelessWidget {
 
   /// Ligne d'état : Deep Grey réfléchit, adversaire déconnecté…
   final String? subtitle;
+
+  /// Couleur du nom. Kivy le passe en rouge pendant le décompte de
+  /// déconnexion de l'adversaire.
+  final Color nameColor;
+
+  /// Toucher le nom ouvre le menu du joueur (profil, favori, message,
+  /// blocage) — `_on_name_click`. Absent pour un joueur qui n'en est pas un.
+  final VoidCallback? onNameTap;
 
   final bool busy;
 
@@ -173,14 +183,17 @@ class PlayerPanel extends StatelessWidget {
     children: [
       Expanded(
         flex: 42,
-        child: Text(
-          subtitle == null ? name : '$name  ·  $subtitle',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: kPanelInk,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        child: GestureDetector(
+          onTap: onNameTap,
+          child: Text(
+            subtitle == null ? name : '$name  ·  $subtitle',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: nameColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

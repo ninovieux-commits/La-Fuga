@@ -18,6 +18,7 @@ import '../widgets/game_board_view.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
+import '../widgets/name_menu.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
@@ -300,6 +301,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
               color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
               onFlip: _toggleFlip,
               onChat: _openChat,
+              unreadChat: _g.unreadChat,
               // Kivy garde « Analyser » en correspondance : on peut essayer
               // des coups avant de jouer le sien.
               onAnalyse: _controller == null ? null : _openAnalysis,
@@ -400,18 +402,23 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
     final canAct = isMine && _g.status == CorrStatus.enCours && !_played;
 
     return PlayerPanel(
-      name: isMine ? widget.myPseudo : _g.opponent,
-      subtitle: isMine ? null : 'Mélo ${_g.opponentMelo}',
+      // Comme en ligne, le mélo suit le nom.
+      name: isMine ? widget.myPseudo : '${_g.opponent}  (${_g.opponentMelo})',
       clock: '∞',
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: c.turn == camp && _g.status == CorrStatus.enCours,
       captures: c.captured[camp.opposite] ?? const [],
       photo: isMine ? (OnlineService.instance.session?.photo ?? '') : '',
-      // En correspondance le score est cumulatif, sans objectif : Kivy écrit
-      // « X / ... ».
-      score: isMine ? '${_g.myScore}' : '${_g.opponentScore}',
+      // En correspondance le score est cumulatif, sans objectif fixe : Kivy
+      // écrit « X / ... ».
+      score: '${isMine ? _g.myScore : _g.opponentScore} / ...',
       mirrored: isMine,
+      onNameTap: () => showNameMenu(
+        context,
+        online: OnlineService.instance,
+        pseudo: isMine ? widget.myPseudo : _g.opponent,
+      ),
       onUndo: canAct && c.canValidate
           ? () {
               if (c.cancelCurrentMove()) setState(() {});

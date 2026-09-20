@@ -29,6 +29,7 @@ class GameTopBar extends StatelessWidget {
     this.pauseLabel = '| |',
     this.onMenu,
     this.onChat,
+    this.unreadChat = 0,
     this.onAnalyse,
     this.onDeepGrey,
     this.aiDeepMode,
@@ -53,6 +54,9 @@ class GameTopBar extends StatelessWidget {
 
   /// En ligne seulement.
   final VoidCallback? onChat;
+
+  /// Messages non lus : Kivy écrit « Chat (2) ».
+  final int unreadChat;
 
   /// En relecture seulement.
   final VoidCallback? onAnalyse;
@@ -84,7 +88,14 @@ class GameTopBar extends StatelessWidget {
         ],
         const Spacer(),
         if (onChat != null) ...[
-          _wide(T('Chat'), onChat!, width: 88, color: kBarButtonDark),
+          _wide(
+            unreadChat > 0
+                ? T('Chat (%d)').replaceFirst('%d', '$unreadChat')
+                : T('Chat'),
+            onChat!,
+            width: 88,
+            color: kBarButtonDark,
+          ),
           const SizedBox(width: 6),
         ],
         if (onToggleAiMode != null) ...[

@@ -67,6 +67,13 @@ void main() {
     expect(find.byTooltip('Abandonner'), findsOneWidget);
   });
 
+  testWidgets('le mélo suit chaque nom, comme en Kivy', (tester) async {
+    await open(tester);
+
+    expect(find.text('Nino  (1500)'), findsOneWidget);
+    expect(find.text('Adversaire  (1500)'), findsOneWidget);
+  });
+
   testWidgets('la pause en ligne ne propose pas de quitter', (tester) async {
     await open(tester);
 
