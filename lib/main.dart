@@ -19,6 +19,12 @@ Future<void> main() async {
   // calé sur la largeur de l'écran.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+  // Plein écran immersif — portage d'`_enable_immersive_mode`. Kivy masque la
+  // barre d'état et celle de navigation ; elles reviennent au glissement
+  // depuis un bord, puis se recachent. C'est cette hauteur-là qui manquait :
+  // sans elle, la bande de ralliement du bas ne rentre pas.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   final settings = await Settings.load();
   await Translations.load(settings.language);
 
@@ -38,8 +44,35 @@ Future<void> main() async {
   runApp(const FugaApp());
 }
 
-class FugaApp extends StatelessWidget {
+class FugaApp extends StatefulWidget {
   const FugaApp({super.key});
+
+  @override
+  State<FugaApp> createState() => _FugaAppState();
+}
+
+class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Le plein écran se perd au retour d'une autre application, ou après un
+  /// clavier. Kivy le réapplique toutes les trois secondes ; ici il suffit de
+  /// le redemander quand l'application revient au premier plan.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
