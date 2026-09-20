@@ -129,7 +129,7 @@ void main() {
     final presentKey = present.board.key;
 
     // Reculer d'un coup montre la position d'avant.
-    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.tap(find.text('<'));
     await tester.pumpAndSettle();
     final past = tester.widget<GameBoardView>(find.byType(GameBoardView));
     expect(past.board.key, isNot(presentKey));
@@ -140,7 +140,7 @@ void main() {
     );
 
     // Revenir au présent.
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.text('>'));
     await tester.pumpAndSettle();
     expect(
       tester.widget<GameBoardView>(find.byType(GameBoardView)).board.key,

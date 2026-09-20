@@ -1,0 +1,161 @@
+/// Bandeau des coups — portage de `bot_bar` et `_do_update_history_ui`
+/// (main.py).
+///
+/// Une flèche, l'historique qui défile, une flèche. On peut revenir sur
+/// n'importe quelle position sans quitter la partie : le coup regardé s'écrit
+/// en noir gras, les autres en blanc.
+///
+/// Le fond prend la couleur du camp du BAS, vive quand il a le trait — c'est
+/// lui, avec le bandeau des touches en haut, qui dit à qui est le tour.
+library;
+
+import 'package:flutter/material.dart';
+
+import '../../theme/themes.dart';
+import 'game_top_bar.dart';
+
+class MoveStrip extends StatefulWidget {
+  const MoveStrip({
+    super.key,
+    required this.moves,
+    required this.color,
+    required this.onSelect,
+    this.activeIndex,
+    this.randomCode,
+    required this.palette,
+  });
+
+  /// Notations dans l'ordre, Blanc puis Noir, Blanc puis Noir…
+  final List<String> moves;
+
+  /// Coup regardé. `null` = on est au présent (donc le dernier).
+  final int? activeIndex;
+
+  final Color color;
+  final ThemePalette palette;
+
+  /// Code de la position Random Fuga, affiché en tête quand il y en a un.
+  final String? randomCode;
+
+  /// Appelé avec l'indice du coup à montrer, `-1` pour la position de départ.
+  final void Function(int index) onSelect;
+
+  @override
+  State<MoveStrip> createState() => _MoveStripState();
+}
+
+class _MoveStripState extends State<MoveStrip> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Au présent, le bandeau montre toujours le dernier coup.
+  void _scrollToEnd() {
+    if (widget.activeIndex != null || !_scroll.hasClients) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _scrollToEnd();
+    final moves = widget.moves;
+    final active = widget.activeIndex ?? moves.length - 1;
+
+    final turns = <Widget>[];
+    for (var i = 0; i < moves.length; i += 2) {
+      final blanc = moves[i];
+      final noir = i + 1 < moves.length ? moves[i + 1] : null;
+      final isActive = active == i || active == i + 1;
+      turns.add(
+        TextButton(
+          onPressed: () => widget.onSelect(noir == null ? i : i + 1),
+          style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: isActive ? Colors.black : Colors.white,
+          ),
+          child: Text(
+            '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 44,
+      color: widget.color,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          _arrow('<', moves.isEmpty ? null : () => widget.onSelect(active - 1)),
+          Expanded(
+            child: ListView(
+              controller: _scroll,
+              scrollDirection: Axis.horizontal,
+              children: [
+                // Random Fuga : le code de la position en tête, pour pouvoir
+                // la retrouver et la vérifier.
+                if (widget.randomCode != null)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        widget.randomCode!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: widget.palette.clair,
+                        ),
+                      ),
+                    ),
+                  ),
+                ...turns,
+              ],
+            ),
+          ),
+          _arrow(
+            '>',
+            widget.activeIndex == null
+                ? null
+                : () => widget.onSelect(active + 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _arrow(String label, VoidCallback? onPressed) => Opacity(
+    opacity: onPressed == null ? 0.35 : 1,
+    child: SizedBox(
+      width: 32,
+      height: double.infinity,
+      child: Material(
+        color: kBarButtonDark,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onPressed,
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}

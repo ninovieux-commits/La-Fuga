@@ -30,7 +30,9 @@ import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/end_dialogs.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 
@@ -47,6 +49,7 @@ class GameScreen extends StatefulWidget {
     this.initialTurn = Camp.blanc,
     this.randomCode,
     this.analysis = false,
+    this.analysisFromCorr = false,
     this.objectif = 'partie',
   });
 
@@ -81,6 +84,10 @@ class GameScreen extends StatefulWidget {
   /// Mode analyse : pas de chrono, pas de répétition, et rien n'est archivé —
   /// on explore.
   final bool analysis;
+
+  /// Analyse ouverte depuis une partie de correspondance EN COURS. Deep Grey
+  /// y est alors interdit : il soufflerait le coup à jouer.
+  final bool analysisFromCorr;
 
   /// `partie` pour une partie unique, sinon le nombre de points du match.
   final String objectif;
@@ -149,8 +156,10 @@ class _GameScreenState extends State<GameScreen> {
 
   bool get _flipped => _flipOverride ?? _defaultFlip;
   bool _thinking = false;
-  int? _lastThinkMicros;
   String? _verdict;
+
+  /// Nom du vainqueur de la dernière partie, pour le popup de fin.
+  String? _lastWinner;
   Timer? _ticker;
 
   @override
@@ -318,7 +327,6 @@ class _GameScreenState extends State<GameScreen> {
     _sounds.playNotation(applied.notation, hadEjection: applied.hadEjection);
     setState(() {
       _thinking = false;
-      _lastThinkMicros = result.elapsedMicros;
       _rememberLastMove(applied);
       if (applied.effect == ControllerEffect.gameOver) {
         _finish(
@@ -351,6 +359,7 @@ class _GameScreenState extends State<GameScreen> {
   void _finish(String method, Camp? loser, String verdict) {
     _verdict = verdict;
     _game.gameOver = true;
+    _lastWinner = loser == null ? null : _playerOf(loser.opposite);
 
     final end = nmcMethod(method);
     final marked = withEndSuffix(_game.history, end);
@@ -366,6 +375,7 @@ class _GameScreenState extends State<GameScreen> {
     _archived = true;
     if (loser != null) unawaited(_learn(loser.opposite));
     _recordPoint(method, loser);
+    _announceEnd();
     final (first, second) = _players;
     unawaited(
       _archive.store(
@@ -450,20 +460,7 @@ class _GameScreenState extends State<GameScreen> {
     };
   }
 
-  void _restart() {
-    _sounds.stopAll();
-    setState(_restartState);
-  }
-
   void _restartState() {
-    _game = _newGame();
-    _snapshots
-      ..clear()
-      ..add(_game.board.clone());
-    _viewingIndex = null;
-    _clock.reset();
-    _aiPositionCounts.clear();
-    _consecutiveManeuvers = 0;
     _game = _newGame();
     _snapshots
       ..clear()
@@ -476,7 +473,6 @@ class _GameScreenState extends State<GameScreen> {
     _verdict = null;
     _archived = false;
     _thinking = false;
-    _lastThinkMicros = null;
   }
 
   /// Abandon — portage du bouton X. Deux points pour l'adversaire.
@@ -554,9 +550,15 @@ class _GameScreenState extends State<GameScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _topBar(palette),
-            _playerPanel(palette, topCamp, mirrored: false),
+            // Les proportions de Kivy : 7 % de bandeau, 12 % de panneau,
+            // 66 % de plateau, 12 %, 7 %.
+            Expanded(flex: 7, child: _topBar(palette, topCamp)),
             Expanded(
+              flex: 12,
+              child: _playerPanel(palette, topCamp, mirrored: false),
+            ),
+            Expanded(
+              flex: 66,
               child: GameBoardView(
                 board: _shownBoard,
                 palette: palette,
@@ -572,19 +574,40 @@ class _GameScreenState extends State<GameScreen> {
                 boardTheme: axes.board,
               ),
             ),
-            _playerPanel(palette, bottomCamp, mirrored: true),
-            _actionBar(),
-            _historyStrip(palette),
+            Expanded(
+              flex: 12,
+              child: _playerPanel(palette, bottomCamp, mirrored: true),
+            ),
+            Expanded(
+              flex: 7,
+              child: MoveStrip(
+                moves: _game.history,
+                activeIndex: _viewingIndex,
+                color: _campColor(palette, bottomCamp),
+                palette: palette,
+                randomCode: widget.randomCode,
+                onSelect: _viewMove,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  /// Couleur d'un camp, vive quand il a le trait — `vif` / `terne` de
+  /// `_refresh_ui_no_board`.
+  Color _campColor(ThemePalette palette, Camp camp) {
+    final atTrait = _game.turn == camp && !_game.gameOver;
+    if (camp == Camp.blanc) return atTrait ? palette.clair : palette.clairDim;
+    return atTrait ? palette.fonce : palette.fonceDim;
+  }
+
   /// Barre du haut — portage de `top_bar`. « Retour au menu » n'apparaît
   /// qu'une fois la partie finie : en cours de partie, on passe par la pause.
-  Widget _topBar(ThemePalette palette) => GameTopBar(
+  Widget _topBar(ThemePalette palette, Camp topCamp) => GameTopBar(
     palette: palette,
+    color: _campColor(palette, topCamp),
     onFlip: () =>
         setState(() => _flipOverride = !(_flipOverride ?? _defaultFlip)),
     // En analyse, il n'y a rien à suspendre : la touche ramène au menu.
@@ -593,7 +616,9 @@ class _GameScreenState extends State<GameScreen> {
     onMenu: _game.gameOver ? () => Navigator.of(context).pop() : null,
     // Reprendre la position affichée contre Deep Grey : Kivy l'offre en
     // analyse comme en relecture.
-    onDeepGrey: widget.analysis ? _playFromPosition : null,
+    onDeepGrey: widget.analysis && !widget.analysisFromCorr
+        ? _playFromPosition
+        : null,
     aiDeepMode: _deepMode,
     onToggleAiMode: _aiCamp == null
         ? null
@@ -629,68 +654,6 @@ class _GameScreenState extends State<GameScreen> {
     if (left) Navigator.of(context).pop();
   }
 
-  /// Bandeau des coups : on peut revoir n'importe quelle position sans
-  /// quitter la partie — portage de `bot_bar` et de `viewing_idx`.
-  Widget _historyStrip(ThemePalette palette) {
-    final moves = _game.history;
-    if (moves.isEmpty) return const SizedBox.shrink();
-
-    final current = _viewingIndex ?? moves.length - 1;
-    final turns = <Widget>[];
-    for (var i = 0; i < moves.length; i += 2) {
-      final blanc = moves[i];
-      final noir = i + 1 < moves.length ? moves[i + 1] : null;
-      final active = current == i || current == i + 1;
-      turns.add(
-        TextButton(
-          onPressed: () => _viewMove(noir == null ? i : i + 1),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, 32),
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            foregroundColor: active ? palette.clair : Colors.white70,
-          ),
-          child: Text(
-            '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      height: 36,
-      color: Colors.black38,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
-            color: Colors.white,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32),
-            onPressed: current <= 0 ? null : () => _viewMove(current - 1),
-          ),
-          Expanded(
-            child: ListView(
-              reverse: true,
-              scrollDirection: Axis.horizontal,
-              children: turns.reversed.toList(),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            color: Colors.white,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32),
-            onPressed: !_isViewing ? null : () => _viewMove(current + 1),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Panneau d'un joueur. Les trois gestes (↶ ½ X) ne s'affichent que du
   /// côté qui peut s'en servir, comme en Kivy : pas de nulle contre Deep
   /// Grey, et rien de tout cela en analyse ni en regardant le passé.
@@ -711,9 +674,11 @@ class _GameScreenState extends State<GameScreen> {
       isTurn: _game.turn == camp && !_game.gameOver,
       captures: _game.captured[camp.opposite] ?? const [],
       photo: isAi ? 'deepgrey' : (OnlineService.instance.session?.photo ?? ''),
-      score: widget.objectif == 'partie'
-          ? null
-          : '${_match.scores[_playerOf(camp)] ?? 0} / ${widget.objectif}',
+      // Kivy affiche toujours le score, dénominateur compris : « 0 / 1 »
+      // pour une partie unique, « 0 / 5 » pour un match en cinq points.
+      score:
+          '${_match.scores[_playerOf(camp)] ?? 0} / '
+          '${widget.objectif == 'partie' ? '1' : widget.objectif}',
       busy: isAi && _thinking,
       mirrored: mirrored,
       onUndo: canAct && _game.canValidate ? _cancelMove : null,
@@ -722,47 +687,42 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _actionBar() {
-    final last = _game.history.isEmpty ? '—' : _game.history.last;
+  /// Fin de partie : Kivy ouvre un popup. S'il reste des parties au match,
+  /// il propose la suivante ; sinon il annonce le vainqueur et ramène au
+  /// menu. Dans les deux cas la touche « Retour au menu » du bandeau vient
+  /// d'apparaître, pour qu'on puisse fermer le popup et regarder la position.
+  void _announceEnd() {
+    final palette = paletteOf(widget.themeName);
+    final verdict = _verdict ?? T('Partie terminée');
     final next = _nextGameFor;
-    final think = _lastThinkMicros == null
-        ? ''
-        : '  ·  ${(_lastThinkMicros! / 1000).round()} ms';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      color: Colors.black38,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _verdict == null
-                  ? (_game.canValidate
-                        ? T('Retouchez la pièce pour valider')
-                        : '${_game.history.length} · $last$think')
-                  // En match, le score suit le verdict de la partie.
-                  : [_verdict, _matchVerdict].nonNulls.join('  ·  '),
-              style: TextStyle(
-                color: _verdict != null ? Colors.white : Colors.white70,
-                fontWeight: _verdict != null
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (next != null) {
+        unawaited(
+          showContinueDialog(
+            context,
+            palette: palette,
+            title: verdict,
+            body: _match.scoreLine,
+            nextFirstBlanc: next,
+            onNext: () => _startNextGame(next),
           ),
-          // Les gestes du joueur (↶ ½ X) sont dans SON panneau, comme en
-          // Kivy ; le retour au menu est dans la barre du haut.
-          if (next != null)
-            TextButton(
-              onPressed: () => _startNextGame(next),
-              child: Text(T('Partie suivante')),
-            )
-          else
-            TextButton(onPressed: _restart, child: Text(T('Nouvelle partie'))),
-        ],
-      ),
-    );
+        );
+        return;
+      }
+      unawaited(
+        showFinishDialog(
+          context,
+          palette: palette,
+          title: verdict,
+          body: _matchVerdict ?? _match.scoreLine,
+          winner: _lastWinner,
+          onMenu: () {
+            if (mounted) Navigator.of(context).pop();
+          },
+        ),
+      );
+    });
   }
 }

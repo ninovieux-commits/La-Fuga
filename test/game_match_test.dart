@@ -60,9 +60,12 @@ void main() {
     await openQuickGame(tester, objectif: 'partie');
     await runOutTheClock(tester);
 
+    // Kivy annonce la fin dans un popup : vainqueur et retour au menu, sans
+    // « partie suivante » puisqu'il n'y a qu'une partie.
     expect(find.textContaining('Temps écoulé'), findsOneWidget);
     expect(find.text('Partie suivante'), findsNothing);
-    expect(find.text('Nouvelle partie'), findsOneWidget);
+    expect(find.textContaining('Victoire de'), findsOneWidget);
+    expect(find.text('Retour au menu'), findsWidgets);
   });
 
   testWidgets('en match, le score s affiche et la suite est proposée', (
@@ -84,9 +87,11 @@ void main() {
     await tester.tap(find.text('Partie suivante'));
     await tester.pumpAndSettle();
 
+    // La partie repart : plus de popup, et le bandeau ne propose plus le
+    // retour au menu (réservé à la fin).
     expect(find.textContaining('Temps écoulé'), findsNothing);
     expect(find.text('Partie suivante'), findsNothing);
-    expect(find.text('Nouvelle partie'), findsOneWidget);
+    expect(find.text('Retour au menu'), findsNothing);
   });
 
   group('Abandon et nulle par accord', () {

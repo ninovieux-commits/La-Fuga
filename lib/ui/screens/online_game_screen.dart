@@ -4,6 +4,8 @@
 /// les gestes, exactement comme l'écran local le fait avec le contrôleur.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
@@ -16,7 +18,9 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/move_strip.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
@@ -59,12 +63,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     super.dispose();
   }
 
+  /// Le popup de fin n'est montré qu'une fois par partie.
+  bool _endShown = false;
+
   void _handleEvent(OnlineEvent event) {
     if (!mounted) return;
     if (event == OnlineEvent.drawOffered && _g.drawOffered) {
       _askDraw();
     }
+    if (event == OnlineEvent.nextGameStarted) _endShown = false;
     setState(() {});
+
+    if (_g.endReason != null && !_endShown) {
+      _endShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showEnd();
+      });
+    }
   }
 
   void _onTapCell(Cell cell) {
@@ -227,6 +242,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           children: [
             GameTopBar(
               palette: palette,
+              color: _campColor(palette, topCamp),
               onFlip: _toggleFlip,
               onChat: _openChat,
               onPause: _openPause,
@@ -250,11 +266,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               ),
             ),
             _banner(palette, bottomCamp),
-            _actionBar(),
+            MoveStrip(
+              moves: _g.game.history,
+              color: _campColor(palette, bottomCamp),
+              palette: palette,
+              onSelect: (_) {},
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Couleur d'un camp, vive quand il a le trait.
+  Color _campColor(ThemePalette palette, Camp camp) {
+    final atTrait = _g.game.turn == camp && !_g.game.gameOver;
+    if (camp == Camp.blanc) return atTrait ? palette.clair : palette.clairDim;
+    return atTrait ? palette.fonce : palette.fonceDim;
   }
 
   /// Retourner le plateau : Kivy l'autorise même en ligne.
@@ -342,51 +370,49 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  Widget _actionBar() {
-    final verdict = _verdict;
-    final over = _g.endReason != null;
+  /// Fin de partie : le popup de Kivy. Si le match continue, il propose la
+  /// partie suivante ; sinon il annonce le résultat, le mélo, et le retour au
+  /// menu.
+  void _showEnd() {
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+    final title = _verdict ?? T('Partie terminée');
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      color: Colors.black38,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              verdict == null
-                  ? (_g.game.canValidate
-                        ? T('Retouchez la pièce pour valider')
-                        : _g.isMyTurn
-                        ? T('À vous de jouer')
-                        : T(
-                            "À votre adversaire\nde jouer",
-                          ).replaceAll('\n', ' '))
-                  : '$verdict${_g.scoreLine}',
-              style: TextStyle(
-                color: over ? Colors.white : Colors.white70,
-                fontWeight: over ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          if (over && _g.matchContinues) ...[
-            // Le match continue : c'est le SERVEUR qui relance la partie
-            // suivante, quand les deux joueurs se sont annoncés prêts.
-            TextButton(
-              onPressed: _quitMatch,
-              child: Text(T('Quitter le match')),
-            ),
-            TextButton(
-              onPressed: _g.readySent ? null : () => setState(_g.readyForNext),
-              child: Text(
-                _g.readySent
-                    ? T("En attente de l'adversaire…")
-                    : T('Partie suivante'),
-              ),
-            ),
-          ],
-        ],
+    if (_g.matchContinues) {
+      unawaited(
+        showOnlineContinueDialog(
+          context,
+          palette: palette,
+          title: title,
+          body: _g.scoreLine,
+          readySent: _g.readySent,
+          onReady: () => setState(_g.readyForNext),
+          onQuit: _quitMatch,
+        ),
+      );
+      return;
+    }
+
+    final melo = _g.newMelo;
+    final delta = _g.meloDelta;
+    unawaited(
+      showFinishDialog(
+        context,
+        palette: palette,
+        title: title,
+        body: _g.scoreLine,
+        winner: switch (_g.loser?.opposite) {
+          null => null,
+          final Camp w => w == _g.myCamp ? widget.myPseudo : _g.info.opponent,
+        },
+        meloLine: (melo == null || delta == null)
+            ? T('Mise à jour du mélo…')
+            : T('Mélo : %d  (%s%d)')
+                  .replaceFirst('%d', '$melo')
+                  .replaceFirst('%s', delta >= 0 ? '+' : '')
+                  .replaceFirst('%d', '$delta'),
+        onMenu: () {
+          if (mounted) Navigator.of(context).pop();
+        },
       ),
     );
   }

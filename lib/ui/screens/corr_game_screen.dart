@@ -15,9 +15,12 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
 import '../widgets/game_board_view.dart';
+import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
+import 'game_screen.dart';
 
 class CorrGameScreen extends StatefulWidget {
   const CorrGameScreen({
@@ -147,6 +150,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  /// Répondre à une nulle proposée. On ne peut pas en proposer une soi-même :
+  /// Kivy cache le ½ en correspondance (`_update_side_buttons`), le temps y
+  /// étant illimité.
   Future<void> _askDraw() async {
     final accept = await showDialog<bool>(
       context: context,
@@ -168,14 +174,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
     if (!mounted) return;
     await widget.service.answerDraw(_g.id, accept == true);
     if (accept == true && mounted) Navigator.of(context).pop();
-  }
-
-  Future<void> _offerDraw() async {
-    await widget.service.offerDraw(_g.id);
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(T('Proposition de nulle envoyée.'))));
   }
 
   Future<void> _resign() async {
@@ -299,8 +297,12 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
           children: [
             GameTopBar(
               palette: palette,
+              color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
               onFlip: _toggleFlip,
               onChat: _openChat,
+              // Kivy garde « Analyser » en correspondance : on peut essayer
+              // des coups avant de jouer le sien.
+              onAnalyse: _controller == null ? null : _openAnalysis,
               onPause: _openPause,
               onMenu: _g.status == CorrStatus.termine
                   ? () => Navigator.of(context).pop()
@@ -327,12 +329,48 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
                 ),
               ),
               _panel(palette, flipped ? Camp.blanc : Camp.noir, c),
+              MoveStrip(
+                moves: _g.moves,
+                color: _campColor(palette, flipped ? Camp.blanc : Camp.noir),
+                palette: palette,
+                // La correspondance se relit, elle ne se remonte pas : le
+                // bandeau sert d'abord à relire les coups joués.
+                onSelect: (_) {},
+              ),
             ],
-            _footer(),
           ],
         ),
       ),
     );
+  }
+
+  /// Analyser la position courante. L'IA y est interdite : elle soufflerait
+  /// le coup d'une partie en cours.
+  Future<void> _openAnalysis() async {
+    final c = _controller;
+    if (c == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(
+          cadence: Cadence.zen,
+          aiCamp: null,
+          initialBoard: c.board.clone(),
+          initialTurn: c.turn,
+          analysis: true,
+          analysisFromCorr: true,
+          themeName: Settings.instance.themeAxes.general,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// Couleur d'un camp, vive quand il a le trait.
+  Color _campColor(ThemePalette palette, Camp camp) {
+    final atTrait =
+        _controller?.turn == camp && _g.status == CorrStatus.enCours;
+    if (camp == Camp.blanc) return atTrait ? palette.clair : palette.clairDim;
+    return atTrait ? palette.fonce : palette.fonceDim;
   }
 
   /// Retourner le plateau. Mon camp est en bas par défaut.
@@ -379,49 +417,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
               if (c.cancelCurrentMove()) setState(() {});
             }
           : null,
-      onDraw: canAct ? _offerDraw : null,
+      // Pas de ½ en correspondance : le temps est illimité, Kivy ne montre
+      // que l'abandon (`_update_side_buttons`).
       onResign: canAct ? _resign : null,
-    );
-  }
-
-  Widget _footer() {
-    final String message;
-    if (_sending) {
-      message = T('Envoi…');
-    } else if (_played) {
-      message = T('Coup envoyé.');
-    } else if (_g.status == CorrStatus.termine) {
-      message = _g.won == null
-          ? T('Nulle')
-          : (_g.won! ? T('Gagné !') : T('Perdu'));
-    } else if (_canPlay) {
-      message = _controller!.canValidate
-          ? T('Retouchez la pièce pour valider')
-          : T('À vous de jouer');
-    } else {
-      message = T("À votre adversaire\nde jouer").replaceAll('\n', ' ');
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      color: Colors.black38,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-          ),
-          if (_sending)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-        ],
-      ),
     );
   }
 }

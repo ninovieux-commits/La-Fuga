@@ -163,6 +163,30 @@ void main() {
     expect(find.byType(CorrGameScreen), findsOneWidget);
   });
 
+  testWidgets('la partie de correspondance offre les touches de Kivy', (
+    tester,
+  ) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    await open(tester);
+    await tapVisible(tester, find.byType(CorrSlot).first);
+
+    // `_update_action_buttons` : chat ET analyse en correspondance.
+    expect(find.text('< >'), findsOneWidget);
+    expect(find.text('| |'), findsOneWidget);
+    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Analyser'), findsOneWidget);
+    expect(find.text('Deep Grey'), findsNothing);
+    expect(find.text('Rapide'), findsNothing);
+
+    // `_update_side_buttons` : abandon de mon côté, pas de ½ — le temps est
+    // illimité, on abandonne si ça traîne.
+    expect(find.byTooltip('Abandonner'), findsOneWidget);
+    expect(find.byTooltip('Proposer nulle'), findsNothing);
+  });
+
   testWidgets('une case vide propose de défier un favori', (tester) async {
     replies['/corr_list'] = {'ok': true, 'games': const []};
     replies['/list_favorites'] = {

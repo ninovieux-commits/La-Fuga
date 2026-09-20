@@ -23,6 +23,7 @@ class GameTopBar extends StatelessWidget {
   const GameTopBar({
     super.key,
     required this.palette,
+    required this.color,
     required this.onFlip,
     required this.onPause,
     this.pauseLabel = '| |',
@@ -35,6 +36,10 @@ class GameTopBar extends StatelessWidget {
   });
 
   final ThemePalette palette;
+
+  /// Couleur du camp affiché EN HAUT, vive quand il a le trait : chez Kivy,
+  /// ce bandeau et celui des coups sont les deux témoins du tour.
+  final Color color;
 
   final VoidCallback onFlip;
   final VoidCallback onPause;
@@ -62,7 +67,7 @@ class GameTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 44,
-    color: palette.fonceDim,
+    color: color,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(
       children: [

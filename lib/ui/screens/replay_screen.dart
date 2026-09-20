@@ -95,6 +95,8 @@ class _ReplayScreenState extends State<ReplayScreen> {
             // contre Deep Grey, et `<<` pour revenir à l'historique.
             GameTopBar(
               palette: palette,
+              // En relecture, le bandeau prend la couleur du camp au trait.
+              color: step.turn == Camp.blanc ? palette.clair : palette.fonce,
               onFlip: () => setState(() => _flipped = !_flipped),
               pauseLabel: '<<',
               onPause: () => Navigator.of(context).pop(),
