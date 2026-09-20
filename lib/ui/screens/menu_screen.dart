@@ -327,12 +327,12 @@ class _MenuScreenState extends State<MenuScreen> {
         GestureDetector(
           onTap: _showStory,
           child: Image.asset(
-            'assets/logos/logo_${_axes.logo}.png',
+            'assets/logos/logo_${_axes.logo}.webp',
             height: 120,
             // Tous les thèmes n'ont pas leur logo : on retombe sur celui
             // d'origine plutôt que d'afficher une icône cassée.
             errorBuilder: (_, __, ___) =>
-                Image.asset('assets/logos/logo_original.png', height: 120),
+                Image.asset('assets/logos/logo_original.webp', height: 120),
           ),
         ),
         const SizedBox(height: 8),

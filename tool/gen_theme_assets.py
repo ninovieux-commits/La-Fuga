@@ -1,7 +1,10 @@
 """Génère lib/theme/theme_assets.dart depuis les fichiers réellement présents.
 
+Les images sont en WebP sans perte (voir tool/to_webp.py) : pixels identiques
+aux PNG du dépôt Kivy, fichiers 40 % plus légers.
+
 Kivy sonde le disque à l'exécution et accepte deux conventions de nommage
-(`heritierblanc.png` et `heritier_blanc.png`). En Flutter, les assets sont
+(`heritierblanc` et `heritier_blanc`). En Flutter, les assets sont
 déclarés à la compilation : on résout donc la table une fois pour toutes,
 depuis les fichiers eux-mêmes.
 """
@@ -35,7 +38,8 @@ root = "assets/themes"
 
 def find(folder, base):
     """Cherche les deux conventions de nommage."""
-    for name in (f"{base}.png", f"{base.replace('blanc', '_blanc').replace('noir', '_noir')}.png"):
+    spaced = base.replace("blanc", "_blanc").replace("noir", "_noir")
+    for name in (f"{base}.webp", f"{spaced}.webp"):
         if os.path.exists(os.path.join(root, folder, name)):
             return f"{root}/{folder}/{name}"
     return None
@@ -45,7 +49,7 @@ lines = ['''/// Images des thèmes — table générée par `tool/gen_theme_asse
 /// depuis les fichiers réellement présents dans `assets/themes/`.
 ///
 /// Kivy sonde le disque à l'exécution et accepte deux conventions de nommage
-/// (`heritierblanc.png` et `heritier_blanc.png`). En Flutter les assets sont
+/// (`heritierblanc` et `heritier_blanc`). En Flutter les assets sont
 /// déclarés à la compilation : la table est donc résolue une fois pour toutes.
 /// Ne pas modifier à la main — régénérer.
 library;
@@ -87,8 +91,12 @@ final class ThemeImages {
 const Map<String, ThemeImages> kThemeImages = {''']
 
 for theme, folder in list(IMG_DIR.items()) + list(BG_DIR.items()):
-    bg = f"{root}/{folder}/fond.png" if os.path.exists(f"{root}/{folder}/fond.png") else None
-    board = f"{root}/{folder}/plateau.png" if os.path.exists(f"{root}/{folder}/plateau.png") else None
+    bg = f"{root}/{folder}/fond.webp" if os.path.exists(f"{root}/{folder}/fond.webp") else None
+    board = (
+        f"{root}/{folder}/plateau.webp"
+        if os.path.exists(f"{root}/{folder}/plateau.webp")
+        else None
+    )
 
     pieces = []
     if theme in IMG_DIR:

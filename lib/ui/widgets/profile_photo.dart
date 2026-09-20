@@ -39,7 +39,7 @@ const Map<String, String> _logoAliases = {
 
 /// Chemin du logo d'un thème.
 String logoAssetOf(String theme) =>
-    'assets/logos/logo_${_logoAliases[theme] ?? theme}.png';
+    'assets/logos/logo_${_logoAliases[theme] ?? theme}.webp';
 
 /// Une photo lue : un thème, une pièce, un camp.
 typedef PhotoParts = ({String theme, PieceType piece, Camp camp});
@@ -84,7 +84,7 @@ class ProfilePhoto extends StatelessWidget {
 
     if (value == kDeepGreyPhoto) {
       return Image.asset(
-        'assets/images/deepgrey.png',
+        'assets/images/deepgrey.webp',
         width: size,
         height: size,
         fit: BoxFit.contain,

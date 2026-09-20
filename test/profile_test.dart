@@ -126,10 +126,10 @@ void main() {
 
     test('les logos au nom différent gardent leur fichier', () {
       // Kivy nomme ces trois-là autrement que leur thème.
-      expect(logoAssetOf('medieval'), endsWith('logo_bataille.png'));
-      expect(logoAssetOf('fleur'), endsWith('logo_fleurs.png'));
-      expect(logoAssetOf('insectes'), endsWith('logo_foret.png'));
-      expect(logoAssetOf('dragon'), endsWith('logo_dragon.png'));
+      expect(logoAssetOf('medieval'), endsWith('logo_bataille.webp'));
+      expect(logoAssetOf('fleur'), endsWith('logo_fleurs.webp'));
+      expect(logoAssetOf('insectes'), endsWith('logo_foret.webp'));
+      expect(logoAssetOf('dragon'), endsWith('logo_dragon.webp'));
     });
   });
 }

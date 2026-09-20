@@ -2,7 +2,7 @@
 /// depuis les fichiers réellement présents dans `assets/themes/`.
 ///
 /// Kivy sonde le disque à l'exécution et accepte deux conventions de nommage
-/// (`heritierblanc.png` et `heritier_blanc.png`). En Flutter les assets sont
+/// (`heritierblanc` et `heritier_blanc`). En Flutter les assets sont
 /// déclarés à la compilation : la table est donc résolue une fois pour toutes.
 /// Ne pas modifier à la main — régénérer.
 library;
@@ -43,103 +43,109 @@ final class ThemeImages {
 /// Images par thème. Un thème absent se dessine en rendu géométrique.
 const Map<String, ThemeImages> kThemeImages = {
   'medieval': ThemeImages(
-    background: 'assets/themes/themebataille/fond.png',
-    board: 'assets/themes/themebataille/plateau.png',
+    background: 'assets/themes/themebataille/fond.webp',
+    board: 'assets/themes/themebataille/plateau.webp',
     pieces: {
       (PieceType.heritier, Camp.blanc):
-          'assets/themes/themebataille/heritierblanc.png',
+          'assets/themes/themebataille/heritierblanc.webp',
       (PieceType.heritier, Camp.noir):
-          'assets/themes/themebataille/heritiernoir.png',
+          'assets/themes/themebataille/heritiernoir.webp',
       (PieceType.nurse, Camp.blanc):
-          'assets/themes/themebataille/nurseblanc.png',
-      (PieceType.nurse, Camp.noir): 'assets/themes/themebataille/nursenoir.png',
+          'assets/themes/themebataille/nurseblanc.webp',
+      (PieceType.nurse, Camp.noir):
+          'assets/themes/themebataille/nursenoir.webp',
       (PieceType.soldat, Camp.blanc):
-          'assets/themes/themebataille/soldatblanc.png',
+          'assets/themes/themebataille/soldatblanc.webp',
       (PieceType.soldat, Camp.noir):
-          'assets/themes/themebataille/soldatnoir.png',
+          'assets/themes/themebataille/soldatnoir.webp',
       (PieceType.garde, Camp.blanc):
-          'assets/themes/themebataille/gardeblanc.png',
-      (PieceType.garde, Camp.noir): 'assets/themes/themebataille/gardenoir.png',
+          'assets/themes/themebataille/gardeblanc.webp',
+      (PieceType.garde, Camp.noir):
+          'assets/themes/themebataille/gardenoir.webp',
       (PieceType.chevalier, Camp.blanc):
-          'assets/themes/themebataille/chevalierblanc.png',
+          'assets/themes/themebataille/chevalierblanc.webp',
       (PieceType.chevalier, Camp.noir):
-          'assets/themes/themebataille/chevaliernoir.png',
+          'assets/themes/themebataille/chevaliernoir.webp',
     },
     cornerRadius: 0.35,
   ),
   'fleur': ThemeImages(
-    background: 'assets/themes/themefleurs/fond.png',
-    board: 'assets/themes/themefleurs/plateau.png',
+    background: 'assets/themes/themefleurs/fond.webp',
+    board: 'assets/themes/themefleurs/plateau.webp',
     pieces: {
       (PieceType.heritier, Camp.blanc):
-          'assets/themes/themefleurs/heritierblanc.png',
+          'assets/themes/themefleurs/heritierblanc.webp',
       (PieceType.heritier, Camp.noir):
-          'assets/themes/themefleurs/heritiernoir.png',
-      (PieceType.nurse, Camp.blanc): 'assets/themes/themefleurs/nurseblanc.png',
-      (PieceType.nurse, Camp.noir): 'assets/themes/themefleurs/nursenoir.png',
+          'assets/themes/themefleurs/heritiernoir.webp',
+      (PieceType.nurse, Camp.blanc):
+          'assets/themes/themefleurs/nurseblanc.webp',
+      (PieceType.nurse, Camp.noir): 'assets/themes/themefleurs/nursenoir.webp',
       (PieceType.soldat, Camp.blanc):
-          'assets/themes/themefleurs/soldatblanc.png',
-      (PieceType.soldat, Camp.noir): 'assets/themes/themefleurs/soldatnoir.png',
-      (PieceType.garde, Camp.blanc): 'assets/themes/themefleurs/gardeblanc.png',
-      (PieceType.garde, Camp.noir): 'assets/themes/themefleurs/gardenoir.png',
+          'assets/themes/themefleurs/soldatblanc.webp',
+      (PieceType.soldat, Camp.noir):
+          'assets/themes/themefleurs/soldatnoir.webp',
+      (PieceType.garde, Camp.blanc):
+          'assets/themes/themefleurs/gardeblanc.webp',
+      (PieceType.garde, Camp.noir): 'assets/themes/themefleurs/gardenoir.webp',
       (PieceType.chevalier, Camp.blanc):
-          'assets/themes/themefleurs/chevalierblanc.png',
+          'assets/themes/themefleurs/chevalierblanc.webp',
       (PieceType.chevalier, Camp.noir):
-          'assets/themes/themefleurs/chevaliernoir.png',
+          'assets/themes/themefleurs/chevaliernoir.webp',
     },
   ),
   'insectes': ThemeImages(
-    background: 'assets/themes/themeinsectes/fond.png',
-    board: 'assets/themes/themeinsectes/plateau.png',
+    background: 'assets/themes/themeinsectes/fond.webp',
+    board: 'assets/themes/themeinsectes/plateau.webp',
     pieces: {
       (PieceType.heritier, Camp.blanc):
-          'assets/themes/themeinsectes/heritierblanc.png',
+          'assets/themes/themeinsectes/heritierblanc.webp',
       (PieceType.heritier, Camp.noir):
-          'assets/themes/themeinsectes/heritiernoir.png',
+          'assets/themes/themeinsectes/heritiernoir.webp',
       (PieceType.nurse, Camp.blanc):
-          'assets/themes/themeinsectes/nurseblanc.png',
-      (PieceType.nurse, Camp.noir): 'assets/themes/themeinsectes/nursenoir.png',
+          'assets/themes/themeinsectes/nurseblanc.webp',
+      (PieceType.nurse, Camp.noir):
+          'assets/themes/themeinsectes/nursenoir.webp',
       (PieceType.soldat, Camp.blanc):
-          'assets/themes/themeinsectes/carreeblanc.png',
+          'assets/themes/themeinsectes/carreeblanc.webp',
       (PieceType.soldat, Camp.noir):
-          'assets/themes/themeinsectes/carreenoir.png',
+          'assets/themes/themeinsectes/carreenoir.webp',
       (PieceType.garde, Camp.blanc):
-          'assets/themes/themeinsectes/carreeblanc.png',
+          'assets/themes/themeinsectes/carreeblanc.webp',
       (PieceType.garde, Camp.noir):
-          'assets/themes/themeinsectes/carreenoir.png',
+          'assets/themes/themeinsectes/carreenoir.webp',
       (PieceType.chevalier, Camp.blanc):
-          'assets/themes/themeinsectes/chevalierblanc.png',
+          'assets/themes/themeinsectes/chevalierblanc.webp',
       (PieceType.chevalier, Camp.noir):
-          'assets/themes/themeinsectes/chevaliernoir.png',
+          'assets/themes/themeinsectes/chevaliernoir.webp',
     },
   ),
   'dragon': ThemeImages(
-    background: 'assets/themes/themedragon/fond.png',
-    board: 'assets/themes/themedragon/plateau.png',
+    background: 'assets/themes/themedragon/fond.webp',
+    board: 'assets/themes/themedragon/plateau.webp',
     pieces: {
       (PieceType.heritier, Camp.blanc):
-          'assets/themes/themedragon/heritier_blanc.png',
+          'assets/themes/themedragon/heritier_blanc.webp',
       (PieceType.heritier, Camp.noir):
-          'assets/themes/themedragon/heritier_noir.png',
+          'assets/themes/themedragon/heritier_noir.webp',
       (PieceType.nurse, Camp.blanc):
-          'assets/themes/themedragon/nurse_blanc.png',
-      (PieceType.nurse, Camp.noir): 'assets/themes/themedragon/nurse_noir.png',
+          'assets/themes/themedragon/nurse_blanc.webp',
+      (PieceType.nurse, Camp.noir): 'assets/themes/themedragon/nurse_noir.webp',
       (PieceType.soldat, Camp.blanc):
-          'assets/themes/themedragon/soldat_blanc.png',
+          'assets/themes/themedragon/soldat_blanc.webp',
       (PieceType.soldat, Camp.noir):
-          'assets/themes/themedragon/soldat_noir.png',
+          'assets/themes/themedragon/soldat_noir.webp',
       (PieceType.garde, Camp.blanc):
-          'assets/themes/themedragon/garde_blanc.png',
-      (PieceType.garde, Camp.noir): 'assets/themes/themedragon/garde_noir.png',
+          'assets/themes/themedragon/garde_blanc.webp',
+      (PieceType.garde, Camp.noir): 'assets/themes/themedragon/garde_noir.webp',
       (PieceType.chevalier, Camp.blanc):
-          'assets/themes/themedragon/chevalier_blanc.png',
+          'assets/themes/themedragon/chevalier_blanc.webp',
       (PieceType.chevalier, Camp.noir):
-          'assets/themes/themedragon/chevalier_noir.png',
+          'assets/themes/themedragon/chevalier_noir.webp',
     },
   ),
   'deepgrey': ThemeImages(
-    background: 'assets/themes/theme_deepgrey/fond.png',
-    board: 'assets/themes/theme_deepgrey/plateau.png',
+    background: 'assets/themes/theme_deepgrey/fond.webp',
+    board: 'assets/themes/theme_deepgrey/plateau.webp',
   ),
 };
 

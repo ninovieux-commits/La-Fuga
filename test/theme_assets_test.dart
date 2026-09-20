@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/theme/theme_assets.dart';
 import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/ui/widgets/profile_photo.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -30,6 +31,32 @@ void main() {
           isTrue,
           reason: '« $name » n est pas un thème connu',
         );
+      }
+    });
+
+    test('les logos et la photo de Deep Grey existent aussi', () {
+      // Ces chemins-là sont écrits à la main, pas générés : rien ne les
+      // rattrape si une image est renommée ou convertie.
+      for (final theme in kThemes.keys) {
+        final path = logoAssetOf(theme);
+        expect(
+          File(path).existsSync(),
+          isTrue,
+          reason: 'logo manquant pour « $theme » : $path',
+        );
+      }
+      expect(File('assets/images/deepgrey.webp').existsSync(), isTrue);
+    });
+
+    test('aucune image du jeu n est restée en PNG', () {
+      // Tout est en WebP sans perte : un PNG oublié pèserait pour rien.
+      for (final folder in ['assets/themes', 'assets/logos', 'assets/images']) {
+        final leftovers = Directory(folder)
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.png'))
+            .toList();
+        expect(leftovers, isEmpty, reason: 'PNG restants dans $folder');
       }
     });
 
