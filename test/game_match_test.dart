@@ -94,7 +94,7 @@ void main() {
       await openQuickGame(tester, objectif: '5');
       await tester.pump();
 
-      await tester.tap(find.byTooltip('Abandonner'));
+      await tester.tap(find.byTooltip('Abandonner').last);
       await tester.pumpAndSettle();
       expect(find.textContaining('2 points'), findsOneWidget);
       await tester.tap(find.text('Oui, abandonner'));
@@ -112,7 +112,7 @@ void main() {
       await openQuickGame(tester, objectif: '5');
       await tester.pump();
 
-      await tester.tap(find.byTooltip('Proposer nulle'));
+      await tester.tap(find.byTooltip('Proposer nulle').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Accepter'));
       await tester.pumpAndSettle();
@@ -126,8 +126,16 @@ void main() {
       await openQuickGame(tester, objectif: 'partie', aiCamp: Camp.noir);
       await tester.pump();
 
-      expect(find.byTooltip('Proposer nulle'), findsNothing);
-      expect(find.byTooltip('Abandonner'), findsOneWidget);
+      expect(
+        find.byTooltip('Proposer nulle'),
+        findsNothing,
+        reason: 'on ne négocie pas avec Deep Grey',
+      );
+      expect(
+        find.byTooltip('Abandonner'),
+        findsOneWidget,
+        reason: 'seul le joueur humain peut abandonner',
+      );
     });
   });
 

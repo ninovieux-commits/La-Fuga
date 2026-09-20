@@ -134,8 +134,9 @@ void main() {
     final screen = tester.widget<GameScreen>(find.byType(GameScreen));
     expect(screen.aiCamp, isNull);
     expect(screen.cadence.wire, '15', reason: 'cadence par défaut du menu');
-    expect(find.text('Blanc'), findsOneWidget);
-    expect(find.text('Noir'), findsOneWidget);
+    // Les panneaux portent les noms des joueurs, comme en Kivy.
+    expect(find.text('Joueur 1'), findsOneWidget);
+    expect(find.text('Joueur 2'), findsOneWidget);
   });
 
   testWidgets('le jeu en ligne demande de se connecter', (tester) async {

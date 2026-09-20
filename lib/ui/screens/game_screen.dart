@@ -28,6 +28,7 @@ import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/player_panel.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -119,6 +120,30 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Qui tiendra les Blancs à la partie suivante, quand le match continue.
   String? _nextGameFor;
+
+  /// Positions traversées depuis le début de la partie. Sert à revoir les
+  /// coups passés sans quitter la partie, comme en Kivy.
+  final List<Board> _snapshots = [];
+
+  /// Coup regardé, ou `null` quand on est au présent.
+  int? _viewingIndex;
+
+  bool get _isViewing => _viewingIndex != null;
+
+  /// Le plateau montré : la position regardée, ou celle de la partie.
+  Board get _shownBoard =>
+      _isViewing ? _snapshots[_viewingIndex! + 1] : _game.board;
+
+  /// Mode profond de Deep Grey, basculable en cours de partie.
+  late bool _deepMode = widget.aiDeepMode;
+
+  /// Orientation choisie à la main par le bouton « < > », si elle l'a été.
+  bool? _flipOverride;
+
+  /// Orientation par défaut : les Blancs en bas, sauf si l'humain a les Noirs.
+  bool get _defaultFlip => _aiCamp != Camp.blanc;
+
+  bool get _flipped => _flipOverride ?? _defaultFlip;
   bool _thinking = false;
   int? _lastThinkMicros;
   String? _verdict;
@@ -135,6 +160,9 @@ class _GameScreenState extends State<GameScreen> {
       firstBlanc: _playerOf(Camp.blanc),
     );
     _game = _newGame();
+    _snapshots
+      ..clear()
+      ..add(_game.board.clone());
     _clock = GameClock(widget.analysis ? Cadence.zen : widget.cadence);
     if (_aiCamp != null) {
       _engine.start();
@@ -192,7 +220,8 @@ class _GameScreenState extends State<GameScreen> {
 
   bool get _isAiTurn => _aiCamp != null && _game.turn == _aiCamp;
 
-  bool get _canPlay => !_game.gameOver && !_thinking && !_isAiTurn;
+  bool get _canPlay =>
+      !_game.gameOver && !_thinking && !_isAiTurn && !_isViewing;
 
   void _onTapCell(Cell cell) {
     if (!_canPlay) return;
@@ -222,7 +251,14 @@ class _GameScreenState extends State<GameScreen> {
     _lastMoveCells = {
       for (final (_, from, to) in result.slides) ...[from, to],
     }..removeWhere((c) => !c.onBoard);
+    _snapshots.add(_game.board.clone());
   }
+
+  /// Revoir un coup passé. Le dernier coup, c'est le présent.
+  void _viewMove(int? index) => setState(() {
+    final wanted = index?.clamp(0, _game.history.length - 1);
+    _viewingIndex = wanted == _game.history.length - 1 ? null : wanted;
+  });
 
   Future<void> _playAi() async {
     final aiCamp = _aiCamp;
@@ -232,7 +268,7 @@ class _GameScreenState extends State<GameScreen> {
     final result = await _engine.think(
       board: _game.board,
       camp: aiCamp,
-      deepMode: widget.aiDeepMode,
+      deepMode: _deepMode,
       moveNumber: _game.history.length + 1,
       seenPositions: _aiPositionCounts,
       weights: _weights,
@@ -412,11 +448,19 @@ class _GameScreenState extends State<GameScreen> {
 
   void _restartState() {
     _game = _newGame();
+    _snapshots
+      ..clear()
+      ..add(_game.board.clone());
+    _viewingIndex = null;
     _clock.reset();
     _aiPositionCounts.clear();
     _consecutiveManeuvers = 0;
     _lastMoveCells = {};
     _game = _newGame();
+    _snapshots
+      ..clear()
+      ..add(_game.board.clone());
+    _viewingIndex = null;
     _clock.reset();
     _aiPositionCounts.clear();
     _consecutiveManeuvers = 0;
@@ -492,45 +536,180 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(widget.themeName);
-    // Les Blancs sont en bas, sauf si le joueur humain tient les Noirs.
-    final flipped = _aiCamp != Camp.blanc;
+    final flipped = _flipped;
+
+    final topCamp = flipped ? Camp.noir : Camp.blanc;
+    final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
     return Scaffold(
       backgroundColor: palette.menu,
       body: SafeArea(
         child: Column(
           children: [
-            _playerBanner(palette, flipped ? Camp.noir : Camp.blanc),
+            _topBar(palette),
+            _playerPanel(palette, topCamp, mirrored: false),
             Expanded(
               child: GameBoardView(
-                board: _game.board,
+                board: _shownBoard,
                 palette: palette,
                 flipped: flipped,
                 onTapCell: _onTapCell,
-                selected: _game.selected,
-                groupSelection: _game.groupSelection,
-                highlighted: _game.availablePushCells.toSet(),
-                lastMoveCells: _lastMoveCells,
+                selected: _isViewing ? null : _game.selected,
+                groupSelection: _isViewing ? const {} : _game.groupSelection,
+                highlighted: _isViewing
+                    ? const {}
+                    : _game.availablePushCells.toSet(),
+                lastMoveCells: _isViewing ? const {} : _lastMoveCells,
                 pieceTheme: axes.pieces,
                 boardTheme: axes.board,
               ),
             ),
-            _playerBanner(palette, flipped ? Camp.blanc : Camp.noir),
+            _playerPanel(palette, bottomCamp, mirrored: true),
             _actionBar(),
+            _historyStrip(palette),
           ],
         ),
       ),
     );
   }
 
-  Widget _playerBanner(ThemePalette palette, Camp camp) {
-    return PlayerBanner(
-      label: _aiCamp == camp ? 'Deep Grey' : _campLabel(camp),
+  /// Barre du haut : retourner le plateau, revenir au menu, et les touches
+  /// propres au mode en cours — portage de `top_bar`.
+  Widget _topBar(ThemePalette palette) => Container(
+    color: Colors.black38,
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    child: Row(
+      children: [
+        _barButton('< >', T('Retourner le plateau'), () {
+          setState(() => _flipOverride = !(_flipOverride ?? _defaultFlip));
+        }),
+        _barButton(T('Retour au menu'), T('< Menu'), () {
+          Navigator.of(context).pop();
+        }, wide: true),
+        const Spacer(),
+        // Le mode de réflexion de Deep Grey se change en cours de partie.
+        if (_aiCamp != null)
+          _barButton(
+            _deepMode ? T('Profond') : T('Rapide'),
+            T('Deep Grey'),
+            () => setState(() => _deepMode = !_deepMode),
+            wide: true,
+          ),
+      ],
+    ),
+  );
+
+  Widget _barButton(
+    String label,
+    String tooltip,
+    VoidCallback onPressed, {
+    bool wide = false,
+  }) => Tooltip(
+    message: tooltip,
+    child: TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        minimumSize: Size(wide ? 0 : 36, 32),
+        padding: EdgeInsets.symmetric(horizontal: wide ? 8 : 4),
+        foregroundColor: Colors.white,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+    ),
+  );
+
+  /// Bandeau des coups : on peut revoir n'importe quelle position sans
+  /// quitter la partie — portage de `bot_bar` et de `viewing_idx`.
+  Widget _historyStrip(ThemePalette palette) {
+    final moves = _game.history;
+    if (moves.isEmpty) return const SizedBox.shrink();
+
+    final current = _viewingIndex ?? moves.length - 1;
+    final turns = <Widget>[];
+    for (var i = 0; i < moves.length; i += 2) {
+      final blanc = moves[i];
+      final noir = i + 1 < moves.length ? moves[i + 1] : null;
+      final active = current == i || current == i + 1;
+      turns.add(
+        TextButton(
+          onPressed: () => _viewMove(noir == null ? i : i + 1),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 32),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            foregroundColor: active ? palette.clair : Colors.white70,
+          ),
+          child: Text(
+            '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 36,
+      color: Colors.black38,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 20),
+            color: Colors.white,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32),
+            onPressed: current <= 0 ? null : () => _viewMove(current - 1),
+          ),
+          Expanded(
+            child: ListView(
+              reverse: true,
+              scrollDirection: Axis.horizontal,
+              children: turns.reversed.toList(),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20),
+            color: Colors.white,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32),
+            onPressed: !_isViewing ? null : () => _viewMove(current + 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Panneau d'un joueur. Les trois gestes (↶ ½ X) ne s'affichent que du
+  /// côté qui peut s'en servir, comme en Kivy : pas de nulle contre Deep
+  /// Grey, et rien de tout cela en analyse ni en regardant le passé.
+  Widget _playerPanel(
+    ThemePalette palette,
+    Camp camp, {
+    required bool mirrored,
+  }) {
+    final isAi = _aiCamp == camp;
+    final mine = !isAi;
+    final canAct = mine && !widget.analysis && !_game.gameOver && !_isViewing;
+
+    return PlayerPanel(
+      name: isAi ? 'Deep Grey' : _playerOf(camp),
       clock: _clock.displayFor(camp),
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: _game.turn == camp && !_game.gameOver,
-      busy: _aiCamp == camp && _thinking,
+      captures: _game.captured[camp.opposite] ?? const [],
+      photo: isAi ? 'deepgrey' : (OnlineService.instance.session?.photo ?? ''),
+      score: widget.objectif == 'partie'
+          ? null
+          : '${_match.scores[_playerOf(camp)] ?? 0} / ${widget.objectif}',
+      busy: isAi && _thinking,
+      mirrored: mirrored,
+      onUndo: canAct && _game.canValidate ? _cancelMove : null,
+      onDraw: canAct && _aiCamp == null ? _agreeDraw : null,
+      onResign: canAct ? _abandon : null,
     );
   }
 
@@ -564,27 +743,8 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_back, size: 20),
-            tooltip: T('< Menu'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          // ½ et X : les gestes de Kivy, aux mêmes conditions — pas de nulle
-          // par accord contre Deep Grey, et rien de tout cela en analyse.
-          if (!widget.analysis && !_game.gameOver && _aiCamp == null)
-            IconButton(
-              icon: const Text('½', style: TextStyle(fontSize: 18)),
-              tooltip: T('Proposer nulle'),
-              onPressed: _agreeDraw,
-            ),
-          if (!widget.analysis && !_game.gameOver)
-            IconButton(
-              icon: const Icon(Icons.flag_outlined, size: 20),
-              tooltip: T('Abandonner'),
-              onPressed: _abandon,
-            ),
-          if (_game.canValidate)
-            TextButton(onPressed: _cancelMove, child: Text(T('Annuler'))),
+          // Les gestes du joueur (↶ ½ X) sont dans SON panneau, comme en
+          // Kivy ; le retour au menu est dans la barre du haut.
           if (next != null)
             TextButton(
               onPressed: () => _startNextGame(next),
