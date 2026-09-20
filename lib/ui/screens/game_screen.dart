@@ -19,6 +19,7 @@ import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
 import '../../game/game_archive.dart';
+import '../../game/match_play.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
@@ -40,6 +41,7 @@ class GameScreen extends StatefulWidget {
     this.initialBoard,
     this.randomCode,
     this.analysis = false,
+    this.objectif = 'partie',
   });
 
   /// Cadence de la partie.
@@ -71,6 +73,9 @@ class GameScreen extends StatefulWidget {
   /// on explore.
   final bool analysis;
 
+  /// `partie` pour une partie unique, sinon le nombre de points du match.
+  final String objectif;
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -78,6 +83,11 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late MoveController _game;
   late GameClock _clock;
+  late FugaMatch _match;
+
+  /// Camp de Deep Grey. Il change d'une partie à l'autre du match, puisque
+  /// les couleurs alternent.
+  Camp? _aiCamp;
   final DeepGreyEngine _engine = DeepGreyEngine();
   final SoundPlayer _sounds = SoundPlayer();
   late final GameArchive _archive = widget.archive ?? GameArchive();
@@ -99,6 +109,12 @@ class _GameScreenState extends State<GameScreen> {
   final Map<String, int> _aiPositionCounts = {};
 
   Set<Cell> _lastMoveCells = {};
+
+  /// Score du match, affiché sous le verdict.
+  String? _matchVerdict;
+
+  /// Qui tiendra les Blancs à la partie suivante, quand le match continue.
+  String? _nextGameFor;
   bool _thinking = false;
   int? _lastThinkMicros;
   String? _verdict;
@@ -107,9 +123,16 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    _aiCamp = widget.aiCamp;
+    _match = FugaMatch(
+      playerA: _players.$1,
+      playerB: _players.$2,
+      target: widget.analysis ? 'partie' : widget.objectif,
+      firstBlanc: _playerOf(Camp.blanc),
+    );
     _game = _newGame();
     _clock = GameClock(widget.analysis ? Cadence.illimitee : widget.cadence);
-    if (widget.aiCamp != null) {
+    if (_aiCamp != null) {
       _engine.start();
       _loadAiMemory();
     }
@@ -162,7 +185,7 @@ class _GameScreenState extends State<GameScreen> {
     countRepetitions: !widget.analysis,
   );
 
-  bool get _isAiTurn => widget.aiCamp != null && _game.turn == widget.aiCamp;
+  bool get _isAiTurn => _aiCamp != null && _game.turn == _aiCamp;
 
   bool get _canPlay => !_game.gameOver && !_thinking && !_isAiTurn;
 
@@ -197,7 +220,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _playAi() async {
-    final aiCamp = widget.aiCamp;
+    final aiCamp = _aiCamp;
     if (aiCamp == null) return;
     setState(() => _thinking = true);
 
@@ -268,8 +291,8 @@ class _GameScreenState extends State<GameScreen> {
   /// Nom du joueur qui tient [camp].
   String _playerOf(Camp camp) {
     final (first, second) = _players;
-    // Deep Grey tient son camp ; en local, Joueur 1 a les Blancs.
-    final blancIsFirst = widget.aiCamp != Camp.blanc;
+    // Deep Grey tient son camp ; en local, Joueur 1 commence avec les Blancs.
+    final blancIsFirst = _aiCamp != Camp.blanc;
     return (camp == Camp.blanc) == blancIsFirst ? first : second;
   }
 
@@ -292,6 +315,7 @@ class _GameScreenState extends State<GameScreen> {
     if (_archived || widget.analysis) return;
     _archived = true;
     if (loser != null) unawaited(_learn(loser.opposite));
+    _recordPoint(method, loser);
     final (first, second) = _players;
     unawaited(
       _archive.store(
@@ -309,18 +333,49 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Inscrit le point au match et, si le match continue, propose la partie
+  /// suivante — couleurs inversées, comme en Kivy.
+  void _recordPoint(String method, Camp? loser) {
+    final step = _match.record(
+      winner: loser == null ? null : _playerOf(loser.opposite),
+      points: pointsForMethod(nmcMethod(method)),
+    );
+    if (step.outcome == MatchOutcome.singleGame) return;
+
+    _matchVerdict = step.outcome == MatchOutcome.over
+        ? '${step.winner} ${T("gagne le match")} — ${_match.scoreLine}'
+        : _match.scoreLine;
+    _nextGameFor = step.outcome == MatchOutcome.next
+        ? step.nextFirstBlanc
+        : null;
+  }
+
+  /// Lance la partie suivante du match : les Blancs changent de main, donc
+  /// Deep Grey aussi change de camp.
+  void _startNextGame(String nextFirstBlanc) {
+    _match.startNext(nextFirstBlanc);
+    setState(() {
+      if (_aiCamp != null) {
+        _aiCamp = nextFirstBlanc == 'deep grey' ? Camp.blanc : Camp.noir;
+      }
+      _nextGameFor = null;
+      _restartState();
+    });
+    if (_isAiTurn) _playAi();
+  }
+
   /// Deep Grey apprend de la partie qui vient de finir.
   ///
   /// Les poids s'ajustent à chaque partie, gagnée ou perdue. Le livre
   /// d'ouvertures, lui, ne retient que les coups de celui qui a **battu**
   /// l'IA : c'est ainsi qu'elle progresse contre ce qui l'a mise en défaut.
   Future<void> _learn(Camp winner) async {
-    if (widget.aiCamp == null) return;
+    if (_aiCamp == null) return;
 
     final weights = _weights ?? await _memory.weights();
     await _memory.saveWeights(weights.learn(winner, _game.board));
 
-    if (winner == widget.aiCamp) return;
+    if (winner == _aiCamp) return;
     final book = _book ?? await _memory.book();
     final learned = book.recordWinningLine(
       initialBoard: Board.initial(),
@@ -347,17 +402,24 @@ class _GameScreenState extends State<GameScreen> {
 
   void _restart() {
     _sounds.stopAll();
-    setState(() {
-      _game = _newGame();
-      _clock.reset();
-      _aiPositionCounts.clear();
-      _consecutiveManeuvers = 0;
-      _lastMoveCells = {};
-      _verdict = null;
-      _archived = false;
-      _thinking = false;
-      _lastThinkMicros = null;
-    });
+    setState(_restartState);
+  }
+
+  void _restartState() {
+    _game = _newGame();
+    _clock.reset();
+    _aiPositionCounts.clear();
+    _consecutiveManeuvers = 0;
+    _lastMoveCells = {};
+    _game = _newGame();
+    _clock.reset();
+    _aiPositionCounts.clear();
+    _consecutiveManeuvers = 0;
+    _lastMoveCells = {};
+    _verdict = null;
+    _archived = false;
+    _thinking = false;
+    _lastThinkMicros = null;
   }
 
   void _cancelMove() {
@@ -370,7 +432,7 @@ class _GameScreenState extends State<GameScreen> {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(widget.themeName);
     // Les Blancs sont en bas, sauf si le joueur humain tient les Noirs.
-    final flipped = widget.aiCamp != Camp.blanc;
+    final flipped = _aiCamp != Camp.blanc;
 
     return Scaffold(
       backgroundColor: palette.menu,
@@ -402,17 +464,18 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _playerBanner(ThemePalette palette, Camp camp) {
     return PlayerBanner(
-      label: widget.aiCamp == camp ? 'Deep Grey' : _campLabel(camp),
+      label: _aiCamp == camp ? 'Deep Grey' : _campLabel(camp),
       clock: _clock.displayFor(camp),
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: _game.turn == camp && !_game.gameOver,
-      busy: widget.aiCamp == camp && _thinking,
+      busy: _aiCamp == camp && _thinking,
     );
   }
 
   Widget _actionBar() {
     final last = _game.history.isEmpty ? '—' : _game.history.last;
+    final next = _nextGameFor;
     final think = _lastThinkMicros == null
         ? ''
         : '  ·  ${(_lastThinkMicros! / 1000).round()} ms';
@@ -425,10 +488,12 @@ class _GameScreenState extends State<GameScreen> {
         children: [
           Expanded(
             child: Text(
-              _verdict ??
-                  (_game.canValidate
-                      ? T('Retouchez la pièce pour valider')
-                      : '${_game.history.length} · $last$think'),
+              _verdict == null
+                  ? (_game.canValidate
+                        ? T('Retouchez la pièce pour valider')
+                        : '${_game.history.length} · $last$think')
+                  // En match, le score suit le verdict de la partie.
+                  : [_verdict, _matchVerdict].nonNulls.join('  ·  '),
               style: TextStyle(
                 color: _verdict != null ? Colors.white : Colors.white70,
                 fontWeight: _verdict != null
@@ -440,7 +505,13 @@ class _GameScreenState extends State<GameScreen> {
           ),
           if (_game.canValidate)
             TextButton(onPressed: _cancelMove, child: Text(T('Annuler'))),
-          TextButton(onPressed: _restart, child: Text(T('Nouvelle partie'))),
+          if (next != null)
+            TextButton(
+              onPressed: () => _startNextGame(next),
+              child: Text(T('Partie suivante')),
+            )
+          else
+            TextButton(onPressed: _restart, child: Text(T('Nouvelle partie'))),
         ],
       ),
     );

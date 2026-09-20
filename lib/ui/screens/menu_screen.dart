@@ -54,6 +54,7 @@ class _MenuScreenState extends State<MenuScreen> {
           themeName: _axes.general,
           initialBoard: choice.board,
           randomCode: choice.randomCode,
+          objectif: choice.objectif,
         ),
       ),
     );
@@ -77,6 +78,7 @@ class _MenuScreenState extends State<MenuScreen> {
           themeName: _axes.general,
           initialBoard: choice.board,
           randomCode: choice.randomCode,
+          objectif: choice.objectif,
         ),
       ),
     );
@@ -381,6 +383,7 @@ final class _GameChoice {
     required this.cadence,
     required this.playerCamp,
     required this.deepMode,
+    required this.objectif,
     this.randomCode,
   });
 
@@ -391,6 +394,9 @@ final class _GameChoice {
 
   /// Mode profond de Deep Grey.
   final bool deepMode;
+
+  /// `partie` ou le nombre de points du match.
+  final String objectif;
 
   /// Code Random Fuga tiré au sort, ou `null` pour la position standard.
   final String? randomCode;
@@ -416,6 +422,7 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
   Camp _camp = Camp.blanc;
   bool _deep = false;
   bool _random = false;
+  String _objectif = 'partie';
 
   @override
   Widget build(BuildContext context) {
@@ -475,6 +482,25 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
                 ),
             ],
           ),
+          const SizedBox(height: 20),
+          Text(
+            T('Objectif'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final o in ['partie', '3', '5', '10'])
+                ChoiceChip(
+                  label: Text(
+                    o == 'partie' ? T('Partie unique') : '$o ${T('points')}',
+                  ),
+                  selected: _objectif == o,
+                  onSelected: (_) => setState(() => _objectif = o),
+                ),
+            ],
+          ),
           if (!widget.local) ...[
             const SizedBox(height: 12),
             SwitchListTile(
@@ -506,6 +532,7 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
                 cadence: _cadence,
                 playerCamp: _camp,
                 deepMode: _deep,
+                objectif: _objectif,
                 // Le code est tiré ici : il doit finir dans le `.nmc`, sans
                 // quoi la partie serait irrejouable.
                 randomCode: _random ? randomFugaCode() : null,
