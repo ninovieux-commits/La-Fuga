@@ -107,12 +107,18 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     );
   }
 
-  bool _waitingDialog = false;
+  /// Contexte du popup « défi envoyé », tant qu'il est ouvert.
+  ///
+  /// On retient le contexte du popup lui-même plutôt que celui de l'écran :
+  /// fermer par `Navigator.of(context).pop()` fermerait ce qui se trouve au
+  /// sommet, qui n'est pas forcément ce popup.
+  BuildContext? _waitingContext;
 
   void _closeWaiting() {
-    if (!_waitingDialog || !mounted) return;
-    _waitingDialog = false;
-    Navigator.of(context).pop();
+    final dialog = _waitingContext;
+    _waitingContext = null;
+    if (dialog == null || !dialog.mounted) return;
+    Navigator.of(dialog).pop();
   }
 
   void _say(String message) {
@@ -159,29 +165,31 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       random: _randomFuga,
     );
 
-    _waitingDialog = true;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(T('Défier')),
-        content: Text(
-          '${T("Défi envoyé à %s…").replaceAll('%s', pseudo)}\n\n'
-          '${T("En attente de sa réponse.")}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              challenges.cancel();
-              _waitingDialog = false;
-              Navigator.of(context).pop();
-            },
-            child: Text(T('Annuler')),
+      builder: (dialogContext) {
+        _waitingContext = dialogContext;
+        return AlertDialog(
+          title: Text(T('Défier')),
+          content: Text(
+            '${T("Défi envoyé à %s…").replaceAll('%s', pseudo)}\n\n'
+            '${T("En attente de sa réponse.")}',
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                challenges.cancel();
+                _waitingContext = null;
+                Navigator.of(dialogContext).pop();
+              },
+              child: Text(T('Annuler')),
+            ),
+          ],
+        );
+      },
     );
-    _waitingDialog = false;
+    _waitingContext = null;
   }
 
   /// Un joueur nous défie : accepter démarre la partie par `partie_trouvee`.

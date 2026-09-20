@@ -30,15 +30,19 @@ enum AutoLoginOutcome {
 
 /// Façade du mode en ligne.
 class OnlineService {
-  OnlineService({OnlineClient? client, Settings? settings})
-    : _client =
-          client ??
-          OnlineClient(
-            api: ApiClient(
-              serverUrl: (settings ?? Settings.instance).serverUrl,
-            ),
-          ),
-      _settings = settings ?? Settings.instance;
+  OnlineService({
+    OnlineClient? client,
+    Settings? settings,
+    RealtimeSocket Function(String serverUrl)? socketFactory,
+  }) : _socketFactory = socketFactory ?? _defaultSocket,
+       _client =
+           client ??
+           OnlineClient(
+             api: ApiClient(
+               serverUrl: (settings ?? Settings.instance).serverUrl,
+             ),
+           ),
+       _settings = settings ?? Settings.instance;
 
   static OnlineService? _instance;
 
@@ -51,7 +55,13 @@ class OnlineService {
   final OnlineClient _client;
   final Settings _settings;
 
-  FugaSocket? _socket;
+  /// Fabrique de la connexion temps réel. Injectable pour les tests.
+  final RealtimeSocket Function(String serverUrl) _socketFactory;
+
+  static RealtimeSocket _defaultSocket(String serverUrl) =>
+      FugaSocket(serverUrl: serverUrl);
+
+  RealtimeSocket? _socket;
 
   OnlineClient get client => _client;
   OnlineSession? get session => _client.session;
@@ -61,7 +71,7 @@ class OnlineService {
   /// Connexion temps réel, créée à la demande.
   ///
   /// `null` tant que personne n'est connecté : il n'y a rien à authentifier.
-  FugaSocket? get socket => _socket;
+  RealtimeSocket? get socket => _socket;
 
   bool get isSocketConnected => _socket?.isConnected ?? false;
 
@@ -146,7 +156,7 @@ class OnlineService {
   Future<void> connectSocket() async {
     final token = _client.token;
     if (token == null) return;
-    _socket ??= FugaSocket(serverUrl: _client.serverUrl);
+    _socket ??= _socketFactory(_client.serverUrl);
     await _socket!.connect(token);
   }
 

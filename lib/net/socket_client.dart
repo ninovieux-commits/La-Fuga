@@ -124,8 +124,35 @@ abstract interface class ChallengeSocket {
   void repondreDefi(String defiId, bool accepte);
 }
 
+/// Toute la connexion temps réel : cycle de vie, matchmaking, défis, parties.
+///
+/// C'est ce que [OnlineService] expose au reste de l'application. L'avoir en
+/// interface permet au salon — matchmaking ET défis — de se tester sans
+/// serveur, comme les parties en ligne.
+abstract interface class RealtimeSocket implements GameSocket, ChallengeSocket {
+  bool get isConnected;
+
+  /// État de la connexion, pour l'afficher à l'écran.
+  Stream<bool> get onConnectionChanged;
+
+  Future<void> connect(String token);
+
+  /// Ferme la connexion sans détruire l'objet.
+  void disconnect();
+
+  void chercherPartie({
+    required String objectif,
+    required String cadence,
+    bool random,
+  });
+
+  void annulerRecherche();
+
+  void dispose();
+}
+
 /// Connexion temps réel : matchmaking, défis et parties.
-class FugaSocket implements GameSocket, ChallengeSocket {
+class FugaSocket implements RealtimeSocket {
   FugaSocket({required this.serverUrl});
 
   final String serverUrl;
@@ -138,8 +165,10 @@ class FugaSocket implements GameSocket, ChallengeSocket {
       StreamController<bool>.broadcast();
 
   /// État de la connexion, pour afficher un indicateur à l'écran.
+  @override
   Stream<bool> get onConnectionChanged => _connectionState.stream;
 
+  @override
   bool get isConnected => _socket?.connected ?? false;
 
   /// Abonne un callback à un événement serveur. Un seul par événement, comme
@@ -158,6 +187,7 @@ class FugaSocket implements GameSocket, ChallengeSocket {
   /// sont la norme. **À chaque (re)connexion, `auth` est réémis** — sans cela
   /// le serveur ne réassocie pas le nouveau socket au compte ni à la partie en
   /// cours, l'adversaire nous voit déconnecté et les coups se perdent.
+  @override
   Future<void> connect(String token) async {
     _token = token;
     if (_socket != null) {
@@ -203,6 +233,7 @@ class FugaSocket implements GameSocket, ChallengeSocket {
 
   // ── Matchmaking ───────────────────────────────────────────────────────────
 
+  @override
   void chercherPartie({
     required String objectif,
     required String cadence,
@@ -213,6 +244,7 @@ class FugaSocket implements GameSocket, ChallengeSocket {
     'random': random,
   });
 
+  @override
   void annulerRecherche() => _emit('annuler_recherche');
 
   // ── Défis ─────────────────────────────────────────────────────────────────
@@ -294,11 +326,13 @@ class FugaSocket implements GameSocket, ChallengeSocket {
   void abandonnerMatch(String gameId) =>
       _emit('abandonner_match', {'game_id': gameId});
 
+  @override
   void disconnect() {
     _socket?.disconnect();
     _connectionState.add(false);
   }
 
+  @override
   void dispose() {
     _handlers.clear();
     _socket?.dispose();
