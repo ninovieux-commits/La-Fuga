@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
+import '../../game/nmc.dart';
 import '../../game/replay_controller.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
@@ -13,6 +14,8 @@ import '../../theme/themes.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/move_strip.dart';
+import '../widgets/player_panel.dart';
 import 'game_screen.dart';
 
 class ReplayScreen extends StatefulWidget {
@@ -36,6 +39,9 @@ class _ReplayScreenState extends State<ReplayScreen> {
   void initState() {
     super.initState();
     _replay = ReplayController.fromNmc(widget.nmc);
+    // Kivy ouvre la relecture sur le premier coup joué, pas sur la position
+    // de départ (`viewing_idx = 0` à la fin de `load_replay`).
+    _replay.goTo(1);
     _sounds.init();
   }
 
@@ -85,6 +91,9 @@ class _ReplayScreenState extends State<ReplayScreen> {
     final palette = paletteOf(axes.general);
     final step = _replay.current;
     final meta = _replay.meta;
+    // `_flipped` vrai = Blancs en bas, comme en Kivy.
+    final topCamp = _flipped ? Camp.noir : Camp.blanc;
+    final bottomCamp = _flipped ? Camp.blanc : Camp.noir;
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
@@ -103,10 +112,10 @@ class _ReplayScreenState extends State<ReplayScreen> {
               onAnalyse: () => _playFromHere(false),
               onDeepGrey: _playAgainstDeepGrey,
             ),
-            _titleLine(meta),
-            _header(palette, meta),
             if (_replay.isTruncated) _truncatedNotice(),
+            Expanded(flex: 12, child: _panel(palette, topCamp, meta)),
             Expanded(
+              flex: 66,
               child: GameBoardView(
                 board: step.board,
                 palette: palette,
@@ -117,52 +126,53 @@ class _ReplayScreenState extends State<ReplayScreen> {
                 boardTheme: axes.board,
               ),
             ),
-            _moveStrip(palette),
-            _controls(palette),
+            Expanded(flex: 12, child: _panel(palette, bottomCamp, meta)),
+            Expanded(
+              flex: 7,
+              child: MoveStrip(
+                moves: [
+                  for (var i = 1; i < _replay.steps.length; i++)
+                    _replay.steps[i].notation ?? '',
+                ],
+                activeIndex: _replay.index - 1,
+                color: bottomCamp == Camp.blanc ? palette.clair : palette.fonce,
+                palette: palette,
+                randomCode: meta.random,
+                onSelect: (i) => _move(() => _replay.goTo(i + 1)),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Le titre que l'AppBar portait : les deux joueurs, ou le nom du fichier.
-  Widget _titleLine(meta) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-    child: Text(
-      widget.title ?? '${meta.player1} – ${meta.player2}',
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: Colors.black,
-      ),
-    ),
-  );
+  /// Panneau d'un joueur, rempli avec l'en-tête du fichier : les noms, le
+  /// chrono de la cadence enregistrée, et les pièces prises à cet instant.
+  Widget _panel(ThemePalette palette, Camp camp, NmcMeta meta) {
+    final blancIsFirst = meta.blanc.isEmpty || meta.blanc == meta.player1;
+    final name = (camp == Camp.blanc) == blancIsFirst
+        ? meta.player1
+        : meta.player2;
 
-  Widget _header(ThemePalette palette, meta) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-    color: palette.clairDim,
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            '${meta.date}  ·  ${meta.cadence}',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ),
-        Text(
-          '${meta.result}  ${meta.method}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    ),
-  );
+    return PlayerPanel(
+      name: name.isEmpty ? T('Joueur 1') : name,
+      clock: _clockLabel(meta.cadence),
+      palette: palette,
+      isWhite: camp == Camp.blanc,
+      isTurn: _replay.current.turn == camp,
+      captures: _replay.current.captured[camp.opposite] ?? const [],
+      score: '0 / ${meta.objectif == 'partie' ? '1' : meta.objectif}',
+    );
+  }
+
+  /// Chrono affiché en relecture : Kivy y remet la pendule de la cadence
+  /// enregistrée (`load_replay`), pas le temps réellement consommé.
+  String _clockLabel(String cadence) {
+    if (cadence == 'zen' || cadence.isEmpty) return '∞';
+    final minutes = int.tryParse(cadence) ?? 15;
+    return '${minutes.toString().padLeft(2, '0')}:00';
+  }
 
   /// La partie n'a pas pu être rejouée jusqu'au bout : on le dit, au lieu de
   /// laisser croire qu'elle s'arrêtait là.
@@ -175,91 +185,4 @@ class _ReplayScreenState extends State<ReplayScreen> {
       style: const TextStyle(color: Colors.white, fontSize: 12),
     ),
   );
-
-  /// Bandeau des coups : on peut sauter directement à l'un d'eux.
-  Widget _moveStrip(ThemePalette palette) {
-    if (_replay.moveCount == 0) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 44,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: _replay.moveCount,
-        itemBuilder: (context, i) {
-          final stepIndex = i + 1;
-          final selected = _replay.index == stepIndex;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
-            child: ActionChip(
-              backgroundColor: selected ? palette.clair : null,
-              label: Text(
-                '${(stepIndex + 1) ~/ 2}${stepIndex.isOdd ? '.' : '…'} '
-                '${_replay.steps[stepIndex].notation}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: selected ? Colors.white : null,
-                ),
-              ),
-              onPressed: () => _move(() => _replay.goTo(stepIndex)),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _controls(ThemePalette palette) {
-    final step = _replay.current;
-    final label = step.notation == null
-        ? T('Position de départ')
-        : '${_replay.index} / ${_replay.moveCount}  ·  ${step.notation}';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      color: Colors.black38,
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.first_page),
-                onPressed: _replay.atStart
-                    ? null
-                    : () => _move(_replay.toStart),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: _replay.atStart
-                    ? null
-                    : () => _move(_replay.previous),
-              ),
-              Text(
-                step.turn == Camp.blanc ? T('Blanc') : T('Noir'),
-                style: TextStyle(
-                  color: step.turn == Camp.blanc
-                      ? palette.clair
-                      : palette.fonce,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: _replay.atEnd ? null : () => _move(_replay.next),
-              ),
-              IconButton(
-                icon: const Icon(Icons.last_page),
-                onPressed: _replay.atEnd ? null : () => _move(_replay.toEnd),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -21,6 +21,7 @@ final class ReplayStep {
     this.notation,
     this.move,
     this.boardBefore,
+    this.captured = const {},
   });
 
   final Board board;
@@ -37,6 +38,10 @@ final class ReplayStep {
   /// Position d'avant ce coup, quand il y en a un.
   final Board? boardBefore;
 
+  /// Pièces éjectées depuis le début, par camp d'appartenance : de quoi
+  /// remplir les panneaux comme en partie.
+  final Map<Camp, List<Piece>> captured;
+
   /// Cases à encadrer : départ et arrivées du coup.
   Set<Cell> get highlightedCells {
     final m = move;
@@ -51,6 +56,37 @@ final class ReplayStep {
     if (m == null || before == null) return null;
     return LastMove.of(before, m, pushTargets: pushTargetsOf(before, m));
   }
+}
+
+/// Pièces qui quittent le plateau sur ce coup — sans compter l'Héritier qui
+/// fugue, qui n'est pas une prise mais une victoire.
+List<Piece> _ejectedBy(Board before, Move move) {
+  final out = <Piece>[];
+  final after = <Piece, int>{};
+  for (var c = 0; c < kCols; c++) {
+    for (var r = 0; r < kRows; r++) {
+      final p = move.board.at(c, r);
+      if (p != null) after[p] = (after[p] ?? 0) + 1;
+    }
+  }
+  final counts = Map.of(after);
+  for (var c = 0; c < kCols; c++) {
+    for (var r = 0; r < kRows; r++) {
+      final p = before.at(c, r);
+      if (p == null) continue;
+      final left = counts[p] ?? 0;
+      if (left > 0) {
+        counts[p] = left - 1;
+      } else {
+        out.add(p);
+      }
+    }
+  }
+  // L'Héritier qui fugue sort aussi du plateau : on ne le compte pas.
+  if (move.fugue || move.fugueBy != null) {
+    out.removeWhere((p) => p.isHeir);
+  }
+  return out;
 }
 
 /// Vrai si ce contenu se lit comme une partie.
@@ -97,7 +133,14 @@ class ReplayController {
             // une partie qu'on ne saura pas rejouer qu'un plantage.
             : buildRandomFugaBoard(game.meta.random!) ?? Board.initial());
 
-    final steps = <ReplayStep>[ReplayStep(board: start, turn: Camp.blanc)];
+    final lost = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
+    final steps = <ReplayStep>[
+      ReplayStep(
+        board: start,
+        turn: Camp.blanc,
+        captured: {Camp.blanc: const [], Camp.noir: const []},
+      ),
+    ];
 
     var board = start;
     var turn = Camp.blanc;
@@ -110,6 +153,9 @@ class ReplayController {
         broken = i;
         break;
       }
+      for (final piece in _ejectedBy(board, move)) {
+        lost[piece.camp]!.add(piece);
+      }
       steps.add(
         ReplayStep(
           board: move.board,
@@ -117,6 +163,10 @@ class ReplayController {
           notation: notation,
           move: move,
           boardBefore: board,
+          captured: {
+            Camp.blanc: List.of(lost[Camp.blanc]!),
+            Camp.noir: List.of(lost[Camp.noir]!),
+          },
         ),
       );
       board = move.board;

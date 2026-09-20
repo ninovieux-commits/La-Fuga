@@ -169,10 +169,9 @@ void main() {
     testWidgets('on part en analyse depuis la position affichée', (
       tester,
     ) async {
+      // Le lecteur s'ouvre sur le premier coup, comme en Kivy : les Noirs
+      // ont donc le trait.
       await openReader(tester);
-      await tester.tap(find.byIcon(Icons.chevron_right));
-      await tester.pumpAndSettle();
-
       await tapVisible(tester, find.text('Analyser'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
@@ -200,9 +199,13 @@ void main() {
       expect(
         screen.aiCamp,
         Camp.noir,
-        reason: 'le lecteur garde le camp au trait',
+        reason: "j'ai choisi les Blancs, l'IA prend les Noirs",
       );
-      expect(screen.initialTurn, Camp.blanc);
+      expect(
+        screen.initialTurn,
+        Camp.noir,
+        reason: 'le trait ne bouge pas : après le coup blanc, aux Noirs',
+      );
     });
   });
 

@@ -120,16 +120,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ReplayScreen), findsOneWidget);
-    expect(find.text('Position de départ'), findsOneWidget);
+    // Kivy ouvre la relecture sur le PREMIER coup joué : le bandeau montre
+    // les deux joueurs et les coups, pas de « position de départ ».
+    expect(find.text('Nino'), findsOneWidget);
+    // « Deep Grey » est à la fois le nom du joueur et la touche du bandeau
+    // qui propose de reprendre la position contre l'IA.
+    expect(find.text('Deep Grey'), findsNWidgets(2));
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    // On avance d'un coup, puis on recule jusqu'avant le premier.
+    await tester.tap(find.text('>'));
     await tester.pumpAndSettle();
-
-    expect(find.text('Position de départ'), findsNothing);
-    expect(find.textContaining('1 / 4'), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.last_page));
+    await tester.tap(find.text('<'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('4 / 4'), findsOneWidget);
+    await tester.tap(find.text('<'));
+    await tester.pumpAndSettle();
   });
 }
