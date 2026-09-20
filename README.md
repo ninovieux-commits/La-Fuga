@@ -129,6 +129,8 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
   correspondance sur le menu) : la visite demande d'être repensée plutôt que
   recopiée.
 - **Taille de l'APK.** Les images des thèmes pèsent 32 Mo à elles seules
-  (jusqu'à 3 Mo par fichier). Une recompression sans perte les allégerait
-  beaucoup, mais elle modifierait des fichiers repris tels quels du dépôt
+  (jusqu'à 3 Mo par fichier). Mesures faites sur un échantillon de 11 Mo :
+  réoptimiser les PNG ne gagne que ~2 % ; les convertir en **WebP sans
+  perte** (pixels strictement identiques) gagne ~40 % ; en **WebP qualité
+  92**, ~85 %. Cela remplacerait des fichiers repris tels quels du dépôt
   Kivy : à décider.
