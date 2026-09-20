@@ -274,7 +274,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     if (target != null) await _challenge(target);
   }
 
-  void _onGameFound(Map<String, dynamic> data) {
+  /// Partie en cours, tant que son écran est ouvert.
+  OnlineGame? _openGame;
+
+  Future<void> _onGameFound(Map<String, dynamic> data) async {
     final socket = widget.online.socket;
     if (socket == null || !mounted) return;
 
@@ -282,15 +285,28 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     _closeWaiting();
 
     final info = OnlineGameInfo.fromEvent(data);
-    final cadence = _cadenceFromLabel(info.cadence);
-    final game = OnlineGame(socket: socket, info: info, cadence: cadence);
+
+    // Partie SUIVANTE d'un match : l'écran est déjà ouvert, et c'est lui qui
+    // enchaîne. En empiler un second laisserait la partie précédente dessous.
+    final open = _openGame;
+    if (open != null) {
+      open.startNextGame(info);
+      return;
+    }
+
+    final game = OnlineGame(
+      socket: socket,
+      info: info,
+      cadence: _cadenceFromLabel(info.cadence),
+    );
+    _openGame = game;
 
     setState(() {
       _searching = false;
       _notice = null;
     });
 
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => OnlineGameScreen(
           game: game,
@@ -298,6 +314,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         ),
       ),
     );
+    _openGame = null;
+    // L'écran de partie a repris les événements à son compte : on récupère
+    // les nôtres, sans quoi le salon resterait sourd au matchmaking.
+    if (mounted) setState(_bindSocket);
   }
 
   /// Retrouve la cadence à partir du libellé renvoyé par le serveur.

@@ -400,6 +400,74 @@ void main() {
     });
   });
 
+  group('Partie suivante du match', () {
+    test('se dire prêt prévient le serveur, une seule fois', () {
+      final socket = FakeSocket();
+      final g = makeGame(socket: socket);
+
+      g.readyForNext();
+      g.readyForNext();
+
+      expect(g.readySent, isTrue);
+      expect(
+        socket.sent.where((e) => e.name == 'pret_partie_suivante').length,
+        1,
+        reason: 'recliquer ne renvoie rien',
+      );
+    });
+
+    test('on apprend que l adversaire est prêt', () {
+      final socket = FakeSocket();
+      final g = makeGame(socket: socket);
+
+      expect(g.opponentReady, isFalse);
+      socket.emit(FugaEvents.adversairePret, {});
+      expect(g.opponentReady, isTrue);
+    });
+
+    test('la partie suivante repart à neuf, score gardé', () {
+      final socket = FakeSocket();
+      final g = makeGame(socket: socket);
+
+      socket.emit(FugaEvents.matchContinue, {
+        'score_blanc': 2,
+        'score_noir': 1,
+      });
+      g.readyForNext();
+      socket.emit(FugaEvents.chatRecu, {'texte': 'bien joué'});
+
+      // Le serveur annonce la partie suivante, couleurs inversées.
+      g.startNextGame(
+        OnlineGameInfo.fromEvent({
+          'game_id': 'g2',
+          'adversaire': 'Ana',
+          'ma_couleur': g.myCamp == Camp.blanc ? 'Noir' : 'Blanc',
+          'cadence': '5min',
+        }),
+      );
+
+      expect(g.info.gameId, 'g2');
+      expect(g.game.gameOver, isFalse, reason: 'un plateau neuf');
+      expect(g.game.history, isEmpty);
+      expect(g.endReason, isNull);
+      expect(g.matchContinues, isFalse);
+      expect(g.readySent, isFalse);
+      expect(g.chat, isEmpty, reason: 'le chat repart avec la partie');
+      expect(g.scoreBlanc, 2, reason: 'le score du match est celui du serveur');
+      expect(g.scoreNoir, 1);
+    });
+
+    test('quitter le match prévient le serveur', () {
+      final socket = FakeSocket();
+      final g = makeGame(socket: socket);
+      socket.emit(FugaEvents.matchContinue, {'score_blanc': 1});
+
+      g.resignMatch();
+
+      expect(socket.didSend('abandonner_match'), isTrue);
+    });
+  });
+
   test('dispose retire tous les abonnements', () {
     final socket = FakeSocket();
     final g = makeGame(socket: socket);

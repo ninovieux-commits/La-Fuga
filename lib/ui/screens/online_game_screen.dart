@@ -260,6 +260,29 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     );
   }
 
+  /// Quitter un match en cours : c'est un abandon du match entier.
+  Future<void> _quitMatch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(T('Quitter le match ?')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(T('Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(T('Quitter le match')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _g.resignMatch();
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Widget _actionBar() {
     final verdict = _verdict;
     final over = _g.endReason != null;
@@ -272,14 +295,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         children: [
           Expanded(
             child: Text(
-              verdict ??
-                  (_g.game.canValidate
-                      ? T('Retouchez la pièce pour valider')
-                      : _g.isMyTurn
-                      ? T('À vous de jouer')
-                      : T(
-                          "À votre adversaire\nde jouer",
-                        ).replaceAll('\n', ' ')),
+              verdict == null
+                  ? (_g.game.canValidate
+                        ? T('Retouchez la pièce pour valider')
+                        : _g.isMyTurn
+                        ? T('À vous de jouer')
+                        : T(
+                            "À votre adversaire\nde jouer",
+                          ).replaceAll('\n', ' '))
+                  : '$verdict${_g.scoreLine}',
               style: TextStyle(
                 color: over ? Colors.white : Colors.white70,
                 fontWeight: over ? FontWeight.bold : FontWeight.normal,
@@ -295,6 +319,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
           if (!over) ...[
             TextButton(onPressed: _g.offerDraw, child: const Text('½')),
             TextButton(onPressed: _confirmResign, child: Text(T('Abandonner'))),
+          ] else if (_g.matchContinues) ...[
+            // Le match continue : c'est le SERVEUR qui relance la partie
+            // suivante, quand les deux joueurs se sont annoncés prêts.
+            TextButton(
+              onPressed: _quitMatch,
+              child: Text(T('Quitter le match')),
+            ),
+            TextButton(
+              onPressed: _g.readySent ? null : () => setState(_g.readyForNext),
+              child: Text(
+                _g.readySent
+                    ? T("En attente de l'adversaire…")
+                    : T('Partie suivante'),
+              ),
+            ),
           ] else
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

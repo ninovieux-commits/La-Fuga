@@ -82,6 +82,9 @@ enum OnlineEvent {
 
   /// Le match continue, ou se termine.
   matchProgress,
+
+  /// La partie suivante du match a commencé.
+  nextGameStarted,
 }
 
 /// Une partie jouée en ligne.
@@ -91,20 +94,29 @@ class OnlineGame {
     required this.info,
     required Cadence cadence,
     this.onChanged,
-  }) : clock = GameClock(cadence),
-       game = MoveController(
-         board: info.randomCode == null
-             ? Board.initial()
-             : (buildRandomFugaBoard(info.randomCode!) ?? Board.initial()),
-       ) {
+  }) : _cadence = cadence,
+       clock = GameClock(cadence),
+       game = _controllerFor(info) {
     _bind();
     _startTicking();
   }
 
+  /// Plateau de départ d'une partie : standard, ou la position tirée au sort.
+  static MoveController _controllerFor(OnlineGameInfo info) => MoveController(
+    board: info.randomCode == null
+        ? Board.initial()
+        : (buildRandomFugaBoard(info.randomCode!) ?? Board.initial()),
+  );
+
   final GameSocket socket;
-  final OnlineGameInfo info;
-  final MoveController game;
-  final GameClock clock;
+
+  /// Partie en cours. Change à chaque partie du match : le serveur renvoie
+  /// un nouvel identifiant et inverse les couleurs.
+  OnlineGameInfo info;
+
+  MoveController game;
+  GameClock clock;
+  final Cadence _cadence;
 
   /// Appelé à chaque changement. Modifiable : la partie peut être créée
   /// avant que l'écran qui l'affiche n'existe.
@@ -157,7 +169,8 @@ class OnlineGame {
       ..on(FugaEvents.chatRecu, _onChat)
       ..on(FugaEvents.meloMaj, _onMelo)
       ..on(FugaEvents.matchContinue, _onMatchContinue)
-      ..on(FugaEvents.matchOver, _onMatchOver);
+      ..on(FugaEvents.matchOver, _onMatchOver)
+      ..on(FugaEvents.adversairePret, _onOpponentReady);
   }
 
   /// Applique un coup reçu de l'adversaire.
@@ -284,6 +297,9 @@ class OnlineGame {
   void resign() => _finish('abandon', myCamp, notifyServer: true);
 
   /// Abandonne tout le match.
+  ///
+  /// Sert aussi à quitter entre deux parties : `_finish` ne fait alors rien,
+  /// la partie étant déjà terminée, mais le serveur est prévenu.
   void resignMatch() {
     socket.abandonnerMatch(info.gameId);
     _finish('abandon', myCamp, notifyServer: false);
@@ -297,8 +313,57 @@ class OnlineGame {
     _notify(OnlineEvent.chat);
   }
 
+  /// L'adversaire a-t-il annoncé être prêt pour la partie suivante ?
+  bool opponentReady = false;
+
+  /// Ai-je annoncé être prêt ?
+  bool readySent = false;
+
+  void _onOpponentReady(Map<String, dynamic> d) {
+    opponentReady = true;
+    _notify(OnlineEvent.matchProgress);
+  }
+
   /// Signale au serveur qu'on est prêt pour la partie suivante du match.
-  void readyForNext() => socket.pretPartieSuivante(info.gameId);
+  ///
+  /// Rien ne repart localement : quand LES DEUX joueurs sont prêts, le serveur
+  /// renvoie `partie_trouvee`, couleurs inversées.
+  void readyForNext() {
+    if (readySent) return;
+    readySent = true;
+    socket.pretPartieSuivante(info.gameId);
+    _notify(OnlineEvent.matchProgress);
+  }
+
+  /// Score du match, quand il y en a un à montrer.
+  String get scoreLine {
+    if (scoreBlanc == 0 && scoreNoir == 0) return '';
+    final mine = myCamp == Camp.blanc ? scoreBlanc : scoreNoir;
+    final theirs = myCamp == Camp.blanc ? scoreNoir : scoreBlanc;
+    return '  ·  $mine - $theirs';
+  }
+
+  /// Démarre la partie suivante du match, telle que le serveur l'annonce.
+  ///
+  /// Le score du match est conservé — c'est le serveur qui le tient — mais
+  /// tout le reste repart à neuf, y compris le camp, qui a changé.
+  void startNextGame(OnlineGameInfo next) {
+    _ticker?.cancel();
+    info = next;
+    game = _controllerFor(next);
+    clock = GameClock(_cadence);
+    endReason = null;
+    loser = null;
+    drawOffered = false;
+    matchContinues = false;
+    opponentReady = false;
+    readySent = false;
+    newMelo = null;
+    meloDelta = null;
+    chat.clear();
+    _startTicking();
+    _notify(OnlineEvent.nextGameStarted);
+  }
 
   // ── Chrono ────────────────────────────────────────────────────────────────
 
@@ -356,6 +421,7 @@ class OnlineGame {
       FugaEvents.meloMaj,
       FugaEvents.matchContinue,
       FugaEvents.matchOver,
+      FugaEvents.adversairePret,
     ]) {
       socket.off(e);
     }
