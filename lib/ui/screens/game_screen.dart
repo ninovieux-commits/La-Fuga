@@ -30,6 +30,7 @@ import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
@@ -578,51 +579,35 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     return Scaffold(
       backgroundColor: palette.menu,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Les proportions de Kivy : 7 % de bandeau, 12 % de panneau,
-            // 66 % de plateau, 12 %, 7 %.
-            Expanded(flex: 7, child: _topBar(palette, topCamp)),
-            Expanded(
-              flex: 12,
-              child: _playerPanel(palette, topCamp, mirrored: false),
-            ),
-            Expanded(
-              flex: 66,
-              child: GameBoardView(
-                board: _shownBoard,
-                palette: palette,
-                flipped: flipped,
-                onTapCell: _onTapCell,
-                selected: _isViewing ? null : _game.selected,
-                groupSelection: _isViewing ? const {} : _game.groupSelection,
-                highlighted: _isViewing
-                    ? const {}
-                    : _game.availablePushCells.toSet(),
-                lastMove: _isViewing ? null : _lastMove,
-                pieceTheme: axes.pieces,
-                boardTheme: axes.board,
-                slides: slides,
-                slideToken: slideToken,
-                slideDuration: slideDuration,
-              ),
-            ),
-            Expanded(
-              flex: 12,
-              child: _playerPanel(palette, bottomCamp, mirrored: true),
-            ),
-            Expanded(
-              flex: 7,
-              child: MoveStrip(
-                moves: _game.history,
-                activeIndex: _viewingIndex,
-                color: _campColor(palette, bottomCamp),
-                palette: palette,
-                randomCode: widget.randomCode,
-                onSelect: _viewMove,
-              ),
-            ),
-          ],
+        child: GameLayout(
+          topBar: _topBar(palette, topCamp),
+          topPanel: _playerPanel(palette, topCamp, mirrored: false),
+          board: GameBoardView(
+            board: _shownBoard,
+            palette: palette,
+            flipped: flipped,
+            onTapCell: _onTapCell,
+            selected: _isViewing ? null : _game.selected,
+            groupSelection: _isViewing ? const {} : _game.groupSelection,
+            highlighted: _isViewing
+                ? const {}
+                : _game.availablePushCells.toSet(),
+            lastMove: _isViewing ? null : _lastMove,
+            pieceTheme: axes.pieces,
+            boardTheme: axes.board,
+            slides: slides,
+            slideToken: slideToken,
+            slideDuration: slideDuration,
+          ),
+          bottomPanel: _playerPanel(palette, bottomCamp, mirrored: true),
+          moveStrip: MoveStrip(
+            moves: _game.history,
+            activeIndex: _viewingIndex,
+            color: _campColor(palette, bottomCamp),
+            palette: palette,
+            randomCode: widget.randomCode,
+            onSelect: _viewMove,
+          ),
         ),
       ),
     );

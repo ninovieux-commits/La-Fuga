@@ -88,7 +88,7 @@ void paintPiece(
   final line = Paint()
     ..color = stroke
     ..style = PaintingStyle.stroke
-    ..strokeWidth = kivyLine(outlineWidth);
+    ..strokeWidth = outlineWidth;
   final acc = Paint()
     ..color = accent
     ..strokeCap = StrokeCap.round;
@@ -186,11 +186,21 @@ void paintPiece(
         }
         canvas.drawCircle(centre, inner / 2, line);
       } else {
-        // Anneau d'accent, puis un « trou » peint à la couleur du plateau :
-        // l'illusion de transparence du rendu Kivy.
+        // Anneau d'accent, puis un VRAI trou : on efface le disque central
+        // dans un calque, pour que le plateau se voie au travers — une
+        // pastille peinte à sa couleur ne collerait pas sur un plateau à
+        // image, ni sur une zone de ralliement.
         final d = inner * 0.20;
+        canvas.saveLayer(rect, Paint());
+        canvas.drawCircle(centre, inner / 2, fill);
+        canvas.drawCircle(centre, inner / 2, line);
         canvas.drawCircle(centre, (inner - 2 * d) / 2, Paint()..color = accent);
-        canvas.drawCircle(centre, inner * 0.14, Paint()..color = boardColor);
+        canvas.drawCircle(
+          centre,
+          inner * 0.14,
+          Paint()..blendMode = BlendMode.clear,
+        );
+        canvas.restore();
       }
 
     case PieceType.chevalier:

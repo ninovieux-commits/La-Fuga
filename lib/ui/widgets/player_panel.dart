@@ -161,12 +161,12 @@ class PlayerPanel extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // L'avatar de Kivy est carré et occupe toute la hauteur.
+            // L'avatar de Kivy est carré et occupe TOUTE la hauteur du
+            // panneau : sa largeur suit sa hauteur (`bind(height=…)`), la
+            // valeur `S(58)` du constructeur n'est qu'un point de départ.
             ProfilePhoto(
               photo: photo,
-              size: box.maxHeight.isFinite
-                  ? math.min(box.maxHeight - 8, 58)
-                  : 52,
+              size: box.maxHeight.isFinite ? box.maxHeight - 8 : 52,
             ),
             const SizedBox(width: 8),
             Expanded(

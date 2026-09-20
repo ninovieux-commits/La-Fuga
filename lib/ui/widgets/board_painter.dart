@@ -59,7 +59,7 @@ final class BoardBackgroundPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF1A1A1A)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = kivyLine(2),
+          ..strokeWidth = 2,
       );
     }
 
@@ -90,7 +90,7 @@ final class BoardBackgroundPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = palette.grid
       ..style = PaintingStyle.stroke
-      ..strokeWidth = kivyLine(1);
+      ..strokeWidth = 1;
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
         canvas.drawRect(g.cellRect(c, r), gridPaint);
@@ -105,7 +105,7 @@ final class BoardBackgroundPainter extends CustomPainter {
       boardRect.center.dy,
       g.cellSize * 0.42,
       color: palette.grid,
-      strokeWidth: kivyLine(1.6),
+      strokeWidth: 1.6,
     );
 
     _paintAnnotations(canvas, g);
@@ -244,7 +244,7 @@ final class BoardPiecesPainter extends CustomPainter {
       final frame = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = kivyLine(2.4);
+        ..strokeWidth = 2.4;
       for (final cell in last.framedCells) {
         if (!cell.onBoard) continue;
         canvas.drawRect(g.cellRect(cell.col, cell.row).inflate(1), frame);

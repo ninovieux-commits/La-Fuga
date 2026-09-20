@@ -75,7 +75,7 @@ class GameTopBar extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: Row(
       children: [
-        _round('< >', onFlip, fontSize: 18, tooltip: T('Retourner le plateau')),
+        _round('< >', onFlip, fontSize: 15, tooltip: T('Retourner le plateau')),
         if (onMenu != null) ...[
           const SizedBox(width: 6),
           _wide(
@@ -122,12 +122,34 @@ class GameTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 6),
         ],
-        _round(
-          pauseLabel,
-          onPause,
-          fontSize: 22,
-          tooltip: pauseLabel == '| |' ? T('Pause') : T('Retour'),
-        ),
+        if (pauseLabel == '| |')
+          Tooltip(
+            message: T('Pause'),
+            child: SizedBox(
+              width: 44,
+              height: double.infinity,
+              child: Material(
+                color: kBarButtonDark,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: onPause,
+                  // Deux barres dessinées plutôt que le texte « | | » : à
+                  // cette taille, le glyphe débordait de la touche et
+                  // tombait de travers.
+                  child: const Center(
+                    child: SizedBox(
+                      width: 14,
+                      height: 18,
+                      child: CustomPaint(painter: _PausePainter()),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          _round(pauseLabel, onPause, fontSize: 16, tooltip: T('Retour')),
       ],
     ),
   );
@@ -141,7 +163,7 @@ class GameTopBar extends StatelessWidget {
   }) => _button(
     label,
     onPressed,
-    width: 32,
+    width: 44,
     color: kBarButtonDark,
     radius: 20,
     fontSize: fontSize,
@@ -200,4 +222,28 @@ class GameTopBar extends StatelessWidget {
     );
     return tooltip == null ? button : Tooltip(message: tooltip, child: button);
   }
+}
+
+/// Les deux barres de la pause, centrées à coup sûr.
+final class _PausePainter extends CustomPainter {
+  const _PausePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final barWidth = size.width * 0.32;
+    final paint = Paint()..color = Colors.white;
+    final radius = Radius.circular(barWidth / 2);
+    for (final left in [0.0, size.width - barWidth]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, 0, barWidth, size.height),
+          radius,
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PausePainter old) => false;
 }

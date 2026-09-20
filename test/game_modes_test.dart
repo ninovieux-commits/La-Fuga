@@ -71,7 +71,7 @@ void main() {
       await open(tester);
 
       expect(find.text('< >'), findsOneWidget);
-      expect(find.text('| |'), findsOneWidget);
+      expect(find.byTooltip('Pause'), findsOneWidget);
       expect(find.text('<<'), findsNothing);
       expect(find.text('Retour au menu'), findsNothing);
       expect(find.text('Rapide'), findsNothing);
@@ -170,7 +170,7 @@ void main() {
       await open(tester, analysis: true);
 
       expect(find.text('<<'), findsOneWidget);
-      expect(find.text('| |'), findsNothing);
+      expect(find.byTooltip('Pause'), findsNothing);
       expect(find.text('Deep Grey'), findsOneWidget);
       expect(find.text('Analyser'), findsNothing, reason: 'on y est déjà');
       expect(find.text('Rapide'), findsNothing);

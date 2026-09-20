@@ -5,12 +5,14 @@ library;
 
 import 'dart:ui';
 
-/// Épaisseur Flutter correspondant à un `Line(width: w)` de Kivy.
+/// Épaisseur des croix et des plus sur les pièces carrées.
 ///
-/// Kivy décale les bords de ±w de part et d'autre de l'axe : le trait fait
-/// **2w** à l'écran, alors que Flutter prend l'épaisseur totale. Sans cette
-/// conversion, tous les traits du jeu — contours des pièces, signes, grille,
-/// cadres du dernier coup — paraissent deux fois trop fins.
+/// Kivy décale les bords d'un `Line(width: w)` de ±w : le trait fait **2w**
+/// à l'écran, là où `strokeWidth` de Flutter est l'épaisseur totale. Le
+/// signe des pièces carrées est le seul endroit où cela se voyait vraiment —
+/// il paraissait deux fois trop fin. Partout ailleurs (contours, grille,
+/// cadres), l'épaisseur de Kivy se reprend telle quelle : la doubler
+/// alourdissait tout le plateau.
 double kivyLine(double kivyWidth) => kivyWidth * 2;
 
 /// Palette d'un thème : 7 couleurs.

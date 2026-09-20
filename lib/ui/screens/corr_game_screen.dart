@@ -15,6 +15,7 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
@@ -298,30 +299,23 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
       body: SafeArea(
-        child: Column(
-          children: [
-            GameTopBar(
-              palette: palette,
-              color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
-              onFlip: _toggleFlip,
-              onChat: _openChat,
-              unreadChat: _g.unreadChat,
-              // Kivy garde « Analyser » en correspondance : on peut essayer
-              // des coups avant de jouer le sien.
-              onAnalyse: _controller == null ? null : _openAnalysis,
-              onPause: _openPause,
-              onMenu: _g.status == CorrStatus.termine
-                  ? () => Navigator.of(context).pop()
-                  : null,
-            ),
-            if (_replayError != null)
-              Expanded(child: Center(child: Text(_replayError!)))
-            else if (c == null)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else ...[
-              _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
-              Expanded(
-                child: GameBoardView(
+        child: c == null
+            ? Column(
+                children: [
+                  _bar(palette, flipped),
+                  Expanded(
+                    child: Center(
+                      child: _replayError != null
+                          ? Text(_replayError!)
+                          : const CircularProgressIndicator(),
+                    ),
+                  ),
+                ],
+              )
+            : GameLayout(
+                topBar: _bar(palette, flipped),
+                topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
+                board: GameBoardView(
                   board: c.board,
                   palette: palette,
                   flipped: flipped,
@@ -336,19 +330,20 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   slideToken: slideToken,
                   slideDuration: slideDuration,
                 ),
+                bottomPanel: _panel(
+                  palette,
+                  flipped ? Camp.blanc : Camp.noir,
+                  c,
+                ),
+                moveStrip: MoveStrip(
+                  moves: _g.moves,
+                  color: _campColor(palette, flipped ? Camp.blanc : Camp.noir),
+                  palette: palette,
+                  // La correspondance se relit, elle ne se remonte pas : le
+                  // bandeau sert d'abord à relire les coups joués.
+                  onSelect: (_) {},
+                ),
               ),
-              _panel(palette, flipped ? Camp.blanc : Camp.noir, c),
-              MoveStrip(
-                moves: _g.moves,
-                color: _campColor(palette, flipped ? Camp.blanc : Camp.noir),
-                palette: palette,
-                // La correspondance se relit, elle ne se remonte pas : le
-                // bandeau sert d'abord à relire les coups joués.
-                onSelect: (_) {},
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -381,6 +376,22 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (camp == Camp.blanc) return atTrait ? palette.clair : palette.clairDim;
     return atTrait ? palette.fonce : palette.fonceDim;
   }
+
+  /// Le bandeau du haut, tel que Kivy le compose en correspondance.
+  Widget _bar(ThemePalette palette, bool flipped) => GameTopBar(
+    palette: palette,
+    color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
+    onFlip: _toggleFlip,
+    onChat: _openChat,
+    unreadChat: _g.unreadChat,
+    // Kivy garde « Analyser » en correspondance : on peut essayer des coups
+    // avant de jouer le sien.
+    onAnalyse: _controller == null ? null : _openAnalysis,
+    onPause: _openPause,
+    onMenu: _g.status == CorrStatus.termine
+        ? () => Navigator.of(context).pop()
+        : null,
+  );
 
   /// Retourner le plateau. Mon camp est en bas par défaut.
   bool? _flipOverride;

@@ -175,7 +175,7 @@ void main() {
 
     // `_update_action_buttons` : chat ET analyse en correspondance.
     expect(find.text('< >'), findsOneWidget);
-    expect(find.text('| |'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsOneWidget);
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Analyser'), findsOneWidget);
     expect(find.text('Deep Grey'), findsNothing);

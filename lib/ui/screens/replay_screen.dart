@@ -13,6 +13,7 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/player_panel.dart';
@@ -98,50 +99,40 @@ class _ReplayScreenState extends State<ReplayScreen> {
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Le bandeau de Kivy : retourner le plateau, analyser, reprendre
-            // contre Deep Grey, et `<<` pour revenir à l'historique.
-            GameTopBar(
-              palette: palette,
-              // En relecture, le bandeau prend la couleur du camp au trait.
-              color: step.turn == Camp.blanc ? palette.clair : palette.fonce,
-              onFlip: () => setState(() => _flipped = !_flipped),
-              pauseLabel: '<<',
-              onPause: () => Navigator.of(context).pop(),
-              onAnalyse: () => _playFromHere(false),
-              onDeepGrey: _playAgainstDeepGrey,
-            ),
-            if (_replay.isTruncated) _truncatedNotice(),
-            Expanded(flex: 12, child: _panel(palette, topCamp, meta)),
-            Expanded(
-              flex: 66,
-              child: GameBoardView(
-                board: step.board,
-                palette: palette,
-                flipped: _flipped,
-                onTapCell: (_) {},
-                lastMove: step.lastMove,
-                pieceTheme: axes.pieces,
-                boardTheme: axes.board,
-              ),
-            ),
-            Expanded(flex: 12, child: _panel(palette, bottomCamp, meta)),
-            Expanded(
-              flex: 7,
-              child: MoveStrip(
-                moves: [
-                  for (var i = 1; i < _replay.steps.length; i++)
-                    _replay.steps[i].notation ?? '',
-                ],
-                activeIndex: _replay.index - 1,
-                color: bottomCamp == Camp.blanc ? palette.clair : palette.fonce,
-                palette: palette,
-                randomCode: meta.random,
-                onSelect: (i) => _move(() => _replay.goTo(i + 1)),
-              ),
-            ),
-          ],
+        child: GameLayout(
+          topBar: GameTopBar(
+            palette: palette,
+            // En relecture, le bandeau prend la couleur du camp au trait.
+            color: step.turn == Camp.blanc ? palette.clair : palette.fonce,
+            onFlip: () => setState(() => _flipped = !_flipped),
+            pauseLabel: '<<',
+            onPause: () => Navigator.of(context).pop(),
+            onAnalyse: () => _playFromHere(false),
+            onDeepGrey: _playAgainstDeepGrey,
+          ),
+          notice: _replay.isTruncated ? _truncatedNotice() : null,
+          topPanel: _panel(palette, topCamp, meta),
+          board: GameBoardView(
+            board: step.board,
+            palette: palette,
+            flipped: _flipped,
+            onTapCell: (_) {},
+            lastMove: step.lastMove,
+            pieceTheme: axes.pieces,
+            boardTheme: axes.board,
+          ),
+          bottomPanel: _panel(palette, bottomCamp, meta),
+          moveStrip: MoveStrip(
+            moves: [
+              for (var i = 1; i < _replay.steps.length; i++)
+                _replay.steps[i].notation ?? '',
+            ],
+            activeIndex: _replay.index - 1,
+            color: bottomCamp == Camp.blanc ? palette.clair : palette.fonce,
+            palette: palette,
+            randomCode: meta.random,
+            onSelect: (i) => _move(() => _replay.goTo(i + 1)),
+          ),
         ),
       ),
     );

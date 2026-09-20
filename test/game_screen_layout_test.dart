@@ -94,7 +94,7 @@ void main() {
     // passe par la pause, qui prévient que le chrono continue.
     expect(find.text('Retour au menu'), findsNothing);
 
-    await tester.tap(find.text('| |'));
+    await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
     expect(
       find.textContaining("Le chrono du joueur au trait continue"),

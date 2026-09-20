@@ -75,11 +75,11 @@ class _PreviewPainter extends CustomPainter {
       canvas.drawRect(board, Paint()..color = palette.board);
     }
 
-    // La grille de Kivy : `Line(width: S(1))`, soit deux pixels à l'écran.
+    // La grille de Kivy.
     final grid = Paint()
       ..color = palette.grid
       ..style = PaintingStyle.stroke
-      ..strokeWidth = kivyLine(1);
+      ..strokeWidth = 1;
     for (var i = 0; i <= n; i++) {
       canvas.drawLine(
         Offset(ox + i * cs, oy),

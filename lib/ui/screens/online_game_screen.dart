@@ -20,6 +20,7 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/name_menu.dart';
 import '../widgets/game_top_bar.dart';
@@ -253,44 +254,40 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
       body: SafeArea(
-        child: Column(
-          children: [
-            GameTopBar(
-              palette: palette,
-              color: _campColor(palette, topCamp),
-              onFlip: _toggleFlip,
-              onChat: _openChat,
-              onPause: _openPause,
-              onMenu: _g.endReason != null
-                  ? () => Navigator.of(context).pop()
-                  : null,
-            ),
-            _banner(palette, topCamp),
-            Expanded(
-              child: GameBoardView(
-                board: _g.game.board,
-                palette: palette,
-                flipped: flipped,
-                onTapCell: _onTapCell,
-                selected: _g.game.selected,
-                groupSelection: _g.game.groupSelection,
-                highlighted: _g.game.availablePushCells.toSet(),
-                lastMove: _lastMove,
-                pieceTheme: axes.pieces,
-                boardTheme: axes.board,
-                slides: slides,
-                slideToken: slideToken,
-                slideDuration: slideDuration,
-              ),
-            ),
-            _banner(palette, bottomCamp),
-            MoveStrip(
-              moves: _g.game.history,
-              color: _campColor(palette, bottomCamp),
-              palette: palette,
-              onSelect: (_) {},
-            ),
-          ],
+        child: GameLayout(
+          topBar: GameTopBar(
+            palette: palette,
+            color: _campColor(palette, topCamp),
+            onFlip: _toggleFlip,
+            onChat: _openChat,
+            onPause: _openPause,
+            onMenu: _g.endReason != null
+                ? () => Navigator.of(context).pop()
+                : null,
+          ),
+          topPanel: _banner(palette, topCamp),
+          board: GameBoardView(
+            board: _g.game.board,
+            palette: palette,
+            flipped: flipped,
+            onTapCell: _onTapCell,
+            selected: _g.game.selected,
+            groupSelection: _g.game.groupSelection,
+            highlighted: _g.game.availablePushCells.toSet(),
+            lastMove: _lastMove,
+            pieceTheme: axes.pieces,
+            boardTheme: axes.board,
+            slides: slides,
+            slideToken: slideToken,
+            slideDuration: slideDuration,
+          ),
+          bottomPanel: _banner(palette, bottomCamp),
+          moveStrip: MoveStrip(
+            moves: _g.game.history,
+            color: _campColor(palette, bottomCamp),
+            palette: palette,
+            onSelect: (_) {},
+          ),
         ),
       ),
     );

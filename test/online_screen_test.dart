@@ -48,7 +48,7 @@ void main() {
     await open(tester);
 
     expect(find.text('< >'), findsOneWidget);
-    expect(find.text('| |'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsOneWidget);
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Analyser'), findsNothing);
     expect(find.text('Deep Grey'), findsNothing);
@@ -77,7 +77,7 @@ void main() {
   testWidgets('la pause en ligne ne propose pas de quitter', (tester) async {
     await open(tester);
 
-    await tester.tap(find.text('| |'));
+    await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
 
     expect(find.text('Reprendre'), findsOneWidget);
