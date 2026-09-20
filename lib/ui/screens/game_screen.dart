@@ -132,6 +132,10 @@ class _GameScreenState extends State<GameScreen> {
   /// Qui tiendra les Blancs à la partie suivante, quand le match continue.
   String? _nextGameFor;
 
+  /// La partie suivante est l'ultime accordée au retardataire : Kivy le dit
+  /// dans le titre du popup.
+  bool _nextIsLastChance = false;
+
   /// Positions traversées depuis le début de la partie. Sert à revoir les
   /// coups passés sans quitter la partie, comme en Kivy.
   final List<Board> _snapshots = [];
@@ -412,6 +416,7 @@ class _GameScreenState extends State<GameScreen> {
     _nextGameFor = step.outcome == MatchOutcome.next
         ? step.nextFirstBlanc
         : null;
+    _nextIsLastChance = step.lastChance;
   }
 
   /// Lance la partie suivante du match : les Blancs changent de main, donc
@@ -718,7 +723,13 @@ class _GameScreenState extends State<GameScreen> {
           showContinueDialog(
             context,
             palette: palette,
-            title: verdict,
+            // La clé de traduction de Kivy porte le séparateur.
+            title: _nextIsLastChance
+                ? verdict +
+                      T(
+                        '  •  Ultime partie pour {loser}',
+                      ).replaceAll('{loser}', next)
+                : verdict,
             body: _match.scoreLine,
             nextFirstBlanc: next,
             onNext: () => _startNextGame(next),
