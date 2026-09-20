@@ -28,7 +28,10 @@ import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
+import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_top_bar.dart';
+import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 
 class GameScreen extends StatefulWidget {
@@ -578,52 +581,53 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Barre du haut : retourner le plateau, revenir au menu, et les touches
-  /// propres au mode en cours — portage de `top_bar`.
-  Widget _topBar(ThemePalette palette) => Container(
-    color: Colors.black38,
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    child: Row(
-      children: [
-        _barButton('< >', T('Retourner le plateau'), () {
-          setState(() => _flipOverride = !(_flipOverride ?? _defaultFlip));
-        }),
-        _barButton(T('Retour au menu'), T('< Menu'), () {
-          Navigator.of(context).pop();
-        }, wide: true),
-        const Spacer(),
-        // Le mode de réflexion de Deep Grey se change en cours de partie.
-        if (_aiCamp != null)
-          _barButton(
-            _deepMode ? T('Profond') : T('Rapide'),
-            T('Deep Grey'),
-            () => setState(() => _deepMode = !_deepMode),
-            wide: true,
-          ),
-      ],
-    ),
+  /// Barre du haut — portage de `top_bar`. « Retour au menu » n'apparaît
+  /// qu'une fois la partie finie : en cours de partie, on passe par la pause.
+  Widget _topBar(ThemePalette palette) => GameTopBar(
+    palette: palette,
+    onFlip: () =>
+        setState(() => _flipOverride = !(_flipOverride ?? _defaultFlip)),
+    // En analyse, il n'y a rien à suspendre : la touche ramène au menu.
+    pauseLabel: widget.analysis ? '<<' : '| |',
+    onPause: widget.analysis ? () => Navigator.of(context).pop() : _openPause,
+    onMenu: _game.gameOver ? () => Navigator.of(context).pop() : null,
+    // Reprendre la position affichée contre Deep Grey : Kivy l'offre en
+    // analyse comme en relecture.
+    onDeepGrey: widget.analysis ? _playFromPosition : null,
+    aiDeepMode: _deepMode,
+    onToggleAiMode: _aiCamp == null
+        ? null
+        : () => setState(() => _deepMode = !_deepMode),
   );
 
-  Widget _barButton(
-    String label,
-    String tooltip,
-    VoidCallback onPressed, {
-    bool wide = false,
-  }) => Tooltip(
-    message: tooltip,
-    child: TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        minimumSize: Size(wide ? 0 : 36, 32),
-        padding: EdgeInsets.symmetric(horizontal: wide ? 8 : 4),
-        foregroundColor: Colors.white,
+  /// Reprendre la position affichée contre Deep Grey. Le camp au trait ne
+  /// change pas : choisir l'autre couleur fait jouer l'IA en premier.
+  Future<void> _playFromPosition() async {
+    final mine = await askDeepGreyCamp(context);
+    if (mine == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(
+          cadence: Cadence.zen,
+          aiCamp: mine.opposite,
+          initialBoard: _shownBoard.clone(),
+          initialTurn: _game.turn,
+          themeName: widget.themeName,
+        ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-    ),
-  );
+    );
+  }
+
+  /// La pause. Le chrono continue : `_tick` ne s'arrête pas.
+  Future<void> _openPause() async {
+    final left = await showPauseDialog(
+      context,
+      palette: paletteOf(widget.themeName),
+    );
+    if (!mounted) return;
+    setState(() {});
+    if (left) Navigator.of(context).pop();
+  }
 
   /// Bandeau des coups : on peut revoir n'importe quelle position sans
   /// quitter la partie — portage de `bot_bar` et de `viewing_idx`.

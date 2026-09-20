@@ -10,7 +10,9 @@ import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_top_bar.dart';
 import 'game_screen.dart';
 
 class ReplayScreen extends StatefulWidget {
@@ -53,17 +55,14 @@ class _ReplayScreenState extends State<ReplayScreen> {
     setState(() {});
   }
 
-  /// Reprend la partie depuis la position affichée.
-  ///
-  /// Contre Deep Grey, l'IA prend le camp qui n'est PAS au trait : c'est au
-  /// lecteur de jouer le coup qu'il regarde.
-  Future<void> _playFromHere(bool againstAi) async {
+  /// Reprend la partie depuis la position affichée, seul ou contre l'IA.
+  Future<void> _playFromHere(bool againstAi, {Camp? myCamp}) async {
     final step = _replay.current;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
           cadence: Cadence.zen,
-          aiCamp: againstAi ? step.turn.opposite : null,
+          aiCamp: againstAi ? myCamp!.opposite : null,
           initialBoard: step.board.clone(),
           initialTurn: step.turn,
           analysis: !againstAi,
@@ -71,6 +70,13 @@ class _ReplayScreenState extends State<ReplayScreen> {
         ),
       ),
     );
+  }
+
+  /// Contre Deep Grey : le joueur choisit son camp, le trait ne change pas.
+  Future<void> _playAgainstDeepGrey() async {
+    final mine = await askDeepGreyCamp(context);
+    if (mine == null || !mounted) return;
+    await _playFromHere(true, myCamp: mine);
   }
 
   @override
@@ -82,53 +88,55 @@ class _ReplayScreenState extends State<ReplayScreen> {
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(widget.title ?? '${meta.player1} – ${meta.player2}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flip),
-            tooltip: T('Retourner le plateau'),
-            onPressed: () => setState(() => _flipped = !_flipped),
-          ),
-          // Reprendre la partie d'ici : soit pour explorer seul, soit contre
-          // Deep Grey — comme en Kivy.
-          PopupMenuButton<bool>(
-            icon: const Icon(Icons.play_circle_outline),
-            tooltip: T('Analyse'),
-            onSelected: _playFromHere,
-            itemBuilder: (context) => [
-              PopupMenuItem(value: false, child: Text(T('Analyse'))),
-              PopupMenuItem(
-                value: true,
-                child: Text(T('Jouer contre Deep Grey')),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _header(palette, meta),
-          if (_replay.isTruncated) _truncatedNotice(),
-          Expanded(
-            child: GameBoardView(
-              board: step.board,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Le bandeau de Kivy : retourner le plateau, analyser, reprendre
+            // contre Deep Grey, et `<<` pour revenir à l'historique.
+            GameTopBar(
               palette: palette,
-              flipped: _flipped,
-              onTapCell: (_) {},
-              lastMove: step.lastMove,
-              pieceTheme: axes.pieces,
-              boardTheme: axes.board,
+              onFlip: () => setState(() => _flipped = !_flipped),
+              pauseLabel: '<<',
+              onPause: () => Navigator.of(context).pop(),
+              onAnalyse: () => _playFromHere(false),
+              onDeepGrey: _playAgainstDeepGrey,
             ),
-          ),
-          _moveStrip(palette),
-          _controls(palette),
-        ],
+            _titleLine(meta),
+            _header(palette, meta),
+            if (_replay.isTruncated) _truncatedNotice(),
+            Expanded(
+              child: GameBoardView(
+                board: step.board,
+                palette: palette,
+                flipped: _flipped,
+                onTapCell: (_) {},
+                lastMove: step.lastMove,
+                pieceTheme: axes.pieces,
+                boardTheme: axes.board,
+              ),
+            ),
+            _moveStrip(palette),
+            _controls(palette),
+          ],
+        ),
       ),
     );
   }
+
+  /// Le titre que l'AppBar portait : les deux joueurs, ou le nom du fichier.
+  Widget _titleLine(meta) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+    child: Text(
+      widget.title ?? '${meta.player1} – ${meta.player2}',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    ),
+  );
 
   Widget _header(ThemePalette palette, meta) => Container(
     width: double.infinity,

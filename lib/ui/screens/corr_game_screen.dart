@@ -13,7 +13,11 @@ import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../../net/online_service.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_top_bar.dart';
+import '../widgets/pause_dialog.dart';
+import '../widgets/player_panel.dart';
 
 class CorrGameScreen extends StatefulWidget {
   const CorrGameScreen({
@@ -285,88 +289,100 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
-    final flipped = _g.myCamp == Camp.blanc;
+    final flipped = _flipOverride ?? (_g.myCamp == Camp.blanc);
     final c = _controller;
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(_g.opponent),
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: _g.unreadChat > 0,
-              label: Text('${_g.unreadChat}'),
-              child: const Icon(Icons.chat_bubble_outline),
+      body: SafeArea(
+        child: Column(
+          children: [
+            GameTopBar(
+              palette: palette,
+              onFlip: _toggleFlip,
+              onChat: _openChat,
+              onPause: _openPause,
+              onMenu: _g.status == CorrStatus.termine
+                  ? () => Navigator.of(context).pop()
+                  : null,
             ),
-            tooltip: T('Chat'),
-            onPressed: _openChat,
-          ),
-          if (_g.status == CorrStatus.enCours) ...[
-            TextButton(
-              onPressed: _offerDraw,
-              child: const Text('½', style: TextStyle(color: Colors.white)),
-            ),
-            IconButton(
-              icon: const Icon(Icons.flag_outlined),
-              tooltip: T('Abandonner'),
-              onPressed: _resign,
-            ),
-          ],
-        ],
-      ),
-      body: _replayError != null
-          ? Center(child: Text(_replayError!))
-          : c == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _header(palette),
-                Expanded(
-                  child: GameBoardView(
-                    board: c.board,
-                    palette: palette,
-                    flipped: flipped,
-                    onTapCell: _onTapCell,
-                    selected: c.selected,
-                    groupSelection: c.groupSelection,
-                    highlighted: c.availablePushCells.toSet(),
-                    lastMove: _lastMove,
-                    pieceTheme: axes.pieces,
-                    boardTheme: axes.board,
-                  ),
+            if (_replayError != null)
+              Expanded(child: Center(child: Text(_replayError!)))
+            else if (c == null)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else ...[
+              _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
+              Expanded(
+                child: GameBoardView(
+                  board: c.board,
+                  palette: palette,
+                  flipped: flipped,
+                  onTapCell: _onTapCell,
+                  selected: c.selected,
+                  groupSelection: c.groupSelection,
+                  highlighted: c.availablePushCells.toSet(),
+                  lastMove: _lastMove,
+                  pieceTheme: axes.pieces,
+                  boardTheme: axes.board,
                 ),
-                _footer(),
-              ],
-            ),
+              ),
+              _panel(palette, flipped ? Camp.blanc : Camp.noir, c),
+            ],
+            _footer(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _header(ThemePalette palette) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-    color: _g.myCamp == Camp.blanc ? palette.clair : palette.fonce,
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            '${widget.myPseudo}  ·  '
-            '${_g.myScore} - ${_g.opponentScore}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        Text(
-          'Mélo ${_g.opponentMelo}',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
-    ),
+  /// Retourner le plateau. Mon camp est en bas par défaut.
+  bool? _flipOverride;
+
+  void _toggleFlip() => setState(
+    () => _flipOverride = !(_flipOverride ?? (_g.myCamp == Camp.blanc)),
   );
+
+  /// La pause d'une partie de correspondance ne propose pas d'abandonner :
+  /// on revient au menu, la partie reste en cours sur le serveur.
+  Future<void> _openPause() async {
+    final leave = await showPauseDialog(
+      context,
+      palette: paletteOf(Settings.instance.themeAxes.general),
+      quit: PauseQuit.menu,
+    );
+    if (!mounted) return;
+    setState(() {});
+    if (leave) Navigator.of(context).pop();
+  }
+
+  /// Le panneau d'un joueur, comme en partie en ligne. La correspondance n'a
+  /// pas de chrono : Kivy y affiche l'infini.
+  Widget _panel(ThemePalette palette, Camp camp, MoveController c) {
+    final isMine = camp == _g.myCamp;
+    final canAct = isMine && _g.status == CorrStatus.enCours && !_played;
+
+    return PlayerPanel(
+      name: isMine ? widget.myPseudo : _g.opponent,
+      subtitle: isMine ? null : 'Mélo ${_g.opponentMelo}',
+      clock: '∞',
+      palette: palette,
+      isWhite: camp == Camp.blanc,
+      isTurn: c.turn == camp && _g.status == CorrStatus.enCours,
+      captures: c.captured[camp.opposite] ?? const [],
+      photo: isMine ? (OnlineService.instance.session?.photo ?? '') : '',
+      // En correspondance le score est cumulatif, sans objectif : Kivy écrit
+      // « X / ... ».
+      score: isMine ? '${_g.myScore}' : '${_g.opponentScore}',
+      mirrored: isMine,
+      onUndo: canAct && c.canValidate
+          ? () {
+              if (c.cancelCurrentMove()) setState(() {});
+            }
+          : null,
+      onDraw: canAct ? _offerDraw : null,
+      onResign: canAct ? _resign : null,
+    );
+  }
 
   Widget _footer() {
     final String message;
@@ -403,13 +419,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          if (_canPlay && _controller!.canValidate)
-            TextButton(
-              onPressed: () {
-                if (_controller!.cancelCurrentMove()) setState(() {});
-              },
-              child: Text(T('Annuler')),
             ),
         ],
       ),

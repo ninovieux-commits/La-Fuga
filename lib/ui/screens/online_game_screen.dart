@@ -17,6 +17,8 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/game_top_bar.dart';
+import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 
 class OnlineGameScreen extends StatefulWidget {
@@ -213,8 +215,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
-    // Mon camp est toujours en bas.
-    final flipped = _g.myCamp == Camp.blanc;
+    // Mon camp est toujours en bas — sauf si le joueur retourne le plateau.
+    final flipped = _flipOverride ?? (_g.myCamp == Camp.blanc);
     final topCamp = flipped ? Camp.noir : Camp.blanc;
     final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
@@ -223,6 +225,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            GameTopBar(
+              palette: palette,
+              onFlip: _toggleFlip,
+              onChat: _openChat,
+              onPause: _openPause,
+              onMenu: _g.endReason != null
+                  ? () => Navigator.of(context).pop()
+                  : null,
+            ),
             _banner(palette, topCamp),
             Expanded(
               child: GameBoardView(
@@ -244,6 +255,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
         ),
       ),
     );
+  }
+
+  /// Retourner le plateau : Kivy l'autorise même en ligne.
+  bool? _flipOverride;
+
+  void _toggleFlip() => setState(
+    () => _flipOverride = !(_flipOverride ?? (_g.myCamp == Camp.blanc)),
+  );
+
+  /// La pause. En ligne, elle ne propose pas de quitter : on abandonne la
+  /// partie par le [×] de son panneau, et le match entre deux parties.
+  Future<void> _openPause() async {
+    await showPauseDialog(
+      context,
+      palette: paletteOf(Settings.instance.themeAxes.general),
+      quit: PauseQuit.none,
+    );
+    if (mounted) setState(() {});
   }
 
   Widget _banner(ThemePalette palette, Camp camp) {
@@ -341,15 +370,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, size: 20),
-            tooltip: T('Messages'),
-            onPressed: _openChat,
-          ),
-          if (!over) ...[
-            TextButton(onPressed: _g.offerDraw, child: const Text('½')),
-            TextButton(onPressed: _confirmResign, child: Text(T('Abandonner'))),
-          ] else if (_g.matchContinues) ...[
+          if (over && _g.matchContinues) ...[
             // Le match continue : c'est le SERVEUR qui relance la partie
             // suivante, quand les deux joueurs se sont annoncés prêts.
             TextButton(
@@ -364,11 +385,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                     : T('Partie suivante'),
               ),
             ),
-          ] else
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(T('< Menu')),
-            ),
+          ],
         ],
       ),
     );

@@ -68,7 +68,8 @@ void main() {
         findsNWidgets(2),
         reason: 'pas de chrono en analyse',
       );
-      expect(find.text('Deep Grey'), findsNothing);
+      // Kivy offre, en analyse, de reprendre la position contre Deep Grey.
+      expect(find.text('Deep Grey'), findsOneWidget);
     });
   });
 
@@ -172,8 +173,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.chevron_right));
       await tester.pumpAndSettle();
 
-      await tapVisible(tester, find.byIcon(Icons.play_circle_outline));
-      await tapVisible(tester, find.text('Analyse').last);
+      await tapVisible(tester, find.text('Analyser'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
       expect(screen.analysis, isTrue);
@@ -191,8 +191,9 @@ void main() {
     ) async {
       await openReader(tester);
 
-      await tapVisible(tester, find.byIcon(Icons.play_circle_outline));
-      await tapVisible(tester, find.text('Jouer contre Deep Grey').last);
+      await tapVisible(tester, find.text('Deep Grey'));
+      // Kivy demande SON camp au joueur ; le trait, lui, ne bouge pas.
+      await tapVisible(tester, find.text('Blancs'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
       expect(screen.analysis, isFalse);

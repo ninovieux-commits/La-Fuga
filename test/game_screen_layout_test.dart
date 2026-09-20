@@ -71,7 +71,7 @@ void main() {
     expect(after.flipped, isNot(before.flipped));
   });
 
-  testWidgets('la barre du haut ramène au menu', (tester) async {
+  testWidgets('on quitte une partie en cours par la pause', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
@@ -90,7 +90,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GameScreen), findsOneWidget);
 
-    await tester.tap(find.text('Retour au menu'));
+    // Kivy cache « Retour au menu » tant que la partie n'est pas finie : on
+    // passe par la pause, qui prévient que le chrono continue.
+    expect(find.text('Retour au menu'), findsNothing);
+
+    await tester.tap(find.text('| |'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining("Le chrono du joueur au trait continue"),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Annuler le match').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annuler le match').last);
     await tester.pumpAndSettle();
 
     expect(find.byType(GameScreen), findsNothing);
