@@ -4,12 +4,14 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
+import '../../game/clock.dart';
 import '../../game/replay_controller.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../widgets/game_board_view.dart';
+import 'game_screen.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({super.key, required this.nmc, this.title});
@@ -51,6 +53,26 @@ class _ReplayScreenState extends State<ReplayScreen> {
     setState(() {});
   }
 
+  /// Reprend la partie depuis la position affichée.
+  ///
+  /// Contre Deep Grey, l'IA prend le camp qui n'est PAS au trait : c'est au
+  /// lecteur de jouer le coup qu'il regarde.
+  Future<void> _playFromHere(bool againstAi) async {
+    final step = _replay.current;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(
+          cadence: Cadence.illimitee,
+          aiCamp: againstAi ? step.turn.opposite : null,
+          initialBoard: step.board.clone(),
+          initialTurn: step.turn,
+          analysis: !againstAi,
+          themeName: Settings.instance.themeAxes.general,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
@@ -69,6 +91,20 @@ class _ReplayScreenState extends State<ReplayScreen> {
             icon: const Icon(Icons.flip),
             tooltip: T('Retourner le plateau'),
             onPressed: () => setState(() => _flipped = !_flipped),
+          ),
+          // Reprendre la partie d'ici : soit pour explorer seul, soit contre
+          // Deep Grey — comme en Kivy.
+          PopupMenuButton<bool>(
+            icon: const Icon(Icons.play_circle_outline),
+            tooltip: T('Analyse'),
+            onSelected: _playFromHere,
+            itemBuilder: (context) => [
+              PopupMenuItem(value: false, child: Text(T('Analyse'))),
+              PopupMenuItem(
+                value: true,
+                child: Text(T('Jouer contre Deep Grey')),
+              ),
+            ],
           ),
         ],
       ),

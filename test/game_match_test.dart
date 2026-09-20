@@ -89,6 +89,48 @@ void main() {
     expect(find.text('Nouvelle partie'), findsOneWidget);
   });
 
+  group('Abandon et nulle par accord', () {
+    testWidgets('abandonner donne deux points à l adversaire', (tester) async {
+      await openQuickGame(tester, objectif: '5');
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Abandonner'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('2 points'), findsOneWidget);
+      await tester.tap(find.text('Oui, abandonner'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Abandon'), findsOneWidget);
+      expect(
+        find.textContaining('Joueur 2 : 2'),
+        findsOneWidget,
+        reason: 'les Blancs abandonnent, Joueur 2 marque',
+      );
+    });
+
+    testWidgets('la nulle par accord ne donne aucun point', (tester) async {
+      await openQuickGame(tester, objectif: '5');
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Proposer nulle'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Accepter'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('nulle'), findsOneWidget);
+      expect(find.textContaining('Joueur 1 : 0'), findsOneWidget);
+      expect(find.textContaining('Joueur 2 : 0'), findsOneWidget);
+    });
+
+    testWidgets('on ne négocie pas de nulle avec Deep Grey', (tester) async {
+      await openQuickGame(tester, objectif: 'partie', aiCamp: Camp.noir);
+      await tester.pump();
+
+      expect(find.byTooltip('Proposer nulle'), findsNothing);
+      expect(find.byTooltip('Abandonner'), findsOneWidget);
+    });
+  });
+
   testWidgets('contre Deep Grey, les couleurs changent de main', (
     tester,
   ) async {

@@ -39,6 +39,7 @@ class GameScreen extends StatefulWidget {
     this.archive,
     this.memory,
     this.initialBoard,
+    this.initialTurn = Camp.blanc,
     this.randomCode,
     this.analysis = false,
     this.objectif = 'partie',
@@ -64,6 +65,9 @@ class GameScreen extends StatefulWidget {
   /// Position de départ, quand elle n'est pas la position standard :
   /// Random Fuga, ou analyse depuis une position rencontrée.
   final Board? initialBoard;
+
+  /// Camp au trait dans cette position.
+  final Camp initialTurn;
 
   /// Code de la position tirée au sort, à inscrire dans le `.nmc`. Sans lui,
   /// la partie serait irrejouable.
@@ -182,6 +186,7 @@ class _GameScreenState extends State<GameScreen> {
 
   MoveController _newGame() => MoveController(
     board: widget.initialBoard?.clone(),
+    turn: widget.initialTurn,
     countRepetitions: !widget.analysis,
   );
 
@@ -422,6 +427,62 @@ class _GameScreenState extends State<GameScreen> {
     _lastThinkMicros = null;
   }
 
+  /// Abandon — portage du bouton X. Deux points pour l'adversaire.
+  ///
+  /// Contre Deep Grey, c'est l'humain qui abandonne, même si c'est à l'IA de
+  /// jouer : le bouton n'appartient qu'à lui.
+  Future<void> _abandon() async {
+    final ai = _aiCamp;
+    final quitter = ai == null ? _game.turn : ai.opposite;
+    final confirmed = await _confirm(
+      T(
+        '{name} confirme abandonner. L\'adversaire marquera 2 points.',
+      ).replaceAll('{name}', _playerOf(quitter)),
+      T('Oui, abandonner'),
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(
+      () => _finish(
+        'abandon',
+        quitter,
+        '${T("Abandon")} — ${_campLabel(quitter.opposite)} ${T("gagne")}',
+      ),
+    );
+  }
+
+  /// Nulle par accord — portage du bouton ½, réservé aux parties à deux
+  /// joueurs : on ne négocie pas avec Deep Grey.
+  Future<void> _agreeDraw() async {
+    final confirmed = await _confirm(
+      T('Nulle par accord mutuel.\nAucun point accordé.'),
+      T('Accepter'),
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _finish('nulle_accord', null, T('Partie nulle')));
+  }
+
+  Future<bool> _confirm(String message, String action) async {
+    final answer = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(T('Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    return answer ?? false;
+  }
+
   void _cancelMove() {
     if (!_canPlay) return;
     if (_game.cancelCurrentMove()) setState(() {});
@@ -503,6 +564,25 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.arrow_back, size: 20),
+            tooltip: T('< Menu'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          // ½ et X : les gestes de Kivy, aux mêmes conditions — pas de nulle
+          // par accord contre Deep Grey, et rien de tout cela en analyse.
+          if (!widget.analysis && !_game.gameOver && _aiCamp == null)
+            IconButton(
+              icon: const Text('½', style: TextStyle(fontSize: 18)),
+              tooltip: T('Proposer nulle'),
+              onPressed: _agreeDraw,
+            ),
+          if (!widget.analysis && !_game.gameOver)
+            IconButton(
+              icon: const Icon(Icons.flag_outlined, size: 20),
+              tooltip: T('Abandonner'),
+              onPressed: _abandon,
+            ),
           if (_game.canValidate)
             TextButton(onPressed: _cancelMove, child: Text(T('Annuler'))),
           if (next != null)

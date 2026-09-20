@@ -130,6 +130,70 @@ void main() {
     });
   });
 
+  group('Reprendre depuis le lecteur', () {
+    /// Ouvre le lecteur sur une partie de deux coups.
+    Future<void> openReader(WidgetTester tester) async {
+      await bootApp(tester);
+      await tapVisible(tester, find.text('Lecteur nmc'));
+
+      const meta = NmcMeta(
+        date: '2026-09-20',
+        player1: 'Nino',
+        player2: 'Ana',
+        blanc: 'Nino',
+        objectif: 'partie',
+        cadence: '5min',
+        result: '1-0',
+        method: 'fugue',
+        points: '2',
+      );
+      await tester.enterText(
+        find.byType(TextField),
+        buildNmc(meta, const ['Do2-Do3', 'Do7-Do6']),
+      );
+      await tapVisible(tester, find.text('Lire'));
+    }
+
+    testWidgets('on part en analyse depuis la position affichée', (
+      tester,
+    ) async {
+      await openReader(tester);
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      await tapVisible(tester, find.byIcon(Icons.play_circle_outline));
+      await tapVisible(tester, find.text('Analyse').last);
+
+      final screen = tester.widget<GameScreen>(find.byType(GameScreen));
+      expect(screen.analysis, isTrue);
+      expect(screen.aiCamp, isNull);
+      expect(
+        screen.initialTurn,
+        Camp.noir,
+        reason: 'après le premier coup blanc, les Noirs ont le trait',
+      );
+      expect(screen.initialBoard, isNotNull);
+    });
+
+    testWidgets('ou on reprend contre Deep Grey, qui prend l autre camp', (
+      tester,
+    ) async {
+      await openReader(tester);
+
+      await tapVisible(tester, find.byIcon(Icons.play_circle_outline));
+      await tapVisible(tester, find.text('Jouer contre Deep Grey').last);
+
+      final screen = tester.widget<GameScreen>(find.byType(GameScreen));
+      expect(screen.analysis, isFalse);
+      expect(
+        screen.aiCamp,
+        Camp.noir,
+        reason: 'le lecteur garde le camp au trait',
+      );
+      expect(screen.initialTurn, Camp.blanc);
+    });
+  });
+
   testWidgets('le menu ne promet plus rien pour plus tard', (tester) async {
     await bootApp(tester);
     expect(find.textContaining('Bientôt'), findsNothing);
