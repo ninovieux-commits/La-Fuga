@@ -11,6 +11,7 @@ import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
 import 'account_screen.dart';
+import 'conversations_screen.dart';
 import 'correspondence_screen.dart';
 import 'game_screen.dart';
 import 'history_screen.dart';
@@ -94,6 +95,23 @@ class _MenuScreenState extends State<MenuScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => HistoryScreen(online: OnlineService.instance),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// La messagerie, qui demande d'être connecté.
+  Future<void> _openMessages() async {
+    final online = OnlineService.instance;
+    if (!online.isLoggedIn) {
+      final ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => LoginScreen(online: online)),
+      );
+      if (ok != true || !mounted) return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ConversationsScreen(online: online),
       ),
     );
     if (mounted) setState(() {});
@@ -188,6 +206,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 const SizedBox(height: 16),
                 _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
+                _button(palette, T('Messages'), onTap: _openMessages),
                 _button(palette, T('Historique'), onTap: _openHistory),
                 _button(palette, T('Mon compte'), onTap: _openAccount),
                 _button(palette, T('Réglages'), onTap: _openSettings),
