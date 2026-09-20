@@ -144,11 +144,10 @@ final class CorrGame {
 
 /// Rejeux déjà faits, par (code Random Fuga, texte des coups).
 ///
-/// Rejouer une partie demande de générer tous les coups légaux à chaque
-/// demi-coup ; l'aperçu du menu, lui, se reconstruit à chaque défilement. Le
-/// texte des coups est la clé : dès qu'il change, le rejeu est refait.
-final Map<String, ({Board board, Camp turn, LastMove? lastMove})?>
-_replayCache = {};
+/// Rejouer une partie demande d'appliquer chaque notation ; l'aperçu du menu,
+/// lui, se reconstruit à chaque défilement. Le texte des coups est la clé :
+/// dès qu'il change, le rejeu est refait.
+final Map<String, ({Board board, LastMove? lastMove})> _replayCache = {};
 
 /// Au-delà, on oublie les plus anciens : une poignée de parties suffit.
 const int _replayCacheMax = 48;
@@ -156,60 +155,63 @@ const int _replayCacheMax = 48;
 /// Oublie les rejeux mémorisés — pour les tests.
 void clearReplayCache() => _replayCache.clear();
 
+/// Découpe le `moves_text` du serveur : une notation par ligne.
+///
+/// C'est exactement ce que fait Kivy (`moves_text.split("\n")`), et ce n'est
+/// PAS le découpage d'un fichier `.nmc`, qui groupe les coups par tour.
+List<String> corrMoveLines(String movesText) => [
+  for (final line in movesText.split('\n'))
+    if (line.trim().isNotEmpty) line.trim(),
+];
+
 /// Rejoue les coups d'une partie de correspondance sur un plateau.
 ///
-/// Renvoie `null` si un coup ne correspond à rien de légal : une partie qu'on
-/// ne sait pas rejouer ne doit pas s'afficher à moitié, elle doit se signaler.
+/// **À la lettre, jamais par les règles.** Kivy reconstruit une partie de
+/// correspondance en appliquant chaque notation telle qu'elle est écrite
+/// (`_apply_notation`), aussi bien pour l'aperçu du menu que pour l'ouverture
+/// de la partie. Chercher le coup légal qui correspond à la notation donnerait
+/// parfois une autre position — et une partie « illisible » là où Kivy en
+/// affiche une. Une notation qu'on ne sait pas appliquer est sautée, comme le
+/// `try/except` de Kivy ; le trait, lui, vient du serveur.
 ///
 /// Le plateau rendu est une copie : l'appelant peut jouer dessus sans abîmer
 /// ce qui est mémorisé.
-({Board board, Camp turn, LastMove? lastMove})? replay(CorrGame game) {
+({Board board, Camp turn, LastMove? lastMove}) replay(CorrGame game) {
   final key = '${game.randomCode}|${game.movesText}';
-  if (_replayCache.containsKey(key)) {
-    final hit = _replayCache[key];
-    if (hit == null) return null;
-    return (board: hit.board.clone(), turn: hit.turn, lastMove: hit.lastMove);
-  }
-
-  final done = _replayNow(game);
+  final hit = _replayCache[key] ?? _replayNow(game);
   if (_replayCache.length >= _replayCacheMax) {
     _replayCache.remove(_replayCache.keys.first);
   }
-  _replayCache[key] = done;
-  if (done == null) return null;
-  return (board: done.board.clone(), turn: done.turn, lastMove: done.lastMove);
+  _replayCache[key] = hit;
+  return (board: hit.board.clone(), turn: game.turn, lastMove: hit.lastMove);
 }
 
-({Board board, Camp turn, LastMove? lastMove})? _replayNow(CorrGame game) {
+({Board board, LastMove? lastMove}) _replayNow(CorrGame game) {
   var board = game.initialBoard;
-  var turn = Camp.blanc;
-  LastMove? last;
 
-  for (final notation in game.moves) {
-    final move = resolveNotation(board, turn, notation);
-    if (move == null) {
-      // Coup introuvable : Kivy l'applique quand même, à la lettre, plutôt
-      // que d'abandonner la partie (`_corr_board_from_moves` ignore les
-      // échecs). On fait de même — mieux vaut une partie affichée sans sa
-      // mise en évidence qu'un écran qui dit « illisible ».
-      final literal = applyNotationLiterally(board, notation);
-      if (literal == null) return null;
-      board = literal.board;
-      last = null;
-      turn = turn.opposite;
-      continue;
-    }
-    // Le dernier coup rejoué reste mis en évidence à l'ouverture, comme chez
-    // Kivy où `_apply_notation` laisse le sien en place.
-    last = LastMove.of(board, move, pushTargets: pushTargetsOf(board, move));
-    board = move.board;
-    // Une fugue ou un mat termine la partie : le trait ne tourne plus.
-    if (move.fugue || move.fugueBy != null || move.matOn != null) {
-      return (board: board, turn: turn, lastMove: last);
-    }
-    turn = turn.opposite;
+  // Ce que Kivy lit dans son historique pour encadrer le dernier coup :
+  // le snapshot de l'avant-dernier coup réussi, ou la position de départ.
+  Board? beforeLast;
+  Board? lastSnapshot;
+  String? lastNotation;
+
+  for (final notation in corrMoveLines(game.movesText)) {
+    final applied = applyNotationLiterally(board, notation);
+    board = applied.board;
+    if (!applied.ok) continue;
+    beforeLast = lastSnapshot;
+    lastSnapshot = board;
+    lastNotation = notation;
   }
-  return (board: board, turn: turn, lastMove: last);
+
+  final last = lastNotation == null
+      ? null
+      : lastMoveFromNotation(
+          lastNotation,
+          beforeLast ?? game.initialBoard,
+          board,
+        );
+  return (board: board, lastMove: last);
 }
 
 /// Méthode de fin à transmettre avec un coup qui clôt la partie.

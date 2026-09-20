@@ -13,7 +13,9 @@ library;
 import 'dart:collection';
 
 import '../engine/board.dart';
+import '../engine/literal_replay.dart';
 import '../engine/move.dart';
+import '../engine/notation.dart';
 import '../engine/piece.dart';
 
 /// Ce qu'il faut mettre en évidence après un coup.
@@ -178,4 +180,171 @@ List<Cell> jumpPathOf(Board before, Cell start, Cell end) {
     }
   }
   return const [];
+}
+
+/// Mise en évidence reconstruite depuis la seule notation — portage de
+/// `_build_highlight_from_notation` et `_reconstruct_push_targets`.
+///
+/// C'est ce dont on dispose en relisant une partie enregistrée : il n'y a pas
+/// d'objet coup, seulement le texte, la position d'avant et celle d'après.
+///
+/// [before] est la position d'avant le coup (le snapshot de l'avant-dernier
+/// coup chez Kivy), [after] celle d'après — elle ne sert qu'à choisir la
+/// couleur du cadre, prise sur la pièce qui occupe la case d'arrivée.
+LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
+  var n = notation.trim();
+  if (n.isEmpty) return null;
+  while (n.endsWith('#')) {
+    n = n.substring(0, n.length - 1);
+  }
+
+  final from = <Cell>{};
+  final to = <Cell>{};
+
+  // Fugue depuis une case nommée : `Mi7*`. Rien n'est encadré à l'arrivée.
+  if (n.contains('*') && !n.contains('-')) {
+    final start = notationToCell(n.replaceAll('*', '').trim());
+    if (start != null) from.add(start);
+    return _framed(after, from, to);
+  }
+
+  // Manœuvre : seules les cases NOMMÉES sont encadrées, même quand c'est le
+  // groupe entier qui bouge — Kivy ne développe pas le groupe ici.
+  if (n.startsWith('(')) {
+    final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(n);
+    if (m != null) {
+      final cells = parseCellsConcat(m.group(1)!);
+      final dest = notationToCell(m.group(2)!);
+      if (cells != null && cells.isNotEmpty && dest != null) {
+        final master = cells.first;
+        final dc = dest.col - master.col;
+        final dr = dest.row - master.row;
+        for (final cell in cells) {
+          from.add(cell);
+          to.add(Cell(cell.col + dc, cell.row + dr));
+        }
+      }
+    }
+    return _framed(after, from, to);
+  }
+
+  final chevron = n.indexOf('>');
+  var movePart = chevron >= 0 ? n.substring(0, chevron) : n;
+  if (movePart.endsWith('*')) {
+    movePart = movePart.substring(0, movePart.length - 1);
+  }
+  final dash = movePart.indexOf('-');
+  final startStr = dash >= 0 ? movePart.substring(0, dash) : movePart;
+  final endStr = dash >= 0 ? movePart.substring(dash + 1) : '';
+
+  final start = notationToCell(startStr);
+  final end = endStr.isEmpty ? null : notationToCell(endStr);
+  if (start != null) from.add(start);
+  if (end != null) to.add(end);
+
+  // Rebonds d'un multisaut : jamais sur une poussée, qui contient le chevron.
+  final jumpPath =
+      (end != null && chevron < 0 && start != null && before != null)
+      ? jumpPathOf(before, start, end)
+      : const <Cell>[];
+
+  var pushDirs = const <Cell, List<(int, int)>>{};
+  if (chevron >= 0 && end != null) {
+    // Type de la pièce qui a poussé : dans la position d'avant en cas de
+    // départ connu, sinon celle qui occupe la case d'arrivée maintenant.
+    var pusher = (start != null && before != null)
+        ? before.atCell(start)
+        : null;
+    pusher ??= after.atCell(end);
+    if (pusher != null && pusher.type.isSquare) {
+      final valid = pushDirsOfType(pusher.type).toSet();
+      final active = <(int, int)>[];
+      final targets = reconstructPushTargets(n, before);
+      if (targets.isNotEmpty) {
+        for (final target in targets) {
+          final dir = (
+            (target.col - end.col).sign,
+            (target.row - end.row).sign,
+          );
+          if (valid.contains(dir) && !active.contains(dir)) active.add(dir);
+        }
+      } else if (before != null) {
+        for (final (dc, dr) in valid) {
+          if (Board.onBoard(end.col + dc, end.row + dr) &&
+              before.at(end.col + dc, end.row + dr) != null) {
+            active.add((dc, dr));
+          }
+        }
+      }
+      if (active.isNotEmpty) pushDirs = {end: active};
+    }
+  }
+
+  return _framed(after, from, to, jumpPath: jumpPath, pushDirs: pushDirs);
+}
+
+/// Cases effectivement poussées, relues depuis la notation —
+/// `_reconstruct_push_targets`.
+List<Cell> reconstructPushTargets(String notation, Board? before) {
+  var n = notation.trim();
+  while (n.endsWith('#')) {
+    n = n.substring(0, n.length - 1);
+  }
+  final chevron = n.indexOf('>');
+  if (chevron < 0) return const [];
+  var movePart = n.substring(0, chevron);
+  final afterPush = n.substring(chevron + 1).trim();
+  if (movePart.endsWith('*')) {
+    movePart = movePart.substring(0, movePart.length - 1);
+  }
+  final dash = movePart.indexOf('-');
+  if (dash < 0) return const [];
+  final end = notationToCell(movePart.substring(dash + 1));
+  if (end == null) return const [];
+
+  // Cases listées après le chevron : ce sont les cibles, telles quelles.
+  if (afterPush.isNotEmpty) return parseCellsConcat(afterPush) ?? const [];
+
+  // `Ré1-Do2>` sans précision : toutes les directions où il y avait quelque
+  // chose juste avant le coup.
+  if (before == null) return const [];
+  final start = notationToCell(movePart.substring(0, dash));
+  if (start == null) return const [];
+  final pusher = before.atCell(start);
+  if (pusher == null || !pusher.type.isSquare) return const [];
+  return [
+    for (final (dc, dr) in pushDirsOfType(pusher.type))
+      if (Board.onBoard(end.col + dc, end.row + dr) &&
+          before.at(end.col + dc, end.row + dr) != null)
+        Cell(end.col + dc, end.row + dr),
+  ];
+}
+
+/// Assemble la mise en évidence et choisit la couleur du cadre.
+///
+/// Kivy lit le camp sur la pièce qui occupe l'une des cases d'arrivée APRÈS
+/// le coup, et prend le cadre blanc par défaut — donc le camp noir ici.
+LastMove _framed(
+  Board after,
+  Set<Cell> from,
+  Set<Cell> to, {
+  List<Cell> jumpPath = const [],
+  Map<Cell, List<(int, int)>> pushDirs = const {},
+}) {
+  var camp = Camp.noir;
+  for (final cell in to) {
+    if (!cell.onBoard) continue;
+    final p = after.atCell(cell);
+    if (p != null) {
+      camp = p.camp;
+      break;
+    }
+  }
+  return LastMove(
+    camp: camp,
+    from: from,
+    to: to,
+    jumpPath: jumpPath,
+    pushDirs: pushDirs,
+  );
 }

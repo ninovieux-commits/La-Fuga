@@ -54,7 +54,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   Board? _boardBefore;
   bool _sending = false;
   bool _played = false;
-  String? _replayError;
 
   CorrGame get _g => widget.game;
 
@@ -76,15 +75,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   /// Rejoue l'historique pour retrouver la position courante.
   ///
-  /// Si un coup ne se relit pas, on l'annonce au lieu d'afficher une position
-  /// fausse : mieux vaut un écran qui dit « je ne sais pas » qu'un plateau
-  /// silencieusement faux.
+  /// La relecture est littérale et ne échoue jamais : une notation qu'on ne
+  /// sait pas appliquer est sautée, comme chez Kivy. Une partie en cours
+  /// s'affiche donc toujours.
   void _restore() {
     final state = replay(_g);
-    if (state == null) {
-      setState(() => _replayError = T('Partie illisible.'));
-      return;
-    }
     setState(() {
       _controller = MoveController(board: state.board, turn: state.turn);
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
@@ -239,12 +234,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
             ? Column(
                 children: [
                   _bar(palette, flipped),
-                  Expanded(
-                    child: Center(
-                      child: _replayError != null
-                          ? Text(_replayError!)
-                          : const CircularProgressIndicator(),
-                    ),
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ],
               )

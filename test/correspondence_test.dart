@@ -147,7 +147,7 @@ void main() {
 
   group('Rejeu', () {
     test('une partie vide reste à la position de départ', () {
-      final r = replay(CorrGame.fromJson(serverGame()))!;
+      final r = replay(CorrGame.fromJson(serverGame()));
       expect(r.board.key, Board.initial().key);
       expect(r.turn, Camp.blanc);
     });
@@ -161,10 +161,14 @@ void main() {
       final m2 = generateMoves(board, Camp.noir).first;
       final n2 = notationOn(board, m2);
 
-      final g = CorrGame.fromJson(serverGame(movesText: '1.$n1/$n2'));
-      final r = replay(g)!;
+      // Le serveur stocke UNE notation par ligne (`_build_moves_text_for_resume`).
+      final g = CorrGame.fromJson(serverGame(movesText: '$n1\n$n2'));
+      final r = replay(g);
       expect(r.board.key, m2.board.key);
-      expect(r.turn, Camp.blanc, reason: 'deux coups joués, à Blanc de jouer');
+      // Le trait vient du serveur (`turn`), jamais d'un comptage de coups :
+      // Kivy l'écrase avec la valeur du serveur après avoir rejoué (« sécurité
+      // anti-désync »).
+      expect(r.turn, g.turn);
     });
 
     test('un coup hors règles est rejoué à la lettre, comme chez Kivy', () {
@@ -175,8 +179,7 @@ void main() {
       final g = CorrGame.fromJson(serverGame(movesText: 'Si8-Si7'));
       final state = replay(g);
 
-      expect(state, isNotNull);
-      expect(state!.board.at(6, 7), isNull, reason: 'si8 est vidée');
+      expect(state.board.at(6, 7), isNull, reason: 'si8 est vidée');
       expect(
         state.board.at(6, 6)?.type,
         PieceType.garde,
@@ -184,10 +187,13 @@ void main() {
       );
     });
 
-    test('une notation inapplicable se signale', () {
-      // Case de départ vide : même à la lettre, il n'y a rien à déplacer.
+    test('une notation inapplicable est sautée, pas fatale', () {
+      // Case de départ vide : rien à déplacer. Kivy passe au coup suivant
+      // (try/except) et affiche la partie — jamais « illisible ».
       final g = CorrGame.fromJson(serverGame(movesText: 'Do4-Do5'));
-      expect(replay(g), isNull);
+      final state = replay(g);
+      expect(state.board.key, Board.initial().key);
+      expect(state.lastMove, isNull);
     });
 
     test('le rejeu est mémorisé, mais jamais partagé', () {
@@ -196,17 +202,17 @@ void main() {
       final n1 = notationOn(board, m1);
       board = m1.board;
 
-      final g = CorrGame.fromJson(serverGame(movesText: '1.$n1'));
-      final first = replay(g)!;
+      final g = CorrGame.fromJson(serverGame(movesText: n1));
+      final first = replay(g);
       expect(first.board.key, m1.board.key);
 
       // Jouer sur le plateau rendu ne doit pas abîmer ce qui est mémorisé :
       // l'aperçu du menu et l'écran de jeu demandent le même rejeu.
       first.board.set(0, 0, null);
 
-      final second = replay(g)!;
+      final second = replay(g);
       expect(second.board.key, m1.board.key);
-      expect(second.turn, Camp.noir);
+      expect(second.turn, g.turn);
       expect(identical(second.board, first.board), isFalse);
     });
   });

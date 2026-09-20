@@ -6,9 +6,7 @@
 library;
 
 import '../engine/board.dart';
-import '../engine/move.dart';
 import '../engine/literal_replay.dart';
-import '../engine/move_generator.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
 import 'last_move.dart';
@@ -20,7 +18,6 @@ final class ReplayStep {
     required this.board,
     required this.turn,
     this.notation,
-    this.move,
     this.boardBefore,
     this.captured = const {},
   });
@@ -33,9 +30,6 @@ final class ReplayStep {
   /// Coup qui a mené ici. `null` pour la position de départ.
   final String? notation;
 
-  /// Le coup lui-même, pour mettre en évidence les cases touchées.
-  final Move? move;
-
   /// Position d'avant ce coup, quand il y en a un.
   final Board? boardBefore;
 
@@ -43,34 +37,29 @@ final class ReplayStep {
   /// remplir les panneaux comme en partie.
   final Map<Camp, List<Piece>> captured;
 
-  /// Cases à encadrer : départ et arrivées du coup.
-  Set<Cell> get highlightedCells {
-    final m = move;
-    if (m == null) return const {};
-    return {m.from, ...m.movedCells}..removeWhere((c) => !c.onBoard);
+  /// Mise en évidence du coup qui a mené ici, reconstruite depuis sa seule
+  /// notation — c'est tout ce dont Kivy dispose en relisant une partie.
+  LastMove? get lastMove {
+    final n = notation;
+    if (n == null) return null;
+    return lastMoveFromNotation(n, boardBefore, board);
   }
 
-  /// Mise en évidence du coup qui a mené ici, comme en partie.
-  LastMove? get lastMove {
-    final m = move;
-    final before = boardBefore;
-    if (m == null || before == null) return null;
-    return LastMove.of(before, m, pushTargets: pushTargetsOf(before, m));
-  }
+  /// Cases à encadrer : départ et arrivées du coup.
+  Set<Cell> get highlightedCells => lastMove?.framedCells ?? const {};
 }
 
-/// Pièces qui quittent le plateau sur ce coup — sans compter l'Héritier qui
-/// fugue, qui n'est pas une prise mais une victoire.
-List<Piece> _ejectedBy(Board before, Move move) {
-  final out = <Piece>[];
-  final after = <Piece, int>{};
+/// Pièces qui quittent le plateau d'une position à l'autre — sans compter
+/// l'Héritier qui fugue, qui n'est pas une prise mais une victoire.
+List<Piece> _ejectedBetween(Board before, Board after, String notation) {
+  final counts = <Piece, int>{};
   for (var c = 0; c < kCols; c++) {
     for (var r = 0; r < kRows; r++) {
-      final p = move.board.at(c, r);
-      if (p != null) after[p] = (after[p] ?? 0) + 1;
+      final p = after.at(c, r);
+      if (p != null) counts[p] = (counts[p] ?? 0) + 1;
     }
   }
-  final counts = Map.of(after);
+  final out = <Piece>[];
   for (var c = 0; c < kCols; c++) {
     for (var r = 0; r < kRows; r++) {
       final p = before.at(c, r);
@@ -83,10 +72,9 @@ List<Piece> _ejectedBy(Board before, Move move) {
       }
     }
   }
-  // L'Héritier qui fugue sort aussi du plateau : on ne le compte pas.
-  if (move.fugue || move.fugueBy != null) {
-    out.removeWhere((p) => p.isHeir);
-  }
+  // Une fugue se note par un `*` : l'Héritier sort, mais ce n'est pas une
+  // prise.
+  if (notation.contains('*')) out.removeWhere((p) => p.isHeir);
   return out;
 }
 
@@ -147,51 +135,35 @@ class ReplayController {
     var turn = Camp.blanc;
     int? broken;
 
+    // Relecture LITTÉRALE, comme `_load_game_from_moves` : chaque notation est
+    // appliquée telle qu'elle est écrite, sans la confronter aux règles. Kivy
+    // refuse la partie entière dès qu'une notation ne s'applique pas ; on
+    // s'arrête au même endroit et on le dit.
     for (var i = 0; i < game.moves.length; i++) {
       final notation = game.moves[i];
-      final move = resolveNotation(board, turn, notation);
-      if (move == null) {
-        // Comme Kivy, on tente d'appliquer la notation à la lettre avant
-        // d'abandonner : sa relecture ne confronte pas les coups aux règles.
-        final literal = applyNotationLiterally(board, notation);
-        if (literal == null) {
-          broken = i;
-          break;
-        }
-        board = literal.board;
-        turn = turn.opposite;
-        steps.add(
-          ReplayStep(
-            board: board,
-            turn: turn,
-            notation: notation,
-            captured: {
-              Camp.blanc: List.of(lost[Camp.blanc]!),
-              Camp.noir: List.of(lost[Camp.noir]!),
-            },
-          ),
-        );
-        continue;
+      final before = board;
+      final applied = applyNotationLiterally(board, notation);
+      if (!applied.ok) {
+        broken = i;
+        break;
       }
-      for (final piece in _ejectedBy(board, move)) {
+      board = applied.board;
+      for (final piece in _ejectedBetween(before, board, notation)) {
         lost[piece.camp]!.add(piece);
       }
+      turn = turn.opposite;
       steps.add(
         ReplayStep(
-          board: move.board,
-          turn: turn.opposite,
+          board: board,
+          turn: turn,
           notation: notation,
-          move: move,
-          boardBefore: board,
+          boardBefore: before,
           captured: {
             Camp.blanc: List.of(lost[Camp.blanc]!),
             Camp.noir: List.of(lost[Camp.noir]!),
           },
         ),
       );
-      board = move.board;
-      if (move.fugue || move.fugueBy != null || move.matOn != null) break;
-      turn = turn.opposite;
     }
 
     return ReplayController._(game.meta, steps, broken);
