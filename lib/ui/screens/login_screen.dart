@@ -217,18 +217,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: const OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  T(
-                    "L'appli n'envoie pas de notifications. Renseignez votre "
-                    'adresse mail pour savoir quand c\'est à vous de jouer.',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Color.fromRGBO(191, 191, 191, 1),
-                  ),
-                ),
               ],
               const SizedBox(height: 24),
               FugaButton(
