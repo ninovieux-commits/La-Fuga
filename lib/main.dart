@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import 'i18n/translations.dart';
 import 'net/online_service.dart';
+import 'net/push_notifications.dart';
 import 'state/settings.dart';
 import 'ui/screens/menu_screen.dart';
 
@@ -22,8 +23,17 @@ Future<void> main() async {
   await Translations.load(settings.language);
 
   // Reconnexion au compte, sans bloquer l'affichage : le menu doit
-  // apparaître tout de suite, connecté ou non.
-  unawaited(OnlineService.instance.tryAutoLogin());
+  // apparaître tout de suite, connecté ou non. Le jeton de notification part
+  // ensuite, quand on sait si un compte est ouvert.
+  unawaited(
+    OnlineService.instance.tryAutoLogin().then(
+      (_) => PushNotifications.sendPendingToken(),
+    ),
+  );
+
+  // Notifications push : comme en Kivy, on ne bloque pas le démarrage pour
+  // elles et une erreur ne coûte que les notifications.
+  unawaited(PushNotifications.init());
 
   runApp(const FugaApp());
 }

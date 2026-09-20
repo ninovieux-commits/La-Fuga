@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/notification_permission.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../state/settings.dart';
@@ -18,12 +19,20 @@ import 'history_screen.dart';
 import 'photo_picker.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({super.key, required this.online, this.pseudo});
+  const AccountScreen({
+    super.key,
+    required this.online,
+    this.pseudo,
+    this.permission = const AndroidNotificationPermission(),
+  });
 
   final OnlineService online;
 
   /// Profil à afficher ; `null` pour le sien.
   final String? pseudo;
+
+  /// Autorisation d'afficher les notifications. Injectable pour les tests.
+  final NotificationPermission permission;
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
@@ -86,6 +95,55 @@ class _AccountScreenState extends State<AccountScreen> {
     final next = _notif.toggled(key);
     setState(() => _notif = next);
     await widget.online.client.setNotifPrefs(next.toJson());
+
+    // Notifications rallumées, mais le téléphone les bloque : Kivy demande la
+    // permission, puis explique où la donner si elle a été refusée.
+    if (!next.mail) return;
+    if (await widget.permission.granted()) return;
+    await widget.permission.request();
+    if (await widget.permission.granted()) return;
+    if (mounted) await _promptNotifPermission();
+  }
+
+  /// « Pour recevoir des notifications, autorisez La Fuga… » —
+  /// `_prompt_notif_permission`.
+  Future<void> _promptNotifPermission() async {
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kFugaGrey,
+        title: Text(
+          T('Notifications'),
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          T(
+            'Pour recevoir des notifications, autorisez La Fuga dans les réglages de votre téléphone.',
+          ),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+        actions: [
+          FugaButton(
+            text: T('Plus tard'),
+            fontSize: 13,
+            height: 40,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          FugaButton(
+            text: T('Ouvrir les réglages'),
+            color: palette.clair,
+            fontSize: 13,
+            height: 40,
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.permission.openSettings();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _editText({

@@ -5,10 +5,13 @@
 /// bouton et de champs.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
+import '../../net/push_notifications.dart';
 import '../../state/local_games.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -89,6 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+
+    // Le compte est ouvert : le serveur peut désormais associer le jeton de
+    // notification de cet appareil.
+    unawaited(PushNotifications.sendPendingToken());
 
     // Le jeu est pensé pour être connecté : les parties jouées hors compte
     // sont effacées, l'historique vient désormais du compte (tous appareils).
