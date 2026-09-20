@@ -333,3 +333,30 @@ def _dg_apply_pushes(board, c, r, ptype, camp, dirs_to_use=None):
                     else:                  ej_opp += 1
                 total_pushed += 1
     return ej_ally, ej_opp, mat_on, fugue_by, total_pushed
+
+
+def setup_initial():
+    board = [[None]*ROWS for _ in range(COLS)]
+    layout = ["Soldat","Garde","Soldat","Chevalier","Garde","Soldat","Garde"]
+    for c,t in enumerate(layout):
+        board[c][0] = {"type": t, "camp": "Blanc"}
+        board[c][7] = {"type": t, "camp": "Noir"}
+    for c in [1,2,4,5]:
+        board[c][1] = {"type":"Nurse","camp":"Blanc"}
+        board[c][6] = {"type":"Nurse","camp":"Noir"}
+    board[0][1] = {"type":"Garde","camp":"Blanc"}
+    board[6][1] = {"type":"Soldat","camp":"Blanc"}
+    board[0][6] = {"type":"Garde","camp":"Noir"}
+    board[6][6] = {"type":"Soldat","camp":"Noir"}
+    board[3][0] = {"type":"Héritier","camp":"Blanc"}
+    board[3][1] = {"type":"Nurse","camp":"Blanc"}
+    board[3][2] = {"type":"Chevalier","camp":"Blanc"}
+    board[3][7] = {"type":"Héritier","camp":"Noir"}
+    board[3][6] = {"type":"Nurse","camp":"Noir"}
+    board[3][5] = {"type":"Chevalier","camp":"Noir"}
+    return board
+
+
+def to_json_board(board):
+    return [[(None if p is None else {"type":p["type"],"camp":p["camp"]})
+             for p in col] for col in board]

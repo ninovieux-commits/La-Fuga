@@ -503,27 +503,56 @@ List<Cell> pushTargetsOf(Board before, Move move) {
 
 /// Retrouve le coup correspondant à une notation `.nmc`.
 ///
-/// Renvoie `null` si aucun coup légal ne porte cette notation — un coup reçu
-/// d'ailleurs peut être corrompu, et il vaut mieux le refuser que jouer autre
-/// chose.
+/// La comparaison est **structurelle**, pas textuelle : un même coup s'écrit
+/// de plusieurs façons selon d'où vient la notation. Kivy écrit `Do1-Do2>`
+/// quand un humain pousse toutes les directions disponibles, mais
+/// `Do1-Do2>Ré3Mi4` pour le même coup joué par deux grey ; et l'ordre des
+/// cases d'une manœuvre y dépend de l'itération d'un `set` Python. Comparer
+/// les chaînes ferait refuser des parties parfaitement valides.
+///
+/// Renvoie `null` si aucun coup légal ne correspond — un coup reçu d'ailleurs
+/// peut être corrompu, et il vaut mieux le refuser que jouer autre chose.
 Move? resolveNotation(Board board, Camp camp, String notation) {
-  final wanted = _normalizeNotation(notation);
-  if (wanted.isEmpty) return null;
+  final wanted = parseNotation(notation);
+  if (wanted == null) return null;
 
   for (final mv in generateMoves(board, camp)) {
-    final candidate = _normalizeNotation(notationOn(board, mv));
-    if (candidate == wanted) return mv;
+    if (_matches(board, mv, wanted)) return mv;
   }
   return null;
 }
 
-/// Retire les marques de fin de partie, qui ne font pas partie du coup.
-String _normalizeNotation(String n) {
-  var s = n.trim();
-  while (s.endsWith('#')) {
-    s = s.substring(0, s.length - 1);
+bool _matches(Board board, Move mv, NotationParts wanted) {
+  switch (wanted) {
+    case FugueNotation(:final start):
+      return mv.fugue && mv.from == start;
+
+    case ManeuverNotation(:final cells, :final dest):
+      if (mv.kind != MoveKind.maneuver) return false;
+      final master = cells.first;
+      if (mv.from != master || mv.to != dest) return false;
+      // Une seule case désigne le groupe entier : le générateur a déjà toutes
+      // les cases, il n'y a rien à vérifier de plus.
+      if (cells.length == 1) return true;
+      final mine = (mv.fromCells ?? [mv.from]).toSet();
+      return mine.length == cells.toSet().length && mine.containsAll(cells);
+
+    case SimpleNotation(:final start, :final end, :final isPush, :final pushed):
+      if (mv.fugue) return end == null && mv.from == start;
+      if (mv.kind == MoveKind.maneuver) return false;
+      if (mv.from != start || end == null || mv.to != end) return false;
+
+      final targets = pushTargetsOf(board, mv);
+      if (!isPush) return targets.isEmpty;
+      if (pushed == null) {
+        // Rien après le chevron : Kivy pousse TOUT ce qui peut l'être.
+        final pushable = pushableCellsOf(board, mv);
+        return targets.length == pushable.length &&
+            targets.toSet().containsAll(pushable);
+      }
+      return targets.length == pushed.toSet().length &&
+          targets.toSet().containsAll(pushed);
   }
-  return s.trim();
 }
 
 /// Toutes les cases que ce coup POURRAIT pousser depuis son arrivée.
@@ -556,8 +585,5 @@ List<Cell> pushableCellsOf(Board before, Move move) {
 /// passer soi-même les cases poussées et les cases poussables, c'est pouvoir
 /// se tromper, et une notation ambiguë rend deux coups indiscernables à la
 /// relecture.
-String notationOn(Board before, Move move) => notationOfMove(
-  move,
-  pushTargets: pushTargetsOf(before, move),
-  pushableCells: pushableCellsOf(before, move),
-);
+String notationOn(Board before, Move move) =>
+    notationOfMove(move, pushTargets: pushTargetsOf(before, move));

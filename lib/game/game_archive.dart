@@ -35,14 +35,15 @@ String nmcMethod(String method) =>
 List<String> withEndSuffix(List<String> history, String method) {
   if (history.isEmpty) return history;
   final last = history.last;
+  // Les conditions sont celles de `_end_game_by_color`, au caractère près :
+  // un mat ne double pas son dièse, et un temps ou un abandon ne marque ni un
+  // coup déjà fugué (`Mi7*`) ni un coup déjà mat (`Do1-Do2#`).
   final suffix = switch (method) {
-    'mat' => '#',
-    'temps' || 'abandon' => '*',
+    'mat' when !last.endsWith('#') => '#',
+    'temps' || 'abandon' when !last.endsWith('*') && !last.endsWith('#') => '*',
     _ => null,
   };
-  if (suffix == null || last.endsWith('#') || last.endsWith('*')) {
-    return history;
-  }
+  if (suffix == null) return history;
   return [...history.take(history.length - 1), last + suffix];
 }
 

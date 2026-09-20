@@ -125,17 +125,4 @@ void main() {
       );
     });
   });
-
-  group('formatNmcMoves', () {
-    test('numérote par paires de coups', () {
-      expect(
-        formatNmcMoves(['Do1-Do2', 'Do8-Do7', 'Ré1-Ré2']),
-        '1.Do1-Do2/Do8-Do7  2.Ré1-Ré2',
-      );
-    });
-
-    test('historique vide', () {
-      expect(formatNmcMoves([]), '');
-    });
-  });
 }

@@ -101,22 +101,26 @@ String formatMoves(List<String> history) {
 
 /// Découpe un texte de coups en notations, dans l'ordre.
 ///
-/// Tolère les numéros de tour, les séparateurs multiples et les retours à la
-/// ligne : un fichier écrit à la main doit rester lisible.
+/// Portage de `_parse_moves_text`, au caractère près : un numéro de tour ne
+/// se retire que s'il est bien fait de chiffres suivis d'un point, et la barre
+/// ne sépare que les deux premières moitiés — un coup qui en contiendrait une
+/// resterait entier.
 List<String> parseMoves(String movesText) {
+  final trimmed = movesText.trim();
+  if (trimmed.isEmpty) return const [];
+
   final out = <String>[];
-  for (final token in movesText.split(RegExp(r'\s+'))) {
+  final turnNumber = RegExp(r'^(\d+)\.(.*)$');
+  for (final token in trimmed.split(RegExp(r'\s+'))) {
     if (token.isEmpty) continue;
-    // Retirer le numéro de tour : « 12.Do1-Do2 ».
-    var t = token;
-    final dot = t.indexOf('.');
-    if (dot >= 0 && int.tryParse(t.substring(0, dot)) != null) {
-      t = t.substring(dot + 1);
-    }
-    for (final half in t.split('/')) {
-      final m = half.trim();
-      if (m.isNotEmpty) out.add(m);
-    }
+    final m = turnNumber.firstMatch(token);
+    final rest = m != null ? m.group(2)! : token;
+
+    final slash = rest.indexOf('/');
+    final blanc = slash < 0 ? rest : rest.substring(0, slash);
+    final noir = slash < 0 ? '' : rest.substring(slash + 1);
+    if (blanc.isNotEmpty) out.add(blanc);
+    if (noir.isNotEmpty) out.add(noir);
   }
   return out;
 }
@@ -140,7 +144,9 @@ NmcGame parseNmc(String content) {
   final moveLines = <String>[];
   var inHeader = true;
 
-  final headerLine = RegExp(r'^\[(\w+)\s+"(.*)"\]$');
+  // Pas d'ancrage de fin : `re.match` de Python n'en pose pas, et une ligne
+  // qui traîne quelque chose après le crochet fermant est quand même lue.
+  final headerLine = RegExp(r'^\[(\w+)\s+"(.*)"\]');
   for (final raw in content.split('\n')) {
     final line = raw.trimRight();
     if (inHeader && line.startsWith('[') && line.endsWith(']')) {

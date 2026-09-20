@@ -5,28 +5,8 @@ plateaux résultants. Le test Dart rejoue exactement la même chose et compare.
 """
 import json, random, sys
 sys.path.insert(0, ".")
-from py_engine_ref import (dg_generate_moves, COLS, ROWS, RALLY)
-
-def setup_initial():
-    board = [[None]*ROWS for _ in range(COLS)]
-    layout = ["Soldat","Garde","Soldat","Chevalier","Garde","Soldat","Garde"]
-    for c,t in enumerate(layout):
-        board[c][0] = {"type": t, "camp": "Blanc"}
-        board[c][7] = {"type": t, "camp": "Noir"}
-    for c in [1,2,4,5]:
-        board[c][1] = {"type":"Nurse","camp":"Blanc"}
-        board[c][6] = {"type":"Nurse","camp":"Noir"}
-    board[0][1] = {"type":"Garde","camp":"Blanc"}
-    board[6][1] = {"type":"Soldat","camp":"Blanc"}
-    board[0][6] = {"type":"Garde","camp":"Noir"}
-    board[6][6] = {"type":"Soldat","camp":"Noir"}
-    board[3][0] = {"type":"Héritier","camp":"Blanc"}
-    board[3][1] = {"type":"Nurse","camp":"Blanc"}
-    board[3][2] = {"type":"Chevalier","camp":"Blanc"}
-    board[3][7] = {"type":"Héritier","camp":"Noir"}
-    board[3][6] = {"type":"Nurse","camp":"Noir"}
-    board[3][5] = {"type":"Chevalier","camp":"Noir"}
-    return board
+from py_engine_ref import (dg_generate_moves, COLS, ROWS, RALLY,
+                           setup_initial, to_json_board)
 
 def bkey(board):
     parts=[]
@@ -35,10 +15,6 @@ def bkey(board):
             p=board[c][r]
             parts.append("." if p is None else p["type"][0]+p["camp"][0])
     return "".join(parts)
-
-def to_json_board(board):
-    return [[(None if p is None else {"type":p["type"],"camp":p["camp"]})
-             for p in col] for col in board]
 
 def _norm_cells(m):
     cells = list(m.get("moved_cells", []))

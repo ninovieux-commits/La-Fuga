@@ -120,49 +120,133 @@ String buildMoveNotation({
 
 /// Notation d'un coup produit par le générateur (chemin IA, réseau, analyse).
 ///
-/// [pushTargets] sont les cases effectivement poussées, [pushableCells] toutes
-/// celles qui auraient pu l'être. Les deux sont nécessaires : sans la seconde,
-/// toutes les variantes de poussée d'un même déplacement porteraient la même
-/// notation et deviendraient indiscernables à la relecture.
-String notationOfMove(
-  Move move, {
-  List<Cell> pushTargets = const [],
-  List<Cell> pushableCells = const [],
-}) {
+/// Portage de `_ai_notation`, qui n'écrit PAS comme le chemin humain : une
+/// poussée y nomme toujours ses cases, même quand toutes les directions
+/// disponibles ont été poussées, là où `_build_move_notation` écrit alors
+/// `Do1-Do2>` tout court. Les deux orthographes désignent le même coup et
+/// [resolveNotation] les accepte l'une comme l'autre ; on garde celle de Kivy
+/// pour que deux appareils enregistrent la même partie au même octet.
+///
+/// [pushTargets] sont les cases effectivement poussées.
+String notationOfMove(Move move, {List<Cell> pushTargets = const []}) {
   if (move.fugue) {
     return buildMoveNotation(start: move.from, end: null);
   }
   if (move.kind == MoveKind.maneuver) {
+    // La maîtresse en tête, comme chez Kivy : c'est elle qui donne le delta.
+    final pieces = move.fromCells ?? [move.from];
     return buildMoveNotation(
       start: move.from,
       end: move.to,
       isManeuver: true,
-      maneuverPieces: move.fromCells ?? [move.from],
+      maneuverPieces: [move.from, ...pieces.where((c) => c != move.from)],
     );
   }
-  if (move.pushDirsUsed.isNotEmpty) {
-    return buildMoveNotation(
-      start: move.from,
-      end: move.to,
-      isPush: true,
-      pushTargets: pushTargets,
-      pushableDirs: pushableCells.isEmpty ? pushTargets : pushableCells,
-    );
+  if (move.kind == MoveKind.square && pushTargets.isNotEmpty) {
+    final targets = pushTargets
+        .map(cellToNotationOf)
+        .whereType<String>()
+        .join();
+    return '${buildMoveNotation(start: move.from, end: move.to)}>$targets';
   }
   return buildMoveNotation(start: move.from, end: move.to);
 }
 
-/// Formate l'historique en texte `.nmc` : `1.Do1-Do2/Do8-Do7  2.…`
-String formatNmcMoves(List<String> history) {
-  final parts = <String>[];
-  var i = 0;
-  var turn = 1;
-  while (i < history.length) {
-    final blanc = history[i];
-    final noir = (i + 1 < history.length) ? history[i + 1] : null;
-    parts.add(noir == null ? '$turn.$blanc' : '$turn.$blanc/$noir');
-    i += 2;
-    turn++;
+/// Ce qu'une notation `.nmc` décrit, une fois découpée.
+///
+/// Portage du découpage de `_apply_notation`, `_apply_simple_or_push` et
+/// `_apply_maneuver` (main.py). Kivy relit une partie en appliquant la
+/// notation telle quelle ; nous la comparons aux coups légaux. Le découpage,
+/// lui, doit être le même : sinon un fichier écrit par l'app Kivy deviendrait
+/// illisible ici.
+sealed class NotationParts {
+  const NotationParts();
+}
+
+/// `Mi7*` — la pièce quitte le plateau par sa zone de ralliement.
+final class FugueNotation extends NotationParts {
+  const FugueNotation(this.start);
+  final Cell start;
+}
+
+/// `Do1-Do2`, `Do1-Do2>` ou `Do1-Do2>Ré3Mi4`.
+///
+/// [pushed] vaut `null` quand rien ne suit le chevron : Kivy pousse alors
+/// **toutes** les directions disponibles.
+final class SimpleNotation extends NotationParts {
+  const SimpleNotation(
+    this.start,
+    this.end, {
+    this.isPush = false,
+    this.pushed,
+  });
+  final Cell start;
+  final Cell? end;
+  final bool isPush;
+  final List<Cell>? pushed;
+}
+
+/// `(Do8Mi8)-Do7`. Une seule case désigne le groupe entier.
+final class ManeuverNotation extends NotationParts {
+  const ManeuverNotation(this.cells, this.dest);
+  final List<Cell> cells;
+  final Cell dest;
+}
+
+/// Découpe une notation. `null` si elle ne veut rien dire.
+NotationParts? parseNotation(String notation) {
+  var s = notation.trim();
+  if (s.isEmpty) return null;
+  // Les marques de fin de partie ne font pas partie du coup.
+  while (s.endsWith('#')) {
+    s = s.substring(0, s.length - 1).trimRight();
   }
-  return parts.join('  ');
+  if (s.isEmpty) return null;
+
+  if (s.startsWith('(')) {
+    final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(s);
+    if (m == null) return null;
+    var destStr = m.group(2)!;
+    if (destStr.endsWith('#')) {
+      destStr = destStr.substring(0, destStr.length - 1);
+    }
+    final cells = parseCellsConcat(m.group(1)!);
+    final dest = notationToCell(destStr);
+    if (cells == null || cells.isEmpty || dest == null) return null;
+    return ManeuverNotation(cells, dest);
+  }
+
+  // Fugue : la case d'arrivée n'a pas de nom.
+  if (s.contains('*') && !s.contains('-')) {
+    final start = notationToCell(s.replaceAll('*', '').trim());
+    return start == null ? null : FugueNotation(start);
+  }
+
+  String movePart = s;
+  String? pushPart;
+  final chevron = s.indexOf('>');
+  if (chevron >= 0) {
+    movePart = s.substring(0, chevron);
+    pushPart = s.substring(chevron + 1);
+  }
+
+  final dash = movePart.indexOf('-');
+  if (dash < 0) return null;
+  var endStr = movePart.substring(dash + 1);
+  // `Do1-Do2*` : fugue sur une case nommable.
+  if (endStr.endsWith('*')) endStr = endStr.substring(0, endStr.length - 1);
+
+  final start = notationToCell(movePart.substring(0, dash));
+  if (start == null) return null;
+  final end = notationToCell(endStr);
+
+  if (pushPart == null || end == null) {
+    return SimpleNotation(start, end);
+  }
+  if (pushPart.trim().isEmpty) {
+    return SimpleNotation(start, end, isPush: true);
+  }
+  final cells = parseCellsConcat(pushPart);
+  if (cells == null) return null;
+  return SimpleNotation(start, end, isPush: true, pushed: cells);
 }
