@@ -55,6 +55,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Matchs | score, alternance des couleurs, règle de l'ultime partie |
 | Défis | envoi, annulation, refus, réception, raisons d'échec |
 | Compte et messagerie | profil, notifications, favoris, blocages, conversations |
+| Menu | entrées de Kivy, cadences, Random, correspondance, visite guidée |
 
 ```bash
 flutter test
@@ -112,6 +113,9 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Analyse, Random Fuga hors ligne, lecteur `.nmc`, soutien aux devs
 - [x] Matchs en plusieurs points hors ligne, abandon, nulle par accord
 - [x] Composeur de thèmes (les cinq axes séparément)
+- [x] Menu refait à l'identique de Kivy, visite guidée du menu comprise
+- [x] Cadences et objectif au format exact du serveur
+- [x] Images en WebP sans perte (38 Mo → 23 Mo, pixels identiques)
 - [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
 - [x] Correspondance : défis, parties, nulle, abandon, rejeu de l'historique
 
@@ -123,14 +127,6 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
   route `/set_fcm_token` est déjà implémentée et les préférences de
   notification (`mail`, `turn`, `msg`, `defi_corr`, `defi_direct`) se règlent
   dans l'écran de compte. Il manque le fichier, puis l'abonnement au jeton.
-- **Visite guidée du menu.** En Kivy, la dernière étape du tuto entoure les
-  touches du vrai menu une par une. Le menu Flutter n'a pas la même
-  disposition (pas de rangée cadence/objectif ni d'emplacements de
-  correspondance sur le menu) : la visite demande d'être repensée plutôt que
-  recopiée.
-- **Taille de l'APK.** Les images des thèmes pèsent 32 Mo à elles seules
-  (jusqu'à 3 Mo par fichier). Mesures faites sur un échantillon de 11 Mo :
-  réoptimiser les PNG ne gagne que ~2 % ; les convertir en **WebP sans
-  perte** (pixels strictement identiques) gagne ~40 % ; en **WebP qualité
-  92**, ~85 %. Cela remplacerait des fichiers repris tels quels du dépôt
-  Kivy : à décider.
+
+C'est le seul écart qui reste. Le menu, sa visite guidée, les cadences et
+les images ont été alignés sur l'app Kivy.

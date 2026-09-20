@@ -150,7 +150,9 @@ class _TutoScreenState extends State<TutoScreen> {
             onPressed: !_tuto.canGoNext
                 ? null
                 : _tuto.atLast
-                ? () => Navigator.of(context).pop()
+                // La dernière touche rend la main au menu en demandant sa
+                // visite guidée, comme en Kivy.
+                ? () => Navigator.of(context).pop(true)
                 : () => setState(_tuto.next),
             style: FilledButton.styleFrom(
               backgroundColor: palette.clair,

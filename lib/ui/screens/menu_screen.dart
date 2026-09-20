@@ -27,6 +27,7 @@ import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
 import 'account_screen.dart';
 import 'conversations_screen.dart';
@@ -47,10 +48,12 @@ class MenuScreen extends StatefulWidget {
   final OnlineService? online;
 
   @override
-  State<MenuScreen> createState() => _MenuScreenState();
+  State<MenuScreen> createState() => MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> {
+/// L'état du menu est public : la visite guidée se lance de l'extérieur
+/// (fin du tuto), et les tests la déclenchent de la même façon.
+class MenuScreenState extends State<MenuScreen> {
   late final OnlineService _online = widget.online ?? OnlineService.instance;
   late final CorrespondenceService _corr = CorrespondenceService(
     _online.client,
@@ -72,6 +75,28 @@ class _MenuScreenState extends State<MenuScreen> {
   OnlineGame? _openGame;
   BuildContext? _waitingContext;
 
+  /// Clés des éléments que la visite guidée entoure, aux noms de Kivy.
+  final Map<String, GlobalKey> _tourKeys = {
+    for (final name in [
+      'cad',
+      'local',
+      'online',
+      'ai',
+      'search',
+      'fav',
+      'corr',
+      'compte',
+      'random',
+      'plus',
+    ])
+      name: GlobalKey(),
+  };
+  final ScrollController _scroll = ScrollController();
+  late final List<MenuTourStop> _tour = loadMenuTour();
+
+  /// Étape de la visite guidée en cours, ou `null` hors visite.
+  int? _tourIndex;
+
   List<CorrGame> _corrGames = const [];
   int _unreadMessages = 0;
   bool _searching = false;
@@ -84,6 +109,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _searchField.dispose();
     _unbind();
     super.dispose();
@@ -608,7 +634,7 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             for (final (label, color, action)
                 in <(String, Color, VoidCallback)>[
-                  (T('Tuto'), palette.clair, () => _push(const TutoScreen())),
+                  (T('Tuto'), palette.clair, _openTuto),
                   (
                     T('Historique'),
                     kFugaGrey,
@@ -643,6 +669,66 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       ),
     );
+  }
+
+  /// Le tuto. Sa dernière touche, « Le menu > », enchaîne sur la visite
+  /// guidée du menu — comme en Kivy.
+  Future<void> _openTuto() async {
+    final tour = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const TutoScreen()));
+    if (!mounted) return;
+    setState(() {});
+    if (tour == true) await startMenuTour();
+  }
+
+  /// Visite guidée : on remonte le menu, puis on déroule les étapes.
+  Future<void> startMenuTour() async {
+    setState(() => _tourIndex = 0);
+    await _scrollToStop(0);
+  }
+
+  /// Amène à l'écran le premier élément décrit par l'étape.
+  Future<void> _scrollToStop(int index) async {
+    final targets = _tour[index].targets;
+    if (targets.isEmpty || !_scroll.hasClients) return;
+    final context = _tourKeys[targets.first]?.currentContext;
+    if (context == null) return;
+    await Scrollable.ensureVisible(
+      context,
+      alignment: 0.35,
+      duration: const Duration(milliseconds: 250),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _tourStep(int delta) async {
+    final index = (_tourIndex ?? 0) + delta;
+    // Reculer avant la première étape ramène au tuto ; avancer après la
+    // dernière referme la visite.
+    if (index < 0) {
+      setState(() => _tourIndex = null);
+      await _openTuto();
+      return;
+    }
+    if (index >= _tour.length) {
+      setState(() => _tourIndex = null);
+      return;
+    }
+    setState(() => _tourIndex = index);
+    await _scrollToStop(index);
+  }
+
+  /// Où se trouvent, à l'écran, les éléments entourés par l'étape.
+  List<Rect> _tourRings(int index) {
+    final rings = <Rect>[];
+    for (final name in _tour[index].targets) {
+      final context = _tourKeys[name]?.currentContext;
+      final box = context?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) continue;
+      rings.add(box.localToGlobal(Offset.zero) & box.size);
+    }
+    return rings;
   }
 
   /// Analyse : on joue librement les deux camps, sans chrono, sans rien
@@ -758,6 +844,15 @@ class _MenuScreenState extends State<MenuScreen> {
               Container(color: Colors.white.withValues(alpha: 0.45)),
             SafeArea(child: _content(palette)),
             _topBar(palette),
+            if (_tourIndex != null)
+              MenuTourOverlay(
+                stop: _tour[_tourIndex!],
+                index: _tourIndex!,
+                count: _tour.length,
+                rings: _tourRings(_tourIndex!),
+                onPrevious: () => _tourStep(-1),
+                onNext: () => _tourStep(1),
+              ),
           ],
         ),
       ),
@@ -765,6 +860,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _content(ThemePalette palette) => SingleChildScrollView(
+    controller: _scroll,
     padding: const EdgeInsets.fromLTRB(16, 56, 16, 24),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -798,6 +894,7 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         const SizedBox(height: 6),
         Row(
+          key: _tourKeys['cad'],
           children: [
             for (final c in Cadence.toutes)
               Expanded(
@@ -818,6 +915,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
         _wide(
           FugaButton(
+            key: _tourKeys['local'],
             text: T('Jouer en local'),
             color: palette.clair,
             onPressed: _startLocal,
@@ -826,6 +924,7 @@ class _MenuScreenState extends State<MenuScreen> {
         const SizedBox(height: 8),
         _wide(
           FugaButton(
+            key: _tourKeys['online'],
             text: T('Jouer en ligne'),
             color: palette.fonce,
             onPressed: _searching ? null : _playOnline,
@@ -847,7 +946,13 @@ class _MenuScreenState extends State<MenuScreen> {
           FugaButton(text: T('Jouer contre Deep Grey'), onPressed: _startVsAi),
         ),
         const SizedBox(height: 8),
-        _wide(FugaButton(text: T('Plus'), onPressed: _openPlus)),
+        _wide(
+          FugaButton(
+            key: _tourKeys['plus'],
+            text: T('Plus'),
+            onPressed: _openPlus,
+          ),
+        ),
         const SizedBox(height: 18),
 
         _corrHeader(palette),
@@ -864,6 +969,7 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget _searchRow() => SizedBox(
     height: 44,
     child: Row(
+      key: _tourKeys['search'],
       children: [
         Expanded(
           child: TextField(
@@ -892,6 +998,7 @@ class _MenuScreenState extends State<MenuScreen> {
         SizedBox(
           width: 44,
           child: FugaButton(
+            key: _tourKeys['fav'],
             text: '★',
             fontSize: 20,
             height: 44,
@@ -904,6 +1011,7 @@ class _MenuScreenState extends State<MenuScreen> {
   );
 
   Widget _corrHeader(ThemePalette palette) => Row(
+    key: _tourKeys['corr'],
     children: [
       Expanded(
         child: Text(
@@ -977,6 +1085,7 @@ class _MenuScreenState extends State<MenuScreen> {
               SizedBox(
                 width: 92,
                 child: FugaButton(
+                  key: _tourKeys['random'],
                   text: 'Random',
                   fontSize: 12,
                   height: 32,
@@ -1001,6 +1110,7 @@ class _MenuScreenState extends State<MenuScreen> {
               SizedBox(
                 width: 92,
                 child: FugaButton(
+                  key: _tourKeys['compte'],
                   text: _online.isLoggedIn
                       ? (_online.pseudo ?? '?')
                       : T('Compte'),
