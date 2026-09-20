@@ -302,6 +302,36 @@ void main() {
       expect(rec.calls.where((c) => c.path == '/corr_chat_send'), isEmpty);
     });
 
+    test('le chat se lit, quel que soit le nom de la liste', () async {
+      // Le serveur renvoie « messages » ; on accepte aussi « chat ».
+      rec.response = {
+        'ok': true,
+        'messages': [
+          {'auteur': 'Ana', 'texte': 'à toi'},
+        ],
+      };
+      expect(await corr.chat('g1'), [
+        {'auteur': 'Ana', 'texte': 'à toi'},
+      ]);
+      expect(rec.last.path, '/corr_chat_list');
+
+      rec.response = {
+        'ok': true,
+        'chat': [
+          {'auteur': 'Bob', 'texte': 'ok'},
+        ],
+      };
+      expect((await corr.chat('g1'))!.single['texte'], 'ok');
+    });
+
+    test('un chat indisponible se distingue d un chat vide', () async {
+      rec.response = {'ok': false, 'error': 'oups'};
+      expect(await corr.chat('g1'), isNull);
+
+      rec.response = {'ok': true};
+      expect(await corr.chat('g1'), isEmpty);
+    });
+
     test('fermer une partie terminée la masque', () async {
       await corr.close('g1');
       expect(rec.last.path, '/corr_close');
