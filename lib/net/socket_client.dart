@@ -105,8 +105,27 @@ abstract interface class GameSocket {
   void abandonnerMatch(String gameId);
 }
 
+/// Ce qu'un défi attend de la connexion temps réel.
+///
+/// Extrait en interface pour que tout le flux se teste sans serveur.
+abstract interface class ChallengeSocket {
+  void on(String event, void Function(Map<String, dynamic>) handler);
+  void off(String event);
+
+  void defier({
+    required String pseudoCible,
+    required String objectif,
+    required String cadence,
+    bool random,
+  });
+
+  void annulerDefi(String defiId);
+
+  void repondreDefi(String defiId, bool accepte);
+}
+
 /// Connexion temps réel : matchmaking, défis et parties.
-class FugaSocket implements GameSocket {
+class FugaSocket implements GameSocket, ChallengeSocket {
   FugaSocket({required this.serverUrl});
 
   final String serverUrl;
@@ -198,6 +217,7 @@ class FugaSocket implements GameSocket {
 
   // ── Défis ─────────────────────────────────────────────────────────────────
 
+  @override
   void defier({
     required String pseudoCible,
     required String objectif,
@@ -210,8 +230,10 @@ class FugaSocket implements GameSocket {
     'random': random,
   });
 
+  @override
   void annulerDefi(String defiId) => _emit('annuler_defi', {'defi_id': defiId});
 
+  @override
   void repondreDefi(String defiId, bool accepte) =>
       _emit('repondre_defi', {'defi_id': defiId, 'accepte': accepte});
 

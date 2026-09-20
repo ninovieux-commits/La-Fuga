@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../game/clock.dart';
 import '../../game/online_game.dart';
+import '../../game/challenges.dart';
 import '../../i18n/translations.dart';
+import '../../net/profile.dart';
+import '../widgets/player_card.dart';
 import '../../net/online_service.dart';
 import '../../net/socket_client.dart';
 import '../../state/settings.dart';
@@ -25,6 +28,12 @@ class OnlineLobbyScreen extends StatefulWidget {
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   Cadence _cadence = Cadence.blitz5;
 
+  final TextEditingController _searchField = TextEditingController();
+  ChallengeService? _challenges;
+
+  /// Joueur défié, tant qu'on attend sa réponse.
+  String? _challenged;
+
   /// `partie` pour une partie unique, sinon un nombre de points.
   String _objectif = 'partie';
 
@@ -40,6 +49,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   @override
   void dispose() {
+    _challenges?.unbind();
+    _searchField.dispose();
     final s = widget.online.socket;
     s
       ?..off(FugaEvents.partieTrouvee)
@@ -51,6 +62,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void _bindSocket() {
     final socket = widget.online.socket;
     if (socket == null) return;
+    _bindChallenges(socket);
     socket
       ..on(FugaEvents.partieTrouvee, _onGameFound)
       ..on(FugaEvents.rechercheEnCours, (_) {
@@ -64,9 +76,202 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       });
   }
 
+  /// Défis : envoi, refus, et défi reçu pendant qu'on est dans le salon.
+  void _bindChallenges(ChallengeSocket socket) {
+    final challenges = ChallengeService(socket);
+    _challenges = challenges;
+    challenges.bind(
+      onReceived: _onChallengeReceived,
+      onFailed: (reason) {
+        _closeWaiting();
+        _say(switch (reason) {
+          ChallengeFailure.self => T(
+            'Vous ne pouvez pas vous défier vous-même.',
+          ),
+          ChallengeFailure.blocked => T(
+            'Défi impossible : un blocage est en place entre vous.',
+          ),
+          ChallengeFailure.unavailable => T(
+            "Désolé, cet adversaire n'est pas disponible.",
+          ),
+        });
+      },
+      onRefused: (opponent) {
+        _closeWaiting();
+        _say(
+          T(
+            '%s a refusé votre défi.',
+          ).replaceAll('%s', opponent.isEmpty ? (_challenged ?? '') : opponent),
+        );
+      },
+    );
+  }
+
+  bool _waitingDialog = false;
+
+  void _closeWaiting() {
+    if (!_waitingDialog || !mounted) return;
+    _waitingDialog = false;
+    Navigator.of(context).pop();
+  }
+
+  void _say(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Cherche un joueur, puis montre sa fiche.
+  Future<void> _searchPlayer() async {
+    final pseudo = _searchField.text.trim();
+    if (pseudo.isEmpty) return;
+
+    final r = await widget.online.client.searchUser(pseudo);
+    if (!mounted) return;
+    if (!r.isOk) {
+      _say(T('Joueur introuvable'));
+      return;
+    }
+
+    final target = await showPlayerCard(
+      context,
+      online: widget.online,
+      player: Profile.fromJson(r.data!),
+      palette: paletteOf(Settings.instance.themeAxes.general),
+    );
+    if (target != null) await _challenge(target);
+  }
+
+  /// Envoie un défi et attend la réponse.
+  Future<void> _challenge(String pseudo) async {
+    final challenges = _challenges;
+    if (challenges == null) {
+      _say(T('Hors ligne'));
+      return;
+    }
+
+    _challenged = pseudo;
+    challenges.challenge(
+      pseudo,
+      objectif: _objectif,
+      cadence: _cadence.label,
+      random: _randomFuga,
+    );
+
+    _waitingDialog = true;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(T('Défier')),
+        content: Text(
+          '${T("Défi envoyé à %s…").replaceAll('%s', pseudo)}\n\n'
+          '${T("En attente de sa réponse.")}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              challenges.cancel();
+              _waitingDialog = false;
+              Navigator.of(context).pop();
+            },
+            child: Text(T('Annuler')),
+          ),
+        ],
+      ),
+    );
+    _waitingDialog = false;
+  }
+
+  /// Un joueur nous défie : accepter démarre la partie par `partie_trouvee`.
+  Future<void> _onChallengeReceived(IncomingChallenge defi) async {
+    final challenges = _challenges;
+    if (challenges == null || !mounted) return;
+
+    final cadence = defi.cadence == 'zen'
+        ? T('Zen (illimité)')
+        : '${defi.cadence} min';
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(T('Défi')),
+        content: Text(
+          '${defi.from} (${T("Mélo : %d").replaceAll('%d', '${defi.melo}')})\n'
+          '${T("vous défie !")}\n\n'
+          '${T("Cadence")} : $cadence'
+          '${defi.random ? '\nRandom Fuga' : ''}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(T('Refuser')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(T('Accepter')),
+          ),
+        ],
+      ),
+    );
+    challenges.respond(defi, accept: accepted ?? false);
+  }
+
+  /// Mes favoris : on peut les défier directement.
+  Future<void> _openFavorites() async {
+    final r = await widget.online.client.listFavorites();
+    if (!mounted) return;
+    final favorites = [
+      for (final f in r.get<List<dynamic>>('favorites') ?? const [])
+        if (f is Map) Person.fromJson(Map<String, dynamic>.from(f)),
+    ];
+
+    final target = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(T('Mes favoris')),
+        content: favorites.isEmpty
+            ? Text(T('Aucun favori.\nAjoutez des favoris via la recherche.'))
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final f in favorites)
+                      ListTile(
+                        leading: Icon(
+                          f.online ? Icons.circle : Icons.circle_outlined,
+                          size: 12,
+                          color: f.online ? Colors.green : Colors.grey,
+                        ),
+                        title: Text(f.pseudo),
+                        subtitle: Text(
+                          T('Mélo : %d').replaceAll('%d', '${f.melo}'),
+                        ),
+                        trailing: Text(T('Défier')),
+                        onTap: () => Navigator.of(context).pop(f.pseudo),
+                      ),
+                  ],
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Fermer')),
+          ),
+        ],
+      ),
+    );
+    if (target != null) await _challenge(target);
+  }
+
   void _onGameFound(Map<String, dynamic> data) {
     final socket = widget.online.socket;
     if (socket == null || !mounted) return;
+
+    // Un défi accepté arrive ici aussi : on referme son popup d'attente.
+    _closeWaiting();
 
     final info = OnlineGameInfo.fromEvent(data);
     final cadence = _cadenceFromLabel(info.cadence);
@@ -194,6 +399,33 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   ? T('  ·  en ligne').trim()
                   : T('Hors ligne'),
               style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchField,
+                decoration: InputDecoration(
+                  hintText: T('Rechercher un joueur…'),
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _searchPlayer(),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: T('Rechercher un joueur…'),
+              onPressed: _searchPlayer,
+            ),
+            IconButton(
+              icon: const Icon(Icons.star_outline),
+              tooltip: T('Mes favoris'),
+              onPressed: _openFavorites,
             ),
           ],
         ),
