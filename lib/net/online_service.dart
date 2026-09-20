@@ -77,6 +77,15 @@ class OnlineService {
 
   // ── Authentification ──────────────────────────────────────────────────────
 
+  Future<AutoLoginOutcome>? _autoLogin;
+
+  /// La reconnexion automatique, lancée une seule fois et partagée.
+  ///
+  /// Le menu s'affiche sans l'attendre, mais il a besoin de savoir quand elle
+  /// a abouti : sans cela, il se construit déconnecté et ne va jamais chercher
+  /// les parties par correspondance.
+  Future<AutoLoginOutcome> get autoLogin => _autoLogin ??= tryAutoLogin();
+
   /// Tente de retrouver la session enregistrée.
   Future<AutoLoginOutcome> tryAutoLogin() async {
     final token = _settings.onlineToken;
@@ -86,6 +95,7 @@ class OnlineService {
     if (r.isOk) {
       await _persistSession();
       await connectSocket();
+      unawaited(fetchMyPhoto());
       return AutoLoginOutcome.connected;
     }
     if (r.isNetworkError) return AutoLoginOutcome.offline;
@@ -103,6 +113,7 @@ class OnlineService {
     if (!r.isOk) return _messageFor(r);
     await _persistSession();
     await connectSocket();
+    await fetchMyPhoto();
     return null;
   }
 
@@ -120,7 +131,20 @@ class OnlineService {
     if (!r.isOk) return _messageFor(r);
     await _persistSession();
     await connectSocket();
+    await fetchMyPhoto();
     return null;
+  }
+
+  /// Va chercher MA photo de profil — portage de `_fetch_my_photo`.
+  ///
+  /// Le login ne la renvoie pas : sans cet appel, mon avatar resterait celui
+  /// par défaut partout, en partie comme dans la messagerie.
+  Future<void> fetchMyPhoto() async {
+    if (!isLoggedIn) return;
+    final r = await _client.getProfile();
+    if (!r.isOk) return;
+    final photo = r.get<String>('photo');
+    if (photo != null) _client.rememberPhoto(photo);
   }
 
   /// Déconnexion : coupe le temps réel et efface la session enregistrée.

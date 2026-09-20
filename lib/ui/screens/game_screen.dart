@@ -188,6 +188,15 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     }
     _sounds.init();
     _startTicking();
+
+    // Deep Grey ouvre la partie quand c'est lui qui a les Blancs. Kivy le
+    // fait par `_maybe_ai_turn` après chaque nouvelle partie, avec un court
+    // délai pour que le plateau s'affiche d'abord.
+    if (_isAiTurn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _playAi();
+      });
+    }
   }
 
   /// Charge ce que Deep Grey a appris. La partie peut commencer avant : sans

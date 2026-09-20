@@ -140,6 +140,29 @@ void main() {
     });
   });
 
+  group('Deep Grey ouvre la partie', () {
+    testWidgets('quand il a les Blancs, il joue sans qu on touche à rien', (
+      tester,
+    ) async {
+      // L'IA tient les Blancs : c'est donc à elle de commencer.
+      await open(tester, aiCamp: Camp.blanc);
+      await tester.pump();
+
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsOneWidget,
+        reason: 'Deep Grey réfléchit au premier coup',
+      );
+    });
+
+    testWidgets('quand il a les Noirs, il attend', (tester) async {
+      await open(tester, aiCamp: Camp.noir);
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+  });
+
   group('Analyse', () {
     testWidgets('la pause devient un retour, Deep Grey apparaît', (
       tester,

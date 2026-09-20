@@ -26,7 +26,7 @@ Future<void> main() async {
   // apparaître tout de suite, connecté ou non. Le jeton de notification part
   // ensuite, quand on sait si un compte est ouvert.
   unawaited(
-    OnlineService.instance.tryAutoLogin().then(
+    OnlineService.instance.autoLogin.then(
       (_) => PushNotifications.sendPendingToken(),
     ),
   );

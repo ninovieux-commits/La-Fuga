@@ -154,6 +154,11 @@ class OnlineClient {
   Future<ApiResult> searchUser(String pseudo) =>
       _api.post('/search_user', _auth({'pseudo': pseudo}));
 
+  /// Retient la photo de profil sans rien envoyer : le serveur la connaît
+  /// déjà, c'est nous qui l'ignorions (le login ne la renvoie pas).
+  void rememberPhoto(String photo) =>
+      _session = _session?.copyWith(photo: photo);
+
   Future<ApiResult> setPhoto(String photo) async {
     final r = await _api.post('/set_photo', _auth({'photo': photo}));
     if (r.isOk) _session = _session?.copyWith(photo: photo);

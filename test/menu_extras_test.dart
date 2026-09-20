@@ -192,7 +192,11 @@ void main() {
 
       await tapVisible(tester, find.text('Deep Grey'));
       // Kivy demande SON camp au joueur ; le trait, lui, ne bouge pas.
-      await tapVisible(tester, find.text('Blancs'));
+      // Pas de `pumpAndSettle` ici : c'est aux Noirs de jouer, donc Deep Grey
+      // se met à réfléchir et son indicateur tourne sans fin.
+      await tester.tap(find.text('Blancs'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
       expect(screen.analysis, isFalse);

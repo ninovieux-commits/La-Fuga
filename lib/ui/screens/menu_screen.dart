@@ -7,6 +7,8 @@
 /// d'attente, sans écran intermédiaire.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -101,7 +103,16 @@ class MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
-    _connect();
+    unawaited(_connectWhenReady());
+  }
+
+  /// La reconnexion automatique tourne pendant que le menu s'affiche : on
+  /// attend son issue avant de demander les parties par correspondance, sinon
+  /// elles n'arrivent qu'au premier « Actualiser ».
+  Future<void> _connectWhenReady() async {
+    if (!_online.isLoggedIn) await _online.autoLogin;
+    if (!mounted) return;
+    await _connect();
   }
 
   @override
