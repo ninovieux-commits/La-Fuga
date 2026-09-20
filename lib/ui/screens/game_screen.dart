@@ -37,6 +37,9 @@ class GameScreen extends StatefulWidget {
     this.themeName = kDefaultTheme,
     this.archive,
     this.memory,
+    this.initialBoard,
+    this.randomCode,
+    this.analysis = false,
   });
 
   /// Cadence de la partie.
@@ -55,6 +58,18 @@ class GameScreen extends StatefulWidget {
 
   /// Ce que Deep Grey a appris des parties précédentes. Injectable aussi.
   final AiMemory? memory;
+
+  /// Position de départ, quand elle n'est pas la position standard :
+  /// Random Fuga, ou analyse depuis une position rencontrée.
+  final Board? initialBoard;
+
+  /// Code de la position tirée au sort, à inscrire dans le `.nmc`. Sans lui,
+  /// la partie serait irrejouable.
+  final String? randomCode;
+
+  /// Mode analyse : pas de chrono, pas de répétition, et rien n'est archivé —
+  /// on explore.
+  final bool analysis;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -92,8 +107,8 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _game = MoveController();
-    _clock = GameClock(widget.cadence);
+    _game = _newGame();
+    _clock = GameClock(widget.analysis ? Cadence.illimitee : widget.cadence);
     if (widget.aiCamp != null) {
       _engine.start();
       _loadAiMemory();
@@ -141,6 +156,11 @@ class _GameScreenState extends State<GameScreen> {
       });
     });
   }
+
+  MoveController _newGame() => MoveController(
+    board: widget.initialBoard?.clone(),
+    countRepetitions: !widget.analysis,
+  );
 
   bool get _isAiTurn => widget.aiCamp != null && _game.turn == widget.aiCamp;
 
@@ -267,7 +287,9 @@ class _GameScreenState extends State<GameScreen> {
         ..addAll(marked);
     }
 
-    if (_archived) return;
+    // En analyse, rien n'est enregistré et l'IA n'apprend pas : ce n'est pas
+    // une partie.
+    if (_archived || widget.analysis) return;
     _archived = true;
     if (loser != null) unawaited(_learn(loser.opposite));
     final (first, second) = _players;
@@ -281,6 +303,7 @@ class _GameScreenState extends State<GameScreen> {
           method: method,
           history: List.of(_game.history),
           cadence: widget.cadence.label,
+          randomCode: widget.randomCode,
         ),
       ),
     );
@@ -325,7 +348,7 @@ class _GameScreenState extends State<GameScreen> {
   void _restart() {
     _sounds.stopAll();
     setState(() {
-      _game = MoveController();
+      _game = _newGame();
       _clock.reset();
       _aiPositionCounts.clear();
       _consecutiveManeuvers = 0;

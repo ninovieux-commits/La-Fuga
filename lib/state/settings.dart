@@ -13,6 +13,12 @@ import '../net/api_client.dart';
 import '../theme/themes.dart';
 
 /// Clés de configuration, telles que `config.txt` les nomme.
+/// Lien de soutien aux développeurs — repris de `SUPPORT_LINKS` (main.py).
+///
+/// Les autres plateformes n'ont pas de compte ouvert : Kivy n'en propose
+/// qu'une, on n'en propose qu'une.
+const String kSupportLink = 'https://paypal.me/lafugaonline';
+
 abstract final class SettingsKeys {
   static const theme = 'theme';
   static const volume = 'volume';

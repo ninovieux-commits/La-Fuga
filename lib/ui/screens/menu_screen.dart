@@ -2,8 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../engine/board.dart';
 import '../../engine/piece.dart';
+import '../../engine/random_fuga.dart';
+import '../../game/replay_controller.dart';
 import '../../game/clock.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
@@ -17,6 +21,7 @@ import 'game_screen.dart';
 import 'history_screen.dart';
 import 'login_screen.dart';
 import 'online_lobby_screen.dart';
+import 'replay_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
 
@@ -47,6 +52,8 @@ class _MenuScreenState extends State<MenuScreen> {
           aiCamp: choice.playerCamp.opposite,
           aiDeepMode: choice.deepMode,
           themeName: _axes.general,
+          initialBoard: choice.board,
+          randomCode: choice.randomCode,
         ),
       ),
     );
@@ -68,6 +75,8 @@ class _MenuScreenState extends State<MenuScreen> {
           cadence: choice.cadence,
           aiCamp: null, // deux joueurs sur le même appareil
           themeName: _axes.general,
+          initialBoard: choice.board,
+          randomCode: choice.randomCode,
         ),
       ),
     );
@@ -99,6 +108,85 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  /// Analyse : on joue librement les deux camps, sans chrono et sans que rien
+  /// ne soit enregistré.
+  Future<void> _openAnalysis() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(
+          cadence: Cadence.illimitee,
+          aiCamp: null,
+          themeName: _axes.general,
+          analysis: true,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// Lecteur `.nmc` : on colle le contenu d'un fichier pour le rejouer.
+  Future<void> _openNmcReader() async {
+    final controller = TextEditingController();
+    final content = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(T('Lecteur nmc')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 8,
+          decoration: InputDecoration(
+            hintText: T("Collez le contenu d'un fichier .nmc ci-dessous :"),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Text(T('Lire')),
+          ),
+        ],
+      ),
+    );
+    if (content == null || content.isEmpty || !mounted) return;
+
+    // Un contenu illisible se voit tout de suite : mieux vaut le dire que
+    // d'ouvrir un lecteur vide.
+    if (!isReadableNmc(content)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            T(
+              'désolé, le fichier nmc est invalide,\nla lecture ne peut pas s effectuer',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => ReplayScreen(nmc: content)));
+    if (mounted) setState(() {});
+  }
+
+  /// Soutenir les développeurs : la page de don s'ouvre dans le navigateur.
+  Future<void> _openSupport() async {
+    final launched = await launchUrl(
+      Uri.parse(kSupportLink),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(T('Bientôt'))));
+    }
   }
 
   Future<void> _openTuto() async {
@@ -206,10 +294,13 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 const SizedBox(height: 16),
                 _button(palette, T('Tuto'), onTap: _openTuto),
+                _button(palette, T('Analyse'), onTap: _openAnalysis),
+                _button(palette, T('Lecteur nmc'), onTap: _openNmcReader),
                 _button(palette, T('Messages'), onTap: _openMessages),
                 _button(palette, T('Historique'), onTap: _openHistory),
                 _button(palette, T('Mon compte'), onTap: _openAccount),
                 _button(palette, T('Réglages'), onTap: _openSettings),
+                _button(palette, T('Soutenir les devs'), onTap: _openSupport),
                 const SizedBox(height: 24),
                 Center(
                   child: TextButton(
@@ -290,6 +381,7 @@ final class _GameChoice {
     required this.cadence,
     required this.playerCamp,
     required this.deepMode,
+    this.randomCode,
   });
 
   final Cadence cadence;
@@ -299,6 +391,13 @@ final class _GameChoice {
 
   /// Mode profond de Deep Grey.
   final bool deepMode;
+
+  /// Code Random Fuga tiré au sort, ou `null` pour la position standard.
+  final String? randomCode;
+
+  /// Plateau de départ, tiré du code quand il y en a un.
+  Board? get board =>
+      randomCode == null ? null : buildRandomFugaBoard(randomCode!);
 }
 
 /// Feuille de réglages d'une partie : couleur, cadence, force de l'IA.
@@ -316,6 +415,7 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
   Cadence _cadence = Cadence.illimitee;
   Camp _camp = Camp.blanc;
   bool _deep = false;
+  bool _random = false;
 
   @override
   Widget build(BuildContext context) {
@@ -387,6 +487,17 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
               onChanged: (v) => setState(() => _deep = v),
             ),
           ],
+          const SizedBox(height: 4),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Random Fuga'),
+            subtitle: Text(
+              T('Position de départ tirée au sort, classement séparé'),
+              style: const TextStyle(fontSize: 12),
+            ),
+            value: _random,
+            onChanged: (v) => setState(() => _random = v),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: palette.clair),
@@ -395,6 +506,9 @@ class _GameSetupSheetState extends State<_GameSetupSheet> {
                 cadence: _cadence,
                 playerCamp: _camp,
                 deepMode: _deep,
+                // Le code est tiré ici : il doit finir dans le `.nmc`, sans
+                // quoi la partie serait irrejouable.
+                randomCode: _random ? randomFugaCode() : null,
               ),
             ),
             child: Text(T('Jouer')),

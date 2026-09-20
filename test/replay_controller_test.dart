@@ -174,6 +174,25 @@ void main() {
     });
   });
 
+  group('Contenu lisible', () {
+    test('une vraie partie est acceptée', () {
+      expect(isReadableNmc(gameOf(4)), isTrue);
+    });
+
+    test('un en-tête seul suffit : la partie n a pas encore de coup', () {
+      expect(isReadableNmc(buildNmc(_meta, [])), isTrue);
+    });
+
+    test('du texte quelconque est refusé', () {
+      expect(isReadableNmc('n importe quoi'), isFalse);
+      expect(isReadableNmc(''), isFalse);
+    });
+
+    test('un premier coup impossible est refusé', () {
+      expect(isReadableNmc(buildNmc(_meta, ['Si8-Si7'])), isFalse);
+    });
+  });
+
   group('Bandeau des coups', () {
     test('les coups sont groupés par tour', () {
       final r = ReplayController.fromNmc(gameOf(5));

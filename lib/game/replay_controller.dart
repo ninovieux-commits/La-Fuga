@@ -40,6 +40,20 @@ final class ReplayStep {
   }
 }
 
+/// Vrai si ce contenu se lit comme une partie.
+///
+/// Kivy refuse un `.nmc` dont les coups ne se relisent pas ; on refuse en
+/// plus un contenu sans en-tête NI coup, qui ne mène qu'à un lecteur vide.
+bool isReadableNmc(String content) {
+  final game = parseNmc(content);
+  final hasHeader = game.meta.player1.isNotEmpty || game.meta.date.isNotEmpty;
+  if (!hasHeader && game.moves.isEmpty) return false;
+
+  // Un premier coup illisible : il n'y a rien à rejouer.
+  final replay = ReplayController.fromNmc(content);
+  return replay.brokenMoveNumber != 1;
+}
+
 /// Navigation dans une partie enregistrée.
 class ReplayController {
   ReplayController._(this.meta, this.steps, this._brokenAt);

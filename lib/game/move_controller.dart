@@ -93,10 +93,20 @@ final class MoveTracking {
 
 /// Contrôleur d'une partie en cours.
 class MoveController {
-  MoveController({Board? board, this.turn = Camp.blanc})
-    : board = board ?? Board.initial() {
+  MoveController({
+    Board? board,
+    this.turn = Camp.blanc,
+    this.countRepetitions = true,
+  }) : board = board ?? Board.initial() {
     _turnStartBoard = this.board.clone();
   }
+
+  /// Compter les répétitions de position (nulle à la quatrième).
+  ///
+  /// Désactivé en analyse : on y explore librement, revenir sur ses pas ne
+  /// doit pas clore la partie — portage de la garde `not self.analysis_mode`
+  /// de Kivy.
+  final bool countRepetitions;
 
   Board board;
   Camp turn;
@@ -564,8 +574,10 @@ class MoveController {
 
   void _record(String notation) {
     history.add(notation);
-    final key = board.positionKey(turn);
-    positionCounts[key] = (positionCounts[key] ?? 0) + 1;
+    if (countRepetitions) {
+      final key = board.positionKey(turn);
+      positionCounts[key] = (positionCounts[key] ?? 0) + 1;
+    }
     tracking.reset();
   }
 
