@@ -44,6 +44,9 @@ final class ControllerResult {
     this.hadEjection = false,
     this.endReason,
     this.loser,
+    this.camp,
+    this.pushTargets = const [],
+    this.jumpPath = const [],
   });
 
   final ControllerEffect effect;
@@ -63,6 +66,15 @@ final class ControllerResult {
 
   /// Camp perdant ; nul pour une partie nulle.
   final Camp? loser;
+
+  /// Camp qui vient de jouer. Sert à colorer la mise en évidence du coup.
+  final Camp? camp;
+
+  /// Cases effectivement poussées, pour marquer les directions de poussée.
+  final List<Cell> pushTargets;
+
+  /// Atterrissages intermédiaires d'un multisaut.
+  final List<Cell> jumpPath;
 }
 
 /// État courant de la construction d'un coup.
@@ -79,6 +91,10 @@ final class MoveTracking {
   /// immédiatement (mais on pourra plus tard).
   Cell? lastJumpedRound;
 
+  /// Atterrissages d'un multisaut, sans l'arrivée finale : ce sont les petits
+  /// carrés que Kivy dessine sur le chemin du dernier coup.
+  List<Cell> jumpPath = [];
+
   void reset() {
     start = null;
     isPush = false;
@@ -88,6 +104,7 @@ final class MoveTracking {
     pushableDirs = [];
     hadEjection = false;
     lastJumpedRound = null;
+    jumpPath = [];
   }
 }
 
@@ -318,6 +335,9 @@ class MoveController {
     }
 
     board.setCell(cell, piece);
+    // L'atterrissage PRÉCÉDENT devient une étape du chemin : seule la case
+    // finale n'en fait pas partie, et on ne la connaît qu'à la validation.
+    if (jumping) tracking.jumpPath.add(from);
     selected = cell;
     moved = true;
     jumping = true;
@@ -467,6 +487,11 @@ class MoveController {
       pushableDirs: tracking.pushableDirs,
     );
     final hadEjection = tracking.hadEjection;
+    // Retenu AVANT de vider la sélection : ce qui décrit le coup qu'on vient
+    // de jouer sert ensuite à le mettre en évidence.
+    final played = turn;
+    final pushed = List<Cell>.of(tracking.pushTargets);
+    final jumped = List<Cell>.of(tracking.jumpPath);
 
     _clearSelection();
     turn = turn.opposite;
@@ -474,20 +499,52 @@ class MoveController {
 
     // Mat détecté pendant la poussée : le coup est enregistré, on termine.
     if (matPending != null) {
-      return _finish(notation, hadEjection, 'mat', matPending);
+      return _finish(
+        notation,
+        hadEjection,
+        'mat',
+        matPending,
+        camp: played,
+        pushTargets: pushed,
+        jumpPath: jumped,
+      );
     }
 
     // Nulle par répétition : la même position quatre fois.
     if ((positionCounts[board.positionKey(turn)] ?? 0) >= 4) {
-      return _finish(notation, hadEjection, 'repetition', null);
+      return _finish(
+        notation,
+        hadEjection,
+        'repetition',
+        null,
+        camp: played,
+        pushTargets: pushed,
+        jumpPath: jumped,
+      );
     }
     // Trêve : plus aucune carrée ne peut bouger, aucun camp ne peut gagner.
     if (!anySquareCanMove(board)) {
-      return _finish(notation, hadEjection, 'nulle_pat', null);
+      return _finish(
+        notation,
+        hadEjection,
+        'nulle_pat',
+        null,
+        camp: played,
+        pushTargets: pushed,
+        jumpPath: jumped,
+      );
     }
     // Papatte : le joueur au trait n'a aucun coup légal, il perd.
     if (!playerHasAnyMove(board, turn)) {
-      return _finish(notation, hadEjection, 'papatte', turn);
+      return _finish(
+        notation,
+        hadEjection,
+        'papatte',
+        turn,
+        camp: played,
+        pushTargets: pushed,
+        jumpPath: jumped,
+      );
     }
 
     _turnStartBoard = board.clone();
@@ -495,6 +552,9 @@ class MoveController {
       ControllerEffect.turnEnded,
       notation: notation,
       hadEjection: hadEjection,
+      camp: played,
+      pushTargets: pushed,
+      jumpPath: jumped,
     );
   }
 
@@ -560,8 +620,11 @@ class MoveController {
     String notation,
     bool hadEjection,
     String reason,
-    Camp? loser,
-  ) {
+    Camp? loser, {
+    Camp? camp,
+    List<Cell> pushTargets = const [],
+    List<Cell> jumpPath = const [],
+  }) {
     gameOver = true;
     return ControllerResult(
       ControllerEffect.gameOver,
@@ -569,6 +632,9 @@ class MoveController {
       hadEjection: hadEjection,
       endReason: reason,
       loser: loser,
+      camp: camp,
+      pushTargets: pushTargets,
+      jumpPath: jumpPath,
     );
   }
 

@@ -11,6 +11,7 @@ import '../../engine/piece.dart';
 import '../../game/move_controller.dart';
 import '../../game/online_game.dart';
 import '../../game/sound_player.dart';
+import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
@@ -34,7 +35,11 @@ class OnlineGameScreen extends StatefulWidget {
 
 class _OnlineGameScreenState extends State<OnlineGameScreen> {
   final SoundPlayer _sounds = SoundPlayer();
-  Set<Cell> _lastMoveCells = {};
+  LastMove? _lastMove;
+
+  /// Position d'avant le coup : la mise en évidence en a besoin (type de la
+  /// pièce qui pousse, chemin d'un saut).
+  Board? _boardBefore;
 
   OnlineGame get _g => widget.game;
 
@@ -61,14 +66,20 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   }
 
   void _onTapCell(Cell cell) {
+    // La position d'avant le coup est prise au premier geste du tour.
+    if (!_g.game.moved) _boardBefore = _g.game.board.clone();
     final result = _g.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
-      _lastMoveCells = {
-        for (final (_, from, to) in result.slides) ...[from, to],
-      }..removeWhere((c) => !c.onBoard);
+      _lastMove = LastMove.fromSlides(
+        before: _boardBefore ?? Board.initial(),
+        camp: result.camp ?? _g.game.turn.opposite,
+        slides: result.slides,
+        pushTargets: result.pushTargets,
+        jumpPath: result.jumpPath,
+      );
     }
     setState(() {});
   }
@@ -222,7 +233,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                 selected: _g.game.selected,
                 groupSelection: _g.game.groupSelection,
                 highlighted: _g.game.availablePushCells.toSet(),
-                lastMoveCells: _lastMoveCells,
+                lastMove: _lastMove,
                 pieceTheme: axes.pieces,
                 boardTheme: axes.board,
               ),

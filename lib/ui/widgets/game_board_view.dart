@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
+import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'board_painter.dart';
@@ -22,7 +23,7 @@ class GameBoardView extends StatefulWidget {
     this.selected,
     this.groupSelection = const {},
     this.highlighted = const {},
-    this.lastMoveCells = const {},
+    this.lastMove,
     this.pieceTheme,
     this.boardTheme,
   });
@@ -41,7 +42,8 @@ class GameBoardView extends StatefulWidget {
   /// Cases à pointer : directions de poussée encore disponibles.
   final Set<Cell> highlighted;
 
-  final Set<Cell> lastMoveCells;
+  /// Dernier coup joué : cadres, rebonds du multisaut, points de poussée.
+  final LastMove? lastMove;
 
   /// Thème dont viennent les images de pièces (axe « pieces »).
   final String? pieceTheme;
@@ -135,7 +137,8 @@ class _GameBoardViewState extends State<GameBoardView> {
                   selected: widget.selected,
                   groupSelection: widget.groupSelection,
                   destinations: widget.highlighted,
-                  lastMoveCells: widget.lastMoveCells,
+                  lastMove: widget.lastMove,
+                  theme: widget.pieceTheme,
                   images: _pieceImages,
                 ),
               ),

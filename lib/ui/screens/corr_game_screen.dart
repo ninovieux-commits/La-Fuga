@@ -9,6 +9,7 @@ import '../../engine/piece.dart';
 import '../../game/correspondence.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
+import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -34,7 +35,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
   final SoundPlayer _sounds = SoundPlayer();
 
   MoveController? _controller;
-  Set<Cell> _lastMoveCells = {};
+  LastMove? _lastMove;
+
+  /// Position d'avant le coup : la mise en évidence en a besoin (type de la
+  /// pièce qui pousse, chemin d'un saut).
+  Board? _boardBefore;
   bool _sending = false;
   bool _played = false;
   String? _replayError;
@@ -83,14 +88,19 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
   Future<void> _onTapCell(Cell cell) async {
     if (!_canPlay) return;
     final c = _controller!;
+    if (!c.moved) _boardBefore = c.board.clone();
     final result = c.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
-      _lastMoveCells = {
-        for (final (_, from, to) in result.slides) ...[from, to],
-      }..removeWhere((cell) => !cell.onBoard);
+      _lastMove = LastMove.fromSlides(
+        before: _boardBefore ?? Board.initial(),
+        camp: result.camp ?? c.turn.opposite,
+        slides: result.slides,
+        pushTargets: result.pushTargets,
+        jumpPath: result.jumpPath,
+      );
     }
     setState(() {});
 
@@ -323,7 +333,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
                     selected: c.selected,
                     groupSelection: c.groupSelection,
                     highlighted: c.availablePushCells.toSet(),
-                    lastMoveCells: _lastMoveCells,
+                    lastMove: _lastMove,
                     pieceTheme: axes.pieces,
                     boardTheme: axes.board,
                   ),

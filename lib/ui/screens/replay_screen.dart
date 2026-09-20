@@ -118,7 +118,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
               palette: palette,
               flipped: _flipped,
               onTapCell: (_) {},
-              lastMoveCells: step.highlightedCells,
+              lastMove: step.lastMove,
               pieceTheme: axes.pieces,
               boardTheme: axes.board,
             ),

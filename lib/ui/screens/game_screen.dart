@@ -19,6 +19,7 @@ import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
 import '../../game/game_archive.dart';
+import '../../game/last_move.dart';
 import '../../game/match_play.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
@@ -113,7 +114,7 @@ class _GameScreenState extends State<GameScreen> {
   /// allers-retours.
   final Map<String, int> _aiPositionCounts = {};
 
-  Set<Cell> _lastMoveCells = {};
+  LastMove? _lastMove;
 
   /// Score du match, affiché sous le verdict.
   String? _matchVerdict;
@@ -247,10 +248,15 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  /// Retient de quoi mettre en évidence le coup qui vient d'être joué.
   void _rememberLastMove(ControllerResult result) {
-    _lastMoveCells = {
-      for (final (_, from, to) in result.slides) ...[from, to],
-    }..removeWhere((c) => !c.onBoard);
+    _lastMove = LastMove.fromSlides(
+      before: _snapshots.last,
+      camp: result.camp ?? _game.turn.opposite,
+      slides: result.slides,
+      pushTargets: result.pushTargets,
+      jumpPath: result.jumpPath,
+    );
     _snapshots.add(_game.board.clone());
   }
 
@@ -455,7 +461,6 @@ class _GameScreenState extends State<GameScreen> {
     _clock.reset();
     _aiPositionCounts.clear();
     _consecutiveManeuvers = 0;
-    _lastMoveCells = {};
     _game = _newGame();
     _snapshots
       ..clear()
@@ -464,7 +469,7 @@ class _GameScreenState extends State<GameScreen> {
     _clock.reset();
     _aiPositionCounts.clear();
     _consecutiveManeuvers = 0;
-    _lastMoveCells = {};
+    _lastMove = null;
     _verdict = null;
     _archived = false;
     _thinking = false;
@@ -559,7 +564,7 @@ class _GameScreenState extends State<GameScreen> {
                 highlighted: _isViewing
                     ? const {}
                     : _game.availablePushCells.toSet(),
-                lastMoveCells: _isViewing ? const {} : _lastMoveCells,
+                lastMove: _isViewing ? null : _lastMove,
                 pieceTheme: axes.pieces,
                 boardTheme: axes.board,
               ),

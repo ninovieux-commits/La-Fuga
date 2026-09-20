@@ -1,8 +1,14 @@
 /// Dessin des pièces — portage de `draw_piece` (main.py), rendu géométrique.
 ///
-/// Le rendu à base d'images de thème (médiéval, fleurs, dragon, insectes,
-/// deepgrey) viendra s'ajouter par-dessus ; ce fichier couvre le rendu
-/// classique, qui sert de repli universel.
+/// Les thèmes à images (médiéval, fleurs, dragon, insectes) passent par
+/// [LoadedThemeImages] ; le rendu géométrique sert pour tous les autres et
+/// de repli universel.
+///
+/// **Épaisseurs de trait.** Kivy trace un `Line(width: w)` en décalant les
+/// bords de ±w de part et d'autre de l'axe : le trait fait donc **2w** à
+/// l'écran. Flutter, lui, prend l'épaisseur totale. Les valeurs de Kivy sont
+/// donc doublées ici, sinon tous les signes des pièces paraissent deux fois
+/// trop fins.
 library;
 
 import 'dart:math' as math;
@@ -29,6 +35,8 @@ void paintPiece(
   bool flipped = true,
   Color boardColor = const Color(0xFF8C8C8C),
   LoadedThemeImages? images,
+  String? theme,
+  double? rainbowFraction,
 }) {
   // Thème à images : on dessine l'image de la pièce. Si elle manque, on
   // retombe sur le rendu géométrique plutôt que de laisser un trou.
@@ -51,21 +59,36 @@ void paintPiece(
   final box = Rect.fromLTWH(rect.left + pad, rect.top + pad, inner, inner);
   final centre = rect.center;
 
-  final bg = piece.camp == Camp.blanc
-      ? FugaColors.whitePiece
-      : FugaColors.blackPiece;
-  final accent = piece.camp == Camp.blanc ? palette.clair : palette.fonce;
+  // Thème deepgrey : corps gris pour tout le monde, détails en blanc (pièces
+  // blanches) ou noir (pièces noires) — les camps restent lisibles.
+  final isDeepGrey = theme == 'deepgrey';
+  final detail = piece.camp == Camp.blanc
+      ? const Color(0xFFFFFFFF)
+      : const Color(0xFF000000);
+
+  final bg = isDeepGrey
+      ? kDeepGreyBody
+      : (piece.camp == Camp.blanc
+            ? FugaColors.whitePiece
+            : FugaColors.blackPiece);
+  final accent = isDeepGrey
+      ? detail
+      : (theme == 'arcenciel' && rainbowFraction != null
+            ? rainbowColor(rainbowFraction)
+            : (piece.camp == Camp.blanc ? palette.clair : palette.fonce));
   final stroke =
       outline ??
-      (piece.camp == Camp.blanc
-          ? FugaColors.whiteOutline
-          : FugaColors.blackOutline);
+      (isDeepGrey
+          ? detail
+          : (piece.camp == Camp.blanc
+                ? FugaColors.whiteOutline
+                : FugaColors.blackOutline));
 
   final fill = Paint()..color = bg;
   final line = Paint()
     ..color = stroke
     ..style = PaintingStyle.stroke
-    ..strokeWidth = outlineWidth;
+    ..strokeWidth = kivyLine(outlineWidth);
   final acc = Paint()
     ..color = accent
     ..strokeCap = StrokeCap.round;
@@ -85,8 +108,7 @@ void paintPiece(
       canvas.drawRect(box, fill);
       canvas.drawRect(box, line);
       final inset = inner * 0.18;
-      final sw = math.max(2.0, inner * 0.10);
-      acc.strokeWidth = sw;
+      acc.strokeWidth = kivyLine(math.max(2.0, inner * 0.10));
       if (piece.type == PieceType.soldat) {
         // Croix « + » : le Soldat s'active en orthogonal…
         canvas.drawLine(
@@ -100,12 +122,17 @@ void paintPiece(
           acc,
         );
         // …et pousse en diagonale : les points marquent les 4 diagonales.
-        _paintDots(canvas, centre, inner, accent, bigColor, bigDirs, const [
-          (-1, -1),
-          (1, -1),
-          (-1, 1),
-          (1, 1),
-        ], axis);
+        _paintDots(
+          canvas,
+          centre,
+          inner,
+          accent,
+          bigColor,
+          bigDirs,
+          const [(-1, -1), (1, -1), (-1, 1), (1, 1)],
+          // Le Soldat porte ses points en X, un peu resserrés.
+          offset: 0.30,
+        );
       } else {
         // Croix « × » : le Garde s'active en diagonal…
         canvas.drawLine(
@@ -119,39 +146,79 @@ void paintPiece(
           acc,
         );
         // …et pousse en orthogonal.
-        _paintDots(canvas, centre, inner, accent, bigColor, bigDirs, const [
-          (0, -1),
-          (0, 1),
-          (-1, 0),
-          (1, 0),
-        ], axis);
+        _paintDots(
+          canvas,
+          centre,
+          inner,
+          accent,
+          bigColor,
+          bigDirs,
+          const [(0, -1), (0, 1), (-1, 0), (1, 0)],
+          // Le Garde porte les siens en croix, plus écartés.
+          offset: 0.36,
+        );
       }
 
     case PieceType.nurse:
       canvas.drawCircle(centre, inner / 2, fill);
       canvas.drawCircle(centre, inner / 2, line);
+      if (isDeepGrey) {
+        // Nurse deepgrey : un point plein au centre, à la couleur du camp.
+        canvas.drawCircle(centre, inner * 0.24, Paint()..color = accent);
+      }
 
     case PieceType.heritier:
       canvas.drawCircle(centre, inner / 2, fill);
       canvas.drawCircle(centre, inner / 2, line);
-      // Anneau d'accent, puis un « trou » peint à la couleur du plateau :
-      // l'illusion de transparence du rendu Kivy.
-      final d = inner * 0.20;
-      canvas.drawCircle(centre, (inner - 2 * d) / 2, Paint()..color = accent);
-      canvas.drawCircle(centre, inner * 0.14, Paint()..color = boardColor);
+      if (isDeepGrey) {
+        // Héritier deepgrey : un gros cœur plein qui se fond vers le gris sur
+        // le bord — douze cercles concentriques, comme en Kivy.
+        const steps = 12;
+        for (var i = 0; i < steps; i++) {
+          final frac = i / (steps - 1);
+          final r = (inner / 2) * (1 - frac * 0.90);
+          final t = math.min(1.0, frac / 0.55);
+          canvas.drawCircle(
+            centre,
+            r,
+            Paint()..color = Color.lerp(kDeepGreyBody, detail, t)!,
+          );
+        }
+        canvas.drawCircle(centre, inner / 2, line);
+      } else {
+        // Anneau d'accent, puis un « trou » peint à la couleur du plateau :
+        // l'illusion de transparence du rendu Kivy.
+        final d = inner * 0.20;
+        canvas.drawCircle(centre, (inner - 2 * d) / 2, Paint()..color = accent);
+        canvas.drawCircle(centre, inner * 0.14, Paint()..color = boardColor);
+      }
 
     case PieceType.chevalier:
       final hOff = inner * 0.20;
-      final path = Path()
-        ..moveTo(centre.dx, box.top)
-        ..lineTo(box.right, centre.dy - hOff)
-        ..lineTo(box.right, centre.dy + hOff)
-        ..lineTo(centre.dx, box.bottom)
-        ..lineTo(box.left, centre.dy + hOff)
-        ..lineTo(box.left, centre.dy - hOff)
-        ..close();
-      canvas.drawPath(path, Paint()..color = accent);
+      final path = Path();
+      for (var i = 0; i < 6; i++) {
+        final p = _knightPoint(i, box, centre, hOff);
+        i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+      }
+      path.close();
+      canvas.drawPath(path, Paint()..color = isDeepGrey ? bg : accent);
       canvas.drawPath(path, line);
+      if (isDeepGrey) {
+        // Centre hexagonal réduit, à la couleur du camp.
+        final small = Path();
+        for (var i = 0; i < 6; i++) {
+          final p = _knightPoint(i, box, centre, hOff);
+          final scaled = Offset(
+            centre.dx + (p.dx - centre.dx) * 0.45,
+            centre.dy + (p.dy - centre.dy) * 0.45,
+          );
+          i == 0
+              ? small.moveTo(scaled.dx, scaled.dy)
+              : small.lineTo(scaled.dx, scaled.dy);
+        }
+        small.close();
+        canvas.drawPath(small, Paint()..color = accent);
+      }
   }
 }
 
@@ -164,18 +231,21 @@ void _paintDots(
   Color accent,
   Color bigColor,
   Set<(int, int)> bigDirs,
-  List<(int, int)> dirs,
-  int axis,
-) {
+  List<(int, int)> dirs, {
+  required double offset,
+}) {
   final r = inner * 0.06;
-  final off = inner * 0.30;
+  final off = inner * offset;
   for (final (dc, dr) in dirs) {
+    // Les points sont à une place FIXE sur la pièce ; seule la direction
+    // mise en évidence dépend de l'orientation du plateau, et l'appelant l'a
+    // déjà transformée. C'est ce que fait Kivy.
     final isBig = bigDirs.contains((dc, dr));
     final radius = isBig ? r * 2 : r;
     canvas.drawCircle(
       // dr positif = vers l'avant en coordonnées de jeu, donc vers le HAUT à
-      // l'écran quand les Blancs sont en bas : d'où le signe inversé sur dy.
-      Offset(centre.dx + dc * off * axis, centre.dy - dr * off * axis),
+      // l'écran : d'où le signe inversé sur dy.
+      Offset(centre.dx + dc * off, centre.dy - dr * off),
       radius,
       Paint()..color = isBig ? bigColor : accent,
     );
@@ -225,3 +295,41 @@ void _paintPieceImage(
     }
   }
 }
+
+/// Corps gris des pièces du thème deepgrey.
+const Color kDeepGreyBody = Color(0xFF808080);
+
+/// Les huit couleurs du thème « arc-en-ciel » — portage de `RAINBOW_PALETTE`.
+const List<Color> kRainbowPalette = [
+  Color.fromRGBO(242, 66, 54, 1), // rouge
+  Color.fromRGBO(242, 140, 38, 1), // orange
+  Color.fromRGBO(250, 217, 51, 1), // jaune
+  Color.fromRGBO(102, 204, 77, 1), // vert
+  Color.fromRGBO(51, 179, 179, 1), // turquoise
+  Color.fromRGBO(64, 140, 242, 1), // bleu
+  Color.fromRGBO(140, 102, 230, 1), // violet
+  Color.fromRGBO(242, 115, 191, 1), // rose
+];
+
+/// Couleur d'accent du thème arc-en-ciel pour une fraction 0→1.
+///
+/// Le fond et les contours ne changent pas : les camps restent distinguables.
+Color rainbowColor(double fraction) {
+  final index = (fraction * (kRainbowPalette.length - 1)).round();
+  return kRainbowPalette[index.clamp(0, kRainbowPalette.length - 1)];
+}
+
+/// Fraction arc-en-ciel d'une case, fixe selon sa position.
+double rainbowFractionOf(int col, int row) =>
+    ((col * 3 + row * 5) % kRainbowPalette.length) /
+    (kRainbowPalette.length - 1);
+
+/// Un sommet de l'hexagone du Chevalier.
+Offset _knightPoint(int i, Rect box, Offset centre, double hOff) => switch (i) {
+  0 => Offset(centre.dx, box.top),
+  1 => Offset(box.right, centre.dy - hOff),
+  2 => Offset(box.right, centre.dy + hOff),
+  3 => Offset(centre.dx, box.bottom),
+  4 => Offset(box.left, centre.dy + hOff),
+  _ => Offset(box.left, centre.dy - hOff),
+};

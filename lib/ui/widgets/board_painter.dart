@@ -5,9 +5,13 @@
 /// qu'au changement de thème ou de taille, [BoardPiecesPainter] à chaque coup.
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/rendering.dart';
 
 import '../../engine/board.dart';
+import '../../engine/piece.dart';
+import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'logo_painter.dart';
@@ -55,7 +59,7 @@ final class BoardBackgroundPainter extends CustomPainter {
         Paint()
           ..color = const Color(0xFF1A1A1A)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
+          ..strokeWidth = kivyLine(2),
       );
     }
 
@@ -86,7 +90,7 @@ final class BoardBackgroundPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = palette.grid
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = kivyLine(1);
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
         canvas.drawRect(g.cellRect(c, r), gridPaint);
@@ -101,8 +105,74 @@ final class BoardBackgroundPainter extends CustomPainter {
       boardRect.center.dy,
       g.cellSize * 0.42,
       color: palette.grid,
-      strokeWidth: 1.6,
+      strokeWidth: kivyLine(1.6),
     );
+
+    _paintAnnotations(canvas, g);
+  }
+
+  /// Chiffres 1 à 8 dans la colonne la plus à gauche, et notes do…si sous le
+  /// plateau — portage de `_draw_annotations`.
+  void _paintAnnotations(Canvas canvas, BoardGeometry g) {
+    final cs = g.cellSize;
+    // La colonne qui se trouve visuellement à gauche change avec
+    // l'orientation : côté Noir, le plateau est tourné à 180°.
+    final leftCol = g.flipped ? 0 : kCols - 1;
+
+    for (var r = 0; r < kRows; r++) {
+      final cell = g.cellRect(leftCol, r);
+      _text(
+        canvas,
+        '${r + 1}',
+        Offset(cell.left + cs * 0.08, cell.bottom - cs * 0.04),
+        fontSize: math.max(10, cs * 0.20),
+        color: const Color(0xFF000000),
+        anchor: _Anchor.bottomLeft,
+      );
+    }
+
+    // Les notes sont sous le plateau, chacune sous SA colonne.
+    final noteY = g.rowToY(g.flipped ? -1 : 8) + cs * 0.20;
+    for (var c = 0; c < kCols; c++) {
+      _text(
+        canvas,
+        kBoardNotes[c],
+        Offset(g.cellRect(c, 0).center.dx, noteY),
+        fontSize: math.max(11, cs * 0.26),
+        color: const Color(0xFFFFFFFF),
+        anchor: _Anchor.center,
+      );
+    }
+  }
+
+  void _text(
+    Canvas canvas,
+    String text,
+    Offset at, {
+    required double fontSize,
+    required Color color,
+    required _Anchor anchor,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final offset = switch (anchor) {
+      _Anchor.bottomLeft => Offset(at.dx, at.dy - painter.height),
+      _Anchor.center => Offset(
+        at.dx - painter.width / 2,
+        at.dy - painter.height / 2,
+      ),
+    };
+    painter.paint(canvas, offset);
   }
 
   @override
@@ -122,8 +192,9 @@ final class BoardPiecesPainter extends CustomPainter {
     this.selected,
     this.groupSelection = const {},
     this.destinations = const {},
-    this.lastMoveCells = const {},
+    this.lastMove,
     this.images,
+    this.theme,
   });
 
   final BoardGeometry geometry;
@@ -139,8 +210,11 @@ final class BoardPiecesPainter extends CustomPainter {
   /// Cases d'arrivée légales, à pointer.
   final Set<Cell> destinations;
 
-  /// Cases touchées par le dernier coup joué.
-  final Set<Cell> lastMoveCells;
+  /// Dernier coup joué, à mettre en évidence.
+  final LastMove? lastMove;
+
+  /// Thème des pièces : deepgrey et arc-en-ciel ont leur propre rendu.
+  final String? theme;
 
   /// Images du thème, quand il en a.
   final LoadedThemeImages? images;
@@ -149,15 +223,34 @@ final class BoardPiecesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final g = geometry;
 
-    // Cadres du dernier coup, sous les pièces.
-    if (lastMoveCells.isNotEmpty) {
-      final paint = Paint()
-        ..color = const Color(0xFFFFFFFF)
+    // Dernier coup, sous les pièces : cadres vers l'extérieur, et petits
+    // carrés sur les rebonds d'un multisaut. La couleur est l'inverse du camp
+    // qui a joué, pour rester lisible sur toutes les pièces.
+    final last = lastMove;
+    if (last != null && !last.isEmpty) {
+      final color = last.camp == Camp.blanc
+          ? const Color(0xFF000000)
+          : const Color(0xFFFFFFFF);
+      final frame = Paint()
+        ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.4;
-      for (final cell in lastMoveCells) {
+        ..strokeWidth = kivyLine(2.4);
+      for (final cell in last.framedCells) {
         if (!cell.onBoard) continue;
-        canvas.drawRect(g.cellRect(cell.col, cell.row).inflate(1), paint);
+        canvas.drawRect(g.cellRect(cell.col, cell.row).inflate(1), frame);
+      }
+      final dot = Paint()..color = color;
+      for (final cell in last.jumpPath) {
+        if (!cell.onBoard) continue;
+        final d = g.cellSize * 0.16;
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: g.cellCenter(cell.col, cell.row),
+            width: d,
+            height: d,
+          ),
+          dot,
+        );
       }
     }
 
@@ -202,9 +295,13 @@ final class BoardPiecesPainter extends CustomPainter {
           palette,
           outline: outline,
           outlineWidth: width,
+          // Les points de poussée grossis, sur la pièce qui vient de pousser.
+          pushHighlightDirs: {...?lastMove?.pushDirs[cell]},
           flipped: g.flipped,
           boardColor: palette.board,
           images: images,
+          theme: theme,
+          rainbowFraction: rainbowFractionOf(c, r),
         );
       }
     }
@@ -218,5 +315,13 @@ final class BoardPiecesPainter extends CustomPainter {
       old.palette != palette ||
       old.geometry.flipped != geometry.flipped ||
       old.destinations.length != destinations.length ||
-      old.lastMoveCells.length != lastMoveCells.length;
+      old.theme != theme ||
+      old.lastMove != lastMove;
 }
+
+/// Notes telles qu'elles s'écrivent SOUS le plateau : en minuscules. La
+/// notation `.nmc`, elle, les capitalise.
+const List<String> kBoardNotes = ['do', 'ré', 'mi', 'fa', 'sol', 'la', 'si'];
+
+/// Où ancrer un texte dessiné sur le plateau.
+enum _Anchor { bottomLeft, center }

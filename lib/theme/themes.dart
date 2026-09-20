@@ -5,6 +5,14 @@ library;
 
 import 'dart:ui';
 
+/// Épaisseur Flutter correspondant à un `Line(width: w)` de Kivy.
+///
+/// Kivy décale les bords de ±w de part et d'autre de l'axe : le trait fait
+/// **2w** à l'écran, alors que Flutter prend l'épaisseur totale. Sans cette
+/// conversion, tous les traits du jeu — contours des pièces, signes, grille,
+/// cadres du dernier coup — paraissent deux fois trop fins.
+double kivyLine(double kivyWidth) => kivyWidth * 2;
+
 /// Palette d'un thème : 7 couleurs.
 final class ThemePalette {
   const ThemePalette({

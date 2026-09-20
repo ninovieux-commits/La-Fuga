@@ -10,6 +10,7 @@ import '../engine/move.dart';
 import '../engine/move_generator.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
+import 'last_move.dart';
 import 'nmc.dart';
 
 /// Une position de la partie, avec le coup qui y a mené.
@@ -19,6 +20,7 @@ final class ReplayStep {
     required this.turn,
     this.notation,
     this.move,
+    this.boardBefore,
   });
 
   final Board board;
@@ -32,11 +34,22 @@ final class ReplayStep {
   /// Le coup lui-même, pour mettre en évidence les cases touchées.
   final Move? move;
 
+  /// Position d'avant ce coup, quand il y en a un.
+  final Board? boardBefore;
+
   /// Cases à encadrer : départ et arrivées du coup.
   Set<Cell> get highlightedCells {
     final m = move;
     if (m == null) return const {};
     return {m.from, ...m.movedCells}..removeWhere((c) => !c.onBoard);
+  }
+
+  /// Mise en évidence du coup qui a mené ici, comme en partie.
+  LastMove? get lastMove {
+    final m = move;
+    final before = boardBefore;
+    if (m == null || before == null) return null;
+    return LastMove.of(before, m, pushTargets: pushTargetsOf(before, m));
   }
 }
 
@@ -97,15 +110,16 @@ class ReplayController {
         broken = i;
         break;
       }
-      board = move.board;
       steps.add(
         ReplayStep(
-          board: board,
+          board: move.board,
           turn: turn.opposite,
           notation: notation,
           move: move,
+          boardBefore: board,
         ),
       );
+      board = move.board;
       if (move.fugue || move.fugueBy != null || move.matOn != null) break;
       turn = turn.opposite;
     }
