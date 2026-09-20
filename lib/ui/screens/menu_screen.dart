@@ -18,6 +18,7 @@ import 'history_screen.dart';
 import 'login_screen.dart';
 import 'online_lobby_screen.dart';
 import 'settings_screen.dart';
+import 'tuto_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -100,6 +101,13 @@ class _MenuScreenState extends State<MenuScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openTuto() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TutoScreen()));
+    if (mounted) setState(() {});
+  }
+
   /// La messagerie, qui demande d'être connecté.
   Future<void> _openMessages() async {
     final online = OnlineService.instance;
@@ -156,14 +164,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Fonctionnalité pas encore portée : on le dit, plutôt que d'offrir un
-  /// bouton qui ne fait rien.
-  void _notYet(String what) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$what — ${T("Bientôt")}')));
-  }
-
   @override
   Widget build(BuildContext context) {
     final palette = paletteOf(_axes.general);
@@ -205,7 +205,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   onTap: _playCorrespondence,
                 ),
                 const SizedBox(height: 16),
-                _button(palette, T('Tuto'), onTap: () => _notYet(T('Tuto'))),
+                _button(palette, T('Tuto'), onTap: _openTuto),
                 _button(palette, T('Messages'), onTap: _openMessages),
                 _button(palette, T('Historique'), onTap: _openHistory),
                 _button(palette, T('Mon compte'), onTap: _openAccount),
