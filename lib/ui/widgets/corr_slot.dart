@@ -230,16 +230,15 @@ class _MiniBoard extends StatelessWidget {
     final board = state?.board ?? g?.initialBoard;
     final asset = imagesFor(boardTheme)?.board;
 
-    return FutureBuilder<LoadedThemeImages>(
-      future: ThemeImageCache.load(boardTheme),
-      initialData: ThemeImageCache.ready(boardTheme),
-      builder: (context, snapshot) => CustomPaint(
+    return ThemeImagesBuilder(
+      theme: boardTheme,
+      builder: (context, images) => CustomPaint(
         painter: _MiniBoardPainter(
           board: board,
           // Mes pièces en bas, comme sur le plateau de jeu.
           flipped: g?.myCamp != Camp.noir,
           palette: palette,
-          images: asset == null ? null : snapshot.data,
+          images: asset == null ? null : images,
         ),
       ),
     );

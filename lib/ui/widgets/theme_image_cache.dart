@@ -9,6 +9,7 @@ library;
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/widgets.dart';
 
 import '../../engine/piece.dart';
 import '../../theme/theme_assets.dart';
@@ -112,5 +113,33 @@ abstract final class ThemeImageCache {
   static void clear() {
     _loaded.clear();
     _loading.clear();
+  }
+}
+
+/// Passe les images d'un thème à [builder].
+///
+/// Quand elles sont déjà décodées, il n'y a pas de `Future` du tout : un
+/// `FutureBuilder` reconstruit à chaque défilement rouvrirait un abonnement
+/// et une image de plus par photo affichée. Sinon, on attend le chargement en
+/// laissant le rendu géométrique tenir la place.
+class ThemeImagesBuilder extends StatelessWidget {
+  const ThemeImagesBuilder({
+    super.key,
+    required this.theme,
+    required this.builder,
+  });
+
+  final String theme;
+  final Widget Function(BuildContext context, LoadedThemeImages? images)
+  builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final ready = ThemeImageCache.ready(theme);
+    if (ready != null) return builder(context, ready);
+    return FutureBuilder<LoadedThemeImages>(
+      future: ThemeImageCache.load(theme),
+      builder: (context, snapshot) => builder(context, snapshot.data),
+    );
   }
 }

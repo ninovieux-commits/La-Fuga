@@ -142,11 +142,45 @@ final class CorrGame {
   );
 }
 
+/// Rejeux déjà faits, par (code Random Fuga, texte des coups).
+///
+/// Rejouer une partie demande de générer tous les coups légaux à chaque
+/// demi-coup ; l'aperçu du menu, lui, se reconstruit à chaque défilement. Le
+/// texte des coups est la clé : dès qu'il change, le rejeu est refait.
+final Map<String, ({Board board, Camp turn, LastMove? lastMove})?>
+_replayCache = {};
+
+/// Au-delà, on oublie les plus anciens : une poignée de parties suffit.
+const int _replayCacheMax = 48;
+
+/// Oublie les rejeux mémorisés — pour les tests.
+void clearReplayCache() => _replayCache.clear();
+
 /// Rejoue les coups d'une partie de correspondance sur un plateau.
 ///
 /// Renvoie `null` si un coup ne correspond à rien de légal : une partie qu'on
 /// ne sait pas rejouer ne doit pas s'afficher à moitié, elle doit se signaler.
+///
+/// Le plateau rendu est une copie : l'appelant peut jouer dessus sans abîmer
+/// ce qui est mémorisé.
 ({Board board, Camp turn, LastMove? lastMove})? replay(CorrGame game) {
+  final key = '${game.randomCode}|${game.movesText}';
+  if (_replayCache.containsKey(key)) {
+    final hit = _replayCache[key];
+    if (hit == null) return null;
+    return (board: hit.board.clone(), turn: hit.turn, lastMove: hit.lastMove);
+  }
+
+  final done = _replayNow(game);
+  if (_replayCache.length >= _replayCacheMax) {
+    _replayCache.remove(_replayCache.keys.first);
+  }
+  _replayCache[key] = done;
+  if (done == null) return null;
+  return (board: done.board.clone(), turn: done.turn, lastMove: done.lastMove);
+}
+
+({Board board, Camp turn, LastMove? lastMove})? _replayNow(CorrGame game) {
   var board = game.initialBoard;
   var turn = Camp.blanc;
   LastMove? last;

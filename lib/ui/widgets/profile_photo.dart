@@ -111,14 +111,13 @@ class ProfilePhoto extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: FutureBuilder<LoadedThemeImages>(
-        future: ThemeImageCache.load(parts.theme),
-        initialData: ThemeImageCache.ready(parts.theme),
-        builder: (context, snapshot) => CustomPaint(
+      child: ThemeImagesBuilder(
+        theme: parts.theme,
+        builder: (context, images) => CustomPaint(
           painter: _PiecePhotoPainter(
             piece: Piece(parts.piece, parts.camp),
             palette: paletteOf(parts.theme),
-            images: snapshot.data,
+            images: images,
           ),
         ),
       ),

@@ -27,10 +27,9 @@ class ThemePreview extends StatelessWidget {
   final String theme;
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<LoadedThemeImages>(
-    future: ThemeImageCache.load(theme),
-    initialData: ThemeImageCache.ready(theme),
-    builder: (context, snapshot) {
+  Widget build(BuildContext context) => ThemeImagesBuilder(
+    theme: theme,
+    builder: (context, images) {
       final board = imagesFor(theme)?.board;
       return Stack(
         fit: StackFit.expand,
@@ -40,7 +39,7 @@ class ThemePreview extends StatelessWidget {
             painter: _PreviewPainter(
               palette: paletteOf(theme),
               theme: theme,
-              images: snapshot.data,
+              images: images,
               drawBoard: board == null,
             ),
           ),

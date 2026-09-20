@@ -189,6 +189,26 @@ void main() {
       final g = CorrGame.fromJson(serverGame(movesText: 'Do4-Do5'));
       expect(replay(g), isNull);
     });
+
+    test('le rejeu est mémorisé, mais jamais partagé', () {
+      var board = Board.initial();
+      final m1 = generateMoves(board, Camp.blanc).first;
+      final n1 = notationOn(board, m1);
+      board = m1.board;
+
+      final g = CorrGame.fromJson(serverGame(movesText: '1.$n1'));
+      final first = replay(g)!;
+      expect(first.board.key, m1.board.key);
+
+      // Jouer sur le plateau rendu ne doit pas abîmer ce qui est mémorisé :
+      // l'aperçu du menu et l'écran de jeu demandent le même rejeu.
+      first.board.set(0, 0, null);
+
+      final second = replay(g)!;
+      expect(second.board.key, m1.board.key);
+      expect(second.turn, Camp.noir);
+      expect(identical(second.board, first.board), isFalse);
+    });
   });
 
   group('Coup qui clôt la partie', () {
