@@ -87,6 +87,23 @@ void main() {
       expect(find.byTooltip('Proposer nulle'), findsNWidgets(2));
       expect(find.byTooltip('Abandonner'), findsNWidgets(2));
     });
+
+    testWidgets('le X du haut fait abandonner le joueur du haut', (
+      tester,
+    ) async {
+      await open(tester);
+
+      // Les Blancs sont en bas, donc « Joueur 2 » (les Noirs) est en haut.
+      // Kivy fait abandonner le camp DONT on touche la croix, même si c'est
+      // l'autre qui a le trait.
+      await tester.tap(find.byTooltip('Abandonner').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Joueur 2 confirme abandonner'),
+        findsOneWidget,
+      );
+    });
   });
 
   group('Contre Deep Grey', () {

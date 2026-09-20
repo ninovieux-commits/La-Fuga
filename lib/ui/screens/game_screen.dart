@@ -245,7 +245,11 @@ class _GameScreenState extends State<GameScreen> {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
     }
     setState(() {
-      if (result.notation != null) _rememberLastMove(result);
+      // Un coup joué annule les propositions de nulle en cours.
+      if (result.notation != null) {
+        _rememberLastMove(result);
+        _resetDrawOffers();
+      }
       if (result.effect == ControllerEffect.gameOver) {
         _finish(
           result.endReason ?? 'nulle',
@@ -479,9 +483,7 @@ class _GameScreenState extends State<GameScreen> {
   ///
   /// Contre Deep Grey, c'est l'humain qui abandonne, même si c'est à l'IA de
   /// jouer : le bouton n'appartient qu'à lui.
-  Future<void> _abandon() async {
-    final ai = _aiCamp;
-    final quitter = ai == null ? _game.turn : ai.opposite;
+  Future<void> _abandon(Camp quitter) async {
     final confirmed = await _confirm(
       T(
         '{name} confirme abandonner. L\'adversaire marquera 2 points.',
@@ -499,16 +501,28 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// Nulle par accord — portage du bouton ½, réservé aux parties à deux
-  /// joueurs : on ne négocie pas avec Deep Grey.
-  Future<void> _agreeDraw() async {
-    final confirmed = await _confirm(
-      T('Nulle par accord mutuel.\nAucun point accordé.'),
-      T('Accepter'),
-    );
-    if (!confirmed || !mounted) return;
+  /// Proposition de nulle en local — portage de `_toggle_draw_offer`.
+  ///
+  /// Chaque camp a son ½ : il s'allume quand ce camp propose, et quand les
+  /// deux sont allumés la partie est nulle par accord mutuel. Un coup joué
+  /// remet les deux propositions à zéro (`_reset_draw_offers`).
+  void _toggleDrawOffer(Camp camp) {
+    setState(() {
+      _drawOffers[camp] = !(_drawOffers[camp] ?? false);
+      if (_drawOffers[Camp.blanc] == true && _drawOffers[Camp.noir] == true) {
+        _drawOffers[Camp.blanc] = false;
+        _drawOffers[Camp.noir] = false;
+        _finish('nulle_accord', null, T('Partie nulle'));
+      }
+    });
+  }
 
-    setState(() => _finish('nulle_accord', null, T('Partie nulle')));
+  /// Propositions de nulle en cours, par camp.
+  final Map<Camp, bool> _drawOffers = {Camp.blanc: false, Camp.noir: false};
+
+  void _resetDrawOffers() {
+    _drawOffers[Camp.blanc] = false;
+    _drawOffers[Camp.noir] = false;
   }
 
   Future<bool> _confirm(String message, String action) async {
@@ -682,8 +696,9 @@ class _GameScreenState extends State<GameScreen> {
       busy: isAi && _thinking,
       mirrored: mirrored,
       onUndo: canAct && _game.canValidate ? _cancelMove : null,
-      onDraw: canAct && _aiCamp == null ? _agreeDraw : null,
-      onResign: canAct ? _abandon : null,
+      onDraw: canAct && _aiCamp == null ? () => _toggleDrawOffer(camp) : null,
+      drawOffered: _drawOffers[camp] ?? false,
+      onResign: canAct ? () => _abandon(camp) : null,
     );
   }
 

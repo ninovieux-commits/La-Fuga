@@ -93,6 +93,7 @@ class PlayerPanel extends StatelessWidget {
     this.subtitle,
     this.nameColor = kPanelInk,
     this.onNameTap,
+    this.drawOffered = false,
     this.busy = false,
     this.mirrored = false,
     this.onUndo,
@@ -133,6 +134,9 @@ class PlayerPanel extends StatelessWidget {
   /// Annuler le coup en cours. Absent = geste indisponible de ce côté.
   final VoidCallback? onUndo;
   final VoidCallback? onDraw;
+
+  /// Ce camp a proposé la nulle : Kivy allume alors son ½ en orange.
+  final bool drawOffered;
   final VoidCallback? onResign;
 
   @override
@@ -242,7 +246,13 @@ class PlayerPanel extends StatelessWidget {
         child: CapturesStrip(pieces: captures, palette: palette),
       ),
       if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
-      if (onDraw != null) _button('½', T('Proposer nulle'), onDraw!),
+      if (onDraw != null)
+        _button(
+          '½',
+          T('Proposer nulle'),
+          onDraw!,
+          color: drawOffered ? palette.clair : kFugaGrey,
+        ),
       // L'abandon est rouge sombre chez Kivy : on n'y touche pas par mégarde.
       if (onResign != null)
         _button('X', T('Abandonner'), onResign!, color: kResignRed),

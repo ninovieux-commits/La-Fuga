@@ -113,16 +113,19 @@ void main() {
       );
     });
 
-    testWidgets('la nulle par accord ne donne aucun point', (tester) async {
+    testWidgets('la nulle demande l accord des DEUX camps', (tester) async {
       await openQuickGame(tester, objectif: '5');
       await tester.pump();
 
+      // Un seul ½ allumé ne fait rien : Kivy attend l'autre.
       await tester.tap(find.byTooltip('Proposer nulle').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Accepter'));
+      expect(find.textContaining('Partie nulle'), findsNothing);
+
+      await tester.tap(find.byTooltip('Proposer nulle').first);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('nulle'), findsOneWidget);
+      expect(find.textContaining('nulle'), findsWidgets);
       expect(find.textContaining('Joueur 1 : 0'), findsOneWidget);
       expect(find.textContaining('Joueur 2 : 0'), findsOneWidget);
     });
