@@ -7,6 +7,7 @@ import '../../game/sound_plan.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import 'theme_composer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -58,6 +59,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
             ],
+          ),
+
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<bool>(
+                  builder: (_) => const ThemeComposerScreen(),
+                ),
+              );
+              if (mounted) setState(() {});
+            },
+            icon: const Icon(Icons.tune, size: 18),
+            label: Text(T('Composer le thème')),
           ),
 
           _section(T('Langue')),
