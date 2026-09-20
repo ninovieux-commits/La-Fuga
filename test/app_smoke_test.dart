@@ -1,16 +1,16 @@
-/// Test de fumée : l'application démarre, le menu s'affiche, et on atteint
-/// le plateau. C'est le filet minimal contre un écran noir au lancement.
+/// Test de fumée : l'application démarre, le menu s'affiche comme celui de
+/// Kivy, et on atteint le plateau. C'est le filet minimal contre un écran
+/// noir au lancement.
 library;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
-import 'package:lafuga/ui/screens/correspondence_screen.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:lafuga/ui/screens/login_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
-import 'package:lafuga/ui/screens/online_lobby_screen.dart';
 import 'package:lafuga/ui/screens/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,19 +36,58 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('le menu affiche ses entrées principales', (tester) async {
+  testWidgets('le menu a les entrées du menu de Kivy', (tester) async {
     await bootApp(tester);
 
     expect(find.byType(MenuScreen), findsOneWidget);
-    expect(find.text('Jouer contre Deep Grey'), findsOneWidget);
-    expect(find.text('Jouer en local'), findsOneWidget);
-    expect(find.text('Réglages'), findsOneWidget);
+    for (final label in [
+      'Jouer en local',
+      'Jouer en ligne',
+      'Messages',
+      'Jouer contre Deep Grey',
+      'Plus',
+      'Parties par correspondance',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+    expect(find.text('Random'), findsOneWidget, reason: 'interrupteur Random');
+    expect(find.text('Compte'), findsOneWidget, reason: 'déconnecté');
+  });
+
+  testWidgets('les trois cadences de Kivy sont proposées', (tester) async {
+    await bootApp(tester);
+
+    expect(find.text('5 min'), findsOneWidget);
+    expect(find.text('15 min'), findsOneWidget);
+    expect(find.text('30 min'), findsOneWidget);
+  });
+
+  testWidgets('« Plus » ouvre le reste, comme en Kivy', (tester) async {
+    await bootApp(tester);
+    await tapVisible(tester, find.text('Plus'));
+
+    for (final label in [
+      'Tuto',
+      'Historique',
+      'Analyse',
+      'Réglages',
+      'Soutenir les devs',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
   });
 
   testWidgets("le logo raconte l'histoire du jeu", (tester) async {
     await bootApp(tester);
 
-    await tapVisible(tester, find.text("L'histoire de La Fuga").last);
+    // Le logo du thème, sous le titre : c'est lui qui ouvre l'histoire.
+    await tapVisible(
+      tester,
+      find.ancestor(
+        of: find.byType(Image).at(1),
+        matching: find.byType(GestureDetector),
+      ),
+    );
 
     expect(find.textContaining('Deux frères'), findsOneWidget);
   });
@@ -57,7 +96,7 @@ void main() {
     tester,
   ) async {
     await bootApp(tester);
-
+    await tapVisible(tester, find.text('Plus'));
     await tapVisible(tester, find.text('Réglages'));
 
     expect(find.byType(SettingsScreen), findsOneWidget);
@@ -73,41 +112,38 @@ void main() {
     await tapVisible(tester, find.text('Jouer contre Deep Grey'));
     expect(find.text('Choisissez votre couleur'), findsOneWidget);
 
-    await tapVisible(tester, find.text('Jouer'));
+    await tapVisible(tester, find.text('Jouer avec les Blancs'));
 
     expect(find.byType(GameScreen), findsOneWidget);
     expect(find.text('Deep Grey'), findsOneWidget, reason: 'bandeau adverse');
-    expect(find.text('∞'), findsNWidgets(2), reason: 'deux chronos illimités');
+    expect(
+      find.text('∞'),
+      findsNWidgets(2),
+      reason: 'une partie contre Deep Grey est sans chrono',
+    );
   });
 
-  testWidgets('une partie locale oppose deux joueurs humains', (tester) async {
+  testWidgets('une partie locale part tout de suite, à la cadence du menu', (
+    tester,
+  ) async {
     await bootApp(tester);
 
     await tapVisible(tester, find.text('Jouer en local'));
-    expect(
-      find.text('Choisissez votre couleur'),
-      findsNothing,
-      reason: 'sans objet quand les deux joueurs sont humains',
-    );
-
-    await tapVisible(tester, find.text('Jouer'));
 
     expect(find.byType(GameScreen), findsOneWidget);
-    expect(find.text('Deep Grey'), findsNothing);
+    final screen = tester.widget<GameScreen>(find.byType(GameScreen));
+    expect(screen.aiCamp, isNull);
+    expect(screen.cadence.wire, '15', reason: 'cadence par défaut du menu');
     expect(find.text('Blanc'), findsOneWidget);
     expect(find.text('Noir'), findsOneWidget);
   });
 
-  testWidgets('le salon en ligne demande de se connecter', (tester) async {
+  testWidgets('le jeu en ligne demande de se connecter', (tester) async {
     await bootApp(tester);
 
     await tapVisible(tester, find.text('Jouer en ligne'));
 
-    expect(find.byType(OnlineLobbyScreen), findsOneWidget);
-    // Sans session enregistrée, on ne propose pas de chercher une partie :
-    // on demande d'abord de se connecter.
-    expect(find.text('Connexion requise'), findsOneWidget);
-    expect(find.text('Chercher une partie'), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 
   testWidgets("l'écran de connexion bascule vers l'inscription", (
@@ -115,9 +151,7 @@ void main() {
   ) async {
     await bootApp(tester);
     await tapVisible(tester, find.text('Jouer en ligne'));
-    await tapVisible(tester, find.text('Se connecter'));
 
-    expect(find.byType(LoginScreen), findsOneWidget);
     expect(
       find.text('Email (optionnel)'),
       findsNothing,
@@ -128,16 +162,11 @@ void main() {
     expect(find.text('Email (optionnel)'), findsOneWidget);
   });
 
-  testWidgets('la correspondance demande aussi de se connecter', (
-    tester,
-  ) async {
+  testWidgets('les messages demandent aussi un compte', (tester) async {
     await bootApp(tester);
 
-    await tapVisible(tester, find.text('Correspondance'));
+    await tapVisible(tester, find.text('Messages'));
 
-    expect(find.byType(CorrespondenceScreen), findsOneWidget);
-    expect(find.text('Connexion requise'), findsOneWidget);
-    // Sans session, pas de bouton pour défier quelqu'un.
-    expect(find.text('Défier'), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 }

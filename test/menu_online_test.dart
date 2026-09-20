@@ -1,7 +1,8 @@
-/// Salon en ligne : matchmaking et défis, sans serveur.
+/// Le menu, côté serveur : matchmaking et défis, sans serveur.
+///
+/// Comme en Kivy, tout part du menu : pas d'écran de salon.
 library;
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,120 +15,15 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/net/socket_client.dart';
 import 'package:lafuga/state/settings.dart';
-import 'package:lafuga/ui/screens/online_lobby_screen.dart';
+import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Connexion temps réel simulée.
-final class _FakeRealtime implements RealtimeSocket {
-  final Map<String, void Function(Map<String, dynamic>)> handlers = {};
-  final List<({String name, Map<String, dynamic> data})> sent = [];
-  final StreamController<bool> _state = StreamController<bool>.broadcast();
-
-  @override
-  bool isConnected = true;
-
-  @override
-  Stream<bool> get onConnectionChanged => _state.stream;
-
-  void emit(String event, Map<String, dynamic> data) =>
-      handlers[event]?.call(data);
-
-  bool didSend(String name) => sent.any((e) => e.name == name);
-
-  Map<String, dynamic>? lastOf(String name) {
-    for (final e in sent.reversed) {
-      if (e.name == name) return e.data;
-    }
-    return null;
-  }
-
-  void _record(String name, [Map<String, dynamic> data = const {}]) =>
-      sent.add((name: name, data: data));
-
-  @override
-  void on(String event, void Function(Map<String, dynamic>) handler) =>
-      handlers[event] = handler;
-
-  @override
-  void off(String event) => handlers.remove(event);
-
-  @override
-  Future<void> connect(String token) async => isConnected = true;
-
-  @override
-  void disconnect() => isConnected = false;
-
-  @override
-  void dispose() => _state.close();
-
-  @override
-  void chercherPartie({
-    required String objectif,
-    required String cadence,
-    bool random = false,
-  }) => _record('chercher_partie', {
-    'objectif': objectif,
-    'cadence': cadence,
-    'random': random,
-  });
-
-  @override
-  void annulerRecherche() => _record('annuler_recherche');
-
-  @override
-  void defier({
-    required String pseudoCible,
-    required String objectif,
-    required String cadence,
-    bool random = false,
-  }) => _record('defier', {
-    'pseudo_cible': pseudoCible,
-    'objectif': objectif,
-    'cadence': cadence,
-    'random': random,
-  });
-
-  @override
-  void annulerDefi(String defiId) =>
-      _record('annuler_defi', {'defi_id': defiId});
-
-  @override
-  void repondreDefi(String defiId, bool accepte) =>
-      _record('repondre_defi', {'defi_id': defiId, 'accepte': accepte});
-
-  @override
-  void jouerCoup({
-    required String gameId,
-    required String notation,
-    int? clockBlanc,
-    int? clockNoir,
-    int? clockMe,
-  }) => _record('jouer_coup');
-
-  @override
-  void proposerNulle(String gameId) => _record('proposer_nulle');
-
-  @override
-  void finPartie({
-    required String gameId,
-    required String methode,
-    String? loserColor,
-  }) => _record('fin_partie');
-
-  @override
-  void chat(String gameId, String texte) => _record('chat');
-
-  @override
-  void pretPartieSuivante(String gameId) => _record('pret_partie_suivante');
-
-  @override
-  void abandonnerMatch(String gameId) => _record('abandonner_match');
-}
+import 'support/fake_realtime.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late _FakeRealtime socket;
+  late FakeRealtime socket;
   late OnlineService online;
   late Map<String, Map<String, dynamic>> replies;
 
@@ -136,7 +32,7 @@ void main() {
     await Settings.load();
     await Translations.load('fr');
 
-    socket = _FakeRealtime();
+    socket = FakeRealtime();
     replies = {
       '/login': {'ok': true, 'token': 't', 'pseudo': 'Nino', 'melo': 1600},
     };
@@ -157,9 +53,14 @@ void main() {
   });
 
   Future<void> open(WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(home: OnlineLobbyScreen(online: online)),
-    );
+    await tester.pumpWidget(MaterialApp(home: MenuScreen(online: online)));
+    await tester.pumpAndSettle();
+  }
+
+  /// Cherche un joueur : on valide le champ, comme en Kivy.
+  Future<void> searchFor(WidgetTester tester, String pseudo) async {
+    await tester.enterText(find.byType(TextField).first, pseudo);
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
   }
 
@@ -169,25 +70,25 @@ void main() {
     ) async {
       await open(tester);
 
-      await tester.tap(find.text('Chercher une partie'));
-      // Pas de pumpAndSettle : l'indicateur de recherche tourne sans fin.
-      await tester.pump();
+      await tester.tap(find.text('Jouer en ligne'));
+      await tester.pumpAndSettle();
 
       expect(socket.lastOf('chercher_partie')!['cadence'], '15');
       expect(socket.lastOf('chercher_partie')!['objectif'], 'partie');
+      expect(find.textContaining("Recherche d'un adversaire"), findsOneWidget);
       expect(find.text('Annuler'), findsOneWidget);
     });
 
     testWidgets('annuler la recherche prévient le serveur', (tester) async {
       await open(tester);
-      await tester.tap(find.text('Chercher une partie'));
-      await tester.pump();
+      await tester.tap(find.text('Jouer en ligne'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Annuler'));
       await tester.pumpAndSettle();
 
       expect(socket.didSend('annuler_recherche'), isTrue);
-      expect(find.text('Chercher une partie'), findsOneWidget);
+      expect(find.text('Jouer en ligne'), findsOneWidget);
     });
   });
 
@@ -206,9 +107,7 @@ void main() {
       };
       await open(tester);
 
-      await tester.enterText(find.byType(TextField), 'Ana');
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
+      await searchFor(tester, 'Ana');
 
       // « Ana » est aussi dans le champ de recherche : la fiche s'ajoute.
       expect(find.text('Ana'), findsNWidgets(2));
@@ -225,9 +124,7 @@ void main() {
     testWidgets('un refus referme l attente et le dit', (tester) async {
       replies['/search_user'] = {'ok': true, 'pseudo': 'Ana'};
       await open(tester);
-      await tester.enterText(find.byType(TextField), 'Ana');
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
+      await searchFor(tester, 'Ana');
       await tester.tap(find.text('Défier'));
       await tester.pumpAndSettle();
 
@@ -241,18 +138,16 @@ void main() {
       );
       expect(find.textContaining('a refusé votre défi'), findsOneWidget);
       expect(
-        find.byType(OnlineLobbyScreen),
+        find.byType(MenuScreen),
         findsOneWidget,
-        reason: 'et le salon reste ouvert',
+        reason: 'et le menu reste ouvert',
       );
     });
 
     testWidgets('une cible indisponible est signalée', (tester) async {
       replies['/search_user'] = {'ok': true, 'pseudo': 'Ana'};
       await open(tester);
-      await tester.enterText(find.byType(TextField), 'Ana');
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
+      await searchFor(tester, 'Ana');
       await tester.tap(find.text('Défier'));
       await tester.pumpAndSettle();
 
@@ -289,9 +184,7 @@ void main() {
       replies['/search_user'] = {'ok': false, 'error': 'inconnu'};
       await open(tester);
 
-      await tester.enterText(find.byType(TextField), 'Zzz');
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
+      await searchFor(tester, 'Zzz');
 
       expect(find.textContaining('introuvable'), findsOneWidget);
       expect(socket.didSend('defier'), isFalse);

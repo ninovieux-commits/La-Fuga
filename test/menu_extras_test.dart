@@ -35,6 +35,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Les entrées secondaires vivent dans le volet « Plus », comme en Kivy.
+  Future<void> openPlus(WidgetTester tester, String entry) async {
+    await tapVisible(tester, find.text('Plus'));
+    await tapVisible(tester, find.text(entry));
+  }
+
   group('Analyse', () {
     test('la répétition ne clôt pas une analyse', () {
       // En partie, revenir quatre fois sur la même position fait nulle ;
@@ -48,7 +54,7 @@ void main() {
 
     testWidgets('l analyse s ouvre sans chrono', (tester) async {
       await bootApp(tester);
-      await tapVisible(tester, find.text('Analyse'));
+      await openPlus(tester, 'Analyse');
 
       expect(find.byType(GameScreen), findsOneWidget);
       expect(
@@ -65,9 +71,9 @@ void main() {
       tester,
     ) async {
       await bootApp(tester);
+      // L'interrupteur Random est sur le menu, comme en Kivy.
+      await tapVisible(tester, find.text('Random'));
       await tapVisible(tester, find.text('Jouer en local'));
-      await tapVisible(tester, find.text('Random Fuga'));
-      await tapVisible(tester, find.text('Jouer'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
       expect(screen.randomCode, isNotNull);
@@ -84,7 +90,6 @@ void main() {
     ) async {
       await bootApp(tester);
       await tapVisible(tester, find.text('Jouer en local'));
-      await tapVisible(tester, find.text('Jouer'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));
       expect(screen.randomCode, isNull);
@@ -95,7 +100,7 @@ void main() {
   group('Lecteur nmc', () {
     testWidgets('un contenu collé s ouvre en lecture', (tester) async {
       await bootApp(tester);
-      await tapVisible(tester, find.text('Lecteur nmc'));
+      await openPlus(tester, 'Lecteur nmc');
 
       const meta = NmcMeta(
         date: '2026-09-20',
@@ -109,7 +114,7 @@ void main() {
         points: '2',
       );
       await tester.enterText(
-        find.byType(TextField),
+        find.byType(TextField).last,
         buildNmc(meta, const ['Do2-Do3']),
       );
       await tapVisible(tester, find.text('Lire'));
@@ -120,9 +125,9 @@ void main() {
 
     testWidgets('un contenu illisible est refusé', (tester) async {
       await bootApp(tester);
-      await tapVisible(tester, find.text('Lecteur nmc'));
+      await openPlus(tester, 'Lecteur nmc');
 
-      await tester.enterText(find.byType(TextField), 'n importe quoi');
+      await tester.enterText(find.byType(TextField).last, 'n importe quoi');
       await tapVisible(tester, find.text('Lire'));
 
       expect(find.byType(ReplayScreen), findsNothing);
@@ -134,7 +139,7 @@ void main() {
     /// Ouvre le lecteur sur une partie de deux coups.
     Future<void> openReader(WidgetTester tester) async {
       await bootApp(tester);
-      await tapVisible(tester, find.text('Lecteur nmc'));
+      await openPlus(tester, 'Lecteur nmc');
 
       const meta = NmcMeta(
         date: '2026-09-20',
@@ -148,7 +153,7 @@ void main() {
         points: '2',
       );
       await tester.enterText(
-        find.byType(TextField),
+        find.byType(TextField).last,
         buildNmc(meta, const ['Do2-Do3', 'Do7-Do6']),
       );
       await tapVisible(tester, find.text('Lire'));
@@ -197,6 +202,8 @@ void main() {
   testWidgets('le menu ne promet plus rien pour plus tard', (tester) async {
     await bootApp(tester);
     expect(find.textContaining('Bientôt'), findsNothing);
+
+    await tapVisible(tester, find.text('Plus'));
     expect(find.text('Soutenir les devs'), findsOneWidget);
   });
 }
