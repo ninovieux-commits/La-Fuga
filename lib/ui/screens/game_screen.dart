@@ -34,6 +34,7 @@ import '../widgets/end_dialogs.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
+import '../widgets/slide_animation.dart';
 import '../widgets/player_panel.dart';
 
 class GameScreen extends StatefulWidget {
@@ -96,7 +97,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with SlideAnimation {
   late MoveController _game;
   late GameClock _clock;
   late FugaMatch _match;
@@ -270,6 +271,7 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Retient de quoi mettre en évidence le coup qui vient d'être joué.
   void _rememberLastMove(ControllerResult result) {
+    rememberSlides(result.slides);
     _lastMove = LastMove.fromSlides(
       before: _snapshots.last,
       camp: result.camp ?? _game.turn.opposite,
@@ -591,6 +593,9 @@ class _GameScreenState extends State<GameScreen> {
                 lastMove: _isViewing ? null : _lastMove,
                 pieceTheme: axes.pieces,
                 boardTheme: axes.board,
+                slides: slides,
+                slideToken: slideToken,
+                slideDuration: slideDuration,
               ),
             ),
             Expanded(

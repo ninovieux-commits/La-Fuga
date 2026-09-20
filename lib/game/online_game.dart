@@ -17,6 +17,7 @@ import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
 import '../net/socket_client.dart';
 import 'clock.dart';
+import 'last_move.dart';
 import 'move_controller.dart';
 
 /// Informations d'ouverture d'une partie, telles que `partie_trouvee` les
@@ -128,6 +129,10 @@ class OnlineGame {
   final List<({String author, String text})> chat = [];
 
   /// Verdict de fin de partie, quand il y en a un.
+  /// Coup adverse qui vient d'arriver, que l'écran consomme pour l'encadrer
+  /// et l'animer. `null` quand il n'y a rien de neuf.
+  ({LastMove? lastMove, List<(Piece, Cell, Cell)> slides})? pendingHighlight;
+
   String? endReason;
   Camp? loser;
 
@@ -184,7 +189,21 @@ class OnlineGame {
     final move = resolveNotation(game.board, game.turn, notation);
     if (move == null) return;
 
+    final before = game.board.clone();
     final result = game.applyGeneratedMove(move);
+
+    // Coup de l'adversaire : l'écran le met en évidence et le fait glisser,
+    // comme Kivy anime `_apply_remote_move`.
+    pendingHighlight = (
+      lastMove: LastMove.fromSlides(
+        before: before,
+        camp: opponentCamp,
+        slides: result.slides,
+        pushTargets: result.pushTargets,
+        jumpPath: result.jumpPath,
+      ),
+      slides: result.slides,
+    );
 
     // Le serveur relaie le temps restant de l'adversaire.
     final clockAdverse = (d['clock_adverse'] as num?)?.toInt();

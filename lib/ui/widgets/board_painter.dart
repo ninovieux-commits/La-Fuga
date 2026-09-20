@@ -195,6 +195,8 @@ final class BoardPiecesPainter extends CustomPainter {
     this.lastMove,
     this.images,
     this.theme,
+    this.slides = const [],
+    this.progress = 1,
   });
 
   final BoardGeometry geometry;
@@ -218,6 +220,14 @@ final class BoardPiecesPainter extends CustomPainter {
 
   /// Images du thème, quand il en a.
   final LoadedThemeImages? images;
+
+  /// Pièces en train de glisser : (pièce, départ, arrivée). Le plateau donné
+  /// est celui d'APRÈS le coup ; tant que [progress] n'a pas atteint 1, ces
+  /// pièces ne sont pas dessinées sur leur case d'arrivée mais entre les deux.
+  final List<(Piece, Cell, Cell)> slides;
+
+  /// Avancement du glissement, de 0 à 1. À 1, plus rien ne bouge.
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -266,12 +276,19 @@ final class BoardPiecesPainter extends CustomPainter {
       }
     }
 
+    // Cases dont la pièce est en vol : on ne la dessine pas là, elle est
+    // ailleurs entre deux cases.
+    final flying = progress >= 1
+        ? const <Cell>{}
+        : {for (final (_, _, to) in slides) to};
+
     // Pièces.
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
         final p = board.at(c, r);
         if (p == null) continue;
         final cell = Cell(c, r);
+        if (flying.contains(cell)) continue;
 
         Color? outline;
         var width = 2.0;
@@ -305,10 +322,32 @@ final class BoardPiecesPainter extends CustomPainter {
         );
       }
     }
+
+    // Les pièces en vol, par-dessus le reste — l'équivalent de la couche
+    // animée que Kivy dessine au-dessus du plateau.
+    if (progress < 1) {
+      for (final (piece, from, to) in slides) {
+        final start = g.cellRect(from.col, from.row);
+        final end = g.cellRect(to.col, to.row);
+        paintPiece(
+          canvas,
+          Rect.lerp(start, end, progress)!,
+          piece,
+          palette,
+          flipped: g.flipped,
+          boardColor: palette.board,
+          images: images,
+          theme: theme,
+          rainbowFraction: rainbowFractionOf(to.col, to.row),
+        );
+      }
+    }
   }
 
   @override
   bool shouldRepaint(BoardPiecesPainter old) =>
+      old.progress != progress ||
+      old.slides.length != slides.length ||
       old.board.key != board.key ||
       old.images != images ||
       old.selected != selected ||

@@ -8,6 +8,7 @@ import '../engine/board.dart';
 import '../engine/move_generator.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
+import '../game/last_move.dart';
 import '../game/nmc.dart';
 import '../net/online_client.dart';
 
@@ -144,21 +145,25 @@ final class CorrGame {
 ///
 /// Renvoie `null` si un coup ne correspond à rien de légal : une partie qu'on
 /// ne sait pas rejouer ne doit pas s'afficher à moitié, elle doit se signaler.
-({Board board, Camp turn})? replay(CorrGame game) {
+({Board board, Camp turn, LastMove? lastMove})? replay(CorrGame game) {
   var board = game.initialBoard;
   var turn = Camp.blanc;
+  LastMove? last;
 
   for (final notation in game.moves) {
     final move = resolveNotation(board, turn, notation);
     if (move == null) return null;
+    // Le dernier coup rejoué reste mis en évidence à l'ouverture, comme chez
+    // Kivy où `_apply_notation` laisse le sien en place.
+    last = LastMove.of(board, move, pushTargets: pushTargetsOf(board, move));
     board = move.board;
     // Une fugue ou un mat termine la partie : le trait ne tourne plus.
     if (move.fugue || move.fugueBy != null || move.matOn != null) {
-      return (board: board, turn: turn);
+      return (board: board, turn: turn, lastMove: last);
     }
     turn = turn.opposite;
   }
-  return (board: board, turn: turn);
+  return (board: board, turn: turn, lastMove: last);
 }
 
 /// Méthode de fin à transmettre avec un coup qui clôt la partie.

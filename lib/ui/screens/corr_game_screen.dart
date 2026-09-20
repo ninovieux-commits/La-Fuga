@@ -21,6 +21,7 @@ import '../widgets/move_strip.dart';
 import '../widgets/name_menu.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
+import '../widgets/slide_animation.dart';
 import 'game_screen.dart';
 
 class CorrGameScreen extends StatefulWidget {
@@ -39,7 +40,7 @@ class CorrGameScreen extends StatefulWidget {
   State<CorrGameScreen> createState() => _CorrGameScreenState();
 }
 
-class _CorrGameScreenState extends State<CorrGameScreen> {
+class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   final SoundPlayer _sounds = SoundPlayer();
 
   MoveController? _controller;
@@ -83,6 +84,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
     }
     setState(() {
       _controller = MoveController(board: state.board, turn: state.turn);
+      // Le dernier coup de l'adversaire reste encadré à l'ouverture.
+      _lastMove = state.lastMove;
     });
   }
 
@@ -102,6 +105,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
 
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
+      rememberSlides(result.slides);
       _lastMove = LastMove.fromSlides(
         before: _boardBefore ?? Board.initial(),
         camp: result.camp ?? c.turn.opposite,
@@ -328,6 +332,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> {
                   lastMove: _lastMove,
                   pieceTheme: axes.pieces,
                   boardTheme: axes.board,
+                  slides: slides,
+                  slideToken: slideToken,
+                  slideDuration: slideDuration,
                 ),
               ),
               _panel(palette, flipped ? Camp.blanc : Camp.noir, c),

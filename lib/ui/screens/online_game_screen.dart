@@ -25,6 +25,7 @@ import '../widgets/name_menu.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
+import '../widgets/slide_animation.dart';
 
 class OnlineGameScreen extends StatefulWidget {
   const OnlineGameScreen({
@@ -40,7 +41,8 @@ class OnlineGameScreen extends StatefulWidget {
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
 }
 
-class _OnlineGameScreenState extends State<OnlineGameScreen> {
+class _OnlineGameScreenState extends State<OnlineGameScreen>
+    with SlideAnimation {
   final SoundPlayer _sounds = SoundPlayer();
   LastMove? _lastMove;
 
@@ -72,7 +74,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
     if (event == OnlineEvent.drawOffered && _g.drawOffered) {
       _askDraw();
     }
-    if (event == OnlineEvent.nextGameStarted) _endShown = false;
+    if (event == OnlineEvent.nextGameStarted) {
+      _endShown = false;
+      _lastMove = null;
+    }
+
+    // Coup de l'adversaire : on reprend sa mise en évidence et son glissement.
+    final incoming = _g.pendingHighlight;
+    if (incoming != null) {
+      _g.pendingHighlight = null;
+      _lastMove = incoming.lastMove;
+      rememberSlides(incoming.slides);
+    }
     setState(() {});
 
     if (_g.endReason != null && !_endShown) {
@@ -91,6 +104,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
 
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
+      rememberSlides(result.slides);
       _lastMove = LastMove.fromSlides(
         before: _boardBefore ?? Board.initial(),
         camp: result.camp ?? _g.game.turn.opposite,
@@ -264,6 +278,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
                 lastMove: _lastMove,
                 pieceTheme: axes.pieces,
                 boardTheme: axes.board,
+                slides: slides,
+                slideToken: slideToken,
+                slideDuration: slideDuration,
               ),
             ),
             _banner(palette, bottomCamp),

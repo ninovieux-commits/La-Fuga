@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
+import '../../engine/piece.dart';
 import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
@@ -26,6 +27,9 @@ class GameBoardView extends StatefulWidget {
     this.lastMove,
     this.pieceTheme,
     this.boardTheme,
+    this.slides = const [],
+    this.slideToken = 0,
+    this.slideDuration = Duration.zero,
   });
 
   final Board board;
@@ -54,18 +58,44 @@ class GameBoardView extends StatefulWidget {
   /// pièces d'un thème et le plateau d'un autre.
   final String? boardTheme;
 
+  /// Pièces à faire glisser : (pièce, départ, arrivée) — portage de
+  /// `animate_slide`. Kivy anime TOUS les coups, y compris ceux du joueur.
+  final List<(Piece, Cell, Cell)> slides;
+
+  /// Change à chaque nouveau glissement : c'est lui qui relance l'animation,
+  /// et non le contenu de [slides], qui peut se répéter à l'identique.
+  final int slideToken;
+
+  /// Durée du glissement — le réglage « Vitesse de glissée des pièces ».
+  /// Nulle : les pièces se posent d'un coup, comme le mode « Instantané ».
+  final Duration slideDuration;
+
   @override
   State<GameBoardView> createState() => _GameBoardViewState();
 }
 
-class _GameBoardViewState extends State<GameBoardView> {
+class _GameBoardViewState extends State<GameBoardView>
+    with SingleTickerProviderStateMixin {
   LoadedThemeImages? _pieceImages;
   LoadedThemeImages? _boardImages;
+
+  /// Glissement en cours. Au repos il vaut 1 : rien ne vole.
+  late final AnimationController _slide = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+    value: 1,
+  );
 
   @override
   void initState() {
     super.initState();
     _loadImages();
+  }
+
+  @override
+  void dispose() {
+    _slide.dispose();
+    super.dispose();
   }
 
   @override
@@ -75,6 +105,20 @@ class _GameBoardViewState extends State<GameBoardView> {
         old.boardTheme != widget.boardTheme) {
       _loadImages();
     }
+    if (old.slideToken != widget.slideToken) _startSlide();
+  }
+
+  /// Lance le glissement du coup qui vient d'être joué.
+  ///
+  /// Une durée nulle, ou rien à déplacer, et les pièces se posent aussitôt :
+  /// c'est le mode « Instantané » des réglages.
+  void _startSlide() {
+    if (widget.slides.isEmpty || widget.slideDuration <= Duration.zero) {
+      _slide.value = 1;
+      return;
+    }
+    _slide.duration = widget.slideDuration;
+    _slide.forward(from: 0);
   }
 
   /// Charge les images des deux axes.
@@ -128,18 +172,23 @@ class _GameBoardViewState extends State<GameBoardView> {
                   ),
                 ),
               ),
-              CustomPaint(
-                size: size,
-                painter: BoardPiecesPainter(
-                  geometry: geometry,
-                  palette: widget.palette,
-                  board: widget.board,
-                  selected: widget.selected,
-                  groupSelection: widget.groupSelection,
-                  destinations: widget.highlighted,
-                  lastMove: widget.lastMove,
-                  theme: widget.pieceTheme,
-                  images: _pieceImages,
+              AnimatedBuilder(
+                animation: _slide,
+                builder: (context, _) => CustomPaint(
+                  size: size,
+                  painter: BoardPiecesPainter(
+                    geometry: geometry,
+                    palette: widget.palette,
+                    board: widget.board,
+                    selected: widget.selected,
+                    groupSelection: widget.groupSelection,
+                    destinations: widget.highlighted,
+                    lastMove: widget.lastMove,
+                    theme: widget.pieceTheme,
+                    images: _pieceImages,
+                    slides: widget.slides,
+                    progress: _slide.value,
+                  ),
                 ),
               ),
             ],
