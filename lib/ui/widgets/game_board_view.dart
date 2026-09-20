@@ -172,24 +172,46 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
+              // Deux couches de pièces, chacune derrière sa frontière de
+              // repeint : celles qui sont posées, et celle qui vole. Pendant
+              // une glissée, seule la seconde est redessinée à chaque image —
+              // les quarante autres pièces ne bougent pas.
               AnimatedBuilder(
                 animation: _slide,
-                builder: (context, _) => CustomPaint(
-                  size: size,
-                  painter: BoardPiecesPainter(
+                builder: (context, _) {
+                  final flying = FlyingPiecesPainter(
                     geometry: geometry,
                     palette: widget.palette,
-                    board: widget.board,
-                    selected: widget.selected,
-                    groupSelection: widget.groupSelection,
-                    destinations: widget.highlighted,
-                    lastMove: widget.lastMove,
-                    theme: widget.pieceTheme,
-                    images: _pieceImages,
                     slides: widget.slides,
                     progress: _slide.value,
-                  ),
-                ),
+                    images: _pieceImages,
+                    theme: widget.pieceTheme,
+                  );
+                  return Stack(
+                    children: [
+                      RepaintBoundary(
+                        child: CustomPaint(
+                          size: size,
+                          painter: BoardPiecesPainter(
+                            geometry: geometry,
+                            palette: widget.palette,
+                            board: widget.board,
+                            selected: widget.selected,
+                            groupSelection: widget.groupSelection,
+                            destinations: widget.highlighted,
+                            lastMove: widget.lastMove,
+                            theme: widget.pieceTheme,
+                            images: _pieceImages,
+                            flying: flying.flying,
+                          ),
+                        ),
+                      ),
+                      RepaintBoundary(
+                        child: CustomPaint(size: size, painter: flying),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

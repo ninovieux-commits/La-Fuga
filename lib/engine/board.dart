@@ -118,9 +118,13 @@ final class Board {
   }
 
   /// Copie. Les pièces sont immuables : on ne duplique que les colonnes.
-  Board clone() => Board._(
-    List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
-  );
+  Board clone() {
+    final copy = Board._(
+      List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
+    );
+    copy._key = _key; // même contenu : la clé déjà calculée reste valable.
+    return copy;
+  }
 
   Piece? at(int c, int r) {
     if (c < 0 || c >= kCols || r < 0 || r >= kRows) return null;
@@ -131,6 +135,7 @@ final class Board {
 
   void set(int c, int r, Piece? p) {
     _cols[c][r] = p;
+    _key = null;
   }
 
   void setCell(Cell cell, Piece? p) => set(cell.col, cell.row, p);
@@ -204,7 +209,15 @@ final class Board {
   }
 
   /// Clé compacte de la position (`_dg_board_key`) : 56 caractères.
-  String get key {
+  ///
+  /// Mémorisée : la recherche de l'IA et le repeint du plateau la demandent
+  /// plusieurs fois pour un même plateau. `set` l'invalide, et c'est le seul
+  /// point de mutation.
+  String get key => _key ??= _buildKey();
+
+  String? _key;
+
+  String _buildKey() {
     final sb = StringBuffer();
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {

@@ -7,6 +7,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../engine/board.dart';
@@ -195,8 +196,7 @@ final class BoardPiecesPainter extends CustomPainter {
     this.lastMove,
     this.images,
     this.theme,
-    this.slides = const [],
-    this.progress = 1,
+    this.flying = const {},
   });
 
   final BoardGeometry geometry;
@@ -221,13 +221,10 @@ final class BoardPiecesPainter extends CustomPainter {
   /// Images du thème, quand il en a.
   final LoadedThemeImages? images;
 
-  /// Pièces en train de glisser : (pièce, départ, arrivée). Le plateau donné
-  /// est celui d'APRÈS le coup ; tant que [progress] n'a pas atteint 1, ces
-  /// pièces ne sont pas dessinées sur leur case d'arrivée mais entre les deux.
-  final List<(Piece, Cell, Cell)> slides;
-
-  /// Avancement du glissement, de 0 à 1. À 1, plus rien ne bouge.
-  final double progress;
+  /// Cases dont la pièce est en vol : le plateau donné est celui d'APRÈS le
+  /// coup, mais tant que le glissement dure la pièce n'est pas dessinée là.
+  /// Elle l'est entre deux cases, par [FlyingPiecesPainter].
+  final Set<Cell> flying;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -276,12 +273,6 @@ final class BoardPiecesPainter extends CustomPainter {
       }
     }
 
-    // Cases dont la pièce est en vol : on ne la dessine pas là, elle est
-    // ailleurs entre deux cases.
-    final flying = progress >= 1
-        ? const <Cell>{}
-        : {for (final (_, _, to) in slides) to};
-
     // Pièces.
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
@@ -322,40 +313,85 @@ final class BoardPiecesPainter extends CustomPainter {
         );
       }
     }
-
-    // Les pièces en vol, par-dessus le reste — l'équivalent de la couche
-    // animée que Kivy dessine au-dessus du plateau.
-    if (progress < 1) {
-      for (final (piece, from, to) in slides) {
-        final start = g.cellRect(from.col, from.row);
-        final end = g.cellRect(to.col, to.row);
-        paintPiece(
-          canvas,
-          Rect.lerp(start, end, progress)!,
-          piece,
-          palette,
-          flipped: g.flipped,
-          boardColor: palette.board,
-          images: images,
-          theme: theme,
-          rainbowFraction: rainbowFractionOf(to.col, to.row),
-        );
-      }
-    }
   }
 
   @override
   bool shouldRepaint(BoardPiecesPainter old) =>
-      old.progress != progress ||
-      old.slides.length != slides.length ||
-      old.board.key != board.key ||
+      // Le plateau est muté en place : comparer la clé n'a de sens que si ce
+      // n'est pas le même objet, sinon on reconstruit deux clés par image.
+      (!identical(old.board, board) && old.board.key != board.key) ||
       old.images != images ||
       old.selected != selected ||
       old.palette != palette ||
       old.geometry.flipped != geometry.flipped ||
-      old.destinations.length != destinations.length ||
+      !setEquals(old.destinations, destinations) ||
+      !setEquals(old.groupSelection, groupSelection) ||
+      !setEquals(old.flying, flying) ||
       old.theme != theme ||
       old.lastMove != lastMove;
+}
+
+/// Les pièces en vol, par-dessus le reste — l'équivalent de la couche animée
+/// que Kivy dessine au-dessus du plateau (`animate_slide`).
+///
+/// Couche séparée pour que les soixante images par seconde d'un glissement ne
+/// redessinent que la pièce qui bouge : les quarante autres, elles, ne
+/// changent pas d'une image à l'autre.
+final class FlyingPiecesPainter extends CustomPainter {
+  const FlyingPiecesPainter({
+    required this.geometry,
+    required this.palette,
+    required this.slides,
+    required this.progress,
+    this.images,
+    this.theme,
+  });
+
+  final BoardGeometry geometry;
+  final ThemePalette palette;
+
+  /// Pièces en train de glisser : (pièce, départ, arrivée).
+  final List<(Piece, Cell, Cell)> slides;
+
+  /// Avancement du glissement, de 0 à 1. À 1, plus rien ne vole.
+  final double progress;
+
+  final LoadedThemeImages? images;
+  final String? theme;
+
+  /// Cases d'arrivée, celles que la couche du dessous doit laisser vides.
+  Set<Cell> get flying =>
+      progress >= 1 ? const {} : {for (final (_, _, to) in slides) to};
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress >= 1) return;
+    final g = geometry;
+    for (final (piece, from, to) in slides) {
+      final start = g.cellRect(from.col, from.row);
+      final end = g.cellRect(to.col, to.row);
+      paintPiece(
+        canvas,
+        Rect.lerp(start, end, progress)!,
+        piece,
+        palette,
+        flipped: g.flipped,
+        boardColor: palette.board,
+        images: images,
+        theme: theme,
+        rainbowFraction: rainbowFractionOf(to.col, to.row),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(FlyingPiecesPainter old) =>
+      old.progress != progress ||
+      old.slides.length != slides.length ||
+      old.images != images ||
+      old.palette != palette ||
+      old.geometry.flipped != geometry.flipped ||
+      old.theme != theme;
 }
 
 /// Notes telles qu'elles s'écrivent SOUS le plateau : en minuscules. La

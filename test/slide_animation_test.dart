@@ -30,7 +30,13 @@ void main() {
     await Translations.load('fr');
   });
 
-  /// Le peintre des pièces, tel qu'il est à cet instant.
+  /// Le peintre de la couche qui vole, tel qu'il est à cet instant.
+  FlyingPiecesPainter flyingOf(WidgetTester tester) {
+    final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
+    return paints.map((p) => p.painter).whereType<FlyingPiecesPainter>().first;
+  }
+
+  /// Le peintre des pièces posées, tel qu'il est à cet instant.
   BoardPiecesPainter painterOf(WidgetTester tester) {
     final paints = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
     return paints.map((p) => p.painter).whereType<BoardPiecesPainter>().first;
@@ -72,19 +78,26 @@ void main() {
     );
 
     // Au repos, rien ne vole.
-    expect(painterOf(tester).progress, 1);
+    expect(flyingOf(tester).progress, 1);
+    expect(painterOf(tester).flying, isEmpty);
 
     await tester.tap(find.text('jouer'));
     await tester.pump();
-    expect(painterOf(tester).progress, 0, reason: 'le glissement démarre');
+    expect(flyingOf(tester).progress, 0, reason: 'le glissement démarre');
+    expect(
+      painterOf(tester).flying,
+      {const Cell(0, 2)},
+      reason: 'la case d arrivée reste vide tant que la pièce vole',
+    );
 
     await tester.pump(const Duration(milliseconds: 200));
-    final midway = painterOf(tester).progress;
+    final midway = flyingOf(tester).progress;
     expect(midway, greaterThan(0));
     expect(midway, lessThan(1), reason: 'la pièce est entre deux cases');
 
     await tester.pumpAndSettle();
-    expect(painterOf(tester).progress, 1, reason: 'elle est arrivée');
+    expect(flyingOf(tester).progress, 1, reason: 'elle est arrivée');
+    expect(painterOf(tester).flying, isEmpty, reason: 'elle est posée');
   });
 
   testWidgets('en mode instantané, aucune animation', (tester) async {

@@ -66,12 +66,21 @@ abstract final class ThemeImageCache {
       return LoadedThemeImages.none;
     }
 
-    final background = await _decode(spec.background);
-    final board = await _decode(spec.board);
+    // Tout est décodé de front : à la chaîne, ouvrir un thème complet
+    // attendrait une quinzaine de décodages l'un après l'autre.
+    final keys = spec.pieces.keys.toList(growable: false);
+    final decoded = await Future.wait([
+      _decode(spec.background),
+      _decode(spec.board),
+      for (final key in keys) _decode(spec.pieces[key]),
+    ]);
+
+    final background = decoded[0];
+    final board = decoded[1];
     final pieces = <(PieceType, Camp), ui.Image>{};
-    for (final entry in spec.pieces.entries) {
-      final image = await _decode(entry.value);
-      if (image != null) pieces[entry.key] = image;
+    for (var i = 0; i < keys.length; i++) {
+      final image = decoded[i + 2];
+      if (image != null) pieces[keys[i]] = image;
     }
 
     final result = LoadedThemeImages(
