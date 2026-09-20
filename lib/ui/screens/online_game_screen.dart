@@ -18,6 +18,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import 'conversations_screen.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
@@ -161,63 +162,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (ok == true) _g.resign();
   }
 
+  /// La boîte de messages UNIFIÉE avec l'adversaire — `_open_chat`.
+  ///
+  /// La même conversation qu'au menu : Kivy ne tient pas de chat séparé par
+  /// partie.
   Future<void> _openChat() async {
-    final controller = TextEditingController();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: paletteOf(Settings.instance.themeAxes.menu).menu,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 240,
-                child: ListView(
-                  children: [
-                    for (final m in _g.chat)
-                      ListTile(
-                        dense: true,
-                        title: Text(m.text),
-                        subtitle: Text(
-                          m.author == 'moi' ? widget.myPseudo : m.author,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(hintText: T('Message')),
-                      onSubmitted: (t) {
-                        _g.sendChat(t);
-                        controller.clear();
-                        setSheetState(() {});
-                      },
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () {
-                      _g.sendChat(controller.text);
-                      controller.clear();
-                      setSheetState(() {});
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ConversationScreen(
+          online: OnlineService.instance,
+          pseudo: _g.info.opponent,
         ),
       ),
     );

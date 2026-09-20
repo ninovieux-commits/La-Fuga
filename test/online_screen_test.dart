@@ -9,6 +9,7 @@ import 'package:lafuga/game/clock.dart';
 import 'package:lafuga/game/online_game.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/online_game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -76,6 +77,20 @@ void main() {
 
     expect(find.text('Nino  (1500)'), findsOneWidget);
     expect(find.text('Adversaire  (1500)'), findsOneWidget);
+  });
+
+  testWidgets('le chat ouvre LA conversation, pas une boîte à part', (
+    tester,
+  ) async {
+    await open(tester);
+
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+
+    // La même boîte que depuis le menu : l'écran de conversation, au nom de
+    // l'adversaire.
+    expect(find.byType(ConversationScreen), findsOneWidget);
+    expect(find.text('Adversaire'), findsWidgets);
   });
 
   testWidgets('la pause en ligne ne propose pas de quitter', (tester) async {

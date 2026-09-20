@@ -24,6 +24,7 @@ import '../widgets/name_menu.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
+import 'conversations_screen.dart';
 import 'game_screen.dart';
 
 class CorrGameScreen extends StatefulWidget {
@@ -208,86 +209,21 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   /// Chat de la partie — les deux routes existaient côté serveur sans être
   /// utilisées par l'app Kivy.
+  /// La boîte de messages UNIFIÉE avec l'adversaire — `_open_chat`.
+  ///
+  /// C'est la même conversation partout : depuis le menu, depuis une partie
+  /// en direct ou depuis une correspondance. Kivy y tient, et c'est ce qu'on
+  /// attend d'une messagerie.
   Future<void> _openChat() async {
-    final messages = await widget.service.chat(_g.id);
-    if (!mounted) return;
-
-    final input = TextEditingController();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: paletteOf(Settings.instance.themeAxes.menu).menu,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              T('Chat'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (messages == null)
-              Text(T('Conversation indisponible.'))
-            else if (messages.isEmpty)
-              Text(T('Aucun message. Écrivez le premier !'))
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final m in messages)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Text(
-                          '${m['auteur'] ?? m['de'] ?? ''} : '
-                          '${m['texte'] ?? ''}',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: input,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: T('Votre message…'),
-                      isDense: true,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () async {
-                    final text = input.text;
-                    if (text.trim().isEmpty) return;
-                    await widget.service.sendChat(_g.id, text);
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
-                  child: Text(T('Envoyer')),
-                ),
-              ],
-            ),
-          ],
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ConversationScreen(
+          online: OnlineService.instance,
+          pseudo: _g.opponent,
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   @override
