@@ -7,6 +7,7 @@ library;
 import '../engine/board.dart';
 import '../engine/move_generator.dart';
 import '../engine/piece.dart';
+import '../engine/literal_replay.dart';
 import '../engine/random_fuga.dart';
 import '../game/last_move.dart';
 import '../game/nmc.dart';
@@ -152,7 +153,18 @@ final class CorrGame {
 
   for (final notation in game.moves) {
     final move = resolveNotation(board, turn, notation);
-    if (move == null) return null;
+    if (move == null) {
+      // Coup introuvable : Kivy l'applique quand même, à la lettre, plutôt
+      // que d'abandonner la partie (`_corr_board_from_moves` ignore les
+      // échecs). On fait de même — mieux vaut une partie affichée sans sa
+      // mise en évidence qu'un écran qui dit « illisible ».
+      final literal = applyNotationLiterally(board, notation);
+      if (literal == null) return null;
+      board = literal.board;
+      last = null;
+      turn = turn.opposite;
+      continue;
+    }
     // Le dernier coup rejoué reste mis en évidence à l'ouverture, comme chez
     // Kivy où `_apply_notation` laisse le sien en place.
     last = LastMove.of(board, move, pushTargets: pushTargetsOf(board, move));

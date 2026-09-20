@@ -167,10 +167,26 @@ void main() {
       expect(r.turn, Camp.blanc, reason: 'deux coups joués, à Blanc de jouer');
     });
 
-    test('une partie qu on ne sait pas rejouer se signale', () {
-      // Un coup impossible : mieux vaut refuser d'afficher que montrer une
-      // position fausse.
-      final g = CorrGame.fromJson(serverGame(movesText: '1.Si8-Si7'));
+    test('un coup hors règles est rejoué à la lettre, comme chez Kivy', () {
+      // `Si8-Si7` fait bouger une pièce noire au tour des Blancs : le
+      // générateur ne le retrouve pas. Kivy le rejoue quand même — sa
+      // relecture déplace les pièces sans les confronter aux règles — et
+      // affiche la partie plutôt que de la déclarer illisible.
+      final g = CorrGame.fromJson(serverGame(movesText: 'Si8-Si7'));
+      final state = replay(g);
+
+      expect(state, isNotNull);
+      expect(state!.board.at(6, 7), isNull, reason: 'si8 est vidée');
+      expect(
+        state.board.at(6, 6)?.type,
+        PieceType.garde,
+        reason: 'le Garde de si8 a pris la place du Soldat de si7',
+      );
+    });
+
+    test('une notation inapplicable se signale', () {
+      // Case de départ vide : même à la lettre, il n'y a rien à déplacer.
+      final g = CorrGame.fromJson(serverGame(movesText: 'Do4-Do5'));
       expect(replay(g), isNull);
     });
   });

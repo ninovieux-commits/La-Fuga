@@ -7,6 +7,7 @@ library;
 
 import '../engine/board.dart';
 import '../engine/move.dart';
+import '../engine/literal_replay.dart';
 import '../engine/move_generator.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
@@ -150,8 +151,27 @@ class ReplayController {
       final notation = game.moves[i];
       final move = resolveNotation(board, turn, notation);
       if (move == null) {
-        broken = i;
-        break;
+        // Comme Kivy, on tente d'appliquer la notation à la lettre avant
+        // d'abandonner : sa relecture ne confronte pas les coups aux règles.
+        final literal = applyNotationLiterally(board, notation);
+        if (literal == null) {
+          broken = i;
+          break;
+        }
+        board = literal.board;
+        turn = turn.opposite;
+        steps.add(
+          ReplayStep(
+            board: board,
+            turn: turn,
+            notation: notation,
+            captured: {
+              Camp.blanc: List.of(lost[Camp.blanc]!),
+              Camp.noir: List.of(lost[Camp.noir]!),
+            },
+          ),
+        );
+        continue;
       }
       for (final piece in _ejectedBy(board, move)) {
         lost[piece.camp]!.add(piece);

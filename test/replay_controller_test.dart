@@ -159,12 +159,22 @@ void main() {
 
   group('Partie illisible', () {
     test('la lecture s arrête au coup fautif et le signale', () {
-      final content = buildNmc(_meta, ['Fa3-Fa4', 'Si8-Si7', 'Fa4-Fa5']);
+      // Case de départ vide : rien à déplacer, même à la lettre.
+      final content = buildNmc(_meta, ['Fa3-Fa4', 'Do4-Do5', 'Fa4-Fa5']);
       final r = ReplayController.fromNmc(content);
 
       expect(r.isTruncated, isTrue);
       expect(r.brokenMoveNumber, 2, reason: 'le deuxième coup est impossible');
       expect(r.moveCount, 1, reason: 'seul le premier coup a été rejoué');
+    });
+
+    test('un coup hors règles est tout de même rejoué', () {
+      // Comme Kivy, qui applique la notation sans vérifier sa légalité.
+      final content = buildNmc(_meta, ['Fa3-Fa4', 'Si8-Si7']);
+      final r = ReplayController.fromNmc(content);
+
+      expect(r.isTruncated, isFalse);
+      expect(r.moveCount, 2);
     });
 
     test('une partie entièrement lisible ne signale rien', () {
@@ -189,7 +199,7 @@ void main() {
     });
 
     test('un premier coup impossible est refusé', () {
-      expect(isReadableNmc(buildNmc(_meta, ['Si8-Si7'])), isFalse);
+      expect(isReadableNmc(buildNmc(_meta, ['Do4-Do5'])), isFalse);
     });
   });
 
