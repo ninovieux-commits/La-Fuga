@@ -51,6 +51,10 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Partie en ligne | coups, horloges, nulle, abandon, chat, match |
 | Correspondance | lecture des parties, rejeu, atomicité du coup final |
 | Images de thème | fichiers existants, dix pièces par thème, pubspec à jour |
+| Tuto | les 22 étapes, phases guidées, multisaut, manœuvre, poussée |
+| Matchs | score, alternance des couleurs, règle de l'ultime partie |
+| Défis | envoi, annulation, refus, réception, raisons d'échec |
+| Compte et messagerie | profil, notifications, favoris, blocages, conversations |
 
 ```bash
 flutter test
@@ -98,12 +102,33 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Menu, réglages, persistance de la configuration
 - [x] Thèmes à images (médiéval, fleurs, dragon, insectes, deepgrey)
 - [x] Rosace du logo au centre du plateau
-- [ ] Écrans restants (tuto, historique, lecteur, conversations, compte)
+- [x] Historique (compte + appareil) et lecteur de parties
+- [x] Archivage des parties finies (serveur si connecté, sinon `.nmc` local)
+- [x] Deep Grey apprend : poids affinés et livre d'ouvertures
+- [x] Compte : profil, photo, description, e-mail, notifications, favoris, blocages
+- [x] Messagerie : conversations, messages, non-lus
+- [x] Tuto : les 22 étapes, dont 9 interactives
+- [x] Défis en direct, recherche de joueur, favoris
+- [x] Analyse, Random Fuga hors ligne, lecteur `.nmc`, soutien aux devs
+- [x] Matchs en plusieurs points hors ligne, abandon, nulle par accord
+- [x] Composeur de thèmes (les cinq axes séparément)
 - [x] Mode en ligne branché : salon, connexion, partie, chat, nulle, abandon
 - [x] Correspondance : défis, parties, nulle, abandon, rejeu de l'historique
 
 ### Écarts connus, à combler
 
-- Firebase est volontairement absent de `pubspec.yaml` tant que
-  `google-services.json` n'est pas fourni : le déclarer sans ce fichier ferait
-  échouer la compilation pour une fonctionnalité pas encore écrite.
+- **Notifications push.** Firebase est volontairement absent de `pubspec.yaml`
+  tant que `google-services.json` n'est pas fourni : le déclarer sans ce
+  fichier ferait échouer la compilation. Le reste est prêt côté client — la
+  route `/set_fcm_token` est déjà implémentée et les préférences de
+  notification (`mail`, `turn`, `msg`, `defi_corr`, `defi_direct`) se règlent
+  dans l'écran de compte. Il manque le fichier, puis l'abonnement au jeton.
+- **Visite guidée du menu.** En Kivy, la dernière étape du tuto entoure les
+  touches du vrai menu une par une. Le menu Flutter n'a pas la même
+  disposition (pas de rangée cadence/objectif ni d'emplacements de
+  correspondance sur le menu) : la visite demande d'être repensée plutôt que
+  recopiée.
+- **Taille de l'APK.** Les images des thèmes pèsent 32 Mo à elles seules
+  (jusqu'à 3 Mo par fichier). Une recompression sans perte les allégerait
+  beaucoup, mais elle modifierait des fichiers repris tels quels du dépôt
+  Kivy : à décider.
