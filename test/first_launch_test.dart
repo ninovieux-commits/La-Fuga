@@ -2,7 +2,6 @@
 /// démarrage de Kivy (`show_first_launch_language`, puis l'écran du tuto).
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
