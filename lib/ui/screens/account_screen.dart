@@ -151,7 +151,7 @@ class _AccountScreenState extends State<AccountScreen> {
         builder: (_) => HistoryScreen(
           online: widget.online,
           opponent: profile.isSelf ? null : profile.pseudo,
-          mode: mode,
+          h2hMode: mode,
         ),
       ),
     );

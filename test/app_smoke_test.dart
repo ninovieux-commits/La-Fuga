@@ -92,7 +92,7 @@ void main() {
     expect(find.textContaining('Deux frères'), findsOneWidget);
   });
 
-  testWidgets('les réglages s ouvrent et listent thèmes et langues', (
+  testWidgets('les réglages s ouvrent sur les sélecteurs de Kivy', (
     tester,
   ) async {
     await bootApp(tester);
@@ -100,8 +100,12 @@ void main() {
     await tapVisible(tester, find.text('Réglages'));
 
     expect(find.byType(SettingsScreen), findsOneWidget);
-    expect(find.text('Deep Grey'), findsWidgets, reason: 'un thème du jeu');
+    // Le thème et la langue se font défiler, ils ne se listent pas.
     expect(find.text('Français'), findsOneWidget);
+    expect(find.text('Original'), findsOneWidget);
+    expect(find.text('Piano'), findsOneWidget);
+    expect(find.text('Appliquer ce thème'), findsOneWidget);
+    expect(find.text('Fermer'), findsOneWidget);
   });
 
   testWidgets('on lance une partie contre Deep Grey et le plateau apparaît', (

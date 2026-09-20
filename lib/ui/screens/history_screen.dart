@@ -1,87 +1,117 @@
-/// Historique : les parties du compte et celles enregistrées sur l'appareil.
+/// Historique des parties — portage d'`OnlineHistoryScreen`, de
+/// `HistoryScreen` et de `render_account_entry` (main.py).
+///
+/// Deux listes, chacune son écran comme en Kivy : « En ligne » montre les
+/// parties du compte (identifiant préfixé `online_`), « En local » celles
+/// jouées sur l'appareil. **Connecté**, les parties locales viennent elles
+/// aussi du serveur, qui les synchronise entre appareils ; sinon on lit les
+/// fichiers `.nmc` de l'appareil.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/messages.dart';
 import '../../net/online_service.dart';
 import '../../state/local_games.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../widgets/fuga_button.dart';
+import '../widgets/fuga_header.dart';
+import '../widgets/profile_photo.dart';
 import 'replay_screen.dart';
+
+/// Laquelle des deux listes de Kivy.
+enum HistoryMode { online, local }
 
 class HistoryScreen extends StatefulWidget {
   HistoryScreen({
     super.key,
     required this.online,
-    LocalGamesStore? local,
+    this.mode = HistoryMode.online,
+    LocalGamesStore? store,
     this.opponent,
-    this.mode,
-  }) : local = local ?? LocalGamesStore();
+    this.h2hMode,
+  }) : store = store ?? LocalGamesStore();
 
   final OnlineService online;
+  final HistoryMode mode;
 
-  /// Ne montrer que les parties jouées contre ce joueur.
+  /// Magasin des parties de l'appareil. Injectable pour les tests.
+  final LocalGamesStore store;
+
+  /// Tête-à-tête : ne montrer que les parties contre ce joueur.
   final String? opponent;
 
   /// Avec [opponent] : `direct` ou `corr`, pour ne garder qu'un seul mode.
-  final String? mode;
-
-  /// Magasin des parties locales. Injectable pour les tests.
-  final LocalGamesStore local;
+  final String? h2hMode;
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
-
+class _HistoryScreenState extends State<HistoryScreen> {
   List<Map<String, dynamic>>? _accountGames;
-  List<LocalGame>? _localGames;
-  bool _loading = false;
+  List<LocalGame>? _localFiles;
+  bool _loading = true;
+  String? _error;
+
+  bool get _fromServer =>
+      widget.mode == HistoryMode.online || widget.online.isLoggedIn;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
     _load();
   }
 
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
-
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
-    final local = await widget.local.list();
-    List<Map<String, dynamic>>? account;
-    if (widget.online.isLoggedIn) {
-      final r = await widget.online.client.listGames();
-      if (r.isOk) {
-        account = [
-          for (final g in r.get<List<dynamic>>('games') ?? const [])
-            if (g is Map)
-              if (_keep(Map<String, dynamic>.from(g)))
-                Map<String, dynamic>.from(g),
-        ];
-      }
+    if (widget.mode == HistoryMode.online && !widget.online.isLoggedIn) {
+      setState(() => _loading = false);
+      return;
     }
 
+    if (!_fromServer) {
+      final files = await widget.store.list();
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _localFiles = files;
+      });
+      return;
+    }
+
+    final r = await widget.online.client.listGames(widget.opponent);
     if (!mounted) return;
+    if (!r.isOk) {
+      setState(() {
+        _loading = false;
+        _error = r.error ?? T('réseau');
+      });
+      return;
+    }
+
+    // Le préfixe de l'identifiant sépare les deux historiques.
+    final prefix = widget.mode == HistoryMode.online ? 'online_' : 'local_';
     setState(() {
       _loading = false;
-      _localGames = local;
-      _accountGames = account;
+      _accountGames = [
+        for (final g in r.get<List<dynamic>>('games') ?? const [])
+          if (g is Map)
+            if ('${g['game_uid'] ?? ''}'.startsWith(prefix) &&
+                _keep(Map<String, dynamic>.from(g)))
+              Map<String, dynamic>.from(g),
+      ];
     });
   }
 
-  /// Filtre tête-à-tête : les parties contre un adversaire donné, dans un
-  /// mode donné. Le mode se lit dans l'identifiant, comme en Kivy :
+  /// Filtre tête-à-tête : le mode se lit dans l'identifiant, comme en Kivy —
   /// `online_corr…` pour la correspondance, `online_…` pour le direct.
   bool _keep(Map<String, dynamic> game) {
     final opponent = widget.opponent;
@@ -89,147 +119,392 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     final uid = '${game['game_uid'] ?? ''}';
     final isCorr = uid.startsWith('online_corr');
-    if (widget.mode == 'corr' && !isCorr) return false;
-    if (widget.mode == 'direct' && isCorr) return false;
+    if (widget.h2hMode == 'corr' && !isCorr) return false;
+    if (widget.h2hMode == 'direct' && isCorr) return false;
 
     final lower = opponent.toLowerCase();
     return '${game['joueur1'] ?? ''}'.toLowerCase() == lower ||
         '${game['joueur2'] ?? ''}'.toLowerCase() == lower;
   }
 
+  // ── Ouverture d'une partie ────────────────────────────────────────────────
+
   Future<void> _openAccountGame(Map<String, dynamic> game) async {
-    final uid = (game['game_uid'] ?? '').toString();
-    final r = await widget.online.client.getGame(uid);
+    final r = await widget.online.client.getGame('${game['game_uid'] ?? ''}');
     if (!mounted) return;
     final nmc = r.get<String>('nmc_text');
     if (nmc == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(T('Partie introuvable.'))));
+      await _showError(T('Impossible de charger la partie.'));
       return;
     }
+    if (!mounted) return;
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => ReplayScreen(nmc: nmc)));
   }
 
   Future<void> _openLocalGame(LocalGame game) async {
-    final nmc = await widget.local.read(game.file);
-    if (!mounted || nmc == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ReplayScreen(nmc: nmc, title: game.name),
+    final nmc = await widget.store.read(game.file);
+    if (!mounted) return;
+    if (nmc == null) {
+      await _showError(
+        T(
+          'désolé, le fichier nmc est invalide,\nla lecture ne peut pas s effectuer',
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => ReplayScreen(nmc: nmc)));
+  }
+
+  Future<void> _showError(String message) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: kFugaGrey,
+      title: Text(T('Erreur'), style: const TextStyle(color: Colors.white)),
+      content: Text(
+        message,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(T('OK')),
+        ),
+      ],
+    ),
+  );
+
+  /// Le bouton « Copier » : Kivy montre le contenu dans une zone de texte
+  /// qu'on sélectionne à la main. Ici le presse-papiers fait le travail, et la
+  /// popup reste pour ceux qui veulent relire avant de coller.
+  Future<void> _copyNmc(LocalGame game) async {
+    final content = await widget.store.read(game.file);
+    if (content == null || !mounted) return;
+    await Clipboard.setData(ClipboardData(text: content));
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kFugaGrey,
+        title: Text(
+          T('Contenu .nmc'),
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              content,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Fermer')),
+          ),
+        ],
       ),
     );
   }
+
+  // ── Affichage ─────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
-    final palette = paletteOf(axes.general);
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      appBar: AppBar(
-        backgroundColor: palette.clair,
-        foregroundColor: Colors.white,
-        title: Text(
-          widget.opponent == null
-              ? T('Historique')
-              : '${T("Historique")} · ${widget.opponent}',
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: T('Actualiser'),
-            onPressed: _loading ? null : _load,
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabs,
-          indicatorColor: Colors.white,
-          tabs: [
-            Tab(text: T('Mon compte')),
-            Tab(text: T('Sur cet appareil')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            FugaHeader(
+              back: T('< Historique'),
+              title: widget.mode == HistoryMode.online
+                  ? T('En ligne')
+                  : T('En local'),
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(child: _body()),
           ],
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabs,
-              children: [_accountTab(palette), _localTab(palette)],
-            ),
     );
   }
 
-  Widget _accountTab(ThemePalette palette) {
-    if (!widget.online.isLoggedIn) {
-      return Center(child: Text(T('Connexion requise')));
+  Widget _body() {
+    if (widget.mode == HistoryMode.online && !widget.online.isLoggedIn) {
+      return _notice(T('Connectez-vous pour voir vos parties en ligne.'));
     }
-    final games = _accountGames;
-    if (games == null) {
-      return Center(
-        child: Text(T('Erreur : %s').replaceAll('%s', T('réseau'))),
+    if (_loading) {
+      return _notice(
+        widget.mode == HistoryMode.online
+            ? T('Chargement des parties en ligne…')
+            : T('Chargement…'),
       );
     }
-    if (games.isEmpty) {
-      return Center(child: Text(T('Aucune partie enregistrée.')));
+    final error = _error;
+    if (error != null) {
+      return _notice(
+        T("Impossible de charger l'historique\n(%s)").replaceAll('%s', error),
+        color: const Color.fromRGBO(153, 51, 51, 1),
+      );
     }
 
+    final empty = widget.mode == HistoryMode.online
+        ? T(
+            'Aucune partie en ligne.\nJouez une partie en ligne pour la voir ici !',
+          )
+        : T(
+            "Aucune partie locale.\nJouez en local ou contre l'IA pour la voir ici !",
+          );
+
+    if (_fromServer) {
+      final games = _accountGames ?? const [];
+      if (games.isEmpty) return _notice(empty);
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        itemCount: games.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, i) => _accountEntry(games[i]),
+      );
+    }
+
+    final files = _localFiles ?? const <LocalGame>[];
+    if (files.isEmpty) return _notice(empty);
     return ListView.separated(
-      itemCount: games.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final g = games[i];
-        return ListTile(
-          title: Text('${g['joueur1'] ?? '?'} – ${g['joueur2'] ?? '?'}'),
-          subtitle: Text(
-            [
-              if (g['date'] != null) '${g['date']}',
-              if (g['resultat'] != null) '${g['resultat']}',
-              if (g['methode'] != null) '${g['methode']}',
-            ].join('  ·  '),
-          ),
-          trailing: Icon(Icons.play_arrow, color: palette.clair),
-          onTap: () => _openAccountGame(g),
-        );
-      },
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      itemCount: files.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) => _fileEntry(files[i]),
     );
   }
 
-  Widget _localTab(ThemePalette palette) {
-    final games = _localGames ?? const <LocalGame>[];
-    if (games.isEmpty) {
-      return Center(child: Text(T('Aucune partie sur cet appareil.')));
-    }
-
-    return ListView.separated(
-      itemCount: games.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final g = games[i];
-        return Dismissible(
-          key: ValueKey(g.file.path),
-          background: Container(color: FugaColors.immobile),
-          onDismissed: (_) async {
-            await widget.local.delete(g.file);
-            await _load();
-          },
-          child: ListTile(
-            title: Text('${g.meta.player1} – ${g.meta.player2}'),
-            subtitle: Text(
-              [
-                g.meta.date,
-                g.meta.result,
-                g.meta.method,
-              ].where((s) => s.isNotEmpty).join('  ·  '),
+  Widget _notice(String text, {Color color = const Color(0xFF4D4D4D)}) =>
+      Padding(
+        padding: const EdgeInsets.all(24),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontStyle: FontStyle.italic,
+              color: color,
             ),
-            trailing: Icon(Icons.play_arrow, color: palette.clair),
-            onTap: () => _openLocalGame(g),
           ),
-        );
-      },
+        ),
+      );
+
+  /// Une partie du compte : symbole, noms encadrés des deux avatars, date,
+  /// cadence et méthode.
+  Widget _accountEntry(Map<String, dynamic> g) {
+    final method = '${g['methode'] ?? '?'}';
+    final result = '${g['resultat'] ?? '?'}';
+    final player1 = '${g['joueur1'] ?? 'Joueur 1'}';
+    final player2 = '${g['joueur2'] ?? 'Joueur 2'}';
+
+    // Le serveur date les parties en secondes depuis l'époque.
+    var date = '';
+    final ts = int.tryParse('${g['played_at'] ?? ''}');
+    if (ts != null) {
+      final t = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+      date =
+          '${t.year}-${_two(t.month)}-${_two(t.day)} '
+          '${_two(t.hour)}:${_two(t.minute)}';
+    }
+
+    // Vert si j'ai gagné, rouge si j'ai perdu, gris pour une nulle : le point
+    // de vue est celui du joueur connecté, pas celui des Blancs.
+    final (String sym, Color symColor) = switch (result) {
+      '1-0' || '0-1' => (
+        _kDoubleMethods.contains(method) ? '*' : '#',
+        _iWon(result, player2)
+            ? const Color.fromRGBO(77, 217, 77, 1)
+            : const Color.fromRGBO(255, 84, 84, 1),
+      ),
+      _ => ('½', const Color.fromRGBO(191, 191, 191, 1)),
+    };
+
+    return _card(
+      onTap: () => _openAccountGame(g),
+      sym: sym,
+      symColor: symColor,
+      names: Row(
+        children: [
+          ProfilePhoto(
+            photo: avatarPhotoFor(player1, '${g['joueur1_photo'] ?? ''}'),
+            size: 22,
+          ),
+          const SizedBox(width: 4),
+          Expanded(child: _names(player1, player2)),
+          const SizedBox(width: 4),
+          ProfilePhoto(
+            photo: avatarPhotoFor(player2, '${g['joueur2_photo'] ?? ''}'),
+            size: 22,
+          ),
+        ],
+      ),
+      date: date,
+      info: '${_cadenceLabel('${g['cadence'] ?? '?'}')}  •  ${T(method)}',
     );
   }
+
+  /// Une partie lue sur l'appareil. Le symbole vient du résultat et des
+  /// points : `*` pour une victoire à deux points, `#` sinon.
+  Widget _fileEntry(LocalGame game) {
+    final meta = game.meta;
+    final (String sym, Color symColor) = switch (meta.result) {
+      '1-0' => (
+        meta.points == '2' ? '*' : '#',
+        const Color.fromRGBO(77, 217, 77, 1),
+      ),
+      '0-1' => (
+        meta.points == '2' ? '*' : '#',
+        const Color.fromRGBO(255, 84, 84, 1),
+      ),
+      _ => ('½', const Color.fromRGBO(191, 191, 191, 1)),
+    };
+
+    return Row(
+      children: [
+        Expanded(
+          child: _card(
+            onTap: () => _openLocalGame(game),
+            sym: sym,
+            symColor: symColor,
+            names: _names(meta.player1, meta.player2),
+            date: meta.date,
+            info: '${_cadenceLabel(meta.cadence)}  •  ${T(meta.method)}',
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 76,
+          height: 90,
+          child: FugaButton(
+            text: T('Copier'),
+            fontSize: 11,
+            radius: 8,
+            height: double.infinity,
+            onPressed: () => _copyNmc(game),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _names(String player1, String player2) => Text(
+    '$player1  vs  $player2',
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+      color: Colors.white,
+    ),
+  );
+
+  Widget _card({
+    required VoidCallback onTap,
+    required String sym,
+    required Color symColor,
+    required Widget names,
+    required String date,
+    required String info,
+  }) {
+    const secondary = Color.fromRGBO(217, 217, 217, 1);
+    return Material(
+      color: kFugaGrey,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: SizedBox(
+          height: 90,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    sym,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: symColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 4, child: Center(child: names)),
+                      Expanded(
+                        flex: 3,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: secondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            info,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: secondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _iWon(String result, String player2) {
+    final me = widget.online.pseudo ?? '';
+    // joueur1 tient les Blancs : « 1-0 » me fait gagner sauf si je suis le
+    // second joueur.
+    return (me.isNotEmpty && me == player2) ? result == '0-1' : result == '1-0';
+  }
+
+  String _cadenceLabel(String cadence) => switch (cadence) {
+    'corr' => T('Corresp'),
+    'zen' => T('Zen'),
+    '' || '?' => '?',
+    _ => '${cadence}min',
+  };
+
+  static String _two(int n) => n.toString().padLeft(2, '0');
 }
+
+/// Les fins qui valent deux points — elles portent l'étoile du logo.
+const Set<String> _kDoubleMethods = {'fugue', 'abandon', 'temps'};

@@ -17,7 +17,6 @@ import '../../game/challenges.dart';
 import '../../game/clock.dart';
 import '../../game/correspondence.dart';
 import '../../game/online_game.dart';
-import '../../game/replay_controller.dart';
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
@@ -33,12 +32,10 @@ import 'account_screen.dart';
 import 'conversations_screen.dart';
 import 'corr_game_screen.dart';
 import 'game_screen.dart';
-import 'history_screen.dart';
 import 'login_screen.dart';
 import 'online_game_screen.dart';
-import 'replay_screen.dart';
+import 'parties_menu_screen.dart';
 import 'settings_screen.dart';
-import 'theme_composer_screen.dart';
 import 'tuto_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -622,7 +619,9 @@ class MenuScreenState extends State<MenuScreen> {
     await _push(AccountScreen(online: _online));
   }
 
-  /// Le bouton « Plus » de Kivy : tuto, historique, analyse, réglages, dons.
+  /// Le bouton « Plus » de Kivy : cinq entrées, pas une de plus. Le lecteur
+  /// `.nmc` est dans le menu de l'historique, et le composeur de thèmes dans
+  /// les réglages — comme en Kivy.
   Future<void> _openPlus() async {
     final palette = paletteOf(_axes.general);
     await showDialog<void>(
@@ -638,19 +637,13 @@ class MenuScreenState extends State<MenuScreen> {
                   (
                     T('Historique'),
                     kFugaGrey,
-                    () => _push(HistoryScreen(online: _online)),
+                    () => _push(PartiesMenuScreen(online: _online)),
                   ),
                   (T('Analyse'), kFugaGrey, _openAnalysis),
-                  (T('Lecteur nmc'), kFugaGrey, _openNmcReader),
                   (
                     T('Réglages'),
                     kFugaGrey,
                     () => _push(const SettingsScreen()),
-                  ),
-                  (
-                    T('Composer le thème'),
-                    kFugaGrey,
-                    () => _push(const ThemeComposerScreen()),
                   ),
                   (T('Soutenir les devs'), palette.clair, _openSupport),
                 ])
@@ -659,6 +652,7 @@ class MenuScreenState extends State<MenuScreen> {
                 child: FugaButton(
                   text: label,
                   color: color,
+                  fontSize: 17,
                   onPressed: () {
                     Navigator.of(context).pop();
                     action();
@@ -742,52 +736,49 @@ class MenuScreenState extends State<MenuScreen> {
     ),
   );
 
-  /// Lecteur `.nmc` : on colle le contenu d'un fichier pour le rejouer.
-  Future<void> _openNmcReader() async {
-    final controller = TextEditingController();
-    final content = await showDialog<String>(
+  /// Les dons : Kivy ouvre une popup qui remercie et liste les plateformes.
+  Future<void> _openSupport() async {
+    final palette = paletteOf(_axes.general);
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(T('Lecteur nmc')),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 8,
-          decoration: InputDecoration(
-            hintText: T("Collez le contenu d'un fichier .nmc ci-dessous :"),
-          ),
+        backgroundColor: paletteOf(_axes.menu).menu,
+        title: Text(T('Soutenir les devs')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              T('Merci de soutenir le développement de La Fuga !\n') +
+                  T('Votre aide compte beaucoup.'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            const SizedBox(height: 10),
+            FugaButton(
+              text: 'PayPal',
+              color: palette.fonce,
+              fontSize: 16,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _openSupportLink();
+              },
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Annuler')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(T('Lire')),
-          ),
-        ],
       ),
     );
-    if (content == null || content.isEmpty || !mounted) return;
-
-    if (!isReadableNmc(content)) {
-      _say(
-        T(
-          'désolé, le fichier nmc est invalide,\nla lecture ne peut pas s effectuer',
-        ),
-      );
-      return;
-    }
-    await _push(ReplayScreen(nmc: content));
   }
 
-  Future<void> _openSupport() async {
+  Future<void> _openSupportLink() async {
+    if (kSupportLink.isEmpty) {
+      _say(T('Ce lien sera bientôt disponible.'));
+      return;
+    }
     final launched = await launchUrl(
       Uri.parse(kSupportLink),
       mode: LaunchMode.externalApplication,
     );
-    if (!launched && mounted) _say(T('Bientôt'));
+    if (!launched && mounted) _say(T('Ce lien sera bientôt disponible.'));
   }
 
   /// L'histoire du jeu, au toucher du logo.

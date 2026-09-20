@@ -41,6 +41,12 @@ void main() {
     await tapVisible(tester, find.text(entry));
   }
 
+  /// Le lecteur nmc est au bout du menu de l'historique, comme en Kivy.
+  Future<void> openReaderScreen(WidgetTester tester) async {
+    await openPlus(tester, 'Historique');
+    await tapVisible(tester, find.text('Lecteur nmc'));
+  }
+
   group('Analyse', () {
     test('la répétition ne clôt pas une analyse', () {
       // En partie, revenir quatre fois sur la même position fait nulle ;
@@ -100,7 +106,7 @@ void main() {
   group('Lecteur nmc', () {
     testWidgets('un contenu collé s ouvre en lecture', (tester) async {
       await bootApp(tester);
-      await openPlus(tester, 'Lecteur nmc');
+      await openReaderScreen(tester);
 
       const meta = NmcMeta(
         date: '2026-09-20',
@@ -125,7 +131,7 @@ void main() {
 
     testWidgets('un contenu illisible est refusé', (tester) async {
       await bootApp(tester);
-      await openPlus(tester, 'Lecteur nmc');
+      await openReaderScreen(tester);
 
       await tester.enterText(find.byType(TextField).last, 'n importe quoi');
       await tapVisible(tester, find.text('Lire'));
@@ -139,7 +145,7 @@ void main() {
     /// Ouvre le lecteur sur une partie de deux coups.
     Future<void> openReader(WidgetTester tester) async {
       await bootApp(tester);
-      await openPlus(tester, 'Lecteur nmc');
+      await openReaderScreen(tester);
 
       const meta = NmcMeta(
         date: '2026-09-20',

@@ -78,7 +78,7 @@ class _PlayerCardState extends State<_PlayerCard> {
         builder: (_) => HistoryScreen(
           online: widget.online,
           opponent: widget.player.pseudo,
-          mode: mode,
+          h2hMode: mode,
         ),
       ),
     );
