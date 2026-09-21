@@ -12,6 +12,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../theme/themes.dart';
+import '../scale.dart';
 import 'game_top_bar.dart';
 
 class MoveStrip extends StatefulWidget {
@@ -78,22 +79,22 @@ class _MoveStripState extends State<MoveStrip> {
           onPressed: () => widget.onSelect(noir == null ? i : i + 1),
           style: TextButton.styleFrom(
             minimumSize: Size.zero,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: S(8)),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             foregroundColor: isActive ? Colors.black : Colors.white,
           ),
           child: Text(
             '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: SF(13), fontWeight: FontWeight.bold),
           ),
         ),
       );
     }
 
     return Container(
-      height: 44,
+      // La hauteur vient de la pile (7 % de l'écran), comme chez Kivy.
       color: widget.color,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
       child: Row(
         children: [
           _arrow('<', moves.isEmpty ? null : () => widget.onSelect(active - 1)),
@@ -107,11 +108,11 @@ class _MoveStripState extends State<MoveStrip> {
                 if (widget.randomCode != null)
                   Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: EdgeInsets.symmetric(horizontal: S(8)),
                       child: Text(
                         widget.randomCode!,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: SF(13),
                           fontWeight: FontWeight.bold,
                           color: widget.palette.clair,
                         ),
@@ -133,23 +134,23 @@ class _MoveStripState extends State<MoveStrip> {
     );
   }
 
+  /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
   Widget _arrow(String label, VoidCallback? onPressed) => Opacity(
     opacity: onPressed == null ? 0.35 : 1,
-    child: SizedBox(
-      width: 32,
-      height: double.infinity,
+    child: AspectRatio(
+      aspectRatio: 1,
       child: Material(
         color: kBarButtonDark,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(S(20)),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(S(20)),
           onTap: onPressed,
           child: Center(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: SF(22),
                 fontWeight: FontWeight.bold,
               ),
             ),

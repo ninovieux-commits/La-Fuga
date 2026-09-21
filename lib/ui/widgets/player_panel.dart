@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
@@ -58,7 +59,8 @@ class _CapturesPainter extends CustomPainter {
     final each = pieces.length > 1
         ? size.width / (1 + 0.7 * (pieces.length - 1))
         : size.width;
-    final side = math.min(math.min(size.height - 2, each), 34.0);
+    // Kivy plafonne à 36 px de l'écran de référence.
+    final side = math.min(math.min(size.height - S(2), each), S(36));
     final step = side * 0.7;
     final top = (size.height - side) / 2;
 
@@ -68,7 +70,7 @@ class _CapturesPainter extends CustomPainter {
         Rect.fromLTWH(i * step, top, side, side),
         pieces[i],
         palette,
-        outlineWidth: 1,
+        outlineWidth: S(1),
       );
     }
   }
@@ -148,16 +150,16 @@ class PlayerPanel extends StatelessWidget {
       final rows = box.maxHeight.isFinite
           ? [Expanded(child: _identity()), Expanded(child: _actions())]
           : [
-              SizedBox(height: 34, child: _identity()),
-              SizedBox(height: 32, child: _actions()),
+              SizedBox(height: S(34), child: _identity()),
+              SizedBox(height: S(32), child: _actions()),
             ];
 
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
         decoration: BoxDecoration(
           color: palette.menu,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(S(14)),
         ),
         child: Row(
           children: [
@@ -166,9 +168,9 @@ class PlayerPanel extends StatelessWidget {
             // valeur `S(58)` du constructeur n'est qu'un point de départ.
             ProfilePhoto(
               photo: photo,
-              size: box.maxHeight.isFinite ? box.maxHeight - 8 : 52,
+              size: box.maxHeight.isFinite ? box.maxHeight - 2 * S(4) : S(58),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: S(8)),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -195,19 +197,19 @@ class PlayerPanel extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: nameColor,
-              fontSize: 16,
+              fontSize: SF(16),
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
       ),
       if (busy)
-        const Padding(
-          padding: EdgeInsets.only(right: 8),
+        Padding(
+          padding: EdgeInsets.only(right: S(8)),
           child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            width: S(14),
+            height: S(14),
+            child: CircularProgressIndicator(strokeWidth: S(2)),
           ),
         ),
       Expanded(
@@ -215,11 +217,11 @@ class PlayerPanel extends StatelessWidget {
         child: Text(
           clock,
           textAlign: TextAlign.right,
-          style: const TextStyle(
+          style: TextStyle(
             color: kPanelInk,
-            fontSize: 19,
+            fontSize: SF(19),
             fontWeight: FontWeight.bold,
-            fontFeatures: [FontFeature.tabularFigures()],
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ),
@@ -229,9 +231,9 @@ class PlayerPanel extends StatelessWidget {
           child: Text(
             score!,
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
               color: kPanelInk,
-              fontSize: 16,
+              fontSize: SF(16),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -255,34 +257,49 @@ class PlayerPanel extends StatelessWidget {
         ),
       // L'abandon est rouge sombre chez Kivy : on n'y touche pas par mégarde.
       if (onResign != null)
-        _button('X', T('Abandonner'), onResign!, color: kResignRed),
+        _button(
+          'X',
+          T('Abandonner'),
+          onResign!,
+          color: kResignRed,
+          fontSize: SF(15),
+        ),
     ],
   );
 
+  /// Touche carrée de la rangée d'actions : chez Kivy elle occupe 85 % de la
+  /// hauteur de la rangée et sa largeur suit sa hauteur.
   Widget _button(
     String label,
     String tooltip,
     VoidCallback onPressed, {
     Color color = kFugaGrey,
+    double? fontSize,
   }) => Tooltip(
     message: tooltip,
-    child: InkWell(
-      onTap: onPressed,
-      child: Container(
-        width: 34,
-        height: 30,
-        margin: const EdgeInsets.only(left: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
+    child: Padding(
+      padding: EdgeInsets.only(left: S(6)),
+      child: FractionallySizedBox(
+        heightFactor: 0.85,
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Material(
+            color: color,
+            borderRadius: BorderRadius.circular(S(16)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(S(16)),
+              onTap: onPressed,
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSize ?? SF(16),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

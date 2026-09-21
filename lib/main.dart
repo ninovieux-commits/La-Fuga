@@ -10,6 +10,7 @@ import 'i18n/translations.dart';
 import 'net/online_service.dart';
 import 'net/push_notifications.dart';
 import 'state/settings.dart';
+import 'ui/scale.dart';
 import 'ui/screens/menu_screen.dart';
 
 Future<void> main() async {
@@ -87,8 +88,11 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
       // Le texte doit occuper la même proportion de l'écran quel que soit le
       // réglage système, comme en Kivy où l'on refuse l'unité « sp » au profit
       // de pixels purs mis à l'échelle sur la largeur.
-      builder: (context, child) =>
-          MediaQuery.withNoTextScaling(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => MediaQuery.withNoTextScaling(
+        // Toutes les tailles sont exprimées en pixels de l'écran de référence
+        // et mises à l'échelle de celui-ci : voir `ui/scale.dart`.
+        child: FugaScale(child: child ?? const SizedBox.shrink()),
+      ),
       home: const MenuScreen(),
     );
   }

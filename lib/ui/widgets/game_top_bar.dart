@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
 const Color kBarButtonDark = Color.fromRGBO(38, 38, 38, 1);
@@ -70,20 +71,26 @@ class GameTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 44,
+    // La hauteur vient de la pile (7 % de l'écran), comme le `size_hint` de
+    // Kivy : on ne la fixe pas ici.
     color: color,
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
     child: Row(
       children: [
-        _round('< >', onFlip, fontSize: 15, tooltip: T('Retourner le plateau')),
+        _round(
+          '< >',
+          onFlip,
+          fontSize: SF(18),
+          tooltip: T('Retourner le plateau'),
+        ),
         if (onMenu != null) ...[
-          const SizedBox(width: 6),
+          SizedBox(width: S(6)),
           _wide(
             T('Retour au menu'),
             onMenu!,
-            width: 120,
+            width: S(155),
             color: palette.clair,
-            fontSize: 11,
+            fontSize: SF(11),
           ),
         ],
         const Spacer(),
@@ -93,54 +100,53 @@ class GameTopBar extends StatelessWidget {
                 ? T('Chat (%d)').replaceFirst('%d', '$unreadChat')
                 : T('Chat'),
             onChat!,
-            width: 88,
+            width: S(88),
             color: kBarButtonDark,
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: S(6)),
         ],
         if (onToggleAiMode != null) ...[
           _wide(
             aiDeepMode == true ? T('Profond') : T('Rapide'),
             onToggleAiMode!,
-            width: 108,
+            width: S(108),
             color: kBarButtonDark,
-            fontSize: 15,
+            fontSize: SF(15),
             tooltip: T('Deep Grey'),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: S(6)),
         ],
         if (onAnalyse != null) ...[
-          _wide(T('Analyser'), onAnalyse!, width: 100, color: palette.clair),
-          const SizedBox(width: 6),
+          _wide(T('Analyser'), onAnalyse!, width: S(100), color: palette.clair),
+          SizedBox(width: S(6)),
         ],
         if (onDeepGrey != null) ...[
           _wide(
             'Deep Grey',
             onDeepGrey!,
-            width: 110,
+            width: S(110),
             color: kBarButtonDeepGrey,
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: S(6)),
         ],
         if (pauseLabel == '| |')
           Tooltip(
             message: T('Pause'),
-            child: SizedBox(
-              width: 44,
-              height: double.infinity,
+            child: AspectRatio(
+              aspectRatio: 1,
               child: Material(
                 color: kBarButtonDark,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(S(20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(S(20)),
                   onTap: onPause,
                   // Deux barres dessinées plutôt que le texte « | | » : à
                   // cette taille, le glyphe débordait de la touche et
                   // tombait de travers.
                   child: const Center(
-                    child: SizedBox(
-                      width: 14,
-                      height: 18,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.30,
+                      heightFactor: 0.40,
                       child: CustomPaint(painter: _PausePainter()),
                     ),
                   ),
@@ -149,12 +155,13 @@ class GameTopBar extends StatelessWidget {
             ),
           )
         else
-          _round(pauseLabel, onPause, fontSize: 16, tooltip: T('Retour')),
+          _round(pauseLabel, onPause, fontSize: SF(22), tooltip: T('Retour')),
       ],
     ),
   );
 
-  /// Touche ronde, carrée : la hauteur du bandeau fait sa largeur.
+  /// Touche ronde, carrée : la hauteur du bandeau fait sa largeur —
+  /// `bind(height=lambda b, h: setattr(b, "width", h))`.
   Widget _round(
     String label,
     VoidCallback onPressed, {
@@ -163,9 +170,9 @@ class GameTopBar extends StatelessWidget {
   }) => _button(
     label,
     onPressed,
-    width: 44,
+    width: null,
     color: kBarButtonDark,
-    radius: 20,
+    radius: S(20),
     fontSize: fontSize,
     tooltip: tooltip,
   );
@@ -175,51 +182,51 @@ class GameTopBar extends StatelessWidget {
     VoidCallback onPressed, {
     required double width,
     required Color color,
-    double fontSize = 14,
+    double? fontSize,
     String? tooltip,
   }) => _button(
     label,
     onPressed,
     width: width,
     color: color,
-    radius: 14,
-    fontSize: fontSize,
+    radius: S(14),
+    fontSize: fontSize ?? SF(14),
     tooltip: tooltip,
   );
 
+  /// [width] nul : la touche est carrée et suit la hauteur du bandeau.
   Widget _button(
     String label,
     VoidCallback onPressed, {
-    required double width,
+    required double? width,
     required Color color,
     required double radius,
     required double fontSize,
     String? tooltip,
   }) {
-    final button = SizedBox(
-      width: width,
-      height: double.infinity,
-      child: Material(
-        color: color,
+    final Widget inner = Material(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      child: InkWell(
         borderRadius: BorderRadius.circular(radius),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(radius),
-          onTap: onPressed,
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-              ),
+        onTap: onPressed,
+        child: Center(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
       ),
     );
+    final button = width == null
+        ? AspectRatio(aspectRatio: 1, child: inner)
+        : SizedBox(width: width, height: double.infinity, child: inner);
     return tooltip == null ? button : Tooltip(message: tooltip, child: button);
   }
 }
