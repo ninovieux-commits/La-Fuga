@@ -60,8 +60,11 @@ abstract final class FugaColors {
   /// Contour de la pièce sélectionnée.
   static const Color selection = Color.fromRGBO(255, 255, 0, 1);
 
-  /// Contour des pièces du groupe sélectionné.
-  static const Color groupSelection = Color.fromRGBO(255, 102, 255, 1);
+  /// Contour des pièces du groupe sélectionné : un jaune moutarde sombre.
+  ///
+  /// Assez proche du jaune vif de la pièce maîtresse pour dire « même
+  /// coup », assez foncé pour ne pas s'y confondre.
+  static const Color groupSelection = Color.fromRGBO(184, 134, 11, 1);
 
   /// Contour d'une pièce immobilisée.
   static const Color immobile = Color.fromRGBO(255, 51, 51, 1);

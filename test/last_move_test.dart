@@ -114,4 +114,45 @@ void main() {
       expect(hl.to.length, hl.from.length);
     });
   });
+
+  group('Multisaut', () {
+    test('les rebonds laissent leurs petits carrés', () {
+      // Une Nurse blanche en do1, deux rondes à sauter : ré1 et fa1.
+      // Le chemin do1 → mi1 → sol1 passe par mi1.
+      final before = Board.empty();
+      before.set(0, 0, Piece.blancNurse);
+      before.set(1, 0, Piece.blancNurse);
+      before.set(3, 0, Piece.noirNurse);
+
+      final after = before.clone()
+        ..set(0, 0, null)
+        ..set(4, 0, Piece.blancNurse);
+
+      final hl = lastMoveFromNotation('Do1-Sol1', before, after);
+
+      expect(hl, isNotNull);
+      expect(hl!.jumpPath, [const Cell(2, 0)], reason: 'le rebond de mi1');
+      expect(hl.framedCells, {const Cell(0, 0), const Cell(4, 0)});
+    });
+
+    test('un saut unique ne laisse rien', () {
+      final before = Board.empty();
+      before.set(0, 0, Piece.blancNurse);
+      before.set(1, 0, Piece.blancNurse);
+      final after = before.clone()
+        ..set(0, 0, null)
+        ..set(2, 0, Piece.blancNurse);
+
+      expect(lastMoveFromNotation('Do1-Mi1', before, after)!.jumpPath, isEmpty);
+    });
+
+    test('une poussée ne laisse jamais de rebond', () {
+      final before = Board.initial();
+      final after = before.clone();
+      expect(
+        lastMoveFromNotation('Do2-Do3>', before, after)!.jumpPath,
+        isEmpty,
+      );
+    });
+  });
 }
