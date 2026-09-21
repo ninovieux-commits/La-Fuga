@@ -194,6 +194,29 @@ void main() {
     expect(find.byTooltip('Proposer nulle'), findsNothing);
   });
 
+  testWidgets('la liste se tient à jour sans touche « Actualiser »', (
+    tester,
+  ) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    await open(tester);
+
+    // Comme sur les sites de jeu : rien à toucher, ça s'actualise tout seul.
+    expect(find.text('Actualiser'), findsNothing);
+    final first = calls.where((c) => c.path == '/corr_list').length;
+    expect(first, greaterThan(0), reason: 'la liste arrive à l ouverture');
+
+    // Le battement redemande la liste sans qu'on ait rien fait.
+    await tester.pump(const Duration(seconds: 26));
+    await tester.pumpAndSettle();
+    expect(
+      calls.where((c) => c.path == '/corr_list').length,
+      greaterThan(first),
+    );
+  });
+
   testWidgets('après avoir joué, on reste sur la partie', (tester) async {
     replies['/corr_list'] = {
       'ok': true,

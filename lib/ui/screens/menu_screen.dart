@@ -62,7 +62,7 @@ class MenuScreen extends StatefulWidget {
 
 /// L'état du menu est public : la visite guidée se lance de l'extérieur
 /// (fin du tuto), et les tests la déclenchent de la même façon.
-class MenuScreenState extends State<MenuScreen> {
+class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   late final OnlineService _online = widget.online ?? OnlineService.instance;
   late final CorrespondenceService _corr = CorrespondenceService(
     _online.client,
@@ -110,11 +110,28 @@ class MenuScreenState extends State<MenuScreen> {
   int _unreadMessages = 0;
   bool _searching = false;
 
+  /// Battement de l'actualisation des parties par correspondance.
+  Timer? _corrPoll;
+
+  /// Toutes les combien on redemande la liste, tant que le menu est à
+  /// l'écran. Assez souvent pour qu'un coup de l'adversaire apparaisse sans
+  /// rien faire, assez rare pour ne pas harceler le serveur.
+  static const Duration _corrInterval = Duration(seconds: 25);
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_connectWhenReady());
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
+  }
+
+  /// Au retour au premier plan, on remet la liste à jour tout de suite : le
+  /// téléphone a pu rester des heures dans une poche.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(_refreshAll());
   }
 
   /// Tout premier lancement : la langue, puis le tuto — comme au démarrage de
@@ -143,6 +160,8 @@ class MenuScreenState extends State<MenuScreen> {
 
   @override
   void dispose() {
+    _corrPoll?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
     _searchField.dispose();
     _unbind();
@@ -208,9 +227,24 @@ class MenuScreenState extends State<MenuScreen> {
     await Future.wait([_refreshCorr(), _refreshUnread()]);
   }
 
+  /// Redemande la liste toutes les [_corrInterval], tant qu'on est connecté
+  /// et que le menu est là. Plus de touche « Actualiser » : comme sur les
+  /// sites de jeu, la liste se tient à jour toute seule.
+  void _startCorrPolling() {
+    _corrPoll?.cancel();
+    if (!_online.isLoggedIn) return;
+    _corrPoll = Timer.periodic(_corrInterval, (_) {
+      if (!mounted || !_online.isLoggedIn) return;
+      unawaited(_refreshCorr());
+    });
+  }
+
   Future<void> _refreshCorr() async {
     if (!_online.isLoggedIn) {
-      setState(() => _corrGames = const []);
+      _corrPoll?.cancel();
+      // Remis à zéro : une reconnexion doit relancer le battement.
+      _corrPoll = null;
+      if (_corrGames.isNotEmpty) setState(() => _corrGames = const []);
       return;
     }
     final games = await _corr.list();
@@ -218,7 +252,29 @@ class MenuScreenState extends State<MenuScreen> {
     // Les parties où c'est à moi de jouer passent devant.
     final sorted = [...games]
       ..sort((a, b) => (a.myTurn ? 0 : 1).compareTo(b.myTurn ? 0 : 1));
-    setState(() => _corrGames = sorted);
+    if (!_sameGames(sorted, _corrGames)) {
+      setState(() => _corrGames = sorted);
+    }
+    if (_corrPoll == null) _startCorrPolling();
+  }
+
+  /// Deux listes qui se ressemblent assez pour qu'on ne redessine pas.
+  ///
+  /// L'actualisation tourne toute seule : redessiner la grille toutes les
+  /// vingt-cinq secondes pour rien ferait sauter le défilement sous le doigt.
+  bool _sameGames(List<CorrGame> a, List<CorrGame> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id ||
+          a[i].movesText != b[i].movesText ||
+          a[i].status != b[i].status ||
+          a[i].myTurn != b[i].myTurn ||
+          a[i].unreadChat != b[i].unreadChat ||
+          a[i].drawToAnswer != b[i].drawToAnswer) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _refreshUnread() async {
@@ -1081,7 +1137,7 @@ class MenuScreenState extends State<MenuScreen> {
           ),
           SizedBox(height: SH(0.02) + S(gap)),
 
-          _corrHeader(palette),
+          _corrHeader(),
           SizedBox(height: S(gap)),
           _corrGrid(palette),
           SizedBox(height: SH(0.03)),
@@ -1142,34 +1198,21 @@ class MenuScreenState extends State<MenuScreen> {
     ),
   );
 
-  Widget _corrHeader(ThemePalette palette) => SizedBox(
+  /// Le titre de la section. Plus de touche « Actualiser » à côté : la liste
+  /// se tient à jour toute seule, comme sur les sites de jeu.
+  Widget _corrHeader() => SizedBox(
+    key: _tourKeys['corr'],
     height: SH(0.04),
-    child: Row(
-      key: _tourKeys['corr'],
-      children: [
-        Expanded(
-          child: Text(
-            T('Parties par correspondance'),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: SF(15),
-              color: kMenuInk,
-            ),
-          ),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        T('Parties par correspondance'),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: SF(15),
+          color: kMenuInk,
         ),
-        SizedBox(width: S(8)),
-        SizedBox(
-          width: S(100),
-          child: FugaButton(
-            text: T('Actualiser'),
-            color: palette.fonce,
-            fontSize: SF(14),
-            height: double.infinity,
-            radius: S(12),
-            onPressed: _refreshCorr,
-          ),
-        ),
-      ],
+      ),
     ),
   );
 
