@@ -231,38 +231,7 @@ final class BoardPiecesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final g = geometry;
 
-    // Dernier coup, sous les pièces : cadres vers l'extérieur, et petits
-    // carrés sur les rebonds d'un multisaut. La couleur est l'inverse du camp
-    // qui a joué, pour rester lisible sur toutes les pièces.
-    final last = lastMove;
-    if (last != null && !last.isEmpty) {
-      final color = last.camp == Camp.blanc
-          ? const Color(0xFF000000)
-          : const Color(0xFFFFFFFF);
-      final frame = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = S(2.4);
-      for (final cell in last.framedCells) {
-        if (!cell.onBoard) continue;
-        canvas.drawRect(g.cellRect(cell.col, cell.row).inflate(1), frame);
-      }
-      final dot = Paint()..color = color;
-      for (final cell in last.jumpPath) {
-        if (!cell.onBoard) continue;
-        final d = g.cellSize * 0.16;
-        canvas.drawRect(
-          Rect.fromCenter(
-            center: g.cellCenter(cell.col, cell.row),
-            width: d,
-            height: d,
-          ),
-          dot,
-        );
-      }
-    }
-
-    // Pastilles des destinations légales.
+    // Pastilles des destinations légales, sous les pièces.
     if (destinations.isNotEmpty) {
       final paint = Paint()..color = const Color(0x99FFFF00);
       for (final cell in destinations) {
@@ -282,28 +251,11 @@ final class BoardPiecesPainter extends CustomPainter {
         final cell = Cell(c, r);
         if (flying.contains(cell)) continue;
 
-        Color? outline;
-        var width = 2.0;
-        if (cell == selected) {
-          outline = FugaColors.selection;
-          width = 4;
-        } else if (groupSelection.contains(cell)) {
-          outline = FugaColors.groupSelection;
-          width = 4;
-        } else if (board.isImmobilised(c, r)) {
-          // Même condition que la règle : une pièce au contour rouge ne peut
-          // pas bouger.
-          outline = FugaColors.immobile;
-          width = 3;
-        }
-
         paintPiece(
           canvas,
           g.cellRect(c, r),
           p,
           palette,
-          outline: outline,
-          outlineWidth: width,
           // Les points de poussée grossis, sur la pièce qui vient de pousser.
           pushHighlightDirs: {...?lastMove?.pushDirs[cell]},
           flipped: g.flipped,
@@ -312,6 +264,68 @@ final class BoardPiecesPainter extends CustomPainter {
           theme: theme,
           rainbowFraction: rainbowFractionOf(c, r),
         );
+      }
+    }
+
+    // ── Cadres, PAR-DESSUS les pièces et VERS L'INTÉRIEUR de la case ──
+    //
+    // Au premier plan : un cadre à moitié caché par une pièce voisine ou par
+    // une image de thème ne se voit pas. Vers l'intérieur : le trait tient
+    // entièrement dans sa case, il ne mord pas sur les voisines.
+    void frame(Cell cell, Color color, double width) {
+      if (!cell.onBoard) return;
+      canvas.drawRect(
+        g.cellRect(cell.col, cell.row).deflate(width / 2),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width,
+      );
+    }
+
+    // Dernier coup : cases de départ et d'arrivée, et petits carrés sur les
+    // rebonds d'un multisaut. La couleur est l'inverse du camp qui a joué —
+    // noire pour les Blancs, blanche pour les Noirs — pour rester lisible sur
+    // toutes les pièces.
+    final last = lastMove;
+    if (last != null && !last.isEmpty) {
+      final color = last.camp == Camp.blanc
+          ? const Color(0xFF000000)
+          : const Color(0xFFFFFFFF);
+      for (final cell in last.framedCells) {
+        frame(cell, color, S(2.4));
+      }
+      final dot = Paint()..color = color;
+      for (final cell in last.jumpPath) {
+        if (!cell.onBoard) continue;
+        final d = g.cellSize * 0.16;
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: g.cellCenter(cell.col, cell.row),
+            width: d,
+            height: d,
+          ),
+          dot,
+        );
+      }
+    }
+
+    // Sélection, groupe d'une manœuvre, et pièces immobilisées. Dessinés en
+    // dernier : ce sont eux qui répondent au doigt.
+    for (var c = 0; c < kCols; c++) {
+      for (var r = 0; r < kRows; r++) {
+        if (board.at(c, r) == null) continue;
+        final cell = Cell(c, r);
+        if (flying.contains(cell)) continue;
+        if (cell == selected) {
+          frame(cell, FugaColors.selection, S(4));
+        } else if (groupSelection.contains(cell)) {
+          frame(cell, FugaColors.groupSelection, S(4));
+        } else if (board.isImmobilised(c, r)) {
+          // Même condition que la règle : une pièce au contour rouge ne peut
+          // pas bouger.
+          frame(cell, FugaColors.immobile, S(3));
+        }
       }
     }
   }

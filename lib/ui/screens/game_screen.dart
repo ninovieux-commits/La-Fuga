@@ -260,6 +260,10 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
     }
+    // Kivy anime CHAQUE geste au moment où il est fait : le déplacement, le
+    // saut, la manœuvre et chaque poussée. Attendre la validation du coup ne
+    // ferait glisser que les coups de Deep Grey.
+    rememberSlides(result.slides);
     setState(() {
       // Un coup joué annule les propositions de nulle en cours.
       if (result.notation != null) {
@@ -281,14 +285,16 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   }
 
   /// Retient de quoi mettre en évidence le coup qui vient d'être joué.
+  ///
+  /// La mise en évidence se reconstruit depuis la NOTATION, comme
+  /// `_record_move` chez Kivy : c'est la même pour un coup joué au doigt, un
+  /// coup de Deep Grey, un coup reçu du réseau ou un coup relu d'un `.nmc`.
   void _rememberLastMove(ControllerResult result) {
     rememberSlides(result.slides);
-    _lastMove = LastMove.fromSlides(
-      before: _snapshots.last,
-      camp: result.camp ?? _game.turn.opposite,
-      slides: result.slides,
-      pushTargets: result.pushTargets,
-      jumpPath: result.jumpPath,
+    _lastMove = lastMoveFromNotation(
+      result.notation!,
+      _snapshots.last,
+      _game.board,
     );
     _snapshots.add(_game.board.clone());
   }

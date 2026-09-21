@@ -101,15 +101,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     final result = c.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
+    // Chaque geste glisse au moment où il est fait, comme en Kivy.
+    rememberSlides(result.slides);
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
-      rememberSlides(result.slides);
-      _lastMove = LastMove.fromSlides(
-        before: _boardBefore ?? Board.initial(),
-        camp: result.camp ?? c.turn.opposite,
-        slides: result.slides,
-        pushTargets: result.pushTargets,
-        jumpPath: result.jumpPath,
+      _lastMove = lastMoveFromNotation(
+        result.notation!,
+        _boardBefore ?? Board.initial(),
+        c.board,
       );
     }
     setState(() {});

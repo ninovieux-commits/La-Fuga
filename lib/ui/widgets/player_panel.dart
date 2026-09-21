@@ -70,9 +70,7 @@ class _CapturesPainter extends CustomPainter {
         Rect.fromLTWH(i * step, top, side, side),
         pieces[i],
         palette,
-        // Kivy laisse ce trait à 1 px brut : mis à l'échelle il disparaîtrait
-        // sur les petits écrans.
-        outlineWidth: 1,
+        outlineWidth: S(1),
       );
     }
   }

@@ -31,6 +31,7 @@ class HistoryScreen extends StatefulWidget {
     required this.online,
     this.mode = HistoryMode.online,
     LocalGamesStore? store,
+    this.target,
     this.opponent,
     this.h2hMode,
   }) : store = store ?? LocalGamesStore();
@@ -40,6 +41,10 @@ class HistoryScreen extends StatefulWidget {
 
   /// Magasin des parties de l'appareil. Injectable pour les tests.
   final LocalGamesStore store;
+
+  /// Historique de QUI. Nul : le mien. C'est le `target_pseudo` de Kivy,
+  /// transmis au serveur ; depuis le profil d'un tiers, on lit le sien.
+  final String? target;
 
   /// Tête-à-tête : ne montrer que les parties contre ce joueur.
   final String? opponent;
@@ -87,7 +92,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return;
     }
 
-    final r = await widget.online.client.listGames(widget.opponent);
+    // Tête-à-tête : on lit MON historique puis on filtre sur l'adversaire —
+    // `if h2h_opp: target = None` chez Kivy. Sinon, l'historique demandé.
+    final r = await widget.online.client.listGames(
+      widget.opponent != null ? null : widget.target,
+    );
     if (!mounted) return;
     if (!r.isOk) {
       setState(() {

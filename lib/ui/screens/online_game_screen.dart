@@ -105,15 +105,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final result = _g.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
+    // Chaque geste glisse au moment où il est fait, comme en Kivy.
+    rememberSlides(result.slides);
     if (result.notation != null) {
       _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
-      rememberSlides(result.slides);
-      _lastMove = LastMove.fromSlides(
-        before: _boardBefore ?? Board.initial(),
-        camp: result.camp ?? _g.game.turn.opposite,
-        slides: result.slides,
-        pushTargets: result.pushTargets,
-        jumpPath: result.jumpPath,
+      _lastMove = lastMoveFromNotation(
+        result.notation!,
+        _boardBefore ?? Board.initial(),
+        _g.game.board,
       );
     }
     setState(() {});

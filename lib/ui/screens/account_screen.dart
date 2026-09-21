@@ -316,6 +316,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           HistoryScreen(
                             online: widget.online,
                             mode: HistoryMode.local,
+                            target: _historyTarget(profile),
                           ),
                         ),
                       ),
@@ -324,7 +325,12 @@ class _AccountScreenState extends State<AccountScreen> {
                     Expanded(
                       child: _action(
                         T('Historique en ligne'),
-                        () => _push(HistoryScreen(online: widget.online)),
+                        () => _push(
+                          HistoryScreen(
+                            online: widget.online,
+                            target: _historyTarget(profile),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -404,6 +410,11 @@ class _AccountScreenState extends State<AccountScreen> {
     _checkbox('mail', T('Recevoir des notifications :'), sub: false),
     for (final (key, label) in _subNotifs) _checkbox(key, T(label)),
   ];
+
+  /// Historique de qui : le mien sur mon profil, le sien sur celui d'un
+  /// tiers — le `target_pseudo` d'`_open_history` chez Kivy.
+  String? _historyTarget(Profile profile) =>
+      profile.isSelf ? null : profile.pseudo;
 
   Widget _checkbox(String key, String label, {bool sub = true}) {
     final enabled = key == 'mail' || _notif.mail;

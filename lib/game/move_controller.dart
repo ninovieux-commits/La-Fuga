@@ -216,10 +216,13 @@ class MoveController {
     if (piece.isSquare && !moved) {
       final target = cell.onBoard ? board.atCell(cell) : null;
       if (target != null && target.isSquare && target.camp == turn) {
+        // Un NOUVEL ensemble à chaque fois : le peintre compare ce qu'on lui
+        // donne à ce qu'il avait. Muter celui-ci en place lui ferait croire
+        // que rien n'a changé, et le cadre rose n'apparaîtrait jamais.
         if (groupSelection.contains(cell)) {
-          groupSelection.remove(cell);
+          groupSelection = {...groupSelection}..remove(cell);
         } else if (board.groupOf(from.col, from.row).contains(cell)) {
-          groupSelection.add(cell);
+          groupSelection = {...groupSelection, cell};
         }
         return const ControllerResult(ControllerEffect.selectionChanged);
       }

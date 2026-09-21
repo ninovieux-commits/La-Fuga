@@ -195,13 +195,9 @@ class OnlineGame {
     // Coup de l'adversaire : l'écran le met en évidence et le fait glisser,
     // comme Kivy anime `_apply_remote_move`.
     pendingHighlight = (
-      lastMove: LastMove.fromSlides(
-        before: before,
-        camp: opponentCamp,
-        slides: result.slides,
-        pushTargets: result.pushTargets,
-        jumpPath: result.jumpPath,
-      ),
+      // Reconstruite depuis la notation reçue, comme chez Kivy
+      // (`_on_coup_adverse` rappelle `_build_highlight_from_notation`).
+      lastMove: lastMoveFromNotation(notation, before, game.board),
       slides: result.slides,
     );
 
