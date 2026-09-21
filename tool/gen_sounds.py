@@ -97,6 +97,24 @@ def add_noise_burst(buf, amp, length, start=0, cutoff=0.35, rng=None):
         buf[i] += amp * prev * (1 - k) ** 2
 
 
+def fade_in(buf, seconds=0.002):
+    """Départ à zéro : un fichier qui commence sur une valeur non nulle claque."""
+    f = min(len(buf), int(seconds * RATE))
+    for i in range(f):
+        buf[i] *= 0.5 - 0.5 * math.cos(math.pi * i / f)
+
+
+def block_dc(buf):
+    """Retire la composante continue : elle ne s'entend pas, mange la réserve
+    de niveau et fait souffrir les haut-parleurs."""
+    prev_in = prev_out = 0.0
+    for i, v in enumerate(buf):
+        out = v - prev_in + 0.9995 * prev_out
+        prev_in = v
+        prev_out = out
+        buf[i] = out
+
+
 def fade_out(buf, seconds=0.025):
     """Extinction finale : un fichier ne doit jamais se couper net."""
     n = len(buf)
@@ -142,7 +160,9 @@ def piano(freq, n, rng):
 def guitare(freq, n, rng):
     """Corde pincée de Karplus-Strong, avec caisse."""
     buf = silence(n)
-    delay = RATE / freq
+    # Le filtre de boucle (moyenne de deux échantillons) retarde d'un demi
+    # échantillon : sans le retrancher, les aigus sonneraient faux.
+    delay = RATE / freq - 0.5
     length = int(delay)
     frac = delay - length
     if length < 2:
@@ -160,22 +180,34 @@ def guitare(freq, n, rng):
         shape = u / pluck if u < pluck else (1 - u) / (1 - pluck)
         line[i] = shape * (0.82 + 0.18 * prev)
 
+    # La corde est tirée d'un seul côté : sa moyenne n'est pas nulle, et le
+    # filtre de boucle la garderait indéfiniment. On la retire d'emblée.
+    mean = sum(line[:length + 1]) / (length + 1)
+    for i in range(length + 1):
+        line[i] -= mean
+
     # Boucle : moyenne de deux échantillons (l'aigu se perd plus vite) et
     # amortissement réglé sur un temps d'extinction plausible — une basse
     # tient plus longtemps qu'un aigu.
-    decay_time = min(1.6, max(0.5, 1.5 * (200.0 / freq) ** 0.35))
+    #
+    # La lecture se fait entre l'échantillon d'il y a `length` et celui d'il y
+    # a `length + 1` : mélanger vers le PLUS ANCIEN allonge le retard de
+    # `frac`. Mélanger dans l'autre sens raccourcirait la corde, et la note
+    # serait fausse dans l'aigu.
+    decay_time = min(2.8, max(0.9, 2.5 * (200.0 / freq) ** 0.35))
     rho = math.exp(math.log(0.001) / (freq * decay_time))
-    idx = 0
+    size = length + 2
+    line = line[:size] + [0.0] * max(0, size - len(line))
+    write = 0
     last = 0.0
     for i in range(n):
-        a = line[idx]
-        b = line[(idx + 1) % (length + 1)]
-        cur = a + frac * (b - a)
+        r = (write - length) % size
+        older = (write - length - 1) % size
+        cur = line[r] + frac * (line[older] - line[r])
         buf[i] = cur
-        nxt = rho * 0.5 * (cur + last)
+        line[write] = rho * 0.5 * (cur + last)
         last = cur
-        line[idx] = nxt
-        idx = (idx + 1) % (length + 1)
+        write = (write + 1) % size
 
     # Caisse : deux résonances basses, à gain unitaire pour ne pas gonfler.
     for f_body, q, amp in ((99.0, 0.996, 0.18), (196.0, 0.994, 0.10)):
@@ -188,6 +220,7 @@ def guitare(freq, n, rng):
             y = buf[i] + c1 * y1 + c2 * y2
             y2, y1 = y1, y
             buf[i] += y * gain
+    block_dc(buf)
     return buf
 
 
@@ -242,7 +275,10 @@ def cloche(freq, n, rng):
         (5.33, 0.09, 0.11),
         (6.40, 0.06, 0.08),
     ]
-    tau_scale = (262.0 / freq) ** 0.25
+    # Une vraie cloche sonne bien plus d'une seconde ; le fichier, lui, en
+    # dure une. On raccourcit donc les extinctions pour qu'elle ait fini de
+    # parler avant la fin, au lieu d'être coupée en plein vol.
+    tau_scale = 0.60 * (262.0 / freq) ** 0.25
     for ratio, amp, tau in partials:
         f = freq * ratio
         if f >= RATE / 2:
@@ -294,12 +330,13 @@ def write_wav(path, buf):
 
 # Extinction finale par instrument : pour le piano c'est l'étouffoir qui
 # retombe, pour l'orgue la soupape qui se ferme.
-TAIL = {'piano': 0.12, 'guitare': 0.10, 'orgue': 0.045, 'cloche': 0.10}
+TAIL = {'piano': 0.12, 'guitare': 0.10, 'orgue': 0.045, 'cloche': 0.18}
 
 
 def build_note(instrument, freq, n, seed):
     rng = random.Random(seed)
     buf = SYNTHS[instrument](freq, n, rng)
+    fade_in(buf)
     fade_out(buf, TAIL[instrument])
     return buf
 
@@ -315,6 +352,7 @@ def build_effect(instrument, notes, n, seed):
         part = SYNTHS[instrument](freq_of(note, octave), n - start, rng)
         for i, v in enumerate(part):
             out[start + i] += v * 0.85
+    fade_in(out)
     fade_out(out, TAIL[instrument])
     return out
 
