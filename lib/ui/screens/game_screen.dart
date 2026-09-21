@@ -216,6 +216,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   @override
   void dispose() {
     _ticker?.cancel();
+    _seconds.dispose();
     _sounds.dispose();
     _engine.dispose();
     super.dispose();
@@ -229,17 +230,35 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _game.gameOver) return;
       final loser = _clock.tick(_game.turn);
+      if (loser == null) {
+        // Une seconde qui passe ne concerne que les deux chronos : on ne
+        // reconstruit pas tout l'écran pour elle.
+        _seconds.value++;
+        return;
+      }
       setState(() {
-        if (loser != null) {
-          _finish(
-            'temps',
-            loser,
-            '${T("Temps écoulé")} — ${_campLabel(loser.opposite)} ${T("gagne")}',
-          );
-        }
+        _finish(
+          'temps',
+          loser,
+          '${T("Temps écoulé")} — ${_campLabel(loser.opposite)} ${T("gagne")}',
+        );
       });
     });
   }
+
+  /// Avance à chaque seconde : seuls les panneaux l'écoutent.
+  final ValueNotifier<int> _seconds = ValueNotifier(0);
+
+  /// Un panneau qui se refait à chaque seconde, et lui seul.
+  Widget _tickingPanel(
+    ThemePalette palette,
+    Camp camp, {
+    required bool mirrored,
+  }) => ValueListenableBuilder<int>(
+    valueListenable: _seconds,
+    builder: (context, _, __) =>
+        _playerPanel(palette, camp, mirrored: mirrored),
+  );
 
   MoveController _newGame() => MoveController(
     board: widget.initialBoard?.clone(),
@@ -612,7 +631,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
         top: false,
         child: GameLayout(
           topBar: _topBar(palette, topCamp),
-          topPanel: _playerPanel(palette, topCamp, mirrored: false),
+          topPanel: _tickingPanel(palette, topCamp, mirrored: false),
           board: GameBoardView(
             board: _shownBoard,
             palette: palette,
@@ -630,7 +649,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
             slideToken: slideToken,
             slideDuration: slideDuration,
           ),
-          bottomPanel: _playerPanel(palette, bottomCamp, mirrored: true),
+          bottomPanel: _tickingPanel(palette, bottomCamp, mirrored: true),
           moveStrip: MoveStrip(
             moves: _game.history,
             activeIndex: _viewingIndex,
