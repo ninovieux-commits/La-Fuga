@@ -81,10 +81,26 @@ void main() {
     }
   });
 
-  testWidgets("le logo raconte l'histoire du jeu", (tester) async {
+  testWidgets("le titre et le logo racontent l'histoire du jeu", (
+    tester,
+  ) async {
     await bootApp(tester);
 
-    // Le logo du thème, sous le titre : c'est lui qui ouvre l'histoire.
+    // Le titre « La Fuga » ouvre l'histoire…
+    await tapVisible(
+      tester,
+      find.ancestor(
+        of: find.byType(Image).first,
+        matching: find.byType(GestureDetector),
+      ),
+    );
+    expect(find.textContaining('Deux frères'), findsOneWidget);
+    // …et les cinq pièces du thème y sont présentées.
+    expect(find.text('Héritier'), findsOneWidget);
+    expect(find.text('Chevalier'), findsOneWidget);
+    await tapVisible(tester, find.text('X'));
+
+    // Le logo, juste en dessous, l'ouvre aussi.
     await tapVisible(
       tester,
       find.ancestor(
@@ -108,8 +124,15 @@ void main() {
     expect(find.text('Français'), findsOneWidget);
     expect(find.text('Original'), findsOneWidget);
     expect(find.text('Piano'), findsOneWidget);
-    expect(find.text('Appliquer ce thème'), findsOneWidget);
     expect(find.text('Fermer'), findsOneWidget);
+    // « Appliquer ce thème » est sous l'aperçu du thème : c'est lui qu'on
+    // regarde quand on décide. Il faut descendre jusque-là.
+    await tester.scrollUntilVisible(
+      find.text('Appliquer ce thème'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Appliquer ce thème'), findsOneWidget);
   });
 
   testWidgets('on lance une partie contre Deep Grey et le plateau apparaît', (

@@ -32,6 +32,7 @@ import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
+import '../widgets/story_view.dart';
 import 'account_screen.dart';
 import 'conversations_screen.dart';
 import 'corr_game_screen.dart';
@@ -41,6 +42,9 @@ import 'online_game_screen.dart';
 import 'parties_menu_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
+
+/// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
+typedef FavoriteChoice = ({String pseudo, bool challenge});
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key, this.online});
@@ -519,48 +523,116 @@ class MenuScreenState extends State<MenuScreen> {
         if (f is Map) Person.fromJson(Map<String, dynamic>.from(f)),
     ];
 
-    final target = await _pickFavorite(favorites, T('Mes favoris'));
-    if (target != null) await _challenge(target);
+    final choice = await _pickFavorite(favorites, T('Mes favoris'));
+    if (choice == null || !mounted) return;
+    if (await _handleFavoriteProfile(choice)) return;
+    await _challenge(choice.pseudo);
   }
 
-  /// Volet de choix d'un favori. Renvoie le pseudo choisi.
-  Future<String?> _pickFavorite(List<Person> favorites, String title) =>
-      showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(title),
-          content: favorites.isEmpty
-              ? Text(T('Aucun favori.\nAjoutez des favoris via la recherche.'))
-              : SizedBox(
-                  width: double.maxFinite,
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      for (final f in favorites)
-                        ListTile(
-                          leading: Icon(
-                            f.online ? Icons.circle : Icons.circle_outlined,
-                            size: S(12),
-                            color: f.online ? Colors.green : Colors.grey,
-                          ),
-                          title: Text(f.pseudo),
-                          subtitle: Text(
-                            T('Mélo : %d').replaceAll('%d', '${f.melo}'),
-                          ),
-                          trailing: Text(T('Défier')),
-                          onTap: () => Navigator.of(context).pop(f.pseudo),
+  /// Volet de choix d'un favori : le nom mène à son profil, « Défier » le
+  /// défie. Deux gestes distincts, comme on s'y attend d'une liste de gens.
+  Future<FavoriteChoice?> _pickFavorite(
+    List<Person> favorites,
+    String title,
+  ) => showDialog<FavoriteChoice>(
+    context: context,
+    builder: (context) {
+      final palette = paletteOf(_axes.general);
+      return AlertDialog(
+        title: Text(title),
+        contentPadding: EdgeInsets.fromLTRB(S(12), S(12), S(12), 0),
+        content: favorites.isEmpty
+            ? Text(T('Aucun favori.\nAjoutez des favoris via la recherche.'))
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final f in favorites)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: S(6)),
+                        child: Row(
+                          children: [
+                            Icon(
+                              f.online ? Icons.circle : Icons.circle_outlined,
+                              size: S(12),
+                              color: f.online ? Colors.green : Colors.grey,
+                            ),
+                            SizedBox(width: S(8)),
+                            // Le nom est un bouton : il mène au profil.
+                            Expanded(
+                              child: TextButton(
+                                style: TextButton.styleFrom(
+                                  alignment: Alignment.centerLeft,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: S(6),
+                                  ),
+                                ),
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pop((pseudo: f.pseudo, challenge: false)),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      f.pseudo,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: SF(15),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      T(
+                                        'Mélo : %d',
+                                      ).replaceAll('%d', '${f.melo}'),
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: SF(12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: S(8)),
+                            SizedBox(
+                              width: S(110),
+                              child: FugaButton(
+                                text: T('Défier'),
+                                color: palette.fonce,
+                                fontSize: SF(13),
+                                height: S(40),
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pop((pseudo: f.pseudo, challenge: true)),
+                              ),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(T('Fermer')),
-            ),
-          ],
-        ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Fermer')),
+          ),
+        ],
       );
+    },
+  );
+
+  /// Suite d'un choix de favori : le profil, ou rien.
+  Future<bool> _handleFavoriteProfile(FavoriteChoice choice) async {
+    if (choice.challenge) return false;
+    await _push(AccountScreen(online: _online, pseudo: choice.pseudo));
+    return true;
+  }
 
   // ── Correspondance ────────────────────────────────────────────────────────
 
@@ -596,13 +668,18 @@ class MenuScreenState extends State<MenuScreen> {
         if (f is Map) Person.fromJson(Map<String, dynamic>.from(f)),
     ];
 
-    final target = await _pickFavorite(
+    final choice = await _pickFavorite(
       favorites,
       T('Défier un favori\n(par correspondance)'),
     );
-    if (target == null) return;
+    if (choice == null || !mounted) return;
+    if (await _handleFavoriteProfile(choice)) return;
 
-    final error = await _corr.challenge(target, 'partie', random: _random);
+    final error = await _corr.challenge(
+      choice.pseudo,
+      'partie',
+      random: _random,
+    );
     if (!mounted) return;
     if (error != null) _say(error);
     await _refreshCorr();
@@ -817,30 +894,9 @@ class MenuScreenState extends State<MenuScreen> {
   }
 
   /// L'histoire du jeu, au toucher du logo.
-  void _showStory() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: paletteOf(_axes.menu).menu,
-        title: Text(
-          T("L'histoire de La Fuga"),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SingleChildScrollView(
-          child: Text(
-            Translations.current.story,
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Fermer')),
-          ),
-        ],
-      ),
-    );
-  }
+  /// L'histoire de La Fuga, en plein écran — on l'ouvre en touchant le titre
+  /// comme le logo.
+  void _showStory() => unawaited(showStory(context));
 
   // ── Affichage ─────────────────────────────────────────────────────────────
 
@@ -897,10 +953,13 @@ class MenuScreenState extends State<MenuScreen> {
         children: [
           // Espace sous la zone du bouton Compte.
           SizedBox(height: SH(0.06)),
-          Image.asset(
-            'assets/images/titre.webp',
-            height: SH(0.16),
-            fit: BoxFit.contain,
+          GestureDetector(
+            onTap: _showStory,
+            child: Image.asset(
+              'assets/images/titre.webp',
+              height: SH(0.16),
+              fit: BoxFit.contain,
+            ),
           ),
           SizedBox(height: S(gap)),
           GestureDetector(
@@ -1171,26 +1230,14 @@ class MenuScreenState extends State<MenuScreen> {
                   onPressed: () => setState(() => _random = !_random),
                 ),
               ),
-              SizedBox(width: S(8)),
-              Expanded(
-                child: IgnorePointer(
-                  child: Text(
-                    _online.isLoggedIn ? _meloLine() : '',
-                    style: TextStyle(
-                      fontSize: SF(13),
-                      fontWeight: FontWeight.bold,
-                      color: palette.fonceDim,
-                    ),
-                  ),
-                ),
-              ),
+              const Spacer(),
               SizedBox(
                 width: MediaQuery.sizeOf(context).width * 0.2,
                 child: FugaButton(
                   key: _tourKeys['compte'],
-                  text: _online.isLoggedIn
-                      ? (_online.pseudo ?? '?')
-                      : T('Compte'),
+                  // Le mélo est DANS le bouton, comme en Kivy :
+                  // `account_btn.text = "%s (%d)"`.
+                  text: _online.isLoggedIn ? _accountLabel() : T('Compte'),
                   fontSize: SF(12),
                   height: double.infinity,
                   onPressed: _openAccount,
@@ -1203,12 +1250,13 @@ class MenuScreenState extends State<MenuScreen> {
     ),
   );
 
-  /// Le mélo affiché suit le mode : Random Fuga a son propre classement.
-  String _meloLine() {
+  /// Ce qu'écrit le bouton Compte une fois connecté : le pseudo et le mélo.
+  ///
+  /// Le mélo suit le mode — Random Fuga a son propre classement.
+  String _accountLabel() {
     final session = _online.session;
-    if (session == null) return '';
-    final melo = _random ? session.meloRandom : session.melo;
-    return '${T('Mélo : %d').replaceAll('%d', '$melo')}'
-        '${_random ? '  (Random)' : ''}';
+    final pseudo = _online.pseudo ?? '?';
+    if (session == null) return pseudo;
+    return '$pseudo (${_random ? session.meloRandom : session.melo})';
   }
 }

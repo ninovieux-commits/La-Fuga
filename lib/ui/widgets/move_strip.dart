@@ -85,7 +85,7 @@ class _MoveStripState extends State<MoveStrip> {
           ),
           child: Text(
             '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
-            style: TextStyle(fontSize: SF(13), fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: SF(14), fontWeight: FontWeight.bold),
           ),
         ),
       );
@@ -94,7 +94,8 @@ class _MoveStripState extends State<MoveStrip> {
     return Container(
       // La hauteur vient de la pile (7 % de l'écran), comme chez Kivy.
       color: widget.color,
-      padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
+      // Comme le bandeau du haut : moins de marge, des flèches plus grosses.
+      padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(2)),
       child: Row(
         children: [
           _arrow('<', moves.isEmpty ? null : () => widget.onSelect(active - 1)),
@@ -150,7 +151,7 @@ class _MoveStripState extends State<MoveStrip> {
               label,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: SF(22),
+                fontSize: SF(25),
                 fontWeight: FontWeight.bold,
               ),
             ),

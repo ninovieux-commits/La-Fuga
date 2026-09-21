@@ -262,7 +262,7 @@ class PlayerPanel extends StatelessWidget {
           T('Abandonner'),
           onResign!,
           color: kResignRed,
-          fontSize: SF(15),
+          fontSize: SF(17),
         ),
     ],
   );
@@ -280,7 +280,7 @@ class PlayerPanel extends StatelessWidget {
     child: Padding(
       padding: EdgeInsets.only(left: S(6)),
       child: FractionallySizedBox(
-        heightFactor: 0.85,
+        heightFactor: 0.96,
         child: AspectRatio(
           aspectRatio: 1,
           child: Material(
@@ -294,7 +294,7 @@ class PlayerPanel extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: fontSize ?? SF(16),
+                    fontSize: fontSize ?? SF(18),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

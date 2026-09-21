@@ -206,7 +206,12 @@ void main() {
     await tapVisible(tester, find.byType(CorrSlot).first);
 
     expect(find.textContaining('Défier un favori'), findsOneWidget);
-    await tapVisible(tester, find.text('Bob'));
+    // Le nom est un bouton à part : il mène au profil, il ne défie pas.
+    expect(
+      find.ancestor(of: find.text('Bob'), matching: find.byType(TextButton)),
+      findsOneWidget,
+    );
+    await tapVisible(tester, find.text('Défier'));
 
     expect(bodyOf('/corr_defier')!['pseudo'], 'Bob');
   });

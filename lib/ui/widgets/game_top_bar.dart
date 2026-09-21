@@ -74,13 +74,15 @@ class GameTopBar extends StatelessWidget {
     // La hauteur vient de la pile (7 % de l'écran), comme le `size_hint` de
     // Kivy : on ne la fixe pas ici.
     color: color,
-    padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
+    // Marge verticale réduite : les touches rondes suivent la hauteur du
+    // bandeau, moins de marge veut dire des touches plus grosses.
+    padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(2)),
     child: Row(
       children: [
         _round(
           '< >',
           onFlip,
-          fontSize: SF(18),
+          fontSize: SF(21),
           tooltip: T('Retourner le plateau'),
         ),
         if (onMenu != null) ...[
@@ -88,9 +90,9 @@ class GameTopBar extends StatelessWidget {
           _wide(
             T('Retour au menu'),
             onMenu!,
-            width: S(155),
+            width: S(178),
             color: palette.clair,
-            fontSize: SF(11),
+            fontSize: SF(13),
           ),
         ],
         const Spacer(),
@@ -100,7 +102,7 @@ class GameTopBar extends StatelessWidget {
                 ? T('Chat (%d)').replaceFirst('%d', '$unreadChat')
                 : T('Chat'),
             onChat!,
-            width: S(88),
+            width: S(104),
             color: kBarButtonDark,
           ),
           SizedBox(width: S(6)),
@@ -109,22 +111,22 @@ class GameTopBar extends StatelessWidget {
           _wide(
             aiDeepMode == true ? T('Profond') : T('Rapide'),
             onToggleAiMode!,
-            width: S(108),
+            width: S(128),
             color: kBarButtonDark,
-            fontSize: SF(15),
+            fontSize: SF(17),
             tooltip: T('Deep Grey'),
           ),
           SizedBox(width: S(6)),
         ],
         if (onAnalyse != null) ...[
-          _wide(T('Analyser'), onAnalyse!, width: S(100), color: palette.clair),
+          _wide(T('Analyser'), onAnalyse!, width: S(118), color: palette.clair),
           SizedBox(width: S(6)),
         ],
         if (onDeepGrey != null) ...[
           _wide(
             'Deep Grey',
             onDeepGrey!,
-            width: S(110),
+            width: S(130),
             color: kBarButtonDeepGrey,
           ),
           SizedBox(width: S(6)),
@@ -155,7 +157,7 @@ class GameTopBar extends StatelessWidget {
             ),
           )
         else
-          _round(pauseLabel, onPause, fontSize: SF(22), tooltip: T('Retour')),
+          _round(pauseLabel, onPause, fontSize: SF(25), tooltip: T('Retour')),
       ],
     ),
   );
@@ -190,7 +192,7 @@ class GameTopBar extends StatelessWidget {
     width: width,
     color: color,
     radius: S(14),
-    fontSize: fontSize ?? SF(14),
+    fontSize: fontSize ?? SF(16),
     tooltip: tooltip,
   );
 

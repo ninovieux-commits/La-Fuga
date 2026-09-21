@@ -224,29 +224,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
 
-                  if (widget.fromMenu) ...[
-                    SizedBox(height: S(6)),
-                    FugaButton(
-                      text: T('Composer le thème'),
-                      color: palette.fonce,
-                      fontSize: SF(12),
-                      height: S(40),
-                      onPressed: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute<bool>(
-                            builder: (_) => const ThemeComposerScreen(),
-                          ),
-                        );
-                        if (!mounted) return;
-                        setState(
-                          () => _themeIndex = _indexOf(
-                            kThemeOrder,
-                            _settings.themeAxes.general,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                  // « Appliquer » juste sous l'aperçu : c'est lui qu'on
+                  // regarde quand on décide.
+                  SizedBox(height: S(6)),
+                  FugaButton(
+                    text: T('Appliquer ce thème'),
+                    color: palette.clair,
+                    fontSize: SF(12),
+                    height: S(40),
+                    onPressed: _applyTheme,
+                  ),
                 ],
               ),
             ),
@@ -254,18 +241,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: EdgeInsets.fromLTRB(S(16), S(4), S(16), S(12)),
               child: Row(
                 children: [
-                  Expanded(
-                    flex: 72,
-                    child: FugaButton(
-                      text: T('Appliquer ce thème'),
-                      color: palette.clair,
-                      fontSize: SF(12),
-                      onPressed: _applyTheme,
+                  // Composer un thème ne se fait que depuis le menu : en
+                  // pleine partie, l'écran se reconstruirait sous les pieds
+                  // du joueur.
+                  if (widget.fromMenu) ...[
+                    Expanded(
+                      flex: 72,
+                      child: FugaButton(
+                        text: T('Composer le thème'),
+                        color: palette.fonce,
+                        fontSize: SF(12),
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<bool>(
+                              builder: (_) => const ThemeComposerScreen(),
+                            ),
+                          );
+                          if (!mounted) return;
+                          setState(
+                            () => _themeIndex = _indexOf(
+                              kThemeOrder,
+                              _settings.themeAxes.general,
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  SizedBox(width: S(8)),
+                    SizedBox(width: S(8)),
+                  ],
                   Expanded(
-                    flex: 28,
+                    flex: widget.fromMenu ? 28 : 100,
                     child: FugaButton(
                       text: T('Fermer'),
                       fontSize: SF(12),
