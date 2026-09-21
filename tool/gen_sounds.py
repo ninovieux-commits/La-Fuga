@@ -212,71 +212,95 @@ def guitare(freq, n, rng):
 
 
 def orgue(freq, n, rng):
-    """Tuyaux : neuf tirettes, souffle d'attaque, léger battement."""
+    """Tuyaux : jeux de tirettes, souffle d'attaque, léger battement.
+
+    Court. Un orgue d'église tient tant qu'on garde le doigt sur la touche,
+    mais ici chaque note est un coup joué : une note qui dure une seconde
+    empile un accord de cinq notes pendant un glissando, et tout devient une
+    bouillie. On garde donc l'attaque et le timbre, pas la tenue.
+    """
     buf = silence(n)
     # Tirettes, de 0 à 8, dans l'ordre 16' 8' 5⅓' 4' 2⅔' 2' 1⅗' 1⅓' 1'.
-    drawbars = [(0.5, 7), (1.0, 8), (1.5, 5), (2.0, 6),
-                (3.0, 4), (4.0, 3), (5.0, 2), (6.0, 2), (8.0, 3)]
-    attack = 0.020
-    release = 0.045
+    drawbars = [(0.5, 6), (1.0, 8), (1.5, 4), (2.0, 6),
+                (3.0, 3), (4.0, 3), (5.0, 2), (6.0, 1), (8.0, 2)]
+    attack = 0.014
+    hold = 0.10
+    release = 0.16
     a_len = int(attack * RATE)
-    r_len = int(release * RATE)
+    h_end = int((attack + hold) * RATE)
+    r_len = max(1, int(release * RATE))
     for ratio, level in drawbars:
         f = freq * ratio
         if f >= RATE / 2:
             continue
         amp = (level / 8.0) ** 1.6
         # Chaque tuyau est un peu faux : c'est ce qui fait respirer l'orgue.
-        f *= 1 + rng.uniform(-0.0012, 0.0012)
+        f *= 1 + rng.uniform(-0.0015, 0.0015)
         w = 2 * math.pi * f / RATE
         ph = rng.uniform(0, 2 * math.pi)
         for i in range(n):
-            env = 1.0
             if i < a_len:
                 env = 0.5 - 0.5 * math.cos(math.pi * i / a_len)
-            elif i > n - r_len:
-                env = 0.5 - 0.5 * math.cos(math.pi * (n - i) / r_len)
+            elif i < h_end:
+                env = 1.0
+            else:
+                k = (i - h_end) / r_len
+                if k >= 1:
+                    break
+                env = 0.5 + 0.5 * math.cos(math.pi * k)
             buf[i] += amp * env * math.sin(w * i + ph)
-    add_noise_burst(buf, 0.12, 0.030, cutoff=0.25, rng=rng)
+    # Le « chiff » : l'air qui attaque le biseau avant que le tuyau ne parle.
+    add_noise_burst(buf, 0.16, 0.022, cutoff=0.30, rng=rng)
     return buf
 
 
 def cloche(freq, n, rng):
-    """Cloche : partiels inharmoniques, chacun avec son extinction.
+    """Cloche : partiels inharmoniques, chacun avec sa propre extinction.
 
-    Les rapports sont ceux d'une cloche accordée — bourdon à l'octave
-    inférieure, prime, tierce MINEURE, quinte, nominale à l'octave… C'est la
-    tierce mineure qui donne à toute cloche sa couleur un peu triste.
+    Ce qui fait qu'on reconnaît une cloche, ce n'est pas son fondamental :
+    c'est (1) une frappe brillante et bruitée qui meurt en un dixième de
+    seconde, (2) des partiels NON harmoniques — dont la fameuse tierce
+    MINEURE, qui donne à toute cloche sa couleur un peu triste — et (3) des
+    vitesses d'extinction très différentes d'un partiel à l'autre : l'aigu
+    disparaît presque aussitôt, le bourdon reste. C'est ce grand écart qui
+    manquait.
     """
     buf = silence(n)
+    # (rapport, amplitude, extinction en secondes). Les rapports sont ceux
+    # d'une cloche accordée ; au-delà de la nominale, ils s'écartent de plus
+    # en plus de l'harmonique pur.
     partials = [
-        (0.50, 0.55, 1.35),   # bourdon
-        (1.00, 1.00, 1.10),   # prime (la note entendue)
-        (1.19, 0.52, 0.80),   # tierce mineure
-        (1.50, 0.38, 0.65),   # quinte
-        (2.00, 0.75, 0.55),   # nominale
-        (2.53, 0.22, 0.35),
-        (2.66, 0.18, 0.30),
-        (3.01, 0.20, 0.25),
-        (4.07, 0.14, 0.16),
-        (5.33, 0.09, 0.11),
-        (6.40, 0.06, 0.08),
+        (0.500, 0.42, 1.60),   # bourdon : il reste après tout le monde
+        (1.000, 0.85, 1.05),   # prime : la note entendue
+        (1.183, 0.62, 0.62),   # tierce mineure
+        (1.506, 0.45, 0.45),   # quinte
+        (2.000, 1.00, 0.38),   # nominale : le coup de marteau
+        (2.514, 0.34, 0.24),
+        (2.664, 0.30, 0.20),
+        (3.011, 0.40, 0.17),
+        (3.472, 0.24, 0.13),
+        (4.166, 0.30, 0.10),
+        (4.943, 0.20, 0.080),
+        (5.433, 0.16, 0.065),
+        (6.314, 0.18, 0.050),
+        (7.522, 0.12, 0.040),
+        (8.937, 0.10, 0.030),
     ]
-    # Une vraie cloche sonne bien plus d'une seconde ; le fichier, lui, en
-    # dure une. On raccourcit donc les extinctions pour qu'elle ait fini de
-    # parler avant la fin, au lieu d'être coupée en plein vol.
-    tau_scale = 0.60 * (262.0 / freq) ** 0.25
+    tau_scale = (262.0 / freq) ** 0.30
     for ratio, amp, tau in partials:
         f = freq * ratio
         if f >= RATE / 2:
             continue
         decay = tau * tau_scale
-        # Deux partiels jumeaux très proches : la cloche bat.
-        add_partial(buf, f * 0.9994, amp * 0.5, decay,
-                    phase=rng.uniform(0, 2 * math.pi), attack=0.001)
-        add_partial(buf, f * 1.0006, amp * 0.5, decay,
-                    phase=rng.uniform(0, 2 * math.pi), attack=0.001)
-    add_noise_burst(buf, 0.18, 0.006, cutoff=0.7, rng=rng)
+        # Deux partiels jumeaux très proches : la cloche bat. Plus le partiel
+        # est haut, plus le battement est rapide.
+        spread = 0.0004 * ratio
+        add_partial(buf, f * (1 - spread), amp * 0.5, decay,
+                    phase=rng.uniform(0, 2 * math.pi), attack=0.0008)
+        add_partial(buf, f * (1 + spread), amp * 0.5, decay,
+                    phase=rng.uniform(0, 2 * math.pi), attack=0.0008)
+    # Le battant sur le bronze : bref, brillant, bruité.
+    add_noise_burst(buf, 0.55, 0.018, cutoff=0.92, rng=rng)
     return buf
 
 
@@ -290,17 +314,12 @@ def stable_seed(instrument, name):
     return zlib.crc32(f'{instrument}/{name}'.encode()) & 0xFFFF
 
 
-def read_shape(path):
-    """Nombre d'échantillons et niveau crête du fichier d'origine."""
-    with wave.open(path) as w:
-        n = w.getnframes()
-        raw = w.readframes(n)
-        ch = w.getnchannels()
-    vals = struct.unpack('<%dh' % (len(raw) // 2), raw)
-    if ch == 2:
-        vals = vals[0::2]
-    peak = max(abs(v) for v in vals) / 32768.0
-    return n, peak
+# Durée d'une note, en secondes, et niveau crête — par instrument.
+#
+# L'orgue est court exprès : chaque note est un coup joué, pas une touche
+# qu'on tient, et un glissando de quatre notes empilerait sinon un accord.
+NOTE_SECONDS = {'piano': 1.00, 'guitare': 1.20, 'orgue': 0.42, 'cloche': 1.00}
+PEAK = {'piano': 0.50, 'guitare': 0.82, 'orgue': 0.82, 'cloche': 0.82}
 
 
 def write_wav(path, buf):
@@ -332,11 +351,12 @@ def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'assets/sounds'
     for instrument in INSTRUMENTS:
         folder = os.path.join(root, instrument)
+        n = int(round(NOTE_SECONDS[instrument] * RATE))
+        peak = PEAK[instrument]
         for note in NOTES:
             for octave in OCTAVES:
                 name = f'{note}{octave}'
                 path = os.path.join(folder, f'{name}.wav')
-                n, peak = read_shape(path)
                 seed = stable_seed(instrument, name)
                 buf = build_note(instrument, freq_of(note, octave), n, seed)
                 write_wav(path, normalise(buf, peak))

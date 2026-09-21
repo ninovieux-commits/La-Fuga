@@ -48,10 +48,13 @@ void main() {
   /// de chacun : l'orgue est court parce qu'il ne meurt pas, la guitare tient
   /// plus longtemps.
   const noteFrames = {
-    'piano': 44100,
-    'guitare': 52920,
-    'orgue': 35280,
-    'cloche': 44100,
+    'piano': 44100, // 1,00 s
+    'guitare': 52920, // 1,20 s
+    // L'orgue est court exprès : chaque note est un coup joué, pas une touche
+    // qu'on tient. Une note qui dure empilerait un accord pendant un
+    // glissando.
+    'orgue': 18522, // 0,42 s
+    'cloche': 44100, // 1,00 s
   };
 
   test('chaque instrument a ses 28 notes, et rien d autre', () {
