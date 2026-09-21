@@ -54,9 +54,16 @@ class _MoveStripState extends State<MoveStrip> {
     super.dispose();
   }
 
+  /// Nombre de coups déjà amenés à l'écran : inutile de redemander un
+  /// défilement à chaque reconstruction, il y en a une par seconde à cause du
+  /// chrono.
+  int _scrolledTo = -1;
+
   /// Au présent, le bandeau montre toujours le dernier coup.
   void _scrollToEnd() {
-    if (widget.activeIndex != null || !_scroll.hasClients) return;
+    if (widget.activeIndex != null) return;
+    if (widget.moves.length == _scrolledTo) return;
+    _scrolledTo = widget.moves.length;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       _scroll.jumpTo(_scroll.position.maxScrollExtent);

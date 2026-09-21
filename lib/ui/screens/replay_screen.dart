@@ -65,16 +65,20 @@ class _ReplayScreenState extends State<ReplayScreen> {
   }
 
   /// Reprend la partie depuis la position affichée, seul ou contre l'IA.
+  ///
+  /// Sans camp choisi, on repart en analyse plutôt que contre l'IA : mieux
+  /// vaut une partie libre qu'un écran qui se ferme.
   Future<void> _playFromHere(bool againstAi, {Camp? myCamp}) async {
     final step = _replay.current;
+    final ai = againstAi ? myCamp?.opposite : null;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
           cadence: Cadence.zen,
-          aiCamp: againstAi ? myCamp!.opposite : null,
+          aiCamp: ai,
           initialBoard: step.board.clone(),
           initialTurn: step.turn,
-          analysis: !againstAi,
+          analysis: ai == null,
           themeName: Settings.instance.themeAxes.general,
         ),
       ),

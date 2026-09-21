@@ -3,6 +3,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +16,7 @@ import 'ui/screens/menu_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _guardAgainstCrashes();
 
   // L'app Kivy est verrouillée en portrait (buildozer.spec) : le plateau est
   // calé sur la largeur de l'écran.
@@ -43,6 +45,45 @@ Future<void> main() async {
   unawaited(PushNotifications.init());
 
   runApp(const FugaApp());
+}
+
+/// Filet de sécurité : une erreur imprévue ne doit pas fermer une partie.
+///
+/// Un jeu n'a rien à gagner à s'arrêter net. Une exception dans un rendu ou
+/// dans un travail de fond est notée en développement, et **avalée** une fois
+/// l'application livrée : le joueur garde son plateau et peut continuer, ou au
+/// pire revenir au menu.
+void _guardAgainstCrashes() {
+  FlutterError.onError = (details) {
+    if (kDebugMode) {
+      FlutterError.presentError(details);
+    }
+  };
+
+  // Erreur asynchrone que personne n'a rattrapée : on la déclare traitée
+  // plutôt que de laisser le moteur arrêter l'application.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('La Fuga — erreur non rattrapée : $error\n$stack');
+    }
+    return true;
+  };
+
+  // Le carré rouge de Flutter n'a rien à faire sous les yeux d'un joueur.
+  ErrorWidget.builder = (details) => Material(
+    color: const Color(0xFF3B3B3B),
+    child: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          T('Quelque chose n a pas pu s afficher.'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      ),
+    ),
+  );
 }
 
 class FugaApp extends StatefulWidget {

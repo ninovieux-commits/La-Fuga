@@ -7,6 +7,8 @@ library;
 
 import 'dart:typed_data';
 
+import 'sound_plan.dart';
+
 /// Échantillons d'un son : PCM 16 bits, mono, et sa fréquence.
 final class Pcm {
   const Pcm(this.samples, this.rate);
@@ -88,9 +90,10 @@ Uint8List writeWav(Int16List samples, int rate) {
   out.setUint16(34, 16, Endian.little); // bits
   tag(36, 'data');
   out.setUint32(40, dataSize, Endian.little);
-  for (var i = 0; i < samples.length; i++) {
-    out.setInt16(headerSize + i * 2, samples[i], Endian.little);
-  }
+  // Recopie en bloc : un `setInt16` par échantillon coûterait dix fois plus
+  // cher pour le même résultat. Le WAV est petit-boutiste, comme toutes les
+  // machines où tourne le jeu.
+  Int16List.sublistView(out, headerSize).setRange(0, samples.length, samples);
   return out.buffer.asUint8List();
 }
 
@@ -100,3 +103,64 @@ String _tag(ByteData d, int at) => String.fromCharCodes([
   d.getUint8(at + 2),
   d.getUint8(at + 3),
 ]);
+
+/// Toutes les notes d'un instrument, déjà décodées.
+final class SoundBank {
+  const SoundBank(this.instrument, this.notes, this.rate);
+
+  final String instrument;
+  final Map<String, Pcm> notes;
+  final int rate;
+
+  bool get isEmpty => notes.isEmpty;
+}
+
+/// Mélange les notes d'un coup en un seul tampon, à l'échantillon près.
+///
+/// C'est ici que se joue le tempo : le retard de chaque note devient un
+/// décalage en ÉCHANTILLONS, calculé une fois pour toutes. Deux coups
+/// identiques sonnent donc exactement pareil, quel que soit le mode de jeu et
+/// quoi que fasse l'interface au même moment.
+///
+/// Tout est en entiers : c'est cent fois par seconde qu'on ne peut pas se
+/// permettre de flotter. `null` si rien n'est jouable.
+Int16List? mixCues(List<SoundCue> cues, SoundBank bank, double volume) {
+  int offsetOf(SoundCue cue) =>
+      cue.delay.inMicroseconds * bank.rate ~/ Duration.microsecondsPerSecond;
+
+  var total = 0;
+  for (final cue in cues) {
+    final note = bank.notes[cue.name];
+    if (note == null) continue;
+    final end = offsetOf(cue) + note.length;
+    if (end > total) total = end;
+  }
+  if (total <= 0) return null;
+
+  // On mixe en 32 bits pour ne pas saturer en route, puis on limite une
+  // seule fois à la fin. Le gain est un entier sur 10 bits : une
+  // multiplication et un décalage par échantillon, pas d'arrondi flottant.
+  final sum = Int32List(total);
+  for (final cue in cues) {
+    final note = bank.notes[cue.name];
+    if (note == null) continue;
+    final gain = ((volume * cue.volumeFactor).clamp(0.0, 1.0) * 1024).round();
+    if (gain <= 0) continue;
+    final start = offsetOf(cue);
+    final samples = note.samples;
+    for (var i = 0; i < samples.length; i++) {
+      sum[start + i] += (samples[i] * gain) >> 10;
+    }
+  }
+
+  final out = Int16List(total);
+  for (var i = 0; i < total; i++) {
+    final v = sum[i];
+    out[i] = v > 32767
+        ? 32767
+        : v < -32768
+        ? -32768
+        : v;
+  }
+  return out;
+}

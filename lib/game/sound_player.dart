@@ -24,39 +24,28 @@ import '../state/settings.dart';
 import 'pcm.dart';
 import 'sound_plan.dart';
 
-/// Toutes les notes d'un instrument, déjà décodées.
-final class SoundBank {
-  const SoundBank(this.instrument, this.notes, this.rate);
-
-  final String instrument;
-  final Map<String, Pcm> notes;
-  final int rate;
-
-  bool get isEmpty => notes.isEmpty;
-
-  /// Charge les 28 notes d'un instrument depuis les assets.
-  static Future<SoundBank> load(String instrument) async {
-    final notes = <String, Pcm>{};
-    var rate = 44100;
-    for (final note in kSoundNotes) {
-      for (final octave in kSoundOctaves) {
-        final name = '$note$octave';
-        try {
-          final data = await rootBundle.load(
-            'assets/sounds/$instrument/$name.wav',
-          );
-          final pcm = readWav(data);
-          if (pcm != null && pcm.length > 0) {
-            notes[name] = pcm;
-            rate = pcm.rate;
-          }
-        } catch (_) {
-          // Fichier absent ou illisible : cette note restera muette.
+/// Charge les 28 notes d'un instrument depuis les assets.
+Future<SoundBank> loadSoundBank(String instrument) async {
+  final notes = <String, Pcm>{};
+  var rate = 44100;
+  for (final note in kSoundNotes) {
+    for (final octave in kSoundOctaves) {
+      final name = '$note$octave';
+      try {
+        final data = await rootBundle.load(
+          'assets/sounds/$instrument/$name.wav',
+        );
+        final pcm = readWav(data);
+        if (pcm != null && pcm.length > 0) {
+          notes[name] = pcm;
+          rate = pcm.rate;
         }
+      } catch (_) {
+        // Fichier absent ou illisible : cette note restera muette.
       }
     }
-    return SoundBank(instrument, notes, rate);
   }
+  return SoundBank(instrument, notes, rate);
 }
 
 /// Joue les notes du jeu, avec un instrument au choix.
@@ -125,7 +114,7 @@ class SoundPlayer {
     final ready = _bank;
     if (ready != null && ready.instrument == _instrument) return ready;
     final wanted = _instrument;
-    final pending = _loading ??= SoundBank.load(wanted);
+    final pending = _loading ??= loadSoundBank(wanted);
     final bank = await pending;
     // L'instrument a pu changer pendant le chargement.
     if (bank.instrument == _instrument) {
@@ -189,52 +178,4 @@ class SoundPlayer {
     }
     _voices.clear();
   }
-}
-
-/// Mélange les notes d'un coup en un seul tampon, à l'échantillon près.
-///
-/// C'est ici que se joue le tempo : le retard de chaque note devient un
-/// décalage en ÉCHANTILLONS, calculé une fois pour toutes. Deux coups
-/// identiques sonnent donc exactement pareil, quel que soit le mode de jeu et
-/// quoi que fasse l'interface au même moment.
-///
-/// `null` si rien n'est jouable.
-Int16List? mixCues(List<SoundCue> cues, SoundBank bank, double volume) {
-  int offsetOf(SoundCue cue) =>
-      cue.delay.inMicroseconds * bank.rate ~/ Duration.microsecondsPerSecond;
-
-  var total = 0;
-  for (final cue in cues) {
-    final note = bank.notes[cue.name];
-    if (note == null) continue;
-    final end = offsetOf(cue) + note.length;
-    if (end > total) total = end;
-  }
-  if (total <= 0) return null;
-
-  // On mixe en 32 bits pour ne pas saturer en route, puis on limite une
-  // seule fois à la fin.
-  final sum = Int32List(total);
-  for (final cue in cues) {
-    final note = bank.notes[cue.name];
-    if (note == null) continue;
-    final gain = (volume * cue.volumeFactor).clamp(0.0, 1.0);
-    if (gain <= 0) continue;
-    final start = offsetOf(cue);
-    final samples = note.samples;
-    for (var i = 0; i < samples.length; i++) {
-      sum[start + i] += (samples[i] * gain).round();
-    }
-  }
-
-  final out = Int16List(total);
-  for (var i = 0; i < total; i++) {
-    final v = sum[i];
-    out[i] = v > 32767
-        ? 32767
-        : v < -32768
-        ? -32768
-        : v;
-  }
-  return out;
 }

@@ -12,7 +12,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
-import 'package:lafuga/game/sound_player.dart';
 
 void main() {
   const rate = 44100;
