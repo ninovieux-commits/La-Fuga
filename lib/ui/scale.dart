@@ -22,7 +22,7 @@ library;
 
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Largeur de l'écran de référence, celui sur lequel l'appli a été dessinée.
 const double kRefWidth = 720;
@@ -95,3 +95,33 @@ class FugaScale extends StatelessWidget {
     return child;
   }
 }
+
+/// Met un thème de texte à l'échelle.
+///
+/// Les tailles que Material fournit par défaut (boîtes de dialogue, listes,
+/// boutons plats) n'ont pas d'équivalent chez Kivy, où chaque label porte son
+/// `SF`. Les faire suivre le même facteur revient au même : aucune taille de
+/// texte ne reste figée.
+TextTheme scaleTextTheme(TextTheme t, double factor) => TextTheme(
+  displayLarge: _scaled(t.displayLarge, factor),
+  displayMedium: _scaled(t.displayMedium, factor),
+  displaySmall: _scaled(t.displaySmall, factor),
+  headlineLarge: _scaled(t.headlineLarge, factor),
+  headlineMedium: _scaled(t.headlineMedium, factor),
+  headlineSmall: _scaled(t.headlineSmall, factor),
+  titleLarge: _scaled(t.titleLarge, factor),
+  titleMedium: _scaled(t.titleMedium, factor),
+  titleSmall: _scaled(t.titleSmall, factor),
+  bodyLarge: _scaled(t.bodyLarge, factor),
+  bodyMedium: _scaled(t.bodyMedium, factor),
+  bodySmall: _scaled(t.bodySmall, factor),
+  labelLarge: _scaled(t.labelLarge, factor),
+  labelMedium: _scaled(t.labelMedium, factor),
+  labelSmall: _scaled(t.labelSmall, factor),
+);
+
+/// Une taille sans valeur reste sans valeur : Material la résoudra plus tard.
+TextStyle? _scaled(TextStyle? style, double factor) =>
+    (style == null || style.fontSize == null)
+    ? style
+    : style.copyWith(fontSize: style.fontSize! * factor);

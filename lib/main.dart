@@ -77,13 +77,24 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Même les textes que Material fournit par défaut (boîtes de dialogue,
+    // listes, boutons plats) suivent l'échelle de l'écran : Kivy ne laisse
+    // aucune taille en dur, et `SF` vaut ici un facteur global.
+    final base = ThemeData(
+      brightness: Brightness.dark,
+      fontFamily: 'NotoSansCJK',
+      useMaterial3: true,
+    );
+
     return MaterialApp(
       title: 'La Fuga',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: 'NotoSansCJK',
-        useMaterial3: true,
+      theme: base.copyWith(
+        textTheme: scaleTextTheme(base.textTheme, scaleFactor * kFontBoost),
+        primaryTextTheme: scaleTextTheme(
+          base.primaryTextTheme,
+          scaleFactor * kFontBoost,
+        ),
       ),
       // Le texte doit occuper la même proportion de l'écran quel que soit le
       // réglage système, comme en Kivy où l'on refuse l'unité « sp » au profit
