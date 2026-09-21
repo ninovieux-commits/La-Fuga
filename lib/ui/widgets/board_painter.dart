@@ -187,7 +187,7 @@ final class BoardBackgroundPainter extends CustomPainter {
 
 /// Pièces, sélection et mise en évidence du dernier coup.
 final class BoardPiecesPainter extends CustomPainter {
-  const BoardPiecesPainter({
+  BoardPiecesPainter({
     required this.geometry,
     required this.palette,
     required this.board,
@@ -198,11 +198,20 @@ final class BoardPiecesPainter extends CustomPainter {
     this.images,
     this.theme,
     this.flying = const {},
-  });
+  }) : boardKey = board.key;
 
   final BoardGeometry geometry;
   final ThemePalette palette;
   final Board board;
+
+  /// Empreinte de la position AU MOMENT DE LA CONSTRUCTION.
+  ///
+  /// Le plateau est muté en place : le peintre précédent et celui-ci pointent
+  /// souvent sur le MÊME objet, et comparer l'objet — ou sa clé, relue après
+  /// coup — dirait toujours « rien n'a changé ». Une poussée ne se serait
+  /// jamais affichée avant la validation du coup. La clé est donc figée ici,
+  /// à la construction, c'est-à-dire à chaque reconstruction de l'écran.
+  final String boardKey;
 
   /// Pièce actuellement sélectionnée.
   final Cell? selected;
@@ -332,9 +341,7 @@ final class BoardPiecesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(BoardPiecesPainter old) =>
-      // Le plateau est muté en place : comparer la clé n'a de sens que si ce
-      // n'est pas le même objet, sinon on reconstruit deux clés par image.
-      (!identical(old.board, board) && old.board.key != board.key) ||
+      old.boardKey != boardKey ||
       old.images != images ||
       old.selected != selected ||
       old.palette != palette ||

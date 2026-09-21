@@ -8,6 +8,7 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 
+import '../state/settings.dart';
 import 'sound_plan.dart';
 
 /// Joue les notes du jeu, avec un instrument au choix.
@@ -24,10 +25,11 @@ class SoundPlayer {
   bool _enabled = true;
 
   /// Un lecteur par voix : les notes d'un glissando se chevauchent, un
-  /// lecteur unique les couperait les unes après les autres.
+  /// lecteur unique les couperait les unes après les autres. Douze voix
+  /// suffisent à tenir un arpège entier sans qu'une note en coupe une autre.
   final List<AudioPlayer> _voices = [];
   int _nextVoice = 0;
-  static const int _voiceCount = 6;
+  static const int _voiceCount = 12;
 
   final List<Timer> _pending = [];
 
@@ -44,10 +46,23 @@ class SoundPlayer {
     if (kInstruments.contains(name)) _instrument = name;
   }
 
+  /// Reprend l'instrument et le volume des réglages.
+  ///
+  /// À rappeler en revenant des réglages : ils s'ouvrent depuis la pause, en
+  /// pleine partie, et le changement doit s'entendre au coup suivant.
+  void applySettings() {
+    setInstrument(Settings.instance.instrument);
+    setVolume(Settings.instance.volume);
+  }
+
   Future<void> init() async {
+    applySettings();
     for (var i = 0; i < _voiceCount; i++) {
       final p = AudioPlayer();
       await p.setReleaseMode(ReleaseMode.stop);
+      // Mode « basse latence » : c'est celui des bruitages courts. La note
+      // part au moment du geste, au lieu d'arriver après lui.
+      await p.setPlayerMode(PlayerMode.lowLatency);
       _voices.add(p);
     }
   }
@@ -79,7 +94,8 @@ class SoundPlayer {
     // suivantes, et surtout pas bloquer l'interface.
     unawaited(() async {
       try {
-        await player.stop();
+        // Pas de `stop()` préalable : `play` repart de zéro, et l'aller-retour
+        // avec la plateforme retardait chaque note du temps d'un arrêt.
         await player.setVolume(level);
         await player.play(AssetSource('sounds/$_instrument/${cue.name}.wav'));
       } catch (_) {

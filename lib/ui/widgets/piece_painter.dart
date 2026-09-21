@@ -168,9 +168,11 @@ void paintPiece(
       }
 
     case PieceType.heritier:
-      canvas.drawCircle(centre, inner / 2, fill);
-      canvas.drawCircle(centre, inner / 2, line);
+      // Attention : le corps n'est PAS peint ici. L'Héritier ordinaire a un
+      // trou au centre, et un disque plein posé d'avance le boucherait.
       if (isDeepGrey) {
+        canvas.drawCircle(centre, inner / 2, fill);
+        canvas.drawCircle(centre, inner / 2, line);
         // Héritier deepgrey : un gros cœur plein qui se fond vers le gris sur
         // le bord — douze cercles concentriques, comme en Kivy.
         const steps = 12;
@@ -186,21 +188,27 @@ void paintPiece(
         }
         canvas.drawCircle(centre, inner / 2, line);
       } else {
-        // Anneau d'accent, puis un VRAI trou : on efface le disque central
-        // dans un calque, pour que le plateau se voie au travers — une
-        // pastille peinte à sa couleur ne collerait pas sur un plateau à
-        // image, ni sur une zone de ralliement.
+        // Anneau d'accent, et un VRAI trou au centre : le plateau se voit au
+        // travers. Kivy peignait ce disque à la couleur du plateau — une
+        // illusion qui ne tient ni sur un plateau à image, ni sur une zone de
+        // ralliement. Ici, le trou n'est tout simplement PAS peint : le corps
+        // et l'anneau sont des tracés à trou (règle pair-impair), sans calque
+        // ni effacement, ce qui marche sur tous les moteurs de rendu.
         final d = inner * 0.20;
-        canvas.saveLayer(rect, Paint());
-        canvas.drawCircle(centre, inner / 2, fill);
-        canvas.drawCircle(centre, inner / 2, line);
-        canvas.drawCircle(centre, (inner - 2 * d) / 2, Paint()..color = accent);
-        canvas.drawCircle(
-          centre,
-          inner * 0.14,
-          Paint()..blendMode = BlendMode.clear,
+        final holeRadius = inner * 0.14;
+        final hole = Rect.fromCircle(center: centre, radius: holeRadius);
+
+        Path ringAround(double radius) => Path()
+          ..addOval(Rect.fromCircle(center: centre, radius: radius))
+          ..addOval(hole)
+          ..fillType = PathFillType.evenOdd;
+
+        canvas.drawPath(ringAround(inner / 2), fill);
+        canvas.drawPath(
+          ringAround((inner - 2 * d) / 2),
+          Paint()..color = accent,
         );
-        canvas.restore();
+        canvas.drawCircle(centre, inner / 2, line);
       }
 
     case PieceType.chevalier:

@@ -99,7 +99,11 @@ class _ReplayScreenState extends State<ReplayScreen> {
     final bottomCamp = _flipped ? Camp.blanc : Camp.noir;
 
     return FugaScaffold(
+      // Le bandeau touche le HAUT de l'écran, comme en Kivy : en plein
+      // écran immersif il n'y a pas de barre d'état à éviter, et la bande
+      // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
+        top: false,
         child: GameLayout(
           topBar: GameTopBar(
             palette: palette,

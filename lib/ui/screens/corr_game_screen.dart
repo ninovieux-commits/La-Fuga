@@ -228,7 +228,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     final c = _controller;
 
     return FugaScaffold(
+      // Le bandeau touche le HAUT de l'écran, comme en Kivy : en plein
+      // écran immersif il n'y a pas de barre d'état à éviter, et la bande
+      // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
+        top: false,
         child: c == null
             ? Column(
                 children: [
@@ -335,6 +339,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       quit: PauseQuit.menu,
     );
     if (!mounted) return;
+    _sounds.applySettings();
     setState(() {});
     if (leave) Navigator.of(context).pop();
   }

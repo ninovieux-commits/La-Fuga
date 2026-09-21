@@ -584,7 +584,11 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
     return FugaScaffold(
+      // Le bandeau touche le HAUT de l'écran, comme en Kivy : en plein
+      // écran immersif il n'y a pas de barre d'état à éviter, et la bande
+      // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
+        top: false,
         child: GameLayout(
           topBar: _topBar(palette, topCamp),
           topPanel: _playerPanel(palette, topCamp, mirrored: false),
@@ -674,6 +678,9 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       palette: paletteOf(widget.themeName),
     );
     if (!mounted) return;
+    // Les réglages s'ouvrent depuis la pause : instrument et volume ont pu
+    // changer, et le changement doit s'entendre dès le coup suivant.
+    _sounds.applySettings();
     setState(() {});
     if (left) Navigator.of(context).pop();
   }

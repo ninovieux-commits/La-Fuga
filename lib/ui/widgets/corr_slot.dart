@@ -247,12 +247,16 @@ class _MiniBoard extends StatelessWidget {
 }
 
 class _MiniBoardPainter extends CustomPainter {
-  const _MiniBoardPainter({
+  _MiniBoardPainter({
     required this.board,
     required this.flipped,
     required this.palette,
     this.images,
-  });
+  }) : boardKey = board?.key;
+
+  /// Empreinte de la position au moment de la construction : un plateau se
+  /// mute en place, sa clé relue après coup ne dirait plus rien.
+  final String? boardKey;
 
   final Board? board;
   final bool flipped;
@@ -329,7 +333,7 @@ class _MiniBoardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MiniBoardPainter old) =>
-      old.board?.key != board?.key ||
+      old.boardKey != boardKey ||
       old.flipped != flipped ||
       old.palette != palette ||
       old.images != images;

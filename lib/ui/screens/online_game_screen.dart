@@ -206,7 +206,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final bottomCamp = flipped ? Camp.blanc : Camp.noir;
 
     return FugaScaffold(
+      // Le bandeau touche le HAUT de l'écran, comme en Kivy : en plein
+      // écran immersif il n'y a pas de barre d'état à éviter, et la bande
+      // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
+        top: false,
         child: GameLayout(
           topBar: GameTopBar(
             palette: palette,
@@ -268,7 +272,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       palette: paletteOf(Settings.instance.themeAxes.general),
       quit: PauseQuit.none,
     );
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _sounds.applySettings();
+    setState(() {});
   }
 
   Widget _banner(ThemePalette palette, Camp camp) {
