@@ -7,6 +7,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../scale.dart';
+
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 
@@ -17,43 +19,50 @@ class FugaButton extends StatelessWidget {
     required this.onPressed,
     this.color = kFugaGrey,
     this.textColor = Colors.white,
-    this.height = 48,
-    this.fontSize = 16,
-    this.radius = 14,
+    this.height,
+    this.fontSize,
+    this.radius,
   });
 
   final String text;
   final VoidCallback? onPressed;
   final Color color;
   final Color textColor;
-  final double height;
-  final double fontSize;
-  final double radius;
+
+  /// Hauteur imposée. Nulle : le bouton prend celle qu'on lui donne.
+  final double? height;
+
+  final double? fontSize;
+
+  /// Rayon des coins — `S(18)` par défaut, comme `RoundButton`.
+  final double? radius;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: height,
-    child: Material(
+  Widget build(BuildContext context) {
+    final r = radius ?? S(18);
+    final button = Material(
       color: color,
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(r),
       child: InkWell(
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(r),
         onTap: onPressed,
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.symmetric(horizontal: S(10)),
             child: Text(
               text,
               textAlign: TextAlign.center,
+              maxLines: 1,
               style: TextStyle(
                 color: textColor,
-                fontSize: fontSize,
+                fontSize: fontSize ?? SF(16),
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+    return height == null ? button : SizedBox(height: height, child: button);
+  }
 }

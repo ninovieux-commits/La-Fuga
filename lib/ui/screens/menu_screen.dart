@@ -26,6 +26,7 @@ import '../../net/socket_client.dart';
 import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
@@ -885,116 +886,137 @@ class MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _content(ThemePalette palette) {
-    // Kivy taille le titre et le logo en fraction de la HAUTEUR de l'écran :
-    // 16 % et 13 %. Des hauteurs fixes les rapetissaient sur grand écran.
-    final height = MediaQuery.of(context).size.height;
-    final titleHeight = height * 0.16;
-    final logoHeight = height * 0.13;
+    // Tout le menu se mesure en fractions de la HAUTEUR de l'écran chez Kivy
+    // (`Window.height * f`), et les écarts entre les enfants en `S(6)`.
+    const gap = 6.0; // le `spacing=S(6)` de la colonne
 
     return SingleChildScrollView(
       controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(16, 56, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Espace sous la zone du bouton Compte.
+          SizedBox(height: SH(0.06)),
           Image.asset(
             'assets/images/titre.webp',
-            height: titleHeight,
+            height: SH(0.16),
             fit: BoxFit.contain,
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: S(gap)),
           GestureDetector(
             onTap: _showStory,
             child: Image.asset(
               'assets/logos/logo_${_axes.logo}.webp',
-              height: logoHeight,
+              height: SH(0.13),
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Image.asset(
                 'assets/logos/logo_original.webp',
-                height: logoHeight,
+                height: SH(0.13),
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: SH(0.02) + S(gap)),
 
-          Text(
-            T('Cadence (min / joueur)'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: palette.fonceDim,
+          SizedBox(
+            height: SH(0.04),
+            child: Center(
+              child: Text(
+                T('Cadence (min / joueur)'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: SF(17),
+                  color: palette.fonceDim,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Row(
-            key: _tourKeys['cad'],
-            children: [
-              for (final c in Cadence.toutes)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: FugaButton(
-                      text: c.label,
-                      fontSize: 13,
-                      height: 40,
-                      color: _cadence == c ? palette.fonce : kFugaGrey,
-                      onPressed: () => setState(() => _cadence = c),
+          SizedBox(height: S(gap)),
+          SizedBox(
+            height: SH(0.05),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: S(14)),
+              child: Row(
+                key: _tourKeys['cad'],
+                children: [
+                  for (final c in Cadence.toutes)
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: S(3)),
+                        child: FugaButton(
+                          text: c.label,
+                          fontSize: SF(13),
+                          height: double.infinity,
+                          color: _cadence == c ? palette.fonce : kFugaGrey,
+                          onPressed: () => setState(() => _cadence = c),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: SH(0.02) + S(gap)),
 
           _wide(
             FugaButton(
               key: _tourKeys['local'],
               text: T('Jouer en local'),
               color: palette.clair,
+              height: SH(0.06),
+              fontSize: SF(16),
               onPressed: _startLocal,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: SH(0.012) + S(gap)),
           _wide(
             FugaButton(
               key: _tourKeys['online'],
               text: T('Jouer en ligne'),
               color: palette.fonce,
+              height: SH(0.06),
+              fontSize: SF(16),
               onPressed: _searching ? null : _playOnline,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: SH(0.012) + S(gap)),
           _wide(_searchRow()),
-          const SizedBox(height: 8),
+          SizedBox(height: SH(0.012) + S(gap)),
           _wide(
             FugaButton(
               text: _unreadMessages > 0
                   ? '${T('Messages')}  ($_unreadMessages)'
                   : T('Messages'),
+              height: SH(0.06),
+              fontSize: SF(16),
               onPressed: _openMessages,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: SH(0.012) + S(gap)),
           _wide(
             FugaButton(
               text: T('Jouer contre Deep Grey'),
+              height: SH(0.06),
+              fontSize: SF(16),
               onPressed: _startVsAi,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: SH(0.012) + S(gap)),
           _wide(
             FugaButton(
               key: _tourKeys['plus'],
               text: T('Plus'),
+              height: SH(0.06),
+              fontSize: SF(16),
               onPressed: _openPlus,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: SH(0.02) + S(gap)),
 
           _corrHeader(palette),
-          const SizedBox(height: 8),
+          SizedBox(height: S(gap)),
           _corrGrid(palette),
+          SizedBox(height: SH(0.03)),
         ],
       ),
     );
@@ -1005,7 +1027,7 @@ class MenuScreenState extends State<MenuScreen> {
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
 
   Widget _searchRow() => SizedBox(
-    height: 44,
+    height: SH(0.05),
     child: Row(
       key: _tourKeys['search'],
       children: [
@@ -1013,33 +1035,35 @@ class MenuScreenState extends State<MenuScreen> {
           child: TextField(
             controller: _searchField,
             textInputAction: TextInputAction.search,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: TextStyle(color: Colors.white, fontSize: SF(14)),
             decoration: InputDecoration(
               hintText: T('Rechercher un joueur…'),
-              hintStyle: const TextStyle(color: Colors.white70, fontSize: 13),
+              hintStyle: TextStyle(color: Colors.white70, fontSize: SF(13)),
               filled: true,
               fillColor: kFugaGrey,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: S(12),
+                vertical: S(10),
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(S(12)),
                 borderSide: BorderSide.none,
               ),
             ),
             onSubmitted: (_) => _searchPlayer(),
           ),
         ),
-        const SizedBox(width: 6),
-        SizedBox(
-          width: 44,
+        SizedBox(width: S(6)),
+        // L'étoile est carrée : sa largeur suit la hauteur de la ligne.
+        AspectRatio(
+          aspectRatio: 1,
           child: FugaButton(
             key: _tourKeys['fav'],
             text: '★',
-            fontSize: 20,
-            height: 44,
+            fontSize: SF(18),
+            height: double.infinity,
+            radius: S(12),
             textColor: const Color(0xFFFFD94D),
             onPressed: _openFavorites,
           ),
@@ -1048,30 +1072,35 @@ class MenuScreenState extends State<MenuScreen> {
     ),
   );
 
-  Widget _corrHeader(ThemePalette palette) => Row(
-    key: _tourKeys['corr'],
-    children: [
-      Expanded(
-        child: Text(
-          T('Parties par correspondance'),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            color: palette.fonceDim,
+  Widget _corrHeader(ThemePalette palette) => SizedBox(
+    height: SH(0.04),
+    child: Row(
+      key: _tourKeys['corr'],
+      children: [
+        Expanded(
+          child: Text(
+            T('Parties par correspondance'),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: SF(15),
+              color: palette.fonceDim,
+            ),
           ),
         ),
-      ),
-      SizedBox(
-        width: 100,
-        child: FugaButton(
-          text: T('Actualiser'),
-          color: palette.fonce,
-          fontSize: 12,
-          height: 34,
-          onPressed: _refreshCorr,
+        SizedBox(width: S(8)),
+        SizedBox(
+          width: S(100),
+          child: FugaButton(
+            text: T('Actualiser'),
+            color: palette.fonce,
+            fontSize: SF(12),
+            height: double.infinity,
+            radius: S(12),
+            onPressed: _refreshCorr,
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 
   /// Deux colonnes de plateaux : assez pour les parties en cours, plus deux
@@ -1080,13 +1109,18 @@ class MenuScreenState extends State<MenuScreen> {
     final rows = (_corrGames.length + 2 + 1) ~/ 2;
     final count = (rows.clamp(1, 5)) * 2;
 
+    // Kivy donne à la grille 92 % de la LARGEUR de l'écran, deux colonnes,
+    // et à chaque case la forme du plateau (7 colonnes pour 8 rangées).
     return GridView.builder(
       shrinkWrap: true,
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width * 0.04,
+      ),
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+        mainAxisSpacing: S(10),
+        crossAxisSpacing: S(10),
         childAspectRatio: 7 / 8,
       ),
       itemCount: count,
@@ -1115,30 +1149,35 @@ class MenuScreenState extends State<MenuScreen> {
     child: Align(
       alignment: Alignment.topCenter,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        // Kivy cale ces trois éléments à 3 % du bord et leur donne 20 % de la
+        // largeur sur 5 % de la hauteur.
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.sizeOf(context).width * 0.03,
+          vertical: SH(0.008),
+        ),
         child: SizedBox(
-          height: 34,
+          height: SH(0.05),
           child: Row(
             children: [
               SizedBox(
-                width: 92,
+                width: MediaQuery.sizeOf(context).width * 0.2,
                 child: FugaButton(
                   key: _tourKeys['random'],
                   text: 'Random',
-                  fontSize: 12,
-                  height: 32,
+                  fontSize: SF(12),
+                  height: double.infinity,
                   color: _random ? palette.clair : kFugaGrey,
                   textColor: _random ? Colors.black87 : Colors.white,
                   onPressed: () => setState(() => _random = !_random),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: S(8)),
               Expanded(
                 child: IgnorePointer(
                   child: Text(
                     _online.isLoggedIn ? _meloLine() : '',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: SF(13),
                       fontWeight: FontWeight.bold,
                       color: palette.fonceDim,
                     ),
@@ -1146,14 +1185,14 @@ class MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               SizedBox(
-                width: 92,
+                width: MediaQuery.sizeOf(context).width * 0.2,
                 child: FugaButton(
                   key: _tourKeys['compte'],
                   text: _online.isLoggedIn
                       ? (_online.pseudo ?? '?')
                       : T('Compte'),
-                  fontSize: 12,
-                  height: 32,
+                  fontSize: SF(12),
+                  height: double.infinity,
                   onPressed: _openAccount,
                 ),
               ),

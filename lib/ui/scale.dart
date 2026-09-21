@@ -32,9 +32,13 @@ const double kRefWidth = 720;
 const double kFontBoost = 1.70;
 
 double? _factor;
+double? _height;
 
 /// Facteur courant : largeur de l'écran rapportée à la référence.
 double get scaleFactor => _factor ?? _fromWindow();
+
+/// Hauteur de l'écran, en pixels logiques — le `Window.height` de Kivy.
+double get screenHeight => _height ?? _windowHeight();
 
 /// Met une taille de référence à l'échelle de l'écran — `S`.
 double S(double value) => value * scaleFactor;
@@ -42,12 +46,21 @@ double S(double value) => value * scaleFactor;
 /// Met une taille de police à l'échelle de l'écran — `SF`.
 double SF(double value) => value * scaleFactor * kFontBoost;
 
-/// Fixe le facteur depuis la largeur, en pixels logiques.
-void setScaleWidth(double width) =>
-    _factor = width <= 0 ? 1 : width / kRefWidth;
+/// Hauteur donnée en fraction de l'écran — les `Window.height * f` du menu,
+/// où Kivy proportionne à la HAUTEUR plutôt qu'à la largeur.
+double SH(double fraction) => screenHeight * fraction;
 
-/// Oublie le facteur fixé : on repart de la fenêtre. Pour les tests.
-void resetScale() => _factor = null;
+/// Fixe l'échelle depuis la taille de l'écran, en pixels logiques.
+void setScaleSize(Size size) {
+  _factor = size.width <= 0 ? 1 : size.width / kRefWidth;
+  _height = size.height <= 0 ? null : size.height;
+}
+
+/// Oublie l'échelle fixée : on repart de la fenêtre. Pour les tests.
+void resetScale() {
+  _factor = null;
+  _height = null;
+}
 
 /// Facteur lu directement sur la fenêtre, tant que personne ne l'a fixé.
 ///
@@ -55,10 +68,19 @@ void resetScale() => _factor = null;
 /// et un test qui affiche un widget isolé, sans [FugaScale] au-dessus, obtient
 /// ainsi la même échelle que l'appli.
 double _fromWindow() {
+  final size = _windowSize();
+  return (size == null || size.width <= 0) ? 1 : size.width / kRefWidth;
+}
+
+double _windowHeight() {
+  final size = _windowSize();
+  return (size == null || size.height <= 0) ? kRefWidth : size.height;
+}
+
+Size? _windowSize() {
   final view = PlatformDispatcher.instance.implicitView;
-  if (view == null) return 1;
-  final width = view.physicalSize.width / view.devicePixelRatio;
-  return width <= 0 ? 1 : width / kRefWidth;
+  if (view == null) return null;
+  return view.physicalSize / view.devicePixelRatio;
 }
 
 /// Tient [scaleFactor] à jour. À poser une fois, à la racine de l'appli.
@@ -69,7 +91,7 @@ class FugaScale extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    setScaleWidth(MediaQuery.sizeOf(context).width);
+    setScaleSize(MediaQuery.sizeOf(context));
     return child;
   }
 }
