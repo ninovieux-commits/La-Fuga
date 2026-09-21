@@ -11,6 +11,7 @@ import '../../game/tuto.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
@@ -55,14 +56,14 @@ class _TutoScreenState extends State<TutoScreen> {
   }
 
   Widget _topBar() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
     child: Row(
       children: [
         SizedBox(
-          width: 95,
+          width: S(95),
           child: FugaButton(
             text: T('Pause'),
-            fontSize: 13,
+            fontSize: SF(13),
             height: double.infinity,
             onPressed: _openPause,
           ),
@@ -70,10 +71,10 @@ class _TutoScreenState extends State<TutoScreen> {
         const Spacer(),
         Text(
           '${_tuto.index + 1} / ${_tuto.stepCount}',
-          style: const TextStyle(
-            fontSize: 15,
+          style: TextStyle(
+            fontSize: SF(15),
             fontWeight: FontWeight.bold,
-            color: Color.fromRGBO(38, 38, 38, 1),
+            color: const Color.fromRGBO(38, 38, 38, 1),
           ),
         ),
       ],
@@ -93,18 +94,18 @@ class _TutoScreenState extends State<TutoScreen> {
           children: [
             FugaButton(
               text: T('Réglages'),
-              fontSize: 16,
+              fontSize: SF(16),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => const SettingsScreen(fromMenu: false),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: S(10)),
             FugaButton(
               text: T('Fermer le tuto'),
               color: palette.clair,
-              fontSize: 16,
+              fontSize: SF(16),
               onPressed: () => Navigator.of(context).pop(true),
             ),
           ],
@@ -148,13 +149,13 @@ class _TutoScreenState extends State<TutoScreen> {
   /// Kivy : `(0.13, 0.45, 0.85)`.
   Widget _banner(String text) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(S(24)),
       child: Text(
         T(text),
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color.fromRGBO(33, 115, 217, 1),
-          fontSize: 30,
+        style: TextStyle(
+          color: const Color.fromRGBO(33, 115, 217, 1),
+          fontSize: SF(30),
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -163,24 +164,24 @@ class _TutoScreenState extends State<TutoScreen> {
 
   Widget _textBox() => Container(
     width: double.infinity,
-    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    padding: const EdgeInsets.all(12),
+    margin: EdgeInsets.symmetric(horizontal: S(12), vertical: S(8)),
+    padding: EdgeInsets.all(S(12)),
     decoration: BoxDecoration(
       color: const Color(0xFFFFF7E6),
-      border: Border.all(color: const Color(0xFFD9C7A6), width: 1.4),
-      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFD9C7A6), width: S(1.4)),
+      borderRadius: BorderRadius.circular(S(12)),
     ),
     child: Text(
       T(_tuto.text),
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Color(0xFF1F1F1F), fontSize: 15),
+      style: TextStyle(color: const Color(0xFF1F1F1F), fontSize: SF(15)),
     ),
   );
 
   /// « < Précédent » en gris, « Suivant > » en foncé — les couleurs de Kivy.
   /// Une touche indisponible s'estompe au lieu de disparaître.
   Widget _nav(ThemePalette palette) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    padding: EdgeInsets.symmetric(horizontal: S(16), vertical: S(6)),
     child: Row(
       children: [
         Expanded(
@@ -188,20 +189,20 @@ class _TutoScreenState extends State<TutoScreen> {
             opacity: _tuto.atFirst ? 0.35 : 1,
             child: FugaButton(
               text: T('< Précédent'),
-              fontSize: 15,
+              fontSize: SF(15),
               height: double.infinity,
               onPressed: _tuto.atFirst ? null : () => setState(_tuto.previous),
             ),
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: S(14)),
         Expanded(
           child: Opacity(
             opacity: _tuto.canGoNext ? 1 : 0.35,
             child: FugaButton(
               text: _tuto.atLast ? T('Le menu >') : T('Suivant >'),
               color: palette.fonce,
-              fontSize: 15,
+              fontSize: SF(15),
               height: double.infinity,
               onPressed: !_tuto.canGoNext
                   ? null

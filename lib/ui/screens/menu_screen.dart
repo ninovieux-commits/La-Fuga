@@ -290,13 +290,13 @@ class MenuScreenState extends State<MenuScreen> {
                 color: palette.clair,
                 onPressed: () => Navigator.of(context).pop(Camp.blanc),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: S(10)),
               FugaButton(
                 text: T('Jouer avec les Noirs'),
                 color: palette.fonce,
                 onPressed: () => Navigator.of(context).pop(Camp.noir),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: S(10)),
               FugaButton(
                 text: T('Aléatoire'),
                 onPressed: () => Navigator.of(context).pop(
@@ -540,7 +540,7 @@ class MenuScreenState extends State<MenuScreen> {
                         ListTile(
                           leading: Icon(
                             f.online ? Icons.circle : Icons.circle_outlined,
-                            size: 12,
+                            size: S(12),
                             color: f.online ? Colors.green : Colors.grey,
                           ),
                           title: Text(f.pseudo),
@@ -683,11 +683,11 @@ class MenuScreenState extends State<MenuScreen> {
                   (T('Soutenir les devs'), palette.clair, _openSupport),
                 ])
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
+                padding: EdgeInsets.symmetric(vertical: S(5)),
                 child: FugaButton(
                   text: label,
                   color: color,
-                  fontSize: 17,
+                  fontSize: SF(17),
                   onPressed: () {
                     Navigator.of(context).pop();
                     action();
@@ -786,13 +786,13 @@ class MenuScreenState extends State<MenuScreen> {
               T('Merci de soutenir le développement de La Fuga !\n') +
                   T('Votre aide compte beaucoup.'),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: TextStyle(fontSize: SF(14), color: Colors.white),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: S(10)),
             FugaButton(
               text: 'PayPal',
               color: palette.fonce,
-              fontSize: 16,
+              fontSize: SF(16),
               onPressed: () {
                 Navigator.of(context).pop();
                 _openSupportLink();

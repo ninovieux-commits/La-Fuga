@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
+import '../scale.dart';
 import '../screens/account_screen.dart';
 import '../screens/conversations_screen.dart';
 import 'fuga_button.dart';
@@ -48,13 +49,13 @@ Future<void> showNameMenu(
         children: [
           Text(
             pseudo,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: SF(18),
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: S(8)),
           for (final (label, value, color) in <(String, String, Color)>[
             (T('Profil'), 'profil', kFugaGrey),
             if (!isMe) ...[
@@ -64,18 +65,18 @@ Future<void> showNameMenu(
             ],
           ])
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.only(bottom: S(8)),
               child: FugaButton(
                 text: label,
                 color: color,
-                fontSize: 14,
+                fontSize: SF(14),
                 onPressed: () => Navigator.of(context).pop(value),
               ),
             ),
           FugaButton(
             text: T('Fermer'),
-            fontSize: 12,
-            height: 40,
+            fontSize: SF(12),
+            height: S(40),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

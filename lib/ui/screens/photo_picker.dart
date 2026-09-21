@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
@@ -38,11 +39,11 @@ class PhotoPickerScreen extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(S(10)),
               child: Text(
                 T('Choisis ta photo de profil'),
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: SF(16),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -50,7 +51,7 @@ class PhotoPickerScreen extends StatelessWidget {
             ),
             Expanded(
               child: GridView.builder(
-                padding: const EdgeInsets.all(4),
+                padding: EdgeInsets.all(S(4)),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 4,
                   mainAxisSpacing: 10,
@@ -60,17 +61,17 @@ class PhotoPickerScreen extends StatelessWidget {
                 itemBuilder: (context, i) => InkWell(
                   onTap: () => Navigator.of(context).pop(choices[i]),
                   child: Center(
-                    child: ProfilePhoto(photo: choices[i], size: 64),
+                    child: ProfilePhoto(photo: choices[i], size: S(64)),
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(S(10)),
               child: FugaButton(
                 text: T('Fermer'),
-                fontSize: 13,
-                height: 44,
+                fontSize: SF(13),
+                height: S(44),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

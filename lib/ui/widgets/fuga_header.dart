@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'fuga_button.dart';
+import '../scale.dart';
 
 class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   const FugaHeader({
@@ -42,16 +43,16 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 56,
+    height: S(56),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: S(8), vertical: S(6)),
       child: Row(
         children: [
           SizedBox(
             width: _sideWidth,
             child: FugaButton(
               text: back,
-              fontSize: 14,
+              fontSize: SF(14),
               height: double.infinity,
               onPressed: onBack,
             ),

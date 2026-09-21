@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import 'fuga_button.dart';
+import '../scale.dart';
 
 /// Fin de partie (ou de match). Le popup se ferme d'une tape à côté : on peut
 /// vouloir regarder la position finale.
@@ -33,16 +34,16 @@ Future<void> showFinishDialog(
         Text(
           body,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: Colors.white),
+          style: TextStyle(fontSize: SF(14), color: Colors.white),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: S(10)),
         Text(
           winner == null
               ? T('Match nul')
               : T('Victoire de {name} !').replaceAll('{name}', winner),
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: SF(18),
             fontWeight: FontWeight.bold,
             color: winner == null
                 ? const Color.fromRGBO(51, 51, 51, 1)
@@ -50,22 +51,22 @@ Future<void> showFinishDialog(
           ),
         ),
         if (meloLine != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: S(8)),
           Text(
             meloLine,
-            style: const TextStyle(
-              fontSize: 15,
+            style: TextStyle(
+              fontSize: SF(15),
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: S(12)),
         FugaButton(
           text: T('Retour au menu'),
           color: palette.fonce,
-          fontSize: 14,
-          height: 50,
+          fontSize: SF(14),
+          height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
             onMenu();
@@ -97,26 +98,26 @@ Future<void> showContinueDialog(
         Text(
           body,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: Colors.white),
+          style: TextStyle(fontSize: SF(14), color: Colors.white),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: S(8)),
         Text(
           T(
             'Prochaine partie : {name} joue les Blancs',
           ).replaceAll('{name}', nextFirstBlanc),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
+          style: TextStyle(
+            fontSize: SF(12),
             fontStyle: FontStyle.italic,
-            color: Color.fromRGBO(204, 204, 204, 1),
+            color: const Color.fromRGBO(204, 204, 204, 1),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: S(12)),
         FugaButton(
           text: T('Partie suivante'),
           color: palette.clair,
-          fontSize: 14,
-          height: 50,
+          fontSize: SF(14),
+          height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
             onNext();
@@ -152,9 +153,9 @@ Future<void> showOnlineContinueDialog(
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: TextStyle(fontSize: SF(14), color: Colors.white),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: S(8)),
             Text(
               ready
                   ? T("En attente de l'adversaire…")
@@ -162,20 +163,20 @@ Future<void> showOnlineContinueDialog(
                       'Clique sur « Partie suivante » pour continuer le match.',
                     ),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: SF(12),
                 fontStyle: FontStyle.italic,
-                color: Color.fromRGBO(217, 217, 217, 1),
+                color: const Color.fromRGBO(217, 217, 217, 1),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: S(12)),
             FugaButton(
               text: ready
                   ? T("En attente de l'adversaire…")
                   : T('Partie suivante'),
               color: palette.clair,
-              fontSize: 14,
-              height: 50,
+              fontSize: SF(14),
+              height: S(50),
               onPressed: ready
                   ? null
                   : () {
@@ -183,11 +184,11 @@ Future<void> showOnlineContinueDialog(
                       onReady();
                     },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: S(8)),
             FugaButton(
               text: T('Quitter le match'),
-              fontSize: 12,
-              height: 40,
+              fontSize: SF(12),
+              height: S(40),
               onPressed: () {
                 Navigator.of(context).pop();
                 onQuit();

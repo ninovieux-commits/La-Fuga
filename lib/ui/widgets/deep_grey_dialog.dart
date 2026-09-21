@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import 'fuga_button.dart';
+import '../scale.dart';
 
 /// Renvoie le camp choisi par le joueur, ou `null` s'il a refermé la popup.
 Future<Camp?> askDeepGreyCamp(BuildContext context) => showDialog<Camp>(
@@ -23,9 +24,9 @@ Future<Camp?> askDeepGreyCamp(BuildContext context) => showDialog<Camp>(
           T('Jouer contre Deep Grey depuis cette position.\n') +
               T('Choisissez votre camp :'),
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 15),
+          style: TextStyle(fontSize: SF(15)),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: S(12)),
         Row(
           children: [
             Expanded(
@@ -33,16 +34,16 @@ Future<Camp?> askDeepGreyCamp(BuildContext context) => showDialog<Camp>(
                 text: T('Blancs'),
                 color: const Color.fromRGBO(235, 235, 235, 1),
                 textColor: Colors.black,
-                fontSize: 16,
+                fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(Camp.blanc),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: S(12)),
             Expanded(
               child: FugaButton(
                 text: T('Noirs'),
                 color: const Color.fromRGBO(31, 31, 31, 1),
-                fontSize: 16,
+                fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(Camp.noir),
               ),
             ),

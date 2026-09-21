@@ -11,6 +11,7 @@ import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
@@ -169,11 +170,11 @@ class _ReplayScreenState extends State<ReplayScreen> {
   /// laisser croire qu'elle s'arrêtait là.
   Widget _truncatedNotice() => Container(
     width: double.infinity,
-    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+    padding: EdgeInsets.symmetric(vertical: S(6), horizontal: S(16)),
     color: FugaColors.immobile.withValues(alpha: 0.85),
     child: Text(
       '${T("Lecture interrompue au coup")} ${_replay.brokenMoveNumber}',
-      style: const TextStyle(color: Colors.white, fontSize: 12),
+      style: TextStyle(color: Colors.white, fontSize: SF(12)),
     ),
   );
 }

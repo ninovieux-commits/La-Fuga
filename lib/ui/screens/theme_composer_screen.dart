@@ -13,6 +13,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -82,7 +83,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(S(8)),
                 children: [
                   for (final (axis, label) in kThemeAxisLabels)
                     _section(axis, label),
@@ -90,12 +91,12 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+              padding: EdgeInsets.fromLTRB(S(10), S(6), S(10), S(10)),
               child: FugaButton(
                 text: T('Appliquer'),
                 color: palette.clair,
-                fontSize: 15,
-                height: 48,
+                fontSize: SF(15),
+                height: S(48),
                 onPressed: _apply,
               ),
             ),
@@ -112,7 +113,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(4)),
           child: Text(
             T(label),
             style: const TextStyle(
@@ -122,10 +123,10 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
           ),
         ),
         SizedBox(
-          height: 96,
+          height: S(104),
           child: ListView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: S(12)),
             children: [
               for (final theme in kThemeOrder)
                 _cell(axis, theme, chosen: theme == selected),
@@ -140,25 +141,25 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
     return GestureDetector(
       onTap: () => _pick(axis, theme),
       child: Container(
-        width: 78,
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        padding: const EdgeInsets.all(4),
+        width: S(78),
+        margin: EdgeInsets.symmetric(horizontal: S(4), vertical: S(6)),
+        padding: EdgeInsets.all(S(4)),
         decoration: BoxDecoration(
           color: chosen
               ? paletteOf(_axes.general).clair
               : Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(S(10)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 52, child: _preview(axis, theme)),
-            const SizedBox(height: 4),
+            SizedBox(height: S(52), child: _preview(axis, theme)),
+            SizedBox(height: S(4)),
             Text(
               T(kThemeLabels[theme] ?? theme),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 10),
+              style: TextStyle(color: Colors.white, fontSize: SF(10)),
             ),
           ],
         ),
@@ -172,21 +173,26 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
       case 'pieces':
         return ProfilePhoto(
           photo: '$theme|${PieceType.heritier.wire}',
-          size: 52,
+          size: S(52),
         );
       case 'logo':
-        return ProfilePhoto(photo: 'logo|$theme', size: 52);
+        return ProfilePhoto(photo: 'logo|$theme', size: S(52));
       case 'menu':
       case 'board':
         final images = imagesFor(theme);
         final asset = axis == 'menu' ? images?.background : images?.board;
         final palette = paletteOf(theme);
         return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(S(8)),
           child: asset == null
               // Sans image, l'axe ne change qu'une couleur : on la montre.
               ? Container(color: axis == 'menu' ? palette.menu : palette.board)
-              : Image.asset(asset, fit: BoxFit.cover, width: 52, height: 52),
+              : Image.asset(
+                  asset,
+                  fit: BoxFit.cover,
+                  width: S(52),
+                  height: S(52),
+                ),
         );
       default:
         return _colorPreview(paletteOf(theme));
@@ -197,15 +203,15 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
   Widget _colorPreview(ThemePalette palette) => Container(
     decoration: BoxDecoration(
       color: palette.fonce,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(S(8)),
     ),
     child: Center(
       child: Container(
-        width: 24,
-        height: 24,
+        width: S(24),
+        height: S(24),
         decoration: BoxDecoration(
           color: palette.clair,
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(S(5)),
         ),
       ),
     ),

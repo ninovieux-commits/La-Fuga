@@ -10,6 +10,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -35,7 +36,7 @@ class PartiesMenuScreen extends StatelessWidget {
           content: Text(
             T('Connectez-vous à un compte\npour voir vos parties en ligne.'),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(color: Colors.white, fontSize: SF(15)),
           ),
           actions: [
             FugaButton(
@@ -109,7 +110,7 @@ class PartiesMenuScreen extends StatelessWidget {
                         child: FugaButton(
                           text: label,
                           color: color,
-                          fontSize: 17,
+                          fontSize: SF(17),
                           height: double.infinity,
                           onPressed: action,
                         ),

@@ -19,6 +19,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/theme_preview.dart';
@@ -127,11 +128,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(4)),
               child: Text(
                 T('Réglages'),
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: SF(20),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -139,10 +140,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                padding: EdgeInsets.fromLTRB(S(16), S(6), S(16), S(6)),
                 children: [
                   if (widget.fromMenu) ...[
-                    _label(T('Langue'), size: 15),
+                    _label(T('Langue'), size: S(15)),
                     _selector(
                       kLanguageLabels.values.elementAt(_langIndex),
                       (d) => setState(() {
@@ -152,12 +153,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }
                       }),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: S(6)),
                     FugaButton(
                       text: T('Valider la langue'),
                       color: palette.clair,
-                      fontSize: 12,
-                      height: 40,
+                      fontSize: SF(12),
+                      height: S(40),
                       onPressed: _applyLanguage,
                     ),
                   ],
@@ -193,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   _label(T('Thème')),
                   SizedBox(
-                    height: 80,
+                    height: S(80),
                     child: Row(
                       children: [
                         _arrow('<', () => _moveTheme(-1)),
@@ -206,8 +207,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     kThemeOrder[_themeIndex],
                               ),
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
+                              style: TextStyle(
+                                fontSize: SF(14),
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -224,12 +225,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
                   if (widget.fromMenu) ...[
-                    const SizedBox(height: 6),
+                    SizedBox(height: S(6)),
                     FugaButton(
                       text: T('Composer le thème'),
                       color: palette.fonce,
-                      fontSize: 12,
-                      height: 40,
+                      fontSize: SF(12),
+                      height: S(40),
                       onPressed: () async {
                         await Navigator.of(context).push(
                           MaterialPageRoute<bool>(
@@ -250,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              padding: EdgeInsets.fromLTRB(S(16), S(4), S(16), S(12)),
               child: Row(
                 children: [
                   Expanded(
@@ -258,16 +259,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: FugaButton(
                       text: T('Appliquer ce thème'),
                       color: palette.clair,
-                      fontSize: 12,
+                      fontSize: SF(12),
                       onPressed: _applyTheme,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: S(8)),
                   Expanded(
                     flex: 28,
                     child: FugaButton(
                       text: T('Fermer'),
-                      fontSize: 12,
+                      fontSize: SF(12),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -286,7 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   });
 
   Widget _label(String text, {double size = 17}) => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 2),
+    padding: EdgeInsets.only(top: S(10), bottom: S(2)),
     child: Text(
       text,
       textAlign: TextAlign.center,
@@ -301,15 +302,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _sub(String text) => Text(
     text,
     textAlign: TextAlign.center,
-    style: const TextStyle(
-      fontSize: 13,
-      color: Color.fromRGBO(217, 217, 217, 1),
+    style: TextStyle(
+      fontSize: SF(13),
+      color: const Color.fromRGBO(217, 217, 217, 1),
     ),
   );
 
   /// Ligne `<  valeur  >` : le sélecteur de Kivy, partout le même.
   Widget _selector(String value, void Function(int delta) onMove) => SizedBox(
-    height: 44,
+    height: S(44),
     child: Row(
       children: [
         _arrow('<', () => onMove(-1)),
@@ -319,8 +320,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text(
               value,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
+              style: TextStyle(
+                fontSize: SF(15),
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -335,10 +336,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _arrow(String text, VoidCallback onPressed) => Expanded(
     flex: 16,
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
+      padding: EdgeInsets.symmetric(horizontal: S(3)),
       child: FugaButton(
         text: text,
-        fontSize: 16,
+        fontSize: SF(16),
         height: double.infinity,
         onPressed: onPressed,
       ),

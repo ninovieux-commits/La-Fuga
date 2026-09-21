@@ -157,6 +157,12 @@ void main() {
     };
     await open(tester);
 
+    // La liste est longue : on descend jusqu'à la case avant de la lire.
+    await tester.scrollUntilVisible(
+      find.textContaining("quand c'est à moi de jouer"),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     final turn = find.ancestor(
       of: find.textContaining("quand c'est à moi de jouer"),
       matching: find.byType(CheckboxListTile),
@@ -181,6 +187,11 @@ void main() {
       };
       await open(tester);
 
+      await tester.scrollUntilVisible(
+        find.textContaining('quand je reçois un message'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       final msg = find.ancestor(
         of: find.textContaining('quand je reçois un message'),
         matching: find.byType(CheckboxListTile),

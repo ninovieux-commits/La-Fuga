@@ -13,6 +13,7 @@ import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/profile_photo.dart';
@@ -123,20 +124,20 @@ class _AccountScreenState extends State<AccountScreen> {
             'Pour recevoir des notifications, autorisez La Fuga dans les réglages de votre téléphone.',
           ),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: Colors.white, fontSize: SF(14)),
         ),
         actions: [
           FugaButton(
             text: T('Plus tard'),
-            fontSize: 13,
-            height: 40,
+            fontSize: SF(13),
+            height: S(40),
             onPressed: () => Navigator.of(context).pop(),
           ),
           FugaButton(
             text: T('Ouvrir les réglages'),
             color: palette.clair,
-            fontSize: 13,
-            height: 40,
+            fontSize: SF(13),
+            height: S(40),
             onPressed: () {
               Navigator.of(context).pop();
               widget.permission.openSettings();
@@ -230,9 +231,9 @@ class _AccountScreenState extends State<AccountScreen> {
     return FugaScaffold(
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(S(10)),
           child: SizedBox(
-            height: 44,
+            height: S(44),
             child: Row(
               children: [
                 Expanded(
@@ -240,18 +241,18 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: FugaButton(
                     text: T('Revenir au menu'),
                     color: palette.clair,
-                    fontSize: 13,
+                    fontSize: SF(13),
                     height: double.infinity,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
                 if (profile?.isSelf ?? false) ...[
-                  const SizedBox(width: 8),
+                  SizedBox(width: S(8)),
                   Expanded(
                     flex: 4,
                     child: FugaButton(
                       text: T('Se déconnecter'),
-                      fontSize: 12,
+                      fontSize: SF(12),
                       height: double.infinity,
                       onPressed: _logout,
                     ),
@@ -267,7 +268,7 @@ class _AccountScreenState extends State<AccountScreen> {
           : profile == null
           ? Center(child: Text(_error ?? T('Profil indisponible.')))
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(S(16)),
               children: [
                 _identity(profile, palette),
                 if (!profile.isSelf) ..._headToHead(profile),
@@ -319,7 +320,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: S(8)),
                     Expanded(
                       child: _action(
                         T('Historique en ligne'),
@@ -336,28 +337,28 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _identity(Profile profile, ThemePalette palette) => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      ProfilePhoto(photo: profile.photo, size: 96),
-      const SizedBox(width: 16),
+      ProfilePhoto(photo: profile.photo, size: S(96)),
+      SizedBox(width: S(16)),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               profile.pseudo,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: SF(22),
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: S(4)),
             Text(
               '${T("Standard : %d").replaceAll('%d', '${profile.melo}')}'
               '    '
               '${T("Random : %d").replaceAll('%d', '${profile.meloRandom}')}',
               style: TextStyle(
                 color: palette.clair,
-                fontSize: 13,
+                fontSize: SF(13),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -418,7 +419,7 @@ class _AccountScreenState extends State<AccountScreen> {
           label,
           style: TextStyle(
             color: enabled ? Colors.white : Colors.white38,
-            fontSize: 13,
+            fontSize: SF(13),
           ),
         ),
       ),
@@ -446,7 +447,7 @@ class _AccountScreenState extends State<AccountScreen> {
       return [
         Text(
           empty,
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
+          style: TextStyle(color: Colors.white38, fontSize: SF(12)),
         ),
       ];
     }
@@ -457,16 +458,16 @@ class _AccountScreenState extends State<AccountScreen> {
           dense: true,
           leading: Icon(
             p.online ? Icons.circle : Icons.circle_outlined,
-            size: 12,
+            size: S(12),
             color: p.online ? Colors.greenAccent : Colors.white30,
           ),
           title: Text(
             p.pseudo,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: TextStyle(color: Colors.white, fontSize: SF(13)),
           ),
           subtitle: Text(
             T('Mélo : %d').replaceAll('%d', '${p.melo}'),
-            style: const TextStyle(color: Colors.white38, fontSize: 11),
+            style: TextStyle(color: Colors.white38, fontSize: SF(11)),
           ),
           trailing: unblockable
               ? TextButton(
@@ -487,13 +488,13 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _title(String text) => Padding(
-    padding: const EdgeInsets.only(top: 18, bottom: 6),
+    padding: EdgeInsets.only(top: S(18), bottom: S(6)),
     child: Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         color: Colors.white,
         fontWeight: FontWeight.bold,
-        fontSize: 15,
+        fontSize: SF(15),
       ),
     ),
   );
@@ -501,7 +502,12 @@ class _AccountScreenState extends State<AccountScreen> {
   /// Les boutons du profil, tels que Kivy les dessine : pleins, gris, sans
   /// icône.
   Widget _action(String label, VoidCallback onTap) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: FugaButton(text: label, fontSize: 12, height: 40, onPressed: onTap),
+    padding: EdgeInsets.symmetric(vertical: S(4)),
+    child: FugaButton(
+      text: label,
+      fontSize: SF(12),
+      height: S(40),
+      onPressed: onTap,
+    ),
   );
 }

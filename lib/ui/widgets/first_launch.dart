@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import 'fuga_button.dart';
+import '../scale.dart';
 
 /// Demande la langue, en grille de deux colonnes comme en Kivy.
 Future<void> askFirstLanguage(BuildContext context) async {
@@ -23,15 +24,15 @@ Future<void> askFirstLanguage(BuildContext context) async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Langue / Language',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: SF(20),
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: S(12)),
             Flexible(
               child: GridView.count(
                 shrinkWrap: true,
@@ -43,7 +44,7 @@ Future<void> askFirstLanguage(BuildContext context) async {
                   for (final entry in kLanguageLabels.entries)
                     FugaButton(
                       text: entry.value,
-                      fontSize: 17,
+                      fontSize: SF(17),
                       height: double.infinity,
                       onPressed: () => Navigator.of(context).pop(entry.key),
                     ),

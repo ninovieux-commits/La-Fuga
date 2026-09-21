@@ -10,6 +10,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../screens/account_screen.dart';
 import '../screens/history_screen.dart';
 import 'profile_photo.dart';
@@ -91,8 +92,8 @@ class _PlayerCardState extends State<_PlayerCard> {
     return AlertDialog(
       title: Row(
         children: [
-          ProfilePhoto(photo: p.photo, size: 40),
-          const SizedBox(width: 10),
+          ProfilePhoto(photo: p.photo, size: S(40)),
+          SizedBox(width: S(10)),
           Expanded(child: Text(p.pseudo)),
         ],
       ),
@@ -106,7 +107,7 @@ class _PlayerCardState extends State<_PlayerCard> {
             '${T("Random : %d").replaceAll('%d', '${p.meloRandom}')}',
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: S(6)),
           Text(
             p.online ? T('En ligne') : T('Hors ligne'),
             textAlign: TextAlign.center,
@@ -116,7 +117,7 @@ class _PlayerCardState extends State<_PlayerCard> {
             ),
           ),
           if (!p.isSelf) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: S(12)),
             Text(
               T('Moi contre %s :').replaceAll('%s', p.pseudo),
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -136,7 +137,7 @@ class _PlayerCardState extends State<_PlayerCard> {
               ),
             ),
           ],
-          const SizedBox(height: 8),
+          SizedBox(height: S(8)),
           TextButton.icon(
             onPressed: () {
               Navigator.of(context).pop();
@@ -147,7 +148,7 @@ class _PlayerCardState extends State<_PlayerCard> {
                 ),
               );
             },
-            icon: const Icon(Icons.person_outline, size: 18),
+            icon: Icon(Icons.person_outline, size: S(18)),
             label: Text(T('Profil')),
           ),
         ],

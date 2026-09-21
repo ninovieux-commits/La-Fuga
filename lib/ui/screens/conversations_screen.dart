@@ -10,6 +10,7 @@ import '../../net/online_service.dart';
 import '../../net/socket_client.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
@@ -108,9 +109,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   : conversations.isEmpty
                   ? _notice(T('Aucune conversation pour le moment.'))
                   : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                      padding: EdgeInsets.fromLTRB(S(10), S(8), S(10), S(8)),
                       itemCount: conversations.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, __) => SizedBox(height: S(8)),
                       itemBuilder: (context, i) => _row(conversations[i]),
                     ),
             ),
@@ -122,14 +123,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
   Widget _notice(String text, {Color color = const Color(0xFF666666)}) =>
       Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(S(20)),
         child: Align(
           alignment: Alignment.topCenter,
           child: Text(
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: SF(13),
               fontStyle: FontStyle.italic,
               color: color,
             ),
@@ -144,21 +145,21 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
     return Material(
       color: kFugaGrey,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(S(10)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(S(10)),
         onTap: () => _open(c.pseudo),
         child: SizedBox(
-          height: 64,
+          height: S(80),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(6)),
             child: Row(
               children: [
                 ProfilePhoto(
                   photo: avatarPhotoFor(c.pseudo, c.photo),
-                  size: 46,
+                  size: S(46),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: S(10)),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -168,9 +169,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         c.pseudo,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: SF(15),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -178,9 +179,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         preview,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color.fromRGBO(209, 209, 209, 1),
-                          fontSize: 12,
+                        style: TextStyle(
+                          color: const Color.fromRGBO(209, 209, 209, 1),
+                          fontSize: SF(12),
                         ),
                       ),
                     ],
@@ -196,8 +197,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _badge(int count) => Container(
-    width: 26,
-    height: 26,
+    width: S(26),
+    height: S(26),
     alignment: Alignment.center,
     decoration: const BoxDecoration(
       color: Color(0xFFD93333),
@@ -205,9 +206,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     ),
     child: Text(
       '$count',
-      style: const TextStyle(
+      style: TextStyle(
         color: Colors.white,
-        fontSize: 13,
+        fontSize: SF(13),
         fontWeight: FontWeight.bold,
       ),
     ),
@@ -349,7 +350,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     )
                   : ListView.builder(
                       controller: _scroll,
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(S(10)),
                       itemCount: _messages.length,
                       itemBuilder: (context, i) =>
                           _bubble(_messages[i], palette),
@@ -370,7 +371,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               widget.online.session?.photo ?? '',
             )
           : avatarPhotoFor(widget.pseudo, _theirPhoto),
-      size: 34,
+      size: S(34),
     );
     final text = Flexible(
       child: Text(
@@ -384,27 +385,27 @@ class _ConversationScreenState extends State<ConversationScreen> {
               : m.fromMe
               ? const Color.fromRGBO(255, 209, 102, 1)
               : const Color.fromRGBO(242, 242, 242, 1),
-          fontSize: 16,
+          fontSize: SF(16),
         ),
       ),
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: S(4)),
       child: Row(
         mainAxisAlignment: m.fromMe
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: m.fromMe
-            ? [text, const SizedBox(width: 6), avatar]
-            : [avatar, const SizedBox(width: 6), text],
+            ? [text, SizedBox(width: S(6)), avatar]
+            : [avatar, SizedBox(width: S(6)), text],
       ),
     );
   }
 
   Widget _composer(ThemePalette palette) => Container(
-    padding: const EdgeInsets.all(8),
+    padding: EdgeInsets.all(S(8)),
     color: Colors.black26,
     child: Row(
       children: [
@@ -421,7 +422,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
             onSubmitted: (_) => _send(),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: S(8)),
         FilledButton(
           onPressed: _send,
           style: FilledButton.styleFrom(backgroundColor: palette.clair),

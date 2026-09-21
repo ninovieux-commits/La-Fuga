@@ -15,6 +15,7 @@ import '../../game/correspondence.dart';
 import '../../i18n/translations.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
 import 'theme_image_cache.dart';
@@ -62,9 +63,9 @@ class CorrSlot extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: background,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(S(10)),
           ),
-          padding: const EdgeInsets.all(6),
+          padding: EdgeInsets.all(S(6)),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -81,7 +82,7 @@ class CorrSlot extends StatelessWidget {
     child: Icon(
       Icons.add_circle_outline,
       color: Colors.white.withValues(alpha: 0.75),
-      size: 32,
+      size: S(32),
     ),
   );
 
@@ -182,14 +183,14 @@ class CorrSlot extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(S(6)),
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: color,
-            fontSize: 11,
+            fontSize: SF(11),
             fontWeight: bold ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -202,8 +203,8 @@ class CorrSlot extends StatelessWidget {
           text: text,
           color: color,
           onPressed: onPressed,
-          height: 26,
-          fontSize: 10,
+          height: S(26),
+          fontSize: SF(10),
           radius: 8,
         ),
       );
@@ -279,7 +280,7 @@ class _MiniBoardPainter extends CustomPainter {
       );
     } else {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+        RRect.fromRectAndRadius(rect, Radius.circular(S(4))),
         Paint()..color = palette.board,
       );
     }

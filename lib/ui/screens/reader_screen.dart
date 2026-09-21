@@ -11,6 +11,7 @@ import '../../game/replay_controller.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -53,7 +54,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         T(
           'désolé, le fichier nmc est invalide,\nla lecture ne peut pas s effectuer',
         ),
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TextStyle(color: Colors.white, fontSize: SF(13)),
       ),
       actions: [
         TextButton(
@@ -80,28 +81,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onBack: () => Navigator.of(context).pop(),
             ),
             SizedBox(
-              height: 30,
+              height: S(30),
               child: Center(
                 child: Text(
                   T("Collez le contenu d'un fichier .nmc ci-dessous :"),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color.fromRGBO(26, 26, 26, 1),
+                  style: TextStyle(
+                    fontSize: SF(13),
+                    color: const Color.fromRGBO(26, 26, 26, 1),
                   ),
                 ),
               ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                padding: EdgeInsets.fromLTRB(S(12), S(8), S(12), S(8)),
                 child: TextField(
                   controller: _input,
                   expands: true,
                   maxLines: null,
                   minLines: null,
                   textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(fontSize: 13, color: Colors.black),
+                  style: TextStyle(fontSize: SF(13), color: Colors.black),
                   decoration: const InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
@@ -115,11 +116,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              padding: EdgeInsets.fromLTRB(S(12), S(4), S(12), S(12)),
               child: FugaButton(
                 text: T('Lire'),
                 color: palette.clair,
-                height: 50,
+                height: S(50),
                 onPressed: _read,
               ),
             ),

@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../scale.dart';
 import '../tuto/menu_tour.g.dart';
 import 'fuga_button.dart';
 
@@ -70,7 +71,7 @@ class MenuTourOverlay extends StatelessWidget {
         child: Container(
           width: double.infinity,
           color: const Color(0xF2171722),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          padding: EdgeInsets.fromLTRB(S(16), S(14), S(16), S(16)),
           child: SafeArea(
             top: false,
             child: Column(
@@ -79,24 +80,24 @@ class MenuTourOverlay extends StatelessWidget {
                 Text(
                   T(stop.text),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: Colors.white, fontSize: SF(14)),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: S(12)),
                 Row(
                   children: [
                     Expanded(
                       child: FugaButton(
                         text: T('< Précédent'),
-                        fontSize: 14,
+                        fontSize: SF(14),
                         onPressed: onPrevious,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: S(12)),
                     Expanded(
                       child: FugaButton(
                         text: _isLast ? T('Fermer') : T('Continuer >'),
                         color: const Color(0xFF2E74D9),
-                        fontSize: 14,
+                        fontSize: SF(14),
                         onPressed: onNext,
                       ),
                     ),
@@ -124,7 +125,7 @@ class _RingsPainter extends CustomPainter {
       ..color = const Color(0xFFD93A3A);
     for (final r in rings) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(r.inflate(4), const Radius.circular(14)),
+        RRect.fromRectAndRadius(r.inflate(4), Radius.circular(S(14))),
         paint,
       );
     }

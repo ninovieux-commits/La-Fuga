@@ -15,6 +15,7 @@ import '../../i18n/translations.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
 import '../../state/local_games.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -166,7 +167,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       title: Text(T('Erreur'), style: const TextStyle(color: Colors.white)),
       content: Text(
         message,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TextStyle(color: Colors.white, fontSize: SF(13)),
       ),
       actions: [
         TextButton(
@@ -198,7 +199,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: SingleChildScrollView(
             child: SelectableText(
               content,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: Colors.white, fontSize: SF(13)),
             ),
           ),
         ),
@@ -265,9 +266,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final games = _accountGames ?? const [];
       if (games.isEmpty) return _notice(empty);
       return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: EdgeInsets.fromLTRB(S(12), S(8), S(12), S(12)),
         itemCount: games.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, __) => SizedBox(height: S(8)),
         itemBuilder: (context, i) => _accountEntry(games[i]),
       );
     }
@@ -275,23 +276,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final files = _localFiles ?? const <LocalGame>[];
     if (files.isEmpty) return _notice(empty);
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: EdgeInsets.fromLTRB(S(12), S(8), S(12), S(12)),
       itemCount: files.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => SizedBox(height: S(8)),
       itemBuilder: (context, i) => _fileEntry(files[i]),
     );
   }
 
   Widget _notice(String text, {Color color = const Color(0xFF4D4D4D)}) =>
       Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(S(24)),
         child: Align(
           alignment: Alignment.topCenter,
           child: Text(
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: SF(15),
               fontStyle: FontStyle.italic,
               color: color,
             ),
@@ -337,14 +338,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           ProfilePhoto(
             photo: avatarPhotoFor(player1, '${g['joueur1_photo'] ?? ''}'),
-            size: 22,
+            size: S(22),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: S(4)),
           Expanded(child: _names(player1, player2)),
-          const SizedBox(width: 4),
+          SizedBox(width: S(4)),
           ProfilePhoto(
             photo: avatarPhotoFor(player2, '${g['joueur2_photo'] ?? ''}'),
-            size: 22,
+            size: S(22),
           ),
         ],
       ),
@@ -381,14 +382,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             info: '${_cadenceLabel(meta.cadence)}  •  ${T(meta.method)}',
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: S(8)),
         SizedBox(
-          width: 76,
-          height: 90,
+          width: S(76),
+          height: S(90),
           child: FugaButton(
             text: T('Copier'),
-            fontSize: 11,
-            radius: 8,
+            fontSize: SF(11),
+            radius: S(8),
             height: double.infinity,
             onPressed: () => _copyNmc(game),
           ),
@@ -401,8 +402,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     '$player1  vs  $player2',
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
-    style: const TextStyle(
-      fontSize: 14,
+    style: TextStyle(
+      fontSize: SF(14),
       fontWeight: FontWeight.bold,
       color: Colors.white,
     ),
@@ -419,29 +420,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
     const secondary = Color.fromRGBO(217, 217, 217, 1);
     return Material(
       color: kFugaGrey,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(S(10)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(S(10)),
         onTap: onTap,
         child: SizedBox(
-          height: 90,
+          height: S(90),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
             child: Row(
               children: [
                 SizedBox(
-                  width: 40,
+                  width: S(40),
                   child: Text(
                     sym,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: SF(26),
                       fontWeight: FontWeight.bold,
                       color: symColor,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: S(10)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -453,8 +454,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             date,
-                            style: const TextStyle(
-                              fontSize: 11,
+                            style: TextStyle(
+                              fontSize: SF(11),
                               color: secondary,
                             ),
                           ),
@@ -466,8 +467,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             info,
-                            style: const TextStyle(
-                              fontSize: 11,
+                            style: TextStyle(
+                              fontSize: SF(11),
                               fontStyle: FontStyle.italic,
                               color: secondary,
                             ),

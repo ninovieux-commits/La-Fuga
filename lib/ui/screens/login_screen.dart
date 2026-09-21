@@ -15,6 +15,7 @@ import '../../net/push_notifications.dart';
 import '../../state/local_games.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 
@@ -122,55 +123,55 @@ class _LoginScreenState extends State<LoginScreen> {
     return FugaScaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(24)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
-                  width: 120,
+                  width: S(120),
                   child: FugaButton(
                     text: T('< Menu'),
-                    fontSize: 14,
-                    height: 36,
+                    fontSize: SF(14),
+                    height: S(36),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: S(20)),
               Text(
                 _registering ? T('Inscription') : T('Connexion'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
+                style: TextStyle(
+                  fontSize: SF(28),
                   fontWeight: FontWeight.bold,
                   fontStyle: FontStyle.italic,
-                  color: Color.fromRGBO(13, 13, 13, 1),
+                  color: const Color.fromRGBO(13, 13, 13, 1),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: S(18)),
               Center(
                 child: SizedBox(
-                  width: 240,
+                  width: S(240),
                   child: FugaButton(
                     text: _registering
                         ? T("J'ai déjà un compte")
                         : T('Pas encore inscrit ?'),
-                    fontSize: 13,
-                    height: 38,
+                    fontSize: SF(13),
+                    height: S(38),
                     onPressed: _busy ? null : _toggleMode,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: S(24)),
               TextField(
                 controller: _pseudo,
                 autocorrect: false,
                 enableSuggestions: false,
                 // Champs blancs : le texte saisi doit être noir, sinon il est
                 // illisible avec le thème sombre de l'application.
-                style: const TextStyle(color: Colors.black, fontSize: 16),
+                style: TextStyle(color: Colors.black, fontSize: SF(16)),
                 decoration: InputDecoration(
                   hintText: T('Pseudo'),
                   filled: true,
@@ -178,14 +179,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: S(12)),
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _password,
                       obscureText: !_passwordShown,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      style: TextStyle(color: Colors.black, fontSize: SF(16)),
                       decoration: InputDecoration(
                         hintText: T('Mot de passe'),
                         filled: true,
@@ -195,13 +196,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       onSubmitted: (_) => _submit(),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: S(8)),
                   SizedBox(
-                    width: 72,
+                    width: S(72),
                     child: FugaButton(
                       text: _passwordShown ? T('Cacher') : T('Voir'),
-                      fontSize: 10,
-                      height: 48,
+                      fontSize: SF(10),
+                      height: S(48),
                       onPressed: () =>
                           setState(() => _passwordShown = !_passwordShown),
                     ),
@@ -209,12 +210,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               if (_registering) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: S(12)),
                 TextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  style: const TextStyle(color: Colors.black, fontSize: 16),
+                  style: TextStyle(color: Colors.black, fontSize: SF(16)),
                   decoration: InputDecoration(
                     hintText: T('Email (optionnel)'),
                     filled: true,
@@ -223,20 +224,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
+              SizedBox(height: S(24)),
               FugaButton(
                 text: _registering ? T('Créer le compte') : T('Se connecter'),
                 color: palette.clair,
-                fontSize: 17,
-                height: 52,
+                fontSize: SF(17),
+                height: S(52),
                 onPressed: _busy ? null : _submit,
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: S(14)),
               Text(
                 _status,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: SF(14),
                   fontStyle: FontStyle.italic,
                   color: _statusColor,
                 ),
