@@ -152,9 +152,14 @@ class _GameBoardViewState extends State<GameBoardView>
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final geometry = BoardGeometry(size: size, flipped: widget.flipped);
-        return GestureDetector(
-          onTapUp: (details) {
-            final cell = geometry.pixelToCell(details.localPosition);
+        // Le plateau répond à la POSE du doigt, comme `on_touch_down` en
+        // Kivy — pas à son relâchement. Un `Listener` ne passe par aucune
+        // arène de gestes : la case part au moment exact du contact, et c'est
+        // ce qui fait la différence entre « ça répond » et « ça suit ».
+        return Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (event) {
+            final cell = geometry.pixelToCell(event.localPosition);
             if (cell != null) widget.onTapCell(cell);
           },
           child: Stack(

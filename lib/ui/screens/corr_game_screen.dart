@@ -108,15 +108,17 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
     // Chaque geste glisse au moment où il est fait, comme en Kivy.
     rememberSlides(result.slides);
-    if (result.notation != null) {
-      _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
+    final notation = result.notation;
+    if (notation != null) {
       _lastMove = lastMoveFromNotation(
-        result.notation!,
+        notation,
         _boardBefore ?? Board.initial(),
         c.board,
       );
     }
     setState(() {});
+    // Le son part après l'écran : le plateau doit répondre au doigt.
+    if (notation != null) _sounds.playNotation(notation);
 
     // Le coup est validé : on l'envoie.
     if (result.notation != null &&

@@ -38,24 +38,11 @@ SEMITONES = {'do': 0, 're': 2, 'mi': 4, 'fa': 5, 'sol': 7, 'la': 9, 'si': 11}
 OCTAVES = [2, 3, 4, 5]
 INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche']
 
-# Les trois gestes hors notes : un arpège de quatre notes, une toutes les
-# 0,12 s, la dernière laissée sonner jusqu'au bout du fichier. Relevés sur les
-# fichiers d'origine du piano, les plus lisibles.
-EFFECT_STEP = 0.12
-EFFECTS = {
-    # Éjection : on tombe. Arpège mineur descendant.
-    'ejection': [('do', 5), ('sol', 4), ('mib', 4), ('do', 4)],
-    # Fugue : on s'échappe. Arpège majeur ascendant.
-    'fugue': [('do', 4), ('mi', 4), ('sol', 4), ('do', 5)],
-    # Mat : c'est fini. Mineur descendant, une octave plus bas.
-    'mat': [('do', 4), ('sol', 3), ('mib', 3), ('do', 3)],
-}
-SEMITONES_EXTRA = {'mib': 3}
 
 
 def freq_of(note, octave):
     """Fréquence d'une note nommée à la Kivy. `do2` = do3 scientifique."""
-    semi = SEMITONES.get(note, SEMITONES_EXTRA.get(note))
+    semi = SEMITONES[note]
     midi = 12 * (octave + 2) + semi  # do2 -> midi 48 (do3)
     return 440.0 * 2 ** ((midi - 69) / 12)
 
@@ -341,22 +328,6 @@ def build_note(instrument, freq, n, seed):
     return buf
 
 
-def build_effect(instrument, notes, n, seed):
-    """Arpège de quatre notes, une toutes les 0,12 s."""
-    out = silence(n)
-    for k, (note, octave) in enumerate(notes):
-        start = int(k * EFFECT_STEP * RATE)
-        if start >= n:
-            break
-        rng = random.Random(seed + k)
-        part = SYNTHS[instrument](freq_of(note, octave), n - start, rng)
-        for i, v in enumerate(part):
-            out[start + i] += v * 0.85
-    fade_in(out)
-    fade_out(out, TAIL[instrument])
-    return out
-
-
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'assets/sounds'
     for instrument in INSTRUMENTS:
@@ -369,13 +340,7 @@ def main():
                 seed = stable_seed(instrument, name)
                 buf = build_note(instrument, freq_of(note, octave), n, seed)
                 write_wav(path, normalise(buf, peak))
-        for name, notes in EFFECTS.items():
-            path = os.path.join(folder, f'{name}.wav')
-            n, peak = read_shape(path)
-            seed = stable_seed(instrument, name)
-            buf = build_effect(instrument, notes, n, seed)
-            write_wav(path, normalise(buf, peak))
-        print(f'{instrument} : 31 fichiers refaits')
+        print(f'{instrument} : 28 notes refaites')
 
 
 if __name__ == '__main__':

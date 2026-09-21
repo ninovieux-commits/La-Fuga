@@ -52,10 +52,9 @@ void main() {
       expect(volumeFactorFor('do5'), 0.40);
     });
 
-    test('les sons spéciaux gardent le volume plein', () {
-      expect(volumeFactorFor(kSoundFugue), 1.0);
-      expect(volumeFactorFor(kSoundEjection), 1.0);
-      expect(volumeFactorFor(kSoundMat), 1.0);
+    test('un nom sans octave garde le volume plein', () {
+      expect(volumeFactorFor('do'), 1.0);
+      expect(volumeFactorFor(''), 1.0);
     });
   });
 
@@ -111,29 +110,34 @@ void main() {
       expect(cues.last.name, noteForCell(0, 1));
     });
 
-    test('fugue : note de départ puis arpège de fugue', () {
+    test('fugue : la seule note de la case de départ', () {
+      // Les arpèges d'éjection, de fugue et de mat ne sonnent plus : c'était
+      // du code mort dans l'application Kivy.
       final cues = planForNotation('Fa7*');
-      expect(cues.length, 2);
-      expect(cues[0].name, noteForCell(3, 6));
-      expect(cues[1].name, kSoundFugue);
-      expect(cues[1].delay, const Duration(milliseconds: 160));
+      expect(cues.length, 1);
+      expect(cues.single.name, noteForCell(3, 6));
     });
 
-    test('une éjection ajoute son propre son', () {
-      final sans = planForNotation('Do1-Do2>');
-      final avec = planForNotation('Do1-Do2>', hadEjection: true);
-      expect(avec.length, sans.length + 1);
-      expect(avec.last.name, kSoundEjection);
-    });
-
-    test('le mat se signale, et le suffixe # ne casse pas la lecture', () {
-      final cues = planForNotation('Do1-Do2#');
-      expect(cues.any((c) => c.name == kSoundMat), isTrue);
+    test('aucun son ne s ajoute pour une éjection ou un mat', () {
+      final simple = planForNotation('Do1-Do2');
+      expect(planForNotation('Do1-Do2#'), hasLength(simple.length));
       expect(
-        cues.first.name,
+        planForNotation('Do1-Do2#').first.name,
         noteForCell(0, 0),
         reason: 'le coup lui-même reste audible',
       );
+    });
+
+    test('tous les sons d un coup sont des notes du plateau', () {
+      for (final n in ['Do1-Do2', 'Do1-Do2>', '(Do1Ré1)-Do2', 'Fa7*']) {
+        for (final cue in planForNotation(n)) {
+          expect(
+            kSoundNotes.any(cue.name.startsWith),
+            isTrue,
+            reason: '$n -> ${cue.name}',
+          );
+        }
+      }
     });
 
     test('aucun son pour une notation vide ou absente', () {
@@ -157,7 +161,7 @@ void main() {
         'Fa7*',
         'Do1-Do2#',
       ]) {
-        final cues = planForNotation(notation, hadEjection: true);
+        final cues = planForNotation(notation);
         for (var i = 1; i < cues.length; i++) {
           expect(
             cues[i].delay,

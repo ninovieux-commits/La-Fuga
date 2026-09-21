@@ -257,9 +257,6 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final result = _game.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
-    if (result.notation != null) {
-      _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
-    }
     // Kivy anime CHAQUE geste au moment où il est fait : le déplacement, le
     // saut, la manœuvre et chaque poussée. Attendre la validation du coup ne
     // ferait glisser que les coups de Deep Grey.
@@ -278,6 +275,10 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
         );
       }
     });
+
+    // Le son part APRÈS l'écran : c'est le plateau qui doit répondre au
+    // doigt, pas l'inverse.
+    if (result.notation != null) _sounds.playNotation(result.notation);
 
     if (result.effect == ControllerEffect.turnEnded && _isAiTurn) {
       _playAi();
@@ -336,11 +337,18 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
 
     // L'isolate renvoie le plateau résultant ; on retrouve l'objet Move
     // correspondant, car les conditions de fin de partie en dépendent.
-    final resultKey = Board.fromJson(result.board!).key;
-    final move = generateMoves(
-      _game.board,
-      aiCamp,
-    ).firstWhere((m) => m.board.key == resultKey);
+    //
+    // Si on ne le retrouve pas — plateau reparti entre-temps, réponse d'une
+    // recherche annulée — on ne joue RIEN plutôt que de tomber. Une partie ne
+    // doit jamais se fermer sur une exception.
+    final board = result.board;
+    final move = board == null
+        ? null
+        : _moveMatching(Board.fromJson(board).key, aiCamp);
+    if (move == null) {
+      setState(() => _thinking = false);
+      return;
+    }
     final pushTargets = [for (final c in result.pushTargets) Cell(c[0], c[1])];
 
     _consecutiveManeuvers = move.kind == MoveKind.maneuver
@@ -351,7 +359,6 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final key = _game.board.ownPiecesKey(aiCamp);
     _aiPositionCounts[key] = (_aiPositionCounts[key] ?? 0) + 1;
 
-    _sounds.playNotation(applied.notation, hadEjection: applied.hadEjection);
     setState(() {
       _thinking = false;
       _rememberLastMove(applied);
@@ -363,6 +370,15 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
         );
       }
     });
+    _sounds.playNotation(applied.notation);
+  }
+
+  /// Le coup légal qui mène à cette position, s'il existe encore.
+  Move? _moveMatching(String wantedKey, Camp camp) {
+    for (final move in generateMoves(_game.board, camp)) {
+      if (move.board.key == wantedKey) return move;
+    }
+    return null;
   }
 
   /// Les deux joueurs, dans l'ordre d'affichage — portage de `_players`.
@@ -477,10 +493,15 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
 
   String _verdictText(ControllerResult r) {
     final winner = r.loser?.opposite;
+    // Sans gagnant identifié, on annonce la raison sans nommer personne :
+    // mieux vaut une phrase incomplète qu'une partie qui se ferme.
+    String won(String reason) => winner == null
+        ? T(reason)
+        : '${T(reason)} — ${_campLabel(winner)} ${T("gagne")}';
     return switch (r.endReason) {
-      'fugue' => '${T("Fugue")} — ${_campLabel(winner!)} ${T("gagne")}',
-      'mat' => '${T("Mat")} — ${_campLabel(winner!)} ${T("gagne")}',
-      'papatte' => '${T("Papatte")} — ${_campLabel(winner!)} ${T("gagne")}',
+      'fugue' => won('Fugue'),
+      'mat' => won('Mat'),
+      'papatte' => won('Papatte'),
       'nulle_pat' => T('Trêve : plus aucune pièce carrée ne peut bouger'),
       'repetition' => T('Match nul par répétition'),
       'nulle' => T('Match nul'),

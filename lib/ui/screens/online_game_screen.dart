@@ -107,15 +107,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
     // Chaque geste glisse au moment où il est fait, comme en Kivy.
     rememberSlides(result.slides);
-    if (result.notation != null) {
-      _sounds.playNotation(result.notation, hadEjection: result.hadEjection);
+    final notation = result.notation;
+    if (notation != null) {
       _lastMove = lastMoveFromNotation(
-        result.notation!,
+        notation,
         _boardBefore ?? Board.initial(),
         _g.game.board,
       );
     }
     setState(() {});
+    // Le son part après l'écran : le plateau doit répondre au doigt.
+    if (notation != null) _sounds.playNotation(notation);
   }
 
   Future<void> _askDraw() async {

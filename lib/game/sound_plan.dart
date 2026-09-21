@@ -19,10 +19,8 @@ const List<String> kSoundNotes = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
 /// Instruments disponibles, dans l'ordre du menu Kivy.
 const List<String> kInstruments = ['piano', 'orgue', 'guitare', 'cloche'];
 
-/// Sons hors notes.
-const String kSoundEjection = 'ejection';
-const String kSoundMat = 'mat';
-const String kSoundFugue = 'fugue';
+/// Les quatre octaves des fichiers de notes.
+const List<int> kSoundOctaves = [2, 3, 4, 5];
 
 /// Octave associée à une rangée.
 ///
@@ -117,14 +115,14 @@ const Duration _arrivalDelay = Duration(milliseconds: 250);
 ///
 /// Renvoie une liste vide si la notation n'est pas exploitable — on préfère
 /// le silence à un son faux.
-List<SoundCue> planForNotation(String? notation, {bool hadEjection = false}) {
+List<SoundCue> planForNotation(String? notation) {
   if (notation == null) return const [];
   var n = notation.trim();
   if (n.isEmpty) return const [];
 
   final cues = <SoundCue>[];
-  final isMat = n.endsWith('#');
-  if (isMat) n = n.substring(0, n.length - 1);
+  // La marque de mat ne fait pas partie du coup : elle ne s'entend pas.
+  if (n.endsWith('#')) n = n.substring(0, n.length - 1);
 
   // ── Manœuvre : note de la maîtresse, puis glissando descendant ──
   if (n.startsWith('(')) {
@@ -140,7 +138,7 @@ List<SoundCue> planForNotation(String? notation, {bool hadEjection = false}) {
         _addGlissando(cues, dest, 4, -1, _arrivalDelay);
       }
     }
-    return _withEnding(cues, isMat: isMat, hadEjection: hadEjection);
+    return cues;
   }
 
   // ── Fugue sur case non nommable : « Départ* » ──
@@ -150,16 +148,13 @@ List<SoundCue> planForNotation(String? notation, {bool hadEjection = false}) {
       final note = noteForCell(start.col, start.row);
       if (note != null) cues.add(SoundCue(note, Duration.zero));
     }
-    cues.add(const SoundCue(kSoundFugue, Duration(milliseconds: 160)));
-    return _withEnding(cues, isMat: isMat, hadEjection: hadEjection);
+    return cues;
   }
 
   // ── Déplacement, saut ou poussée ──
   final hasPush = n.contains('>');
   var movePart = hasPush ? n.split('>').first : n;
-  var endsFugue = false;
   if (movePart.endsWith('*')) {
-    endsFugue = true;
     movePart = movePart.substring(0, movePart.length - 1);
   }
 
@@ -182,11 +177,7 @@ List<SoundCue> planForNotation(String? notation, {bool hadEjection = false}) {
     }
   }
 
-  if (endsFugue) {
-    cues.add(const SoundCue(kSoundFugue, Duration(milliseconds: 410)));
-  }
-
-  return _withEnding(cues, isMat: isMat, hadEjection: hadEjection);
+  return cues;
 }
 
 void _addGlissando(
@@ -200,31 +191,4 @@ void _addGlissando(
   for (var i = 0; i < notes.length; i++) {
     cues.add(SoundCue(notes[i], initialDelay + _glissandoStep * i));
   }
-}
-
-/// Ajoute les sons de conclusion, **après** le son du coup lui-même.
-///
-/// Le retard est relatif au dernier son du coup, pas fixe : un glissando de
-/// poussée s'étale jusqu'à 550 ms, et un son d'éjection posé à un instant
-/// fixe tomberait en plein milieu.
-List<SoundCue> _withEnding(
-  List<SoundCue> cues, {
-  required bool isMat,
-  required bool hadEjection,
-}) {
-  if (!hadEjection && !isMat) return cues;
-
-  var after = cues.isEmpty
-      ? Duration.zero
-      : cues.map((c) => c.delay).reduce((a, b) => a > b ? a : b);
-
-  if (hadEjection) {
-    after += const Duration(milliseconds: 150);
-    cues.add(SoundCue(kSoundEjection, after));
-  }
-  if (isMat) {
-    after += const Duration(milliseconds: 250);
-    cues.add(SoundCue(kSoundMat, after));
-  }
-  return cues;
 }

@@ -96,6 +96,25 @@ final class ThinkResult {
   final int elapsedMicros;
 
   bool get hasMove => notation != null;
+
+  /// Réponse « je n'ai pas de coup » : c'est ce qu'on rend quand la réflexion
+  /// échoue ou se perd. L'écran la traite comme une papatte — il ne reste
+  /// jamais à attendre.
+  static ThinkResult none(int id) => ThinkResult(
+    id: id,
+    notation: null,
+    board: null,
+    kind: null,
+    fugue: false,
+    fugueBy: null,
+    matOn: null,
+    ejAlly: 0,
+    ejOpp: 0,
+    from: const [],
+    movedCells: const [],
+    pushTargets: const [],
+    elapsedMicros: 0,
+  );
 }
 
 /// Pilote l'isolate de Deep Grey depuis le thread de l'interface.
@@ -132,7 +151,12 @@ final class DeepGreyEngine {
       if (message is ThinkResult) {
         // Une demande annulée n'a plus de completer : on ignore sa réponse.
         _pending.remove(message.id)?.complete(message);
+        return;
       }
+      // Erreur non rattrapée dans l'isolate, ou fin d'isolate (`null`) : on
+      // libère tout le monde plutôt que de laisser l'écran suspendu.
+      _failAllPending();
+      if (message == null) _toIsolate = null;
     });
 
     _isolate = await Isolate.spawn(
@@ -140,6 +164,10 @@ final class DeepGreyEngine {
       _fromIsolate!.sendPort,
       debugName: 'deep-grey',
       errorsAreFatal: false,
+      // Si l'isolate meurt ou lève, on l'apprend ici : sans cela, l'écran
+      // attendrait une réponse qui ne viendrait jamais.
+      onError: _fromIsolate!.sendPort,
+      onExit: _fromIsolate!.sendPort,
     );
     _toIsolate = await ready.future;
   }
@@ -158,11 +186,19 @@ final class DeepGreyEngine {
     String? bookMove,
     bool avoidManeuver = false,
   }) async {
-    if (!isRunning) await start();
     final id = _nextId++;
+    try {
+      if (!isRunning) await start();
+    } catch (_) {
+      // Pas d'isolate : le jeu continue sans Deep Grey plutôt que de tomber.
+      return ThinkResult.none(id);
+    }
+    final port = _toIsolate;
+    if (port == null) return ThinkResult.none(id);
+
     final completer = Completer<ThinkResult>();
     _pending[id] = completer;
-    _toIsolate!.send(
+    port.send(
       ThinkRequest(
         id: id,
         board: board.toJson(),
@@ -186,6 +222,15 @@ final class DeepGreyEngine {
 
   /// Abandonne toutes les demandes en attente.
   void cancelAll() => _pending.clear();
+
+  /// Répond « pas de coup » à tout ce qui attend encore.
+  void _failAllPending() {
+    final waiting = Map.of(_pending);
+    _pending.clear();
+    waiting.forEach((id, completer) {
+      if (!completer.isCompleted) completer.complete(ThinkResult.none(id));
+    });
+  }
 
   /// Arrête l'isolate et libère les ports.
   void dispose() {
@@ -212,7 +257,15 @@ void _deepGreyMain(SendPort toMain) {
 
   fromMain.listen((message) {
     if (message is! ThinkRequest) return;
-    toMain.send(_think(message, cache));
+    // Une réflexion qui échoue doit QUAND MÊME répondre : sans réponse,
+    // l'écran resterait à attendre un coup pour toujours.
+    ThinkResult answer;
+    try {
+      answer = _think(message, cache);
+    } catch (_) {
+      answer = ThinkResult.none(message.id);
+    }
+    toMain.send(answer);
   });
 }
 

@@ -54,21 +54,20 @@ void main() {
     'cloche': 44100,
   };
 
-  const octaves = [2, 3, 4, 5];
-  const effects = [kSoundEjection, kSoundFugue, kSoundMat];
-
-  test('chaque instrument a ses 28 notes et ses 3 effets', () {
+  test('chaque instrument a ses 28 notes, et rien d autre', () {
     for (final instrument in kInstruments) {
       for (final note in kSoundNotes) {
-        for (final octave in octaves) {
+        for (final octave in kSoundOctaves) {
           final path = 'assets/sounds/$instrument/$note$octave.wav';
           expect(File(path).existsSync(), isTrue, reason: path);
         }
       }
-      for (final effect in effects) {
-        final path = 'assets/sounds/$instrument/$effect.wav';
-        expect(File(path).existsSync(), isTrue, reason: path);
-      }
+      // Les arpèges d'éjection, de fugue et de mat ne servaient plus : Kivy
+      // les chargeait sans jamais les jouer pour deux d'entre eux.
+      final files = Directory(
+        'assets/sounds/$instrument',
+      ).listSync().where((f) => f.path.endsWith('.wav'));
+      expect(files.length, kSoundNotes.length * kSoundOctaves.length);
     }
   });
 
@@ -88,22 +87,11 @@ void main() {
   test('les notes gardent la durée de leur instrument', () {
     noteFrames.forEach((instrument, frames) {
       for (final note in kSoundNotes) {
-        for (final octave in octaves) {
+        for (final octave in kSoundOctaves) {
           final path = 'assets/sounds/$instrument/$note$octave.wav';
           expect(readWav(path).frames, frames, reason: path);
         }
       }
     });
-  });
-
-  test('un effet a la place de son arpège de quatre notes', () {
-    // Quatre notes espacées de 0,12 s : la dernière commence à 0,36 s et doit
-    // pouvoir sonner un peu. On exige au moins une demi-seconde.
-    for (final instrument in kInstruments) {
-      for (final effect in effects) {
-        final path = 'assets/sounds/$instrument/$effect.wav';
-        expect(readWav(path).frames, greaterThan(22050), reason: path);
-      }
-    }
   });
 }
