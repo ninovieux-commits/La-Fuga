@@ -65,7 +65,7 @@ Future<void> showFinishDialog(
         FugaButton(
           text: T('Retour au menu'),
           color: palette.fonce,
-          fontSize: SF(14),
+          fontSize: SF(16),
           height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
@@ -116,7 +116,7 @@ Future<void> showContinueDialog(
         FugaButton(
           text: T('Partie suivante'),
           color: palette.clair,
-          fontSize: SF(14),
+          fontSize: SF(16),
           height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
@@ -175,7 +175,7 @@ Future<void> showOnlineContinueDialog(
                   ? T("En attente de l'adversaire…")
                   : T('Partie suivante'),
               color: palette.clair,
-              fontSize: SF(14),
+              fontSize: SF(16),
               height: S(50),
               onPressed: ready
                   ? null
@@ -187,8 +187,8 @@ Future<void> showOnlineContinueDialog(
             SizedBox(height: S(8)),
             FugaButton(
               text: T('Quitter le match'),
-              fontSize: SF(12),
-              height: S(40),
+              fontSize: SF(14),
+              height: S(52),
               onPressed: () {
                 Navigator.of(context).pop();
                 onQuit();

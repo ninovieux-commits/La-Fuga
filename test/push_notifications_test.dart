@@ -135,7 +135,20 @@ void main() {
     ) async {
       final permission = await openAccount(tester, granted: false);
 
-      await tester.tap(find.text('Recevoir des notifications :'));
+      // La page du compte est plus haute que la fenêtre : on amène la case à
+      // l'écran, entière, avant de la toucher.
+      final box = find.ancestor(
+        of: find.text('Recevoir des notifications :'),
+        matching: find.byType(CheckboxListTile),
+      );
+      await tester.scrollUntilVisible(
+        box,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(box);
+      await tester.pumpAndSettle();
+      await tester.tap(box);
       await tester.pumpAndSettle();
 
       expect(permission.requests, 1);

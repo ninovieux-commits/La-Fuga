@@ -70,8 +70,8 @@ class PhotoPickerScreen extends StatelessWidget {
               padding: EdgeInsets.all(S(10)),
               child: FugaButton(
                 text: T('Fermer'),
-                fontSize: SF(13),
-                height: S(44),
+                fontSize: SF(15),
+                height: S(52),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

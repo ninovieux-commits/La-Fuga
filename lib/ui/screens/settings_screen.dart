@@ -157,8 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     FugaButton(
                       text: T('Valider la langue'),
                       color: palette.clair,
-                      fontSize: SF(12),
-                      height: S(40),
+                      fontSize: SF(14),
+                      height: S(52),
                       onPressed: _applyLanguage,
                     ),
                   ],
@@ -230,8 +230,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   FugaButton(
                     text: T('Appliquer ce thème'),
                     color: palette.clair,
-                    fontSize: SF(12),
-                    height: S(40),
+                    fontSize: SF(14),
+                    height: S(52),
                     onPressed: _applyTheme,
                   ),
                 ],
@@ -250,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: FugaButton(
                         text: T('Composer le thème'),
                         color: palette.fonce,
-                        fontSize: SF(12),
+                        fontSize: SF(14),
                         onPressed: () async {
                           await Navigator.of(context).push(
                             MaterialPageRoute<bool>(
@@ -273,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     flex: widget.fromMenu ? 28 : 100,
                     child: FugaButton(
                       text: T('Fermer'),
-                      fontSize: SF(12),
+                      fontSize: SF(14),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),

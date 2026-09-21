@@ -63,7 +63,7 @@ class _TutoScreenState extends State<TutoScreen> {
           width: S(95),
           child: FugaButton(
             text: T('Pause'),
-            fontSize: SF(13),
+            fontSize: SF(15),
             height: double.infinity,
             onPressed: _openPause,
           ),
@@ -189,7 +189,7 @@ class _TutoScreenState extends State<TutoScreen> {
             opacity: _tuto.atFirst ? 0.35 : 1,
             child: FugaButton(
               text: T('< Précédent'),
-              fontSize: SF(15),
+              fontSize: SF(16),
               height: double.infinity,
               onPressed: _tuto.atFirst ? null : () => setState(_tuto.previous),
             ),
@@ -202,7 +202,7 @@ class _TutoScreenState extends State<TutoScreen> {
             child: FugaButton(
               text: _tuto.atLast ? T('Le menu >') : T('Suivant >'),
               color: palette.fonce,
-              fontSize: SF(15),
+              fontSize: SF(16),
               height: double.infinity,
               onPressed: !_tuto.canGoNext
                   ? null

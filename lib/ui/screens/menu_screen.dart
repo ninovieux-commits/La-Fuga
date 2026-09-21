@@ -43,6 +43,10 @@ import 'parties_menu_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
 
+/// Encre des titres du menu : le `(0.15, 0.15, 0.15)` de Kivy, presque noir.
+/// Une couleur de thème les rendrait bleus sur certains fonds.
+const Color kMenuInk = Color.fromRGBO(38, 38, 38, 1);
+
 /// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
 typedef FavoriteChoice = ({String pseudo, bool challenge});
 
@@ -604,8 +608,8 @@ class MenuScreenState extends State<MenuScreen> {
                               child: FugaButton(
                                 text: T('Défier'),
                                 color: palette.fonce,
-                                fontSize: SF(13),
-                                height: S(40),
+                                fontSize: SF(15),
+                                height: S(52),
                                 onPressed: () => Navigator.of(
                                   context,
                                 ).pop((pseudo: f.pseudo, challenge: true)),
@@ -927,13 +931,18 @@ class MenuScreenState extends State<MenuScreen> {
             SafeArea(child: _content(palette)),
             _topBar(palette),
             if (_tourIndex != null)
-              MenuTourOverlay(
-                stop: _tour[_tourIndex!],
-                index: _tourIndex!,
-                count: _tour.length,
-                rings: _tourRings(_tourIndex!),
-                onPrevious: () => _tourStep(-1),
-                onNext: () => _tourStep(1),
+              // Les anneaux se recalculent à chaque défilement : sans cela ils
+              // restaient plantés là où la touche se trouvait au départ.
+              AnimatedBuilder(
+                animation: _scroll,
+                builder: (context, _) => MenuTourOverlay(
+                  stop: _tour[_tourIndex!],
+                  index: _tourIndex!,
+                  count: _tour.length,
+                  rings: _tourRings(_tourIndex!),
+                  onPrevious: () => _tourStep(-1),
+                  onNext: () => _tourStep(1),
+                ),
               ),
           ],
         ),
@@ -985,7 +994,7 @@ class MenuScreenState extends State<MenuScreen> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: SF(17),
-                  color: palette.fonceDim,
+                  color: kMenuInk,
                 ),
               ),
             ),
@@ -1004,7 +1013,7 @@ class MenuScreenState extends State<MenuScreen> {
                         padding: EdgeInsets.symmetric(horizontal: S(3)),
                         child: FugaButton(
                           text: c.label,
-                          fontSize: SF(13),
+                          fontSize: SF(15),
                           height: double.infinity,
                           color: _cadence == c ? palette.fonce : kFugaGrey,
                           onPressed: () => setState(() => _cadence = c),
@@ -1086,7 +1095,9 @@ class MenuScreenState extends State<MenuScreen> {
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
 
   Widget _searchRow() => SizedBox(
-    height: SH(0.05),
+    // Même hauteur que les touches du menu : une ligne plus fine faisait
+    // désordre au milieu de la colonne.
+    height: SH(0.06),
     child: Row(
       key: _tourKeys['search'],
       children: [
@@ -1142,7 +1153,7 @@ class MenuScreenState extends State<MenuScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: SF(15),
-              color: palette.fonceDim,
+              color: kMenuInk,
             ),
           ),
         ),
@@ -1152,7 +1163,7 @@ class MenuScreenState extends State<MenuScreen> {
           child: FugaButton(
             text: T('Actualiser'),
             color: palette.fonce,
-            fontSize: SF(12),
+            fontSize: SF(14),
             height: double.infinity,
             radius: S(12),
             onPressed: _refreshCorr,
@@ -1223,7 +1234,7 @@ class MenuScreenState extends State<MenuScreen> {
                 child: FugaButton(
                   key: _tourKeys['random'],
                   text: 'Random',
-                  fontSize: SF(12),
+                  fontSize: SF(14),
                   height: double.infinity,
                   color: _random ? palette.clair : kFugaGrey,
                   textColor: _random ? Colors.black87 : Colors.white,
@@ -1238,7 +1249,7 @@ class MenuScreenState extends State<MenuScreen> {
                   // Le mélo est DANS le bouton, comme en Kivy :
                   // `account_btn.text = "%s (%d)"`.
                   text: _online.isLoggedIn ? _accountLabel() : T('Compte'),
-                  fontSize: SF(12),
+                  fontSize: SF(14),
                   height: double.infinity,
                   onPressed: _openAccount,
                 ),

@@ -69,14 +69,14 @@ Future<void> showNameMenu(
               child: FugaButton(
                 text: label,
                 color: color,
-                fontSize: SF(14),
+                fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(value),
               ),
             ),
           FugaButton(
             text: T('Fermer'),
-            fontSize: SF(12),
-            height: S(40),
+            fontSize: SF(14),
+            height: S(52),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

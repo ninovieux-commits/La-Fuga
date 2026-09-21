@@ -95,7 +95,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
               child: FugaButton(
                 text: T('Appliquer'),
                 color: palette.clair,
-                fontSize: SF(15),
+                fontSize: SF(16),
                 height: S(48),
                 onPressed: _apply,
               ),

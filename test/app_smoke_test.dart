@@ -120,19 +120,25 @@ void main() {
     await tapVisible(tester, find.text('Réglages'));
 
     expect(find.byType(SettingsScreen), findsOneWidget);
-    // Le thème et la langue se font défiler, ils ne se listent pas.
-    expect(find.text('Français'), findsOneWidget);
-    expect(find.text('Original'), findsOneWidget);
-    expect(find.text('Piano'), findsOneWidget);
     expect(find.text('Fermer'), findsOneWidget);
+
+    // Le thème, la langue et l'instrument se font défiler, ils ne se listent
+    // pas. La page est plus haute que la fenêtre : on descend jusqu'à chacun.
+    Future<void> seek(String label) async {
+      await tester.scrollUntilVisible(
+        find.text(label),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(label), findsOneWidget);
+    }
+
+    await seek('Français');
+    await seek('Original');
+    await seek('Piano');
     // « Appliquer ce thème » est sous l'aperçu du thème : c'est lui qu'on
-    // regarde quand on décide. Il faut descendre jusque-là.
-    await tester.scrollUntilVisible(
-      find.text('Appliquer ce thème'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Appliquer ce thème'), findsOneWidget);
+    // regarde quand on décide.
+    await seek('Appliquer ce thème');
   });
 
   testWidgets('on lance une partie contre Deep Grey et le plateau apparaît', (

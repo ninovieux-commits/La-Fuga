@@ -203,8 +203,8 @@ class CorrSlot extends StatelessWidget {
           text: text,
           color: color,
           onPressed: onPressed,
-          height: S(26),
-          fontSize: SF(10),
+          height: S(34),
+          fontSize: SF(12),
           radius: 8,
         ),
       );

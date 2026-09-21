@@ -52,7 +52,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
             width: _sideWidth,
             child: FugaButton(
               text: back,
-              fontSize: SF(14),
+              fontSize: SF(16),
               height: double.infinity,
               onPressed: onBack,
             ),

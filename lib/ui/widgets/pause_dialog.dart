@@ -54,7 +54,7 @@ Future<bool> showPauseDialog(
         FugaButton(
           text: T('Reprendre'),
           color: palette.clair,
-          fontSize: SF(15),
+          fontSize: SF(16),
           onPressed: () => Navigator.of(context).pop(false),
         ),
       ),
@@ -63,7 +63,7 @@ Future<bool> showPauseDialog(
         Builder(
           builder: (context) => FugaButton(
             text: T('Réglages'),
-            fontSize: SF(15),
+            fontSize: SF(16),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 // Depuis une partie, Kivy n'offre ni la langue ni le
@@ -83,7 +83,7 @@ Future<bool> showPauseDialog(
                 ? T('Revenir au menu')
                 : T('Annuler le match'),
             color: palette.fonce,
-            fontSize: SF(15),
+            fontSize: SF(16),
             onPressed: () => Navigator.of(context).pop(true),
           ),
         ),
@@ -136,7 +136,7 @@ Future<bool> confirmCancelMatch(
             Expanded(
               child: FugaButton(
                 text: T('Continuer'),
-                fontSize: SF(15),
+                fontSize: SF(16),
                 height: double.infinity,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
@@ -148,7 +148,7 @@ Future<bool> confirmCancelMatch(
                     ? T('Abandonner')
                     : T('Annuler le match'),
                 color: palette.fonce,
-                fontSize: SF(15),
+                fontSize: SF(16),
                 height: double.infinity,
                 onPressed: () => Navigator.of(context).pop(true),
               ),

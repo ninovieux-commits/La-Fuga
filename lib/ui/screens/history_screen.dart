@@ -397,7 +397,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           height: S(90),
           child: FugaButton(
             text: T('Copier'),
-            fontSize: SF(11),
+            fontSize: SF(13),
             radius: S(8),
             height: double.infinity,
             onPressed: () => _copyNmc(game),

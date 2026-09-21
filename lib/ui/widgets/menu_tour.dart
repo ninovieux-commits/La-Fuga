@@ -83,25 +83,32 @@ class MenuTourOverlay extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: SF(14)),
                 ),
                 SizedBox(height: S(12)),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FugaButton(
-                        text: T('< Précédent'),
-                        fontSize: SF(14),
-                        onPressed: onPrevious,
+                // Mêmes touches que celles du tuto, d'où l'on vient : elles
+                // occupent la même bande de 11 % de l'écran.
+                SizedBox(
+                  height: SH(0.11) - S(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: FugaButton(
+                          text: T('< Précédent'),
+                          fontSize: SF(15),
+                          height: double.infinity,
+                          onPressed: onPrevious,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: S(12)),
-                    Expanded(
-                      child: FugaButton(
-                        text: _isLast ? T('Fermer') : T('Continuer >'),
-                        color: const Color(0xFF2E74D9),
-                        fontSize: SF(14),
-                        onPressed: onNext,
+                      SizedBox(width: S(14)),
+                      Expanded(
+                        child: FugaButton(
+                          text: _isLast ? T('Fermer') : T('Continuer >'),
+                          color: const Color(0xFF2E74D9),
+                          fontSize: SF(15),
+                          height: double.infinity,
+                          onPressed: onNext,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
