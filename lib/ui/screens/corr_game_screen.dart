@@ -14,6 +14,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/online_service.dart';
+import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
@@ -54,6 +55,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   Board? _boardBefore;
   bool _sending = false;
   bool _played = false;
+
+  /// Vrai quand MON coup vient de terminer la partie : le serveur n'a pas
+  /// encore renvoyé le nouveau statut, mais il n'y a plus rien à jouer.
+  bool _finished = false;
 
   CorrGame get _g => widget.game;
 
@@ -138,9 +143,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     );
     if (!mounted) return;
 
+    final over = result.effect == ControllerEffect.gameOver;
     setState(() {
       _sending = false;
       _played = ok;
+      _finished = ok && over;
     });
 
     if (!ok) {
@@ -149,7 +156,40 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       );
       return;
     }
-    if (mounted) Navigator.of(context).pop();
+
+    // On RESTE sur la partie : le coup vient d'être joué, on veut voir la
+    // position. Le bandeau montre que ce n'est plus à nous, et la pause
+    // ramène au menu quand on le décide.
+    if (!over) return;
+
+    await showFinishDialog(
+      context,
+      palette: paletteOf(Settings.instance.themeAxes.general),
+      title: T('Partie terminée'),
+      body: _verdictOf(result),
+      winner: _winnerOf(result),
+      onMenu: () {
+        if (mounted) Navigator.of(context).pop();
+      },
+    );
+  }
+
+  /// Ce qui s'est passé, en une ligne — mêmes formules que l'écran de jeu.
+  String _verdictOf(ControllerResult r) => switch (r.endReason) {
+    'fugue' => T('Fugue'),
+    'mat' => T('Mat'),
+    'papatte' => T('Papatte'),
+    'nulle_pat' => T('Trêve : plus aucune pièce carrée ne peut bouger'),
+    'repetition' => T('Match nul par répétition'),
+    'nulle' => T('Match nul'),
+    _ => T('Partie terminée'),
+  };
+
+  /// Qui gagne, par son pseudo. Nul : match nul.
+  String? _winnerOf(ControllerResult r) {
+    final winner = r.loser?.opposite;
+    if (winner == null) return null;
+    return winner == _g.myCamp ? widget.myPseudo : _g.opponent;
   }
 
   /// Répondre à une nulle proposée. On ne peut pas en proposer une soi-même :
@@ -318,7 +358,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     // avant de jouer le sien.
     onAnalyse: _controller == null ? null : _openAnalysis,
     onPause: _openPause,
-    onMenu: _g.status == CorrStatus.termine
+    // La touche « Retour au menu » apparaît dès que la partie est finie,
+    // que ce soit par le serveur ou par le coup qu'on vient de jouer.
+    onMenu: (_g.status == CorrStatus.termine || _finished)
         ? () => Navigator.of(context).pop()
         : null,
   );

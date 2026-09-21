@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:lafuga/engine/move_generator.dart';
+import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
@@ -15,6 +17,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
+import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
@@ -189,6 +192,33 @@ void main() {
     // illimité, on abandonne si ça traîne.
     expect(find.byTooltip('Abandonner'), findsOneWidget);
     expect(find.byTooltip('Proposer nulle'), findsNothing);
+  });
+
+  testWidgets('après avoir joué, on reste sur la partie', (tester) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    await open(tester);
+    await tapVisible(tester, find.byType(CorrSlot).first);
+
+    // Un coup blanc quelconque : sélectionner, déplacer, revalider.
+    final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
+    final move = generateMoves(
+      view.board,
+      Camp.blanc,
+    ).firstWhere((m) => m.movedCells.length == 1 && m.movedCells.first.onBoard);
+    view.onTapCell(move.from);
+    await tester.pump();
+    view.onTapCell(move.movedCells.first);
+    await tester.pump();
+    view.onTapCell(move.movedCells.first);
+    await tester.pumpAndSettle();
+
+    expect(bodyOf('/corr_jouer')!['game_id'], 'g1');
+    // Kivy laisse le joueur devant sa position : on ne le renvoie pas au menu.
+    expect(find.byType(CorrGameScreen), findsOneWidget);
+    expect(find.byType(MenuScreen), findsNothing);
   });
 
   testWidgets('une case vide propose de défier un favori', (tester) async {
