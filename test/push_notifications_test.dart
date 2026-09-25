@@ -166,7 +166,20 @@ void main() {
     testWidgets('permission déjà accordée : rien ne s affiche', (tester) async {
       final permission = await openAccount(tester, granted: true);
 
-      await tester.tap(find.text('Recevoir des notifications :'));
+      // Même précaution que plus haut : la case est en bas d'une page qui
+      // dépasse la fenêtre.
+      final box = find.ancestor(
+        of: find.text('Recevoir des notifications :'),
+        matching: find.byType(CheckboxListTile),
+      );
+      await tester.scrollUntilVisible(
+        box,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(box);
+      await tester.pumpAndSettle();
+      await tester.tap(box);
       await tester.pumpAndSettle();
 
       expect(permission.requests, 0);

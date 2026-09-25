@@ -153,7 +153,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: S(52), child: _preview(axis, theme)),
+            SizedBox(height: S(54), child: _preview(axis, theme)),
             SizedBox(height: S(4)),
             Text(
               T(kThemeLabels[theme] ?? theme),
@@ -173,10 +173,10 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
       case 'pieces':
         return ProfilePhoto(
           photo: '$theme|${PieceType.heritier.wire}',
-          size: S(52),
+          size: S(54),
         );
       case 'logo':
-        return ProfilePhoto(photo: 'logo|$theme', size: S(52));
+        return ProfilePhoto(photo: 'logo|$theme', size: S(54));
       case 'menu':
       case 'board':
         final images = imagesFor(theme);
@@ -190,8 +190,8 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
               : Image.asset(
                   asset,
                   fit: BoxFit.cover,
-                  width: S(52),
-                  height: S(52),
+                  width: S(54),
+                  height: S(54),
                 ),
         );
       default:

@@ -343,7 +343,8 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _identity(Profile profile, ThemePalette palette) => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      ProfilePhoto(photo: profile.photo, size: S(96)),
+      // `PiecePhoto(width=S(140))` dans la ligne d'identité de Kivy.
+      ProfilePhoto(photo: profile.photo, size: S(140)),
       SizedBox(width: S(16)),
       Expanded(
         child: Column(

@@ -13,7 +13,6 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import '../screens/account_screen.dart';
 import '../screens/history_screen.dart';
-import 'profile_photo.dart';
 
 /// Affiche la fiche et renvoie le pseudo à défier, ou `null`.
 Future<String?> showPlayerCard(
@@ -90,13 +89,9 @@ class _PlayerCardState extends State<_PlayerCard> {
     final p = widget.player;
 
     return AlertDialog(
-      title: Row(
-        children: [
-          ProfilePhoto(photo: p.photo, size: S(40)),
-          SizedBox(width: S(10)),
-          Expanded(child: Text(p.pseudo)),
-        ],
-      ),
+      // La fiche de Kivy (`_show_player_card`) commence par le pseudo seul :
+      // elle ne montre pas d'avatar.
+      title: Text(p.pseudo),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
