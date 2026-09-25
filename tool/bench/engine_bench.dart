@@ -1,4 +1,5 @@
 // Mesure des points chauds du moteur, en meilleur-de-5 pour lisser le bruit.
+// ignore_for_file: avoid_print
 // Lancer : dart run tool/bench/engine_bench.dart
 import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/engine/piece.dart';
@@ -6,6 +7,7 @@ import 'package:lafuga/engine/move_generator.dart';
 import 'package:lafuga/engine/ai/evaluation.dart';
 import 'package:lafuga/engine/ai/search.dart';
 import 'package:lafuga/engine/ai/weights.dart';
+import 'package:lafuga/engine/threats.dart';
 
 double us(void Function() f, int n) {
   for (var i = 0; i < n ~/ 5 + 1; i++) {
@@ -52,6 +54,12 @@ void main() {
     'positionalStrategy ${us(() => positionalStrategy(mid, Camp.blanc, w), 30000).toStringAsFixed(1)} us',
   );
   print(
+    'threatsOf (2 camps)${us(() {
+      threatsOf(mid, Camp.blanc);
+      threatsOf(mid, Camp.noir);
+    }, 30000).toStringAsFixed(1)} us',
+  );
+  print(
     'evaluate (froid)   ${us(() => evaluate(mid, Camp.blanc, weights: w), 5000).toStringAsFixed(1)} us',
   );
   print(
@@ -60,6 +68,9 @@ void main() {
   print(
     'chooseMoveTopN     ${ms(us(() => chooseMoveTopN(mid, Camp.blanc), 4))}',
   );
+  final cache = EvalCache();
+  chooseMoveTopN(mid, Camp.blanc, context: SearchContext(cache: cache));
+  print('  positions en cache ${cache.length}');
   print(
     '  (initiale)       ${ms(us(() => chooseMoveTopN(Board.initial(), Camp.blanc, moveNumber: 20), 4))}',
   );

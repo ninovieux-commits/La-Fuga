@@ -1,6 +1,8 @@
 /// Plateau de La Fuga et constantes de géométrie — Dart pur.
 library;
 
+import 'dart:typed_data';
+
 import 'piece.dart';
 
 /// Colonnes du plateau (notes do…si).
@@ -217,15 +219,26 @@ final class Board {
 
   String? _key;
 
+  /// Une case vide s'écrit `.`, une case occupée sur deux lettres : la clé
+  /// fait donc entre 56 et 112 caractères. Elle est assemblée en points de
+  /// code puis convertie d'un coup — écrire cinquante-six petites chaînes dans
+  /// un tampon coûtait presque autant que toute l'évaluation qui la demande.
   String _buildKey() {
-    final sb = StringBuffer();
+    final codes = Uint8List(kCols * kRows * 2);
+    var n = 0;
     for (var c = 0; c < kCols; c++) {
+      final col = _cols[c];
       for (var r = 0; r < kRows; r++) {
-        final p = _cols[c][r];
-        sb.write(p == null ? '.' : p.key);
+        final p = col[r];
+        if (p == null) {
+          codes[n++] = 0x2E; // .
+        } else {
+          codes[n++] = p.typeCode;
+          codes[n++] = p.campCode;
+        }
       }
     }
-    return sb.toString();
+    return String.fromCharCodes(codes, 0, n);
   }
 
   /// Clé incluant le camp au trait (anti-répétition).

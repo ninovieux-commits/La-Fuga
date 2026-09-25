@@ -26,24 +26,34 @@ import 'sound_plan.dart';
 
 /// Charge les 28 notes d'un instrument depuis les assets.
 Future<SoundBank> loadSoundBank(String instrument) async {
+  // Les vingt-huit notes sont demandées de front. À la chaîne, chacune coûte
+  // un aller-retour vers la plateforme, et le premier coup de la partie
+  // risquait d'arriver avant la dernière.
+  final names = [
+    for (final note in kSoundNotes)
+      for (final octave in kSoundOctaves) '$note$octave',
+  ];
+
+  Future<Pcm?> read(String name) async {
+    try {
+      final data = await rootBundle.load('assets/sounds/$instrument/$name.wav');
+      final pcm = readWav(data);
+      return (pcm != null && pcm.length > 0) ? pcm : null;
+    } catch (_) {
+      // Fichier absent ou illisible : cette note restera muette.
+      return null;
+    }
+  }
+
+  final loaded = await Future.wait(names.map(read));
+
   final notes = <String, Pcm>{};
   var rate = 44100;
-  for (final note in kSoundNotes) {
-    for (final octave in kSoundOctaves) {
-      final name = '$note$octave';
-      try {
-        final data = await rootBundle.load(
-          'assets/sounds/$instrument/$name.wav',
-        );
-        final pcm = readWav(data);
-        if (pcm != null && pcm.length > 0) {
-          notes[name] = pcm;
-          rate = pcm.rate;
-        }
-      } catch (_) {
-        // Fichier absent ou illisible : cette note restera muette.
-      }
-    }
+  for (var i = 0; i < names.length; i++) {
+    final pcm = loaded[i];
+    if (pcm == null) continue;
+    notes[names[i]] = pcm;
+    rate = pcm.rate;
   }
   return SoundBank(instrument, notes, rate);
 }

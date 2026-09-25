@@ -110,6 +110,20 @@ final class Piece {
     PieceType.chevalier => camp == Camp.blanc ? 'CB' : 'CN',
   };
 
+  /// Les deux caractères de [key], en points de code.
+  ///
+  /// La clé d'un plateau est assemblée caractère par caractère : la donner
+  /// déjà découpée évite d'y recopier des chaînes cinquante-six fois.
+  int get typeCode => switch (type) {
+    PieceType.heritier => 0x48, // H
+    PieceType.nurse => 0x4E, // N
+    PieceType.soldat => 0x53, // S
+    PieceType.garde => 0x47, // G
+    PieceType.chevalier => 0x43, // C
+  };
+
+  int get campCode => camp == Camp.blanc ? 0x42 : 0x4E; // B / N
+
   Map<String, String> toJson() => {'type': type.wire, 'camp': camp.wire};
 
   static Piece fromJson(Map<String, dynamic> j) => Piece.of(
