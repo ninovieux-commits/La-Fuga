@@ -9,6 +9,7 @@ import '../engine/move_generator.dart';
 import '../engine/piece.dart';
 import '../engine/literal_replay.dart';
 import '../engine/random_fuga.dart';
+import '../game/captures.dart';
 import '../game/last_move.dart';
 import '../game/nmc.dart';
 import '../net/online_client.dart';
@@ -147,7 +148,11 @@ final class CorrGame {
 /// Rejouer une partie demande d'appliquer chaque notation ; l'aperçu du menu,
 /// lui, se reconstruit à chaque défilement. Le texte des coups est la clé :
 /// dès qu'il change, le rejeu est refait.
-final Map<String, ({Board board, LastMove? lastMove})> _replayCache = {};
+final Map<String, ({Board board, LastMove? lastMove, Captures captured})>
+_replayCache = {};
+
+/// Pièces sorties du plateau, par camp d'appartenance.
+typedef Captures = Map<Camp, List<Piece>>;
 
 /// Au-delà, on oublie les plus anciens : une poignée de parties suffit.
 const int _replayCacheMax = 48;
@@ -176,18 +181,33 @@ List<String> corrMoveLines(String movesText) => [
 ///
 /// Le plateau rendu est une copie : l'appelant peut jouer dessus sans abîmer
 /// ce qui est mémorisé.
-({Board board, Camp turn, LastMove? lastMove}) replay(CorrGame game) {
+({Board board, Camp turn, LastMove? lastMove, Captures captured}) replay(
+  CorrGame game,
+) {
   final key = '${game.randomCode}|${game.movesText}';
   final hit = _replayCache[key] ?? _replayNow(game);
   if (_replayCache.length >= _replayCacheMax) {
     _replayCache.remove(_replayCache.keys.first);
   }
   _replayCache[key] = hit;
-  return (board: hit.board.clone(), turn: game.turn, lastMove: hit.lastMove);
+  return (
+    board: hit.board.clone(),
+    turn: game.turn,
+    lastMove: hit.lastMove,
+    // Copie : l'appelant y ajoutera ses propres prises en jouant.
+    captured: {
+      for (final e in hit.captured.entries) e.key: List<Piece>.of(e.value),
+    },
+  );
 }
 
-({Board board, LastMove? lastMove}) _replayNow(CorrGame game) {
+({Board board, LastMove? lastMove, Captures captured}) _replayNow(
+  CorrGame game,
+) {
   var board = game.initialBoard;
+  // Les prises se recomptent en chemin : la position finale seule ne dit pas
+  // ce qui est sorti, et les panneaux restaient vides toute la partie.
+  final captured = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
 
   // Ce que Kivy lit dans son historique pour encadrer le dernier coup :
   // le snapshot de l'avant-dernier coup réussi, ou la position de départ.
@@ -196,9 +216,13 @@ List<String> corrMoveLines(String movesText) => [
   String? lastNotation;
 
   for (final notation in corrMoveLines(game.movesText)) {
+    final before = board;
     final applied = applyNotationLiterally(board, notation);
     board = applied.board;
     if (!applied.ok) continue;
+    for (final piece in ejectedBetween(before, board, notation)) {
+      captured[piece.camp]!.add(piece);
+    }
     beforeLast = lastSnapshot;
     lastSnapshot = board;
     lastNotation = notation;
@@ -211,7 +235,7 @@ List<String> corrMoveLines(String movesText) => [
           beforeLast ?? game.initialBoard,
           board,
         );
-  return (board: board, lastMove: last);
+  return (board: board, lastMove: last, captured: captured);
 }
 
 /// Méthode de fin à transmettre avec un coup qui clôt la partie.

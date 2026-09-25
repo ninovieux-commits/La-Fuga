@@ -9,6 +9,7 @@ import '../engine/board.dart';
 import '../engine/literal_replay.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
+import 'captures.dart';
 import 'last_move.dart';
 import 'nmc.dart';
 
@@ -47,38 +48,6 @@ final class ReplayStep {
 
   /// Cases à encadrer : départ et arrivées du coup.
   Set<Cell> get highlightedCells => lastMove?.framedCells ?? const {};
-}
-
-/// Pièces qui quittent le plateau d'une position à l'autre — sans compter
-/// l'Héritier qui fugue, qui n'est pas une prise mais une victoire.
-///
-/// Sert à la relecture, et à l'analyse quand elle repart d'une position
-/// passée : les prises se recomptent alors depuis les positions traversées.
-List<Piece> ejectedBetween(Board before, Board after, String notation) {
-  final counts = <Piece, int>{};
-  for (var c = 0; c < kCols; c++) {
-    for (var r = 0; r < kRows; r++) {
-      final p = after.at(c, r);
-      if (p != null) counts[p] = (counts[p] ?? 0) + 1;
-    }
-  }
-  final out = <Piece>[];
-  for (var c = 0; c < kCols; c++) {
-    for (var r = 0; r < kRows; r++) {
-      final p = before.at(c, r);
-      if (p == null) continue;
-      final left = counts[p] ?? 0;
-      if (left > 0) {
-        counts[p] = left - 1;
-      } else {
-        out.add(p);
-      }
-    }
-  }
-  // Une fugue se note par un `*` : l'Héritier sort, mais ce n'est pas une
-  // prise.
-  if (notation.contains('*')) out.removeWhere((p) => p.isHeir);
-  return out;
 }
 
 /// Vrai si ce contenu se lit comme une partie.

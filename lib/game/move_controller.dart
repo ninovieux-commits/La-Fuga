@@ -15,6 +15,7 @@ import '../engine/board.dart';
 import '../engine/move.dart';
 import '../engine/move_generator.dart';
 import '../engine/notation.dart';
+import 'captures.dart';
 import '../engine/piece.dart';
 
 /// Ce que le contrôleur demande à l'interface après un geste.
@@ -114,8 +115,13 @@ class MoveController {
     Board? board,
     this.turn = Camp.blanc,
     this.countRepetitions = true,
-  }) : board = board ?? Board.initial() {
+    Map<Camp, List<Piece>>? captured,
+  }) : board = board ?? Board.initial(),
+       captured = {
+         for (final camp in Camp.values) camp: [...?captured?[camp]],
+       } {
     _turnStartBoard = this.board.clone();
+    _turnStartCaptured = _capturedCounts();
   }
 
   /// Compter les répétitions de position (nulle à la quatrième).
@@ -146,7 +152,13 @@ class MoveController {
   final MoveTracking tracking = MoveTracking();
 
   /// Pièces éjectées, par camp.
-  final Map<Camp, List<Piece>> captured = {Camp.blanc: [], Camp.noir: []};
+  /// Pièces sorties du plateau, rangées au camp qui les a PERDUES.
+  ///
+  /// Une partie reprise en cours de route — la correspondance, une analyse
+  /// qui repart d'une position passée — les reçoit à la construction : les
+  /// recompter après coup laisserait le repère d'annulation à zéro, et le
+  /// premier coup annulé effacerait tout le tableau.
+  final Map<Camp, List<Piece>> captured;
 
   /// Héritiers ayant fugué, à afficher en permanence dans le ralliement.
   final List<(Camp, Cell)> fuguedHeirs = [];
@@ -551,6 +563,7 @@ class MoveController {
     }
 
     _turnStartBoard = board.clone();
+    _turnStartCaptured = _capturedCounts();
     return ControllerResult(
       ControllerEffect.turnEnded,
       notation: notation,
@@ -664,9 +677,33 @@ class MoveController {
     if (gameOver) return false;
     if (!moved && selected == null && groupSelection.isEmpty) return false;
     board = _turnStartBoard.clone();
+    // Les pièces poussées dehors pendant ce coup reviennent avec lui : sans
+    // cela, elles restaient au tableau des prises alors qu'elles étaient de
+    // nouveau sur le plateau — et s'y ajoutaient une seconde fois si le coup
+    // était rejoué.
+    _restoreCaptured();
     _clearSelection();
     tracking.reset();
     return true;
+  }
+
+  /// Nombre de prises de chaque camp au début du tour.
+  ///
+  /// Posé au constructeur, pas à la première lecture : un `late` initialisé
+  /// paresseusement se serait créé AU MOMENT de l'annulation, donc après la
+  /// poussée, et n'aurait rien eu à restaurer.
+  late Map<Camp, int> _turnStartCaptured;
+
+  Map<Camp, int> _capturedCounts() => {
+    for (final camp in Camp.values) camp: captured[camp]!.length,
+  };
+
+  void _restoreCaptured() {
+    for (final camp in Camp.values) {
+      final kept = _turnStartCaptured[camp] ?? 0;
+      final list = captured[camp]!;
+      if (list.length > kept) list.removeRange(kept, list.length);
+    }
   }
 
   /// Applique un coup venu d'ailleurs : l'IA, le réseau, ou un replay.
@@ -681,11 +718,19 @@ class MoveController {
     if (gameOver) return const ControllerResult(ControllerEffect.none);
 
     final mover = turn;
+    final before = board;
     final slides = _slidesBetween(board, move.board);
     final notation = notationOn(board, move);
     final hadEjection = move.ejected > 0;
 
     board = move.board;
+    // Les prises se lisent sur la différence entre les deux positions : un
+    // coup construit ailleurs n'est pas passé par `_applyPush`, et sans cela
+    // les pièces que Deep Grey ou l'adversaire éjectaient n'apparaissaient
+    // jamais dans les panneaux.
+    for (final piece in ejectedBetween(before, board, notation)) {
+      captured[piece.camp]!.add(piece);
+    }
     _clearSelection();
 
     // Fugue : l'Héritier a rejoint un ralliement.
@@ -767,6 +812,7 @@ class MoveController {
     }
 
     _turnStartBoard = board.clone();
+    _turnStartCaptured = _capturedCounts();
     return ControllerResult(
       ControllerEffect.turnEnded,
       notation: notation,

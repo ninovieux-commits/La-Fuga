@@ -86,7 +86,13 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   void _restore() {
     final state = replay(_g);
     setState(() {
-      _controller = MoveController(board: state.board, turn: state.turn);
+      _controller = MoveController(
+        board: state.board,
+        turn: state.turn,
+        // Les prises des coups déjà joués : sans elles, les panneaux d'une
+        // partie en correspondance restaient vides du début à la fin.
+        captured: state.captured,
+      );
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
       _lastMove = state.lastMove;
     });

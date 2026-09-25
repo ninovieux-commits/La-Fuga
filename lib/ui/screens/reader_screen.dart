@@ -83,10 +83,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             // Hauteur libre : la consigne passe à deux lignes sur un écran
             // étroit, et une bande figée la coupait en deux.
             Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: S(12),
-                vertical: S(6),
-              ),
+              padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
               child: Text(
                 T("Collez le contenu d'un fichier .nmc ci-dessous :"),
                 textAlign: TextAlign.center,

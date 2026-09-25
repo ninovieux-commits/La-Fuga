@@ -22,7 +22,7 @@ import '../../game/game_archive.dart';
 import '../../game/last_move.dart';
 import '../../game/match_play.dart';
 import '../../game/move_controller.dart';
-import '../../game/replay_controller.dart' show ejectedBetween;
+import '../../game/captures.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
@@ -357,17 +357,20 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
         ? widget.initialTurn
         : widget.initialTurn.opposite;
 
+    final captured = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
+    for (var i = 0; i < kept.length; i++) {
+      for (final piece in ejectedBetween(boards[i], boards[i + 1], kept[i])) {
+        captured[piece.camp]!.add(piece);
+      }
+    }
+
     final game = MoveController(
       board: boards.last.clone(),
       turn: turn,
       countRepetitions: false,
+      captured: captured,
     );
     game.history.addAll(kept);
-    for (var i = 0; i < kept.length; i++) {
-      for (final piece in ejectedBetween(boards[i], boards[i + 1], kept[i])) {
-        game.captured[piece.camp]!.add(piece);
-      }
-    }
 
     _game = game;
     _snapshots
