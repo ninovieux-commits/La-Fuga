@@ -66,7 +66,6 @@ Future<void> showFinishDialog(
           text: T('Retour au menu'),
           color: palette.fonce,
           fontSize: SF(16),
-          height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
             onMenu();
@@ -117,7 +116,6 @@ Future<void> showContinueDialog(
           text: T('Partie suivante'),
           color: palette.clair,
           fontSize: SF(16),
-          height: S(50),
           onPressed: () {
             Navigator.of(context).pop();
             onNext();
@@ -176,7 +174,6 @@ Future<void> showOnlineContinueDialog(
                   : T('Partie suivante'),
               color: palette.clair,
               fontSize: SF(16),
-              height: S(50),
               onPressed: ready
                   ? null
                   : () {
@@ -188,7 +185,6 @@ Future<void> showOnlineContinueDialog(
             FugaButton(
               text: T('Quitter le match'),
               fontSize: SF(14),
-              height: S(52),
               onPressed: () {
                 Navigator.of(context).pop();
                 onQuit();

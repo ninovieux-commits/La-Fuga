@@ -106,7 +106,7 @@ class PartiesMenuScreen extends StatelessWidget {
                         top: box.maxHeight * (1 - fraction),
                         left: box.maxWidth * 0.1,
                         width: box.maxWidth * 0.8,
-                        height: box.maxHeight * 0.1,
+                        height: touchHeight(),
                         child: FugaButton(
                           text: label,
                           color: color,

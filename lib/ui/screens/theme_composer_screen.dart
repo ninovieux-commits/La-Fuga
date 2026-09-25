@@ -96,7 +96,6 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
                 text: T('Appliquer'),
                 color: palette.clair,
                 fontSize: SF(16),
-                height: S(48),
                 onPressed: _apply,
               ),
             ),

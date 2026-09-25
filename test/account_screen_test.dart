@@ -169,6 +169,10 @@ void main() {
     );
     expect(tester.widget<CheckboxListTile>(turn).value, isFalse);
 
+    // La case doit être ENTIÈRE à l'écran : la barre du bas la recouvrait en
+    // partie, et le toucher tombait à côté.
+    await tester.ensureVisible(turn);
+    await tester.pumpAndSettle();
     await tester.tap(turn);
     await tester.pumpAndSettle();
 

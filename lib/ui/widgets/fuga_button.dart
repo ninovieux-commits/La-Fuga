@@ -29,13 +29,13 @@ class FugaButton extends StatelessWidget {
   final Color color;
   final Color textColor;
 
-  /// Hauteur imposée. Nulle : la hauteur de confort, assez grande pour qu'on
-  /// vise sans réfléchir. `double.infinity` remplit la place disponible.
+  /// Hauteur imposée. Nulle — le cas normal : l'épaisseur d'une touche,
+  /// la même partout. `double.infinity` remplit la place disponible, à
+  /// réserver aux touches dont le cadre est déjà à la bonne épaisseur.
   final double? height;
 
-  /// Hauteur d'une touche à laquelle on n'en impose pas : les popups de Kivy
-  /// tournent autour de S(48)–S(50).
-  static double get comfortableHeight => S(52);
+  /// Épaisseur d'une touche : celle des grandes touches du menu.
+  static double get comfortableHeight => touchHeight();
 
   final double? fontSize;
 

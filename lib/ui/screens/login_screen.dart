@@ -134,7 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: FugaButton(
                     text: T('< Menu'),
                     fontSize: SF(16),
-                    height: S(52),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -159,7 +158,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? T("J'ai déjà un compte")
                         : T('Pas encore inscrit ?'),
                     fontSize: SF(15),
-                    height: S(52),
                     onPressed: _busy ? null : _toggleMode,
                   ),
                 ),
@@ -202,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: FugaButton(
                       text: _passwordShown ? T('Cacher') : T('Voir'),
                       fontSize: SF(12),
-                      height: S(48),
                       onPressed: () =>
                           setState(() => _passwordShown = !_passwordShown),
                     ),
@@ -229,7 +226,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 text: _registering ? T('Créer le compte') : T('Se connecter'),
                 color: palette.clair,
                 fontSize: SF(17),
-                height: S(52),
                 onPressed: _busy ? null : _submit,
               ),
               SizedBox(height: S(14)),

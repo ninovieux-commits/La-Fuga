@@ -10,6 +10,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -158,7 +159,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       text: T('Valider la langue'),
                       color: palette.clair,
                       fontSize: SF(14),
-                      height: S(52),
                       onPressed: _applyLanguage,
                     ),
                   ],
@@ -194,7 +194,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   _label(T('Thème')),
                   SizedBox(
-                    height: S(80),
+                    // Assez haut pour l'aperçu, et jamais moins qu'une touche.
+                    height: math.max(S(80), touchHeight()),
                     child: Row(
                       children: [
                         _arrow('<', () => _moveTheme(-1)),
@@ -231,7 +232,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     text: T('Appliquer ce thème'),
                     color: palette.clair,
                     fontSize: SF(14),
-                    height: S(52),
                     onPressed: _applyTheme,
                   ),
                 ],
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Ligne `<  valeur  >` : le sélecteur de Kivy, partout le même.
   Widget _selector(String value, void Function(int delta) onMove) => SizedBox(
-    height: S(44),
+    height: touchHeight(),
     child: Row(
       children: [
         _arrow('<', () => onMove(-1)),
@@ -342,12 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     flex: 16,
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: S(3)),
-      child: FugaButton(
-        text: text,
-        fontSize: SF(16),
-        height: double.infinity,
-        onPressed: onPressed,
-      ),
+      child: FugaButton(text: text, fontSize: SF(16), onPressed: onPressed),
     ),
   );
 }

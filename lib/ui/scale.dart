@@ -50,6 +50,20 @@ double SF(double value) => value * scaleFactor * kFontBoost;
 /// où Kivy proportionne à la HAUTEUR plutôt qu'à la largeur.
 double SH(double fraction) => screenHeight * fraction;
 
+/// Épaisseur d'une touche : la fraction de hauteur des grandes touches du
+/// menu.
+const double kTouchFraction = 0.06;
+
+/// Épaisseur d'une touche, PARTOUT dans l'appli.
+///
+/// C'est celle des grandes touches du menu, et c'est la seule. Les popups et
+/// les écrans secondaires se réglaient chacun sur une valeur de référence en
+/// largeur — `S(52)`, `S(50)`, `S(48)`, `S(44)` — qui, sur un écran de
+/// téléphone (plus haut que large), donnait des touches deux fois plus fines
+/// que celles du menu. Une touche se vise avec le pouce : elle a la même
+/// épaisseur d'un écran à l'autre, ou elle n'est pas la même touche.
+double touchHeight() => SH(kTouchFraction);
+
 /// Fixe l'échelle depuis la taille de l'écran, en pixels logiques.
 void setScaleSize(Size size) {
   _factor = size.width <= 0 ? 1 : size.width / kRefWidth;

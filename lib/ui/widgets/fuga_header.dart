@@ -38,24 +38,21 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
 
   static const double _sideWidth = 110;
 
+  /// Le bandeau fait la hauteur de sa touche, plus ses marges : c'est la
+  /// touche de retour qui commande, et elle a l'épaisseur des autres.
   @override
-  Size get preferredSize => const Size.fromHeight(56);
+  Size get preferredSize => Size.fromHeight(touchHeight() + 2 * S(6));
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: S(56),
+    height: preferredSize.height,
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: S(8), vertical: S(6)),
       child: Row(
         children: [
           SizedBox(
             width: _sideWidth,
-            child: FugaButton(
-              text: back,
-              fontSize: SF(16),
-              height: double.infinity,
-              onPressed: onBack,
-            ),
+            child: FugaButton(text: back, fontSize: SF(16), onPressed: onBack),
           ),
           Expanded(
             child: Text(

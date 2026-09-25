@@ -120,7 +120,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
               child: FugaButton(
                 text: T('Lire'),
                 color: palette.clair,
-                height: S(50),
                 onPressed: _read,
               ),
             ),

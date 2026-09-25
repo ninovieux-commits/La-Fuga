@@ -50,7 +50,7 @@ Future<bool> showPauseDialog(
         ),
       ),
       (
-        0.18,
+        kTouchRow,
         FugaButton(
           text: T('Reprendre'),
           color: palette.clair,
@@ -59,7 +59,7 @@ Future<bool> showPauseDialog(
         ),
       ),
       (
-        0.18,
+        kTouchRow,
         Builder(
           builder: (context) => FugaButton(
             text: T('Réglages'),
@@ -77,7 +77,7 @@ Future<bool> showPauseDialog(
       ),
       if (quit != PauseQuit.none)
         (
-          0.18,
+          kTouchRow,
           FugaButton(
             text: quit == PauseQuit.menu
                 ? T('Revenir au menu')
@@ -130,14 +130,13 @@ Future<bool> confirmCancelMatch(
         ),
       ),
       (
-        0.32,
+        kTouchRow,
         Row(
           children: [
             Expanded(
               child: FugaButton(
                 text: T('Continuer'),
                 fontSize: SF(16),
-                height: double.infinity,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
             ),
@@ -149,7 +148,6 @@ Future<bool> confirmCancelMatch(
                     : T('Annuler le match'),
                 color: palette.fonce,
                 fontSize: SF(16),
-                height: double.infinity,
                 onPressed: () => Navigator.of(context).pop(true),
               ),
             ),

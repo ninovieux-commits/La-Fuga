@@ -15,6 +15,14 @@ import 'fuga_button.dart';
 /// naturelle, pour les contenus qu'on ne sait pas mesurer.
 typedef PopupRow = (double, Widget);
 
+/// Part d'une ligne de touches : son épaisseur est celle d'une touche, la même
+/// que partout ailleurs dans l'appli.
+///
+/// Une part en fraction de la hauteur du popup donnait des touches d'une
+/// épaisseur différente dans chaque popup — et différente de celles du menu.
+/// Le popup s'allonge s'il le faut : une touche ne se laisse pas comprimer.
+const double kTouchRow = -1;
+
 /// Ouvre un popup occupant [widthFactor] × [heightFactor] de l'écran.
 Future<T?> showFugaPopup<T>(
   BuildContext context, {
@@ -70,13 +78,26 @@ class FugaPopup extends StatelessWidget {
     final height = screen.height * heightFactor;
 
     final titleHeight = title.isEmpty ? 0.0 : SF(18) * 1.8;
-    // Ce qui reste aux lignes une fois les marges et les écarts retirés,
-    // exactement comme le calcul d'un `BoxLayout` vertical.
-    final inner =
-        height -
-        titleHeight -
-        2 * S(padding) -
+    // Ce que le popup dépense avant ses lignes : bandeau, marges, écarts.
+    final chrome =
+        titleHeight +
+        2 * S(padding) +
         S(spacing) * (rows.length - 1).clamp(0, rows.length);
+
+    // Les lignes de touches sont à épaisseur imposée ; les autres se
+    // partagent ce qui reste, au prorata de leur part — exactement comme le
+    // calcul d'un `BoxLayout` vertical, une fois les touches servies.
+    final touches = rows.where((r) => r.$1 < 0).length * touchHeight();
+    final parts = rows.fold<double>(0, (a, r) => r.$1 > 0 ? a + r.$1 : a);
+    final requestedInner = height - chrome;
+    var forParts = requestedInner - touches;
+    var boxHeight = height;
+    if (forParts < requestedInner * parts) {
+      // Pas la place : c'est le popup qui s'allonge, pas les touches qui
+      // maigrissent.
+      forParts = requestedInner * parts;
+      boxHeight = chrome + touches + forParts;
+    }
 
     return Dialog(
       backgroundColor: kFugaGrey,
@@ -84,7 +105,7 @@ class FugaPopup extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(S(14))),
       child: SizedBox(
         width: width,
-        height: height,
+        height: boxHeight,
         child: Column(
           children: [
             if (title.isNotEmpty)
@@ -108,11 +129,19 @@ class FugaPopup extends StatelessWidget {
                   children: [
                     for (var i = 0; i < rows.length; i++) ...[
                       if (i > 0) SizedBox(height: S(spacing)),
-                      if (rows[i].$1 <= 0)
+                      if (rows[i].$1 < 0)
+                        SizedBox(
+                          height: touchHeight(),
+                          width: double.infinity,
+                          child: rows[i].$2,
+                        )
+                      else if (rows[i].$1 == 0)
                         Flexible(child: rows[i].$2)
                       else
                         SizedBox(
-                          height: inner * rows[i].$1,
+                          height: parts <= 0
+                              ? 0
+                              : forParts * rows[i].$1 / parts,
                           width: double.infinity,
                           child: rows[i].$2,
                         ),

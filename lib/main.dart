@@ -86,6 +86,10 @@ void _guardAgainstCrashes() {
   );
 }
 
+/// Épaisseur minimale d'une touche Material : celle de toutes les autres.
+/// La largeur reste libre — c'est bien l'épaisseur qui doit être la même.
+Size _touchSize() => Size(0, touchHeight());
+
 class FugaApp extends StatefulWidget {
   const FugaApp({super.key});
 
@@ -135,6 +139,23 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
         primaryTextTheme: scaleTextTheme(
           base.primaryTextTheme,
           scaleFactor * kFontBoost,
+        ),
+        // Une touche a la même épaisseur partout, y compris celles que
+        // Material fournit lui-même — les actions d'une boîte de dialogue,
+        // les touches plates d'un micromenu. Sans cela, elles gardaient la
+        // hauteur minimale de Material, deux fois plus fine que les touches
+        // du menu.
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(minimumSize: _touchSize()),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(minimumSize: _touchSize()),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(minimumSize: _touchSize()),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(minimumSize: _touchSize()),
         ),
       ),
       // Le texte doit occuper la même proportion de l'écran quel que soit le

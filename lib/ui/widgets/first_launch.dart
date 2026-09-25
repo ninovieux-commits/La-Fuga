@@ -12,6 +12,12 @@ import '../../state/settings.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
 
+/// Découpe une liste en paires, pour une grille de deux colonnes.
+List<List<T>> _byTwo<T>(List<T> items) => [
+  for (var i = 0; i < items.length; i += 2)
+    items.sublist(i, (i + 2).clamp(0, items.length)),
+];
+
 /// Demande la langue, en grille de deux colonnes comme en Kivy.
 Future<void> askFirstLanguage(BuildContext context) async {
   final code = await showDialog<String>(
@@ -33,22 +39,36 @@ Future<void> askFirstLanguage(BuildContext context) async {
               ),
             ),
             SizedBox(height: S(12)),
+            // Deux colonnes comme en Kivy, mais des touches à l'épaisseur
+            // des autres : une grille à rapport fixe leur imposait la sienne.
             Flexible(
-              child: GridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2.6,
-                children: [
-                  for (final entry in kLanguageLabels.entries)
-                    FugaButton(
-                      text: entry.value,
-                      fontSize: SF(17),
-                      height: double.infinity,
-                      onPressed: () => Navigator.of(context).pop(entry.key),
-                    ),
-                ],
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    for (final pair in _byTwo(kLanguageLabels.entries.toList()))
+                      Padding(
+                        padding: EdgeInsets.only(bottom: S(8)),
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < 2; i++) ...[
+                              if (i > 0) SizedBox(width: S(8)),
+                              Expanded(
+                                child: i < pair.length
+                                    ? FugaButton(
+                                        text: pair[i].value,
+                                        fontSize: SF(17),
+                                        onPressed: () => Navigator.of(
+                                          context,
+                                        ).pop(pair[i].key),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],

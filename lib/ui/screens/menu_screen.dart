@@ -665,7 +665,6 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
                                 text: T('Défier'),
                                 color: palette.fonce,
                                 fontSize: SF(15),
-                                height: S(52),
                                 onPressed: () => Navigator.of(
                                   context,
                                 ).pop((pseudo: f.pseudo, challenge: true)),
@@ -1057,7 +1056,9 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           ),
           SizedBox(height: S(gap)),
           SizedBox(
-            height: SH(0.05),
+            // Épaisseur d'une touche, comme les grandes touches d'en dessous :
+            // une rangée plus fine se voyait tout de suite.
+            height: touchHeight(),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: S(14)),
               child: Row(
@@ -1087,7 +1088,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
               key: _tourKeys['local'],
               text: T('Jouer en local'),
               color: palette.clair,
-              height: SH(0.06),
+              height: touchHeight(),
               fontSize: SF(16),
               onPressed: _startLocal,
             ),
@@ -1098,7 +1099,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
               key: _tourKeys['online'],
               text: T('Jouer en ligne'),
               color: palette.fonce,
-              height: SH(0.06),
+              height: touchHeight(),
               fontSize: SF(16),
               onPressed: _searching ? null : _playOnline,
             ),
@@ -1111,7 +1112,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
               text: _unreadMessages > 0
                   ? '${T('Messages')}  ($_unreadMessages)'
                   : T('Messages'),
-              height: SH(0.06),
+              height: touchHeight(),
               fontSize: SF(16),
               onPressed: _openMessages,
             ),
@@ -1120,7 +1121,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           _wide(
             FugaButton(
               text: T('Jouer contre Deep Grey'),
-              height: SH(0.06),
+              height: touchHeight(),
               fontSize: SF(16),
               onPressed: _startVsAi,
             ),
@@ -1130,7 +1131,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
             FugaButton(
               key: _tourKeys['plus'],
               text: T('Plus'),
-              height: SH(0.06),
+              height: touchHeight(),
               fontSize: SF(16),
               onPressed: _openPlus,
             ),
@@ -1151,9 +1152,10 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
 
   Widget _searchRow() => SizedBox(
-    // Même hauteur que les touches du menu : une ligne plus fine faisait
-    // désordre au milieu de la colonne.
-    height: SH(0.06),
+    // Même épaisseur que les touches du menu — pour la bande ET pour le champ
+    // lui-même : un `TextField` prend sinon la hauteur de son texte, et la
+    // ligne paraissait fine à côté de l'étoile.
+    height: touchHeight(),
     child: Row(
       key: _tourKeys['search'],
       children: [
@@ -1168,10 +1170,9 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
               filled: true,
               fillColor: kFugaGrey,
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: S(12),
-                vertical: S(10),
-              ),
+              // Le cadre fait toute l'épaisseur d'une touche.
+              constraints: BoxConstraints.tightFor(height: touchHeight()),
+              contentPadding: EdgeInsets.symmetric(horizontal: S(12)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(S(12)),
                 borderSide: BorderSide.none,
@@ -1269,7 +1270,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           vertical: SH(0.008),
         ),
         child: SizedBox(
-          height: SH(0.05),
+          height: touchHeight(),
           child: Row(
             children: [
               SizedBox(

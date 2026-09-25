@@ -76,7 +76,6 @@ Future<void> showNameMenu(
           FugaButton(
             text: T('Fermer'),
             fontSize: SF(14),
-            height: S(52),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

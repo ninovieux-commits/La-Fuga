@@ -42,13 +42,16 @@ class _TutoScreenState extends State<TutoScreen> {
         child: Column(
           children: [
             // Kivy : pause à gauche, progression à droite. Pas de titre.
-            Expanded(flex: 6, child: _topBar()),
+            // Les deux bandes de touches prennent la hauteur d'une touche —
+            // la même que sur le menu — et le reste se partage comme chez
+            // Kivy, 66 pour le plateau et 17 pour le texte.
+            _topBar(),
             Expanded(
               flex: 66,
               child: banner == null ? _board(palette, axes) : _banner(banner),
             ),
             Expanded(flex: 17, child: _textBox()),
-            Expanded(flex: 11, child: _nav(palette)),
+            _nav(palette),
           ],
         ),
       ),
@@ -64,7 +67,6 @@ class _TutoScreenState extends State<TutoScreen> {
           child: FugaButton(
             text: T('Pause'),
             fontSize: SF(15),
-            height: double.infinity,
             onPressed: _openPause,
           ),
         ),
@@ -190,7 +192,6 @@ class _TutoScreenState extends State<TutoScreen> {
             child: FugaButton(
               text: T('< Précédent'),
               fontSize: SF(16),
-              height: double.infinity,
               onPressed: _tuto.atFirst ? null : () => setState(_tuto.previous),
             ),
           ),
@@ -203,7 +204,6 @@ class _TutoScreenState extends State<TutoScreen> {
               text: _tuto.atLast ? T('Le menu >') : T('Suivant >'),
               color: palette.fonce,
               fontSize: SF(16),
-              height: double.infinity,
               onPressed: !_tuto.canGoNext
                   ? null
                   : _tuto.atLast

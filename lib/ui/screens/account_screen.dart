@@ -130,14 +130,12 @@ class _AccountScreenState extends State<AccountScreen> {
           FugaButton(
             text: T('Plus tard'),
             fontSize: SF(15),
-            height: S(52),
             onPressed: () => Navigator.of(context).pop(),
           ),
           FugaButton(
             text: T('Ouvrir les réglages'),
             color: palette.clair,
             fontSize: SF(15),
-            height: S(52),
             onPressed: () {
               Navigator.of(context).pop();
               widget.permission.openSettings();
@@ -233,7 +231,7 @@ class _AccountScreenState extends State<AccountScreen> {
         child: Padding(
           padding: EdgeInsets.all(S(10)),
           child: SizedBox(
-            height: S(44),
+            height: touchHeight(),
             child: Row(
               children: [
                 Expanded(
@@ -515,11 +513,6 @@ class _AccountScreenState extends State<AccountScreen> {
   /// icône.
   Widget _action(String label, VoidCallback onTap) => Padding(
     padding: EdgeInsets.symmetric(vertical: S(4)),
-    child: FugaButton(
-      text: label,
-      fontSize: SF(14),
-      height: S(52),
-      onPressed: onTap,
-    ),
+    child: FugaButton(text: label, fontSize: SF(14), onPressed: onTap),
   );
 }
