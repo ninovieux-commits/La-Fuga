@@ -258,6 +258,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   /// Message reçu en direct : on ne l'ajoute que s'il vient d'ici.
   void _onIncoming(Map<String, dynamic> data) {
+    // Le message peut arriver alors que la conversation vient d'être quittée.
+    if (!mounted) return;
     if ('${data['de'] ?? ''}' != widget.pseudo) return;
     setState(
       () => _messages.add(

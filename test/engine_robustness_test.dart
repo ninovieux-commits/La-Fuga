@@ -40,6 +40,43 @@ void main() {
     engine.dispose();
   });
 
+  test('un isolate qui meurt est remplacé au coup suivant', () async {
+    final engine = DeepGreyEngine();
+    await engine.start();
+    final first = await engine
+        .think(board: Board.initial(), camp: Camp.blanc, deepMode: false)
+        .timeout(const Duration(seconds: 20));
+    expect(first.hasMove, isTrue);
+
+    // Panne : l'isolate disparaît en pleine partie.
+    engine.debugKill();
+    // Laisser arriver l'avis de décès.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(engine.isRunning, isFalse, reason: 'le moteur sait qu il est mort');
+
+    // Le coup suivant doit repartir sur un isolate neuf, et VRAIMENT jouer.
+    final second = await engine
+        .think(board: Board.initial(), camp: Camp.blanc, deepMode: false)
+        .timeout(const Duration(seconds: 20));
+    expect(
+      second.hasMove,
+      isTrue,
+      reason: 'Deep Grey rejoue après une panne au lieu de rester muet',
+    );
+    engine.dispose();
+  });
+
+  test('deux demandes simultanées ne lancent qu un isolate', () async {
+    final engine = DeepGreyEngine();
+    final both = await Future.wait([
+      engine.think(board: Board.initial(), camp: Camp.blanc, deepMode: false),
+      engine.think(board: Board.initial(), camp: Camp.noir, deepMode: false),
+    ]).timeout(const Duration(seconds: 30));
+    expect(both[0].hasMove, isTrue);
+    expect(both[1].hasMove, isTrue);
+    engine.dispose();
+  });
+
   test('une position sans aucun coup répond « pas de coup »', () async {
     final engine = DeepGreyEngine();
     final result = await engine

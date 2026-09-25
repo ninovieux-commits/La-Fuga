@@ -52,7 +52,8 @@ Threats threatsOf(Board board, Camp camp) {
 
 /// Vrai si `camp` peut fuguer au coup suivant. Équivalent de
 /// `campCanFugue`, sans générer les coups.
-bool campCanFugueDirect(Board board, Camp camp) => threatsOf(board, camp).canFugue;
+bool campCanFugueDirect(Board board, Camp camp) =>
+    threatsOf(board, camp).canFugue;
 
 const Threats _fugueOnly = Threats(
   canFugue: true,
@@ -200,17 +201,12 @@ Threats _scanPushes(Board board, Camp camp) {
     }
   }
 
-  return Threats(
-    canFugue: false,
-    matOnBlanc: matBlanc,
-    matOnNoir: matNoir,
-  );
+  return Threats(canFugue: false, matOnBlanc: matBlanc, matOnNoir: matNoir);
 }
 
 /// Copies locales de `pushActivated` / `pushDirsFor`, pour que ce fichier ne
 /// dépende pas du générateur de coups qu'il sert justement à éviter.
-bool _pushActivated(PieceType type, int dc, int dr) =>
-    type == PieceType.soldat
+bool _pushActivated(PieceType type, int dc, int dr) => type == PieceType.soldat
     ? dc.abs() + dr.abs() == 1
     : dc.abs() == 1 && dr.abs() == 1;
 

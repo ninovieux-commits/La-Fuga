@@ -21,8 +21,7 @@ final class EvalCache {
   final Map<String, double> _blanc = {};
   final Map<String, double> _noir = {};
 
-  Map<String, double> _table(Camp camp) =>
-      camp == Camp.blanc ? _blanc : _noir;
+  Map<String, double> _table(Camp camp) => camp == Camp.blanc ? _blanc : _noir;
 
   double? get(String boardKey, Camp camp) => _table(camp)[boardKey];
 

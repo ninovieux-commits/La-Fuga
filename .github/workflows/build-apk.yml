@@ -6,8 +6,8 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      release:
-        description: "Compiler en mode release (sinon debug)"
+      debug:
+        description: "Compiler en mode debug (pour diagnostiquer, JAMAIS pour jouer)"
         type: boolean
         default: false
 
@@ -77,19 +77,24 @@ jobs:
       - name: Récupérer les dépendances
         run: flutter pub get
 
+      # RELEASE PAR DÉFAUT. Un APK debug fait tourner Dart en JIT, assertions
+      # comprises, et le moteur de rendu sans ses raccourcis : l'IA réfléchit
+      # plusieurs fois plus longtemps, les animations sautent et le toucher
+      # traîne. Ce n'est pas l'application qu'on veut juger. Le mode debug
+      # reste accessible à la main, pour diagnostiquer.
       - name: Compiler l'APK
         id: build
         run: |
-          if [ "${{ inputs.release }}" = "true" ]; then
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "Mode debug — à ne pas utiliser pour juger la fluidité"
+            flutter build apk --debug --target-platform android-arm64
+            echo "apk=build/app/outputs/flutter-apk/app-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "nom=lafuga-apk-debug" >> "$GITHUB_OUTPUT"
+          else
             echo "Mode release"
             flutter build apk --release --target-platform android-arm64
             echo "apk=build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
             echo "nom=lafuga-apk-release" >> "$GITHUB_OUTPUT"
-          else
-            echo "Mode debug"
-            flutter build apk --debug --target-platform android-arm64
-            echo "apk=build/app/outputs/flutter-apk/app-debug.apk" >> "$GITHUB_OUTPUT"
-            echo "nom=lafuga-apk-debug" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Récapitulatif

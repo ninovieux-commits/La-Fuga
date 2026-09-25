@@ -149,7 +149,8 @@ void main() {
       expect(
         identical(painterOf(tester), atStart),
         isTrue,
-        reason: 'image ${i + 1} : la couche des pièces posées a été reconstruite',
+        reason:
+            'image ${i + 1} : la couche des pièces posées a été reconstruite',
       );
       expect(flyingOf(tester).progress, lessThanOrEqualTo(1));
     }

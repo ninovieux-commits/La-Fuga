@@ -42,18 +42,21 @@ void main() {
           expect(
             got.canFugue,
             expected.canFugue,
-            reason: 'fugue de ${side.wire}, partie $game coup $ply\n${board.render()}',
+            reason:
+                'fugue de ${side.wire}, partie $game coup $ply\n${board.render()}',
           );
           if (!expected.canFugue) {
             expect(
               got.matOnBlanc,
               expected.matBlanc,
-              reason: 'mat sur Blanc par ${side.wire}, partie $game coup $ply\n${board.render()}',
+              reason:
+                  'mat sur Blanc par ${side.wire}, partie $game coup $ply\n${board.render()}',
             );
             expect(
               got.matOnNoir,
               expected.matNoir,
-              reason: 'mat sur Noir par ${side.wire}, partie $game coup $ply\n${board.render()}',
+              reason:
+                  'mat sur Noir par ${side.wire}, partie $game coup $ply\n${board.render()}',
             );
           }
           // `campCanFugue` passe désormais par la détection directe : il doit
@@ -83,6 +86,8 @@ void main() {
     expect(fugues, greaterThan(100));
     expect(mats, greaterThan(100));
     // ignore: avoid_print
-    print('$positions positions, $fugues avec fugue possible, $mats avec mat possible');
+    print(
+      '$positions positions, $fugues avec fugue possible, $mats avec mat possible',
+    );
   });
 }

@@ -35,12 +35,32 @@ void main() {
   }
   final w = DeepGreyWeights();
 
-  print('clone              ${us(() => mid.clone(), 200000).toStringAsFixed(3)} us');
-  print('key (froid)        ${us(() { final c = mid.clone(); c.set(0, 0, null); c.key; }, 100000).toStringAsFixed(3)} us');
-  print('generateMoves      ${us(() => generateMoves(mid, Camp.blanc), 3000).toStringAsFixed(1)} us');
-  print('positionalStrategy ${us(() => positionalStrategy(mid, Camp.blanc, w), 30000).toStringAsFixed(1)} us');
-  print('evaluate (froid)   ${us(() => evaluate(mid, Camp.blanc, weights: w), 5000).toStringAsFixed(1)} us');
-  print('chooseMove d2      ${ms(us(() => chooseMove(mid, Camp.blanc, depth: 2), 6))}');
-  print('chooseMoveTopN     ${ms(us(() => chooseMoveTopN(mid, Camp.blanc), 4))}');
-  print('  (initiale)       ${ms(us(() => chooseMoveTopN(Board.initial(), Camp.blanc, moveNumber: 20), 4))}');
+  print(
+    'clone              ${us(() => mid.clone(), 200000).toStringAsFixed(3)} us',
+  );
+  print(
+    'key (froid)        ${us(() {
+      final c = mid.clone();
+      c.set(0, 0, null);
+      c.key;
+    }, 100000).toStringAsFixed(3)} us',
+  );
+  print(
+    'generateMoves      ${us(() => generateMoves(mid, Camp.blanc), 3000).toStringAsFixed(1)} us',
+  );
+  print(
+    'positionalStrategy ${us(() => positionalStrategy(mid, Camp.blanc, w), 30000).toStringAsFixed(1)} us',
+  );
+  print(
+    'evaluate (froid)   ${us(() => evaluate(mid, Camp.blanc, weights: w), 5000).toStringAsFixed(1)} us',
+  );
+  print(
+    'chooseMove d2      ${ms(us(() => chooseMove(mid, Camp.blanc, depth: 2), 6))}',
+  );
+  print(
+    'chooseMoveTopN     ${ms(us(() => chooseMoveTopN(mid, Camp.blanc), 4))}',
+  );
+  print(
+    '  (initiale)       ${ms(us(() => chooseMoveTopN(Board.initial(), Camp.blanc, moveNumber: 20), 4))}',
+  );
 }

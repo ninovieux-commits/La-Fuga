@@ -8,7 +8,11 @@ import 'package:lafuga/engine/ai/weights.dart';
 
 void main(List<String> args) {
   final rnd = Random(7);
-  final w = DeepGreyWeights({'heir_adv': 1.13, 'nurse_mat': 0.77, 'square_push': 1.31});
+  final w = DeepGreyWeights({
+    'heir_adv': 1.13,
+    'nurse_mat': 0.77,
+    'square_push': 1.31,
+  });
   final out = StringBuffer();
   for (var g = 0; g < 200; g++) {
     var b = Board.initial();

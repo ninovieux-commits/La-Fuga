@@ -132,20 +132,31 @@ final class DeepGreyEngine {
   ReceivePort? _fromIsolate;
   StreamSubscription<dynamic>? _sub;
 
+  /// Démarrage en cours, s'il y en a un : deux demandes quasi simultanées ne
+  /// doivent pas lancer deux isolates.
+  Future<void>? _starting;
+
+  /// Vrai une fois `dispose` appelé : plus rien ne redémarre après.
+  bool _disposed = false;
+
   var _nextId = 1;
   final Map<int, Completer<ThinkResult>> _pending = {};
 
   bool get isRunning => _toIsolate != null;
 
-  /// Démarre l'isolate. Idempotent.
-  Future<void> start() async {
-    if (_isolate != null) return;
+  /// Démarre l'isolate. Idempotent, et sûr si on l'appelle deux fois de suite.
+  Future<void> start() {
+    if (_disposed || _toIsolate != null) return Future.value();
+    return _starting ??= _spawn().whenComplete(() => _starting = null);
+  }
 
+  Future<void> _spawn() async {
     final ready = Completer<SendPort>();
-    _fromIsolate = ReceivePort();
-    _sub = _fromIsolate!.listen((message) {
+    final port = ReceivePort();
+    _fromIsolate = port;
+    _sub = port.listen((message) {
       if (message is SendPort) {
-        ready.complete(message);
+        if (!ready.isCompleted) ready.complete(message);
         return;
       }
       if (message is ThinkResult) {
@@ -156,20 +167,41 @@ final class DeepGreyEngine {
       // Erreur non rattrapée dans l'isolate, ou fin d'isolate (`null`) : on
       // libère tout le monde plutôt que de laisser l'écran suspendu.
       _failAllPending();
-      if (message == null) _toIsolate = null;
+      if (message == null) {
+        // L'isolate est mort. On efface TOUTE sa trace — y compris l'objet
+        // `Isolate` lui-même : tant qu'il traînait, le démarrage se croyait
+        // déjà fait et Deep Grey restait muet jusqu'à la fin de la session.
+        // Le prochain coup demandé en relancera un neuf.
+        _teardown();
+      }
     });
 
-    _isolate = await Isolate.spawn(
-      _deepGreyMain,
-      _fromIsolate!.sendPort,
-      debugName: 'deep-grey',
-      errorsAreFatal: false,
-      // Si l'isolate meurt ou lève, on l'apprend ici : sans cela, l'écran
-      // attendrait une réponse qui ne viendrait jamais.
-      onError: _fromIsolate!.sendPort,
-      onExit: _fromIsolate!.sendPort,
-    );
-    _toIsolate = await ready.future;
+    try {
+      _isolate = await Isolate.spawn(
+        _deepGreyMain,
+        port.sendPort,
+        debugName: 'deep-grey',
+        errorsAreFatal: false,
+        // Si l'isolate meurt ou lève, on l'apprend ici : sans cela, l'écran
+        // attendrait une réponse qui ne viendrait jamais.
+        onError: port.sendPort,
+        onExit: port.sendPort,
+      );
+      _toIsolate = await ready.future;
+    } catch (_) {
+      _teardown();
+      rethrow;
+    }
+  }
+
+  /// Referme ports et abonnement, et oublie l'isolate.
+  void _teardown() {
+    _sub?.cancel();
+    _fromIsolate?.close();
+    _isolate = null;
+    _toIsolate = null;
+    _fromIsolate = null;
+    _sub = null;
   }
 
   /// Demande un coup. La réflexion n'occupe jamais le thread de l'interface.
@@ -232,16 +264,19 @@ final class DeepGreyEngine {
     });
   }
 
-  /// Arrête l'isolate et libère les ports.
+  /// Tue l'isolate comme le ferait une panne, sans fermer le moteur.
+  ///
+  /// Réservé aux tests : c'est le seul moyen de vérifier qu'une demande
+  /// suivante en relance un neuf, au lieu de laisser Deep Grey muet jusqu'à la
+  /// fin de la session.
+  void debugKill() => _isolate?.kill(priority: Isolate.immediate);
+
+  /// Arrête l'isolate et libère les ports. Après cela, plus rien ne redémarre.
   void dispose() {
+    _disposed = true;
     _pending.clear();
-    _sub?.cancel();
-    _fromIsolate?.close();
     _isolate?.kill(priority: Isolate.immediate);
-    _isolate = null;
-    _toIsolate = null;
-    _fromIsolate = null;
-    _sub = null;
+    _teardown();
   }
 }
 
