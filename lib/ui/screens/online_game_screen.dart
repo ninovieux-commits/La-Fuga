@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../../engine/board.dart';
 import '../../engine/piece.dart';
 import '../../game/move_controller.dart';
+import '../../game/game_archive.dart';
 import '../../game/online_game.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
@@ -35,10 +36,14 @@ class OnlineGameScreen extends StatefulWidget {
     super.key,
     required this.game,
     required this.myPseudo,
+    this.archive,
   });
 
   final OnlineGame game;
   final String myPseudo;
+
+  /// Où ranger chaque partie une fois finie. Injectable pour les tests.
+  final GameArchive? archive;
 
   @override
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
@@ -79,6 +84,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// Le popup de fin n'est montré qu'une fois par partie.
   bool _endShown = false;
 
+  /// Parties du match déjà rangées dans l'historique, par identifiant.
+  final Set<String> _archivedGames = {};
+
+  late final GameArchive _store = widget.archive ?? GameArchive();
+
   void _handleEvent(OnlineEvent event) {
     if (!mounted) return;
     if (event == OnlineEvent.drawOffered && _g.drawOffered) {
@@ -100,6 +110,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
     if (_g.endReason != null && !_endShown) {
       _endShown = true;
+      _archive();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showEnd();
       });
@@ -375,6 +386,34 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (confirmed != true || !mounted) return;
     _g.resignMatch();
     if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Range la partie finie dans l'historique en ligne du compte.
+  ///
+  /// Ce port ne le faisait qu'au départ de l'écran de jeu local : une partie
+  /// en ligne n'entrait donc dans l'historique de personne. Chaque partie d'un
+  /// match a son propre identifiant serveur, donc sa propre entrée — et le
+  /// même des deux côtés.
+  void _archive() {
+    final id = _g.info.gameId;
+    if (id.isEmpty || _archivedGames.contains(id)) return;
+    _archivedGames.add(id);
+    unawaited(
+      _store.store(
+        buildOpponentArchive(
+          myPseudo: widget.myPseudo,
+          opponent: _g.info.opponent,
+          myCamp: _g.myCamp,
+          winner: _g.loser?.opposite,
+          method: _g.endReason ?? 'nulle',
+          history: List.of(_g.game.history),
+          objectif: _g.info.objectif,
+          cadence: _g.info.cadence,
+          randomCode: _g.info.randomCode,
+          onlineGameId: id,
+        ),
+      ),
+    );
   }
 
   /// Fin de partie : le popup de Kivy. Si le match continue, il propose la

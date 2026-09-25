@@ -9,6 +9,7 @@ library;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
+import '../engine/piece.dart';
 import '../net/online_service.dart';
 import '../state/local_games.dart';
 import 'nmc.dart';
@@ -120,6 +121,49 @@ ArchivedGame buildArchive({
   };
 
   return ArchivedGame(meta: meta, moves: moves, uid: uid);
+}
+
+/// Compose l'archive d'une partie jouée contre un adversaire — en direct ou
+/// par correspondance.
+///
+/// L'ordre des joueurs est celui de Kivy : le Blanc d'abord, le Noir ensuite
+/// (`scores = {blanc_name: …, noir_name: …}`), et `1-0` veut donc dire que
+/// les Blancs ont gagné. Les deux joueurs enregistrent le MÊME identifiant :
+/// c'est bien une seule partie des deux côtés de l'historique.
+ArchivedGame buildOpponentArchive({
+  required String myPseudo,
+  required String opponent,
+  required Camp myCamp,
+  required Camp? winner,
+  required String method,
+  required List<String> history,
+  String objectif = 'partie',
+  String cadence = 'zen',
+  String? randomCode,
+  String? onlineGameId,
+  String? corrGameId,
+  DateTime? now,
+}) {
+  final blanc = myCamp == Camp.blanc ? myPseudo : opponent;
+  final noir = myCamp == Camp.blanc ? opponent : myPseudo;
+  return buildArchive(
+    player1: blanc,
+    player2: noir,
+    blanc: blanc,
+    winner: switch (winner) {
+      null => null,
+      Camp.blanc => blanc,
+      Camp.noir => noir,
+    },
+    method: method,
+    history: history,
+    objectif: objectif,
+    cadence: cadence,
+    randomCode: (randomCode == null || randomCode.isEmpty) ? null : randomCode,
+    onlineGameId: onlineGameId,
+    corrGameId: corrGameId,
+    now: now,
+  );
 }
 
 /// Ce dont l'archivage a besoin du compte en ligne.

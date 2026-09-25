@@ -2,11 +2,14 @@
 /// on l'envoie, et on repart.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
 import '../../engine/piece.dart';
 import '../../game/correspondence.dart';
+import '../../game/game_archive.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
@@ -34,11 +37,15 @@ class CorrGameScreen extends StatefulWidget {
     required this.game,
     required this.service,
     required this.myPseudo,
+    this.archive,
   });
 
   final CorrGame game;
   final CorrespondenceService service;
   final String myPseudo;
+
+  /// Où ranger la partie une fois finie. Injectable pour les tests.
+  final GameArchive? archive;
 
   @override
   State<CorrGameScreen> createState() => _CorrGameScreenState();
@@ -59,6 +66,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   /// Vrai quand MON coup vient de terminer la partie : le serveur n'a pas
   /// encore renvoyé le nouveau statut, mais il n'y a plus rien à jouer.
   bool _finished = false;
+
+  /// La partie est déjà rangée dans l'historique.
+  bool _archived = false;
+
+  late final GameArchive _store = widget.archive ?? GameArchive();
 
   CorrGame get _g => widget.game;
 
@@ -99,6 +111,19 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
       _lastMove = state.lastMove;
     });
+
+    // Close par l'adversaire pendant notre absence : elle a sa place dans
+    // l'historique, et nous sommes peut-être les seuls à pouvoir l'y mettre.
+    if (_g.status == CorrStatus.termine) {
+      _archive(
+        method: _g.method.isEmpty ? 'nulle' : _g.method,
+        winner: switch (_g.won) {
+          null => null,
+          true => _g.myCamp,
+          false => _g.opponentCamp,
+        },
+      );
+    }
   }
 
   bool get _canPlay =>
@@ -161,6 +186,15 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       _finished = ok && over;
     });
 
+    // La partie finie entre dans l'historique du compte, comme toute autre —
+    // c'est ce que fait Kivy pour TOUS ses modes depuis le même endroit.
+    if (ok && over) {
+      _archive(
+        method: result.endReason ?? 'nulle',
+        winner: result.loser?.opposite,
+      );
+    }
+
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(T("Impossible d'envoyer le coup."))),
@@ -184,6 +218,43 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       },
     );
   }
+
+  /// Range la partie finie dans l'historique en ligne du compte.
+  ///
+  /// Une partie par correspondance est une partie EN LIGNE : Kivy lui donne un
+  /// identifiant `online_corr<id>` et la range là. Ce port ne le faisait
+  /// qu'au départ de l'écran de jeu local — les parties par correspondance
+  /// n'entraient donc dans l'historique de personne.
+  ///
+  /// L'identifiant étant le même pour les deux joueurs, réenregistrer la même
+  /// partie ne la duplique pas : elle se remplace.
+  void _archive({required String method, required Camp? winner}) {
+    if (_archived) return;
+    _archived = true;
+    unawaited(
+      _store.store(
+        buildOpponentArchive(
+          myPseudo: widget.myPseudo,
+          opponent: _g.opponent,
+          myCamp: _g.myCamp,
+          winner: winner,
+          method: method,
+          history: _allMoves(),
+          objectif: _g.objectif,
+          randomCode: _g.randomCode,
+          corrGameId: _g.id,
+        ),
+      ),
+    );
+  }
+
+  /// Tous les coups de la partie : ceux du serveur, plus celui qu'on vient de
+  /// jouer — le serveur l'a reçu, mais notre copie de la partie l'ignore
+  /// encore.
+  List<String> _allMoves() => [
+    ...corrMoveLines(_g.movesText),
+    ...?_controller?.history,
+  ];
 
   /// Ce qui s'est passé, en une ligne — mêmes formules que l'écran de jeu.
   String _verdictOf(ControllerResult r) => switch (r.endReason) {
