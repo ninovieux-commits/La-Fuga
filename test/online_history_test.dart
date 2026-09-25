@@ -14,11 +14,19 @@ import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/game/correspondence.dart';
 import 'package:lafuga/game/game_archive.dart';
 import 'package:lafuga/i18n/translations.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
+import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/fake_realtime.dart';
 
 /// Un compte qui retient ce qu'on lui range.
 final class _Account implements AccountGames {
@@ -188,6 +196,84 @@ void main() {
         gameOf(statut: 'en_cours', moves: 'Fa1-Fa2'),
       );
       expect(account.saved, isEmpty);
+    });
+  });
+
+  group('Les scores « Moi contre » ouvrent la bonne liste', () {
+    /// Une partie telle que le serveur la rend dans `/list_games`.
+    Map<String, dynamic> served(String uid, {String against = 'Ana'}) => {
+      'game_uid': uid,
+      'joueur1': 'Nino',
+      'joueur2': against,
+      'resultat': '1-0',
+      'methode': 'fugue',
+      'date': '2026-09-25 10:00',
+    };
+
+    Future<void> open(
+      WidgetTester tester,
+      List<Map<String, dynamic>> games,
+      String mode,
+    ) async {
+      final calls = <Map<String, dynamic>>[];
+      final online = OnlineService(
+        client: OnlineClient(
+          api: ApiClient(
+            client: MockClient((request) async {
+              calls.add(
+                Map<String, dynamic>.from(jsonDecode(request.body) as Map),
+              );
+              return http.Response(
+                jsonEncode({'ok': true, 'games': games}),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              );
+            }),
+          ),
+        ),
+        socketFactory: (_) => FakeRealtime(),
+      );
+      await online.login('Nino', 'mdp');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HistoryScreen(online: online, opponent: 'Ana', h2hMode: mode),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// Nombre de parties affichées : chaque carte nomme ses deux joueurs,
+    /// « Nino  vs  Ana ».
+    int rows(WidgetTester tester) =>
+        find.textContaining(' vs ').evaluate().length;
+
+    testWidgets('en correspondance, seule la partie corr est retenue', (
+      tester,
+    ) async {
+      await open(tester, [
+        served('online_corr42'),
+        served('online_g7'),
+        served('local_abc'),
+        served('online_corr99', against: 'Quelqu un d autre'),
+      ], 'corr');
+
+      expect(find.textContaining('Aucune'), findsNothing);
+      expect(
+        rows(tester),
+        1,
+        reason:
+            'la partie directe, la locale et celle contre un tiers sont '
+            'écartées',
+      );
+    });
+
+    testWidgets('en direct, la partie corr est écartée', (tester) async {
+      await open(tester, [served('online_corr42')], 'direct');
+      expect(
+        find.textContaining('Aucune'),
+        findsOneWidget,
+        reason: 'la seule partie entre nous est une correspondance',
+      );
     });
   });
 }
