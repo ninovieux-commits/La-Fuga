@@ -10,6 +10,7 @@ import 'dart:async';
 import '../state/settings.dart';
 import 'api_client.dart';
 import 'message_hub.dart';
+import 'push_notifications.dart';
 import 'online_client.dart';
 import 'socket_client.dart';
 
@@ -49,6 +50,14 @@ class OnlineService {
 
   /// Instance de l'application. Créée une fois au démarrage.
   static OnlineService get instance => _instance ??= OnlineService();
+
+  /// L'instance SI elle existe déjà.
+  ///
+  /// Un isolate réveillé par une notification n'a ni réglages chargés ni
+  /// service : lui en faire créer un ferait tomber la réponse au moment de
+  /// l'envoyer. Ici, on veut seulement prévenir l'application quand elle
+  /// tourne.
+  static OnlineService? get instanceOrNull => _instance;
 
   /// Remplace l'instance — pour les tests.
   static set instance(OnlineService service) => _instance = service;
@@ -157,6 +166,8 @@ class OnlineService {
     messages
       ..detach()
       ..clear();
+    // Le prochain compte redéclarera son jeton.
+    PushNotifications.forgetDeclaredToken();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;

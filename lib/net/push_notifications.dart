@@ -23,7 +23,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../i18n/translations.dart';
 import 'firebase_options.dart';
+import 'notification_reply.dart';
 import 'online_service.dart';
 
 /// Salon de notification, identique à celui du service Java de Kivy.
@@ -35,6 +37,29 @@ const String kDefaultTitle = 'La Fuga';
 
 /// Ce qu'un message push contient, une fois démêlé.
 typedef PushContent = ({String title, String body});
+
+/// Clés sous lesquelles un push de message peut nommer son expéditeur.
+///
+/// Le serveur ne change pas : on accepte donc les façons usuelles de le dire
+/// plutôt que d'en imposer une. Sans expéditeur reconnu, la notification
+/// s'affiche sans champ de réponse — on ne saurait pas à qui l'envoyer.
+const List<String> kSenderKeys = [
+  'de',
+  'from',
+  'from_pseudo',
+  'expediteur',
+  'pseudo',
+  'sender',
+];
+
+/// Qui a envoyé ce message, si le push le dit.
+String? senderOf(RemoteMessage message) {
+  for (final key in kSenderKeys) {
+    final value = message.data[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+  }
+  return null;
+}
 
 /// Démêle un message comme le fait `onMessageReceived` : la charge
 /// `notification` d'abord, puis les clés `data` qui l'emportent.
@@ -114,14 +139,20 @@ class PushNotifications {
     }
   }
 
+  /// Dernier couple (compte, jeton) déjà déclaré au serveur.
+  ///
+  /// Le jeton part à l'initialisation ET après la reconnexion automatique :
+  /// sans repère, le serveur le recevait deux fois de suite pour le même
+  /// compte.
+  static String? _declared;
+
   /// Mémorise le jeton et l'envoie au serveur si un compte est ouvert.
   ///
   /// Sans compte, il attend : [sendPendingToken] le renverra à la connexion.
   static Future<void> registerToken(String value) async {
     if (value.isEmpty) return;
     token = value;
-    final online = OnlineService.instance;
-    if (online.isLoggedIn) await online.client.setFcmToken(value);
+    await _declare(value);
   }
 
   /// Renvoie le jeton connu, à appeler après chaque connexion — Kivy le fait
@@ -129,32 +160,87 @@ class PushNotifications {
   static Future<void> sendPendingToken() async {
     final value = token;
     if (value == null || value.isEmpty) return;
-    final online = OnlineService.instance;
-    if (online.isLoggedIn) await online.client.setFcmToken(value);
+    await _declare(value);
   }
+
+  static Future<void> _declare(String value) async {
+    final online = OnlineService.instance;
+    if (!online.isLoggedIn) return;
+    final mark = '${online.pseudo}|$value';
+    if (mark == _declared) return;
+    _declared = mark;
+    await online.client.setFcmToken(value);
+  }
+
+  /// Oublie ce qui a été déclaré — à la déconnexion, et pour les tests.
+  static void forgetDeclaredToken() => _declared = null;
 
   /// Affiche une notification. Reprend l'icône, le salon et l'importance du
   /// service Java de Kivy.
+  ///
+  /// Quand le push nomme son expéditeur, la notification porte en plus un
+  /// champ « Répondre » : on répond depuis le volet, sans ouvrir
+  /// l'application, comme le font les applis de messagerie.
   static Future<void> show(RemoteMessage message) async {
     final content = contentOf(message);
+    final sender = senderOf(message);
     try {
       await _prepareChannel();
       await _local.show(
         DateTime.now().millisecondsSinceEpoch % 100000,
         content.title,
         content.body,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            kChannelId,
-            kChannelName,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: 'notif_icon',
-          ),
-        ),
+        NotificationDetails(android: androidDetails(sender)),
+        payload: sender == null ? null : replyPayloadFor(sender),
       );
     } catch (_) {
       // Ne jamais planter à cause d'une notification — comme le service Java.
+    }
+  }
+
+  /// Le détail Android d'une notification, avec ou sans champ de réponse.
+  static AndroidNotificationDetails androidDetails(String? sender) =>
+      AndroidNotificationDetails(
+        kChannelId,
+        kChannelName,
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: 'notif_icon',
+        actions: sender == null
+            ? null
+            : <AndroidNotificationAction>[
+                AndroidNotificationAction(
+                  kReplyActionId,
+                  T('Répondre'),
+                  inputs: <AndroidNotificationActionInput>[
+                    AndroidNotificationActionInput(label: T('Votre réponse…')),
+                  ],
+                  // La notification se referme dès l'envoi : sans cela
+                  // Android y laisse tourner un rouet en attendant qu'on la
+                  // mette à jour.
+                  cancelNotification: true,
+                  // Rien à afficher : la réponse part toute seule.
+                  showsUserInterface: false,
+                ),
+              ],
+      );
+
+  /// Prévient que la réponse n'est pas partie.
+  ///
+  /// Une réponse tapée puis perdue en silence est pire que pas de réponse du
+  /// tout : le joueur croit avoir répondu.
+  static Future<void> warnReplyFailed(String pseudo, String text) async {
+    try {
+      await _prepareChannel();
+      await _local.show(
+        DateTime.now().millisecondsSinceEpoch % 100000,
+        T('Réponse non envoyée'),
+        '$pseudo — $text',
+        NotificationDetails(android: androidDetails(pseudo)),
+        payload: replyPayloadFor(pseudo),
+      );
+    } catch (_) {
+      // Rien de plus à tenter.
     }
   }
 
@@ -166,6 +252,10 @@ class PushNotifications {
       const InitializationSettings(
         android: AndroidInitializationSettings('notif_icon'),
       ),
+      onDidReceiveNotificationResponse: handleNotificationResponse,
+      // Application fermée : Android réveille un isolate neuf, et cette
+      // fonction doit être de premier niveau pour y être retrouvée.
+      onDidReceiveBackgroundNotificationResponse: handleNotificationResponse,
     );
     await _local
         .resolvePlatformSpecificImplementation<
@@ -180,4 +270,27 @@ class PushNotifications {
         );
     _channelReady = true;
   }
+}
+
+/// Traite une réponse tapée dans une notification.
+///
+/// Appelée aussi bien par l'application vivante que par un isolate réveillé
+/// pour l'occasion : elle ne suppose donc rien de chargé et va chercher la
+/// session dans les préférences.
+@pragma('vm:entry-point')
+Future<void> handleNotificationResponse(NotificationResponse response) async {
+  if (response.actionId != kReplyActionId) return;
+  final pseudo = pseudoFromPayload(response.payload);
+  final text = response.input?.trim() ?? '';
+  if (pseudo == null || text.isEmpty) return;
+
+  final sent = await sendReplyFromNotification(pseudo: pseudo, text: text);
+  if (!sent) {
+    await PushNotifications.warnReplyFailed(pseudo, text);
+    return;
+  }
+  // Si l'application tourne, ce qu'on vient d'écrire ne doit pas s'y compter
+  // comme non lu. Si elle ne tourne pas, il n'y a rien à prévenir — et lui
+  // faire créer un service depuis cet isolate ferait tout tomber.
+  OnlineService.instanceOrNull?.messages.markRead(pseudo);
 }
