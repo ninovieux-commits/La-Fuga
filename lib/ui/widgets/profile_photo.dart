@@ -73,102 +73,69 @@ String logoThemeOf(String photo) {
 
 /// Affiche une photo de profil, carrée.
 ///
-/// Portage de `PiecePhoto._redraw`. Les trois cas de Kivy, dans le même ordre
-/// et avec le même décor :
-///  - `deepgrey` : l'image dédiée de l'IA, plein cadre ;
-///  - `logo|<thème>` : un carré arrondi à la couleur **menu** du thème, le logo
-///    par-dessus ;
-///  - `<thème>|<Type>` : un carré arrondi à la couleur **plateau** du thème, la
-///    pièce par-dessus.
-///
-/// Le carré arrondi n'est pas un ornement : sans lui la pièce flotte sur le
-/// fond de la page, et c'est exactement ce qui faisait « mal s'afficher ».
+/// Portage de `PiecePhoto._redraw`, sans le carré de fond de Kivy : la pièce,
+/// le logo ou l'image de Deep Grey se posent directement sur la page.
 class ProfilePhoto extends StatelessWidget {
   const ProfilePhoto({super.key, required this.photo, this.size = 64});
 
   final String? photo;
   final double size;
 
-  /// Arrondi du carré : `sz * 0.12`, comme le `radius=[sz * 0.12]` de Kivy.
-  static const double _radiusFraction = 0.12;
-
   @override
   Widget build(BuildContext context) {
     final value = (photo == null || photo!.isEmpty) ? kDefaultPhoto : photo!;
 
     if (value == kDeepGreyPhoto) {
-      return SizedBox(
+      return Image.asset(
+        'assets/images/deepgrey.webp',
         width: size,
         height: size,
-        child: Image.asset(
-          'assets/images/deepgrey.webp',
-          width: size,
-          height: size,
-          fit: BoxFit.contain,
-          // Image absente : le carré gris de repli de Kivy, pas un logo.
-          errorBuilder: (_, __, ___) => _plate(const Color(0xFF4D4D57)),
-        ),
+        fit: BoxFit.contain,
+        // Image manquante : on montre le logo plutôt qu'une icône cassée.
+        errorBuilder: (_, __, ___) =>
+            _logo(kDefaultTheme, paletteOf(kDefaultTheme)),
       );
     }
 
     if (isLogoPhoto(value)) {
       final theme = logoThemeOf(value);
-      final palette = paletteOf(theme);
-      return SizedBox(
+      return Image.asset(
+        logoAssetOf(theme),
         width: size,
         height: size,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _plate(palette.menu),
-            Image.asset(
-              logoAssetOf(theme),
-              fit: BoxFit.contain,
-              // Logo absent : la rosace dessinée tient sa place.
-              errorBuilder: (_, __, ___) =>
-                  CustomPaint(painter: _LogoPhotoPainter(palette)),
-            ),
-          ],
-        ),
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _logo(theme, paletteOf(theme)),
       );
     }
 
     final parts = parsePhoto(value);
-    final palette = paletteOf(parts.theme);
     // Les thèmes à images décodent leurs fichiers une fois ; tant que ce n'est
     // pas fait, la pièce se dessine géométriquement plutôt que de clignoter.
     return SizedBox(
       width: size,
       height: size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _plate(palette.board),
-          ThemeImagesBuilder(
+      child: ThemeImagesBuilder(
+        theme: parts.theme,
+        builder: (context, images) => CustomPaint(
+          painter: _PiecePhotoPainter(
+            piece: Piece(parts.piece, parts.camp),
+            palette: paletteOf(parts.theme),
+            images: images,
+            // Sans le thème, les rendus spéciaux — le corps gris de deepgrey,
+            // les accents de l'arc-en-ciel — sont perdus : la photo sort aux
+            // couleurs d'un thème quelconque.
             theme: parts.theme,
-            builder: (context, images) => CustomPaint(
-              painter: _PiecePhotoPainter(
-                piece: Piece(parts.piece, parts.camp),
-                palette: palette,
-                images: images,
-                // Sans le thème, les rendus spéciaux — le corps gris de
-                // deepgrey, les accents de l'arc-en-ciel — étaient perdus :
-                // la photo sortait aux couleurs d'un thème quelconque.
-                theme: parts.theme,
-              ),
-            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Le carré arrondi du fond.
-  Widget _plate(Color color) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(size * _radiusFraction),
-    ),
+  /// Repli dessiné : la rosace du thème.
+  Widget _logo(String theme, ThemePalette palette) => SizedBox(
+    width: size,
+    height: size,
+    child: CustomPaint(painter: _LogoPhotoPainter(palette)),
   );
 }
 

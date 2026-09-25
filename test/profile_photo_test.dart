@@ -1,10 +1,10 @@
-/// La photo de profil, telle que Kivy la dessine (`PiecePhoto._redraw`).
+/// La photo de profil : une pièce, un logo, ou l'image de Deep Grey.
 ///
-/// Trois cas, chacun avec son décor : l'image de Deep Grey plein cadre, le logo
-/// sur un carré à la couleur *menu* du thème, la pièce sur un carré à la
-/// couleur *plateau*. Sans ce carré la pièce flotte sur le fond de la page ;
-/// et sans le nom du thème, les rendus spéciaux — le corps gris de deepgrey,
-/// les accents de l'arc-en-ciel — sortent aux couleurs de n'importe quoi.
+/// Portage de `PiecePhoto._redraw`, **sans** le carré de fond coloré de Kivy :
+/// le dessin se pose directement sur la page. Ce que ce fichier surveille, en
+/// revanche, c'est que le thème de la photo arrive jusqu'au dessin — sinon les
+/// rendus spéciaux (le corps gris de deepgrey, les accents de l'arc-en-ciel)
+/// sortent aux couleurs du premier thème venu.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,7 +21,7 @@ void main() {
     ),
   );
 
-  /// Couleurs des carrés arrondis affichés.
+  /// Les carrés arrondis colorés affichés — il ne doit y en avoir aucun.
   List<Color> plates(WidgetTester tester) => [
     for (final box in tester.widgetList<DecoratedBox>(
       find.byType(DecoratedBox),
@@ -33,47 +33,44 @@ void main() {
         if (color != null) color,
   ];
 
-  testWidgets('une pièce est posée sur un carré à la couleur du plateau', (
-    tester,
-  ) async {
+  testWidgets('une pièce se pose sans carré de fond', (tester) async {
     await show(tester, 'insectes|${PieceType.nurse.wire}');
-    expect(plates(tester), contains(paletteOf('insectes').board));
+    expect(find.byType(CustomPaint), findsWidgets);
+    expect(plates(tester), isEmpty);
   });
 
-  testWidgets('un logo est posé sur un carré à la couleur du menu', (
-    tester,
-  ) async {
+  testWidgets('un logo se pose sans carré de fond', (tester) async {
     await show(tester, 'logo|dragon');
-    expect(plates(tester), contains(paletteOf('dragon').menu));
+    expect(plates(tester), isEmpty);
+  });
+
+  testWidgets('Deep Grey a son image, sans carré de fond', (tester) async {
+    await show(tester, 'deepgrey');
+    expect(find.byType(Image), findsOneWidget);
+    expect(plates(tester), isEmpty);
   });
 
   testWidgets('la photo par défaut est le logo du thème original', (
     tester,
   ) async {
     await show(tester, null);
-    expect(plates(tester), contains(paletteOf(kDefaultTheme).menu));
+    final image = tester.widget<Image>(find.byType(Image));
+    expect('${image.image}', contains(logoAssetOf(kDefaultTheme)));
   });
 
-  testWidgets('Deep Grey a son image, sans carré de couleur', (tester) async {
-    await show(tester, 'deepgrey');
-    expect(find.byType(Image), findsOneWidget);
-    expect(plates(tester), isEmpty);
-  });
-
-  testWidgets('le thème de la photo arrive jusqu au peintre', (tester) async {
+  test('le thème de la photo change le dessin de la pièce', () {
     // Le thème deepgrey n'a aucune image de pièce : tout son rendu tient au
-    // nom du thème. Si ce nom ne traverse pas, la pièce sort aux couleurs
-    // génériques et le corps gris disparaît.
-    final canvas = _RecordingCanvas();
+    // nom du thème. S'il ne traverse pas, la pièce perd son corps gris.
+    final avecTheme = _RecordingCanvas();
     paintPiece(
-      canvas,
+      avecTheme,
       const Rect.fromLTWH(0, 0, 80, 80),
       const Piece(PieceType.heritier, Camp.blanc),
       paletteOf('deepgrey'),
       theme: 'deepgrey',
     );
     expect(
-      canvas.colors,
+      avecTheme.colors,
       contains(kDeepGreyBody.toARGB32()),
       reason: 'le corps gris de deepgrey',
     );
@@ -87,15 +84,9 @@ void main() {
     );
     expect(
       sansTheme.colors,
-      isNot(canvas.colors),
-      reason:
-          'sans le thème, le dessin n est pas le même — '
-          'et c est exactement ce qu on perdait',
+      isNot(avecTheme.colors),
+      reason: 'sans le thème, le dessin n est pas le même',
     );
-
-    // Et à l'écran, le carré de fond est bien celui du thème deepgrey.
-    await show(tester, 'deepgrey|${PieceType.heritier.wire}');
-    expect(plates(tester), contains(paletteOf('deepgrey').board));
   });
 
   test(
