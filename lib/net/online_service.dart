@@ -51,14 +51,6 @@ class OnlineService {
   /// Instance de l'application. Créée une fois au démarrage.
   static OnlineService get instance => _instance ??= OnlineService();
 
-  /// L'instance SI elle existe déjà.
-  ///
-  /// Un isolate réveillé par une notification n'a ni réglages chargés ni
-  /// service : lui en faire créer un ferait tomber la réponse au moment de
-  /// l'envoyer. Ici, on veut seulement prévenir l'application quand elle
-  /// tourne.
-  static OnlineService? get instanceOrNull => _instance;
-
   /// Remplace l'instance — pour les tests.
   static set instance(OnlineService service) => _instance = service;
 
