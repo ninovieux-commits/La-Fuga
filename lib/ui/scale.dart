@@ -54,6 +54,18 @@ double SH(double fraction) => screenHeight * fraction;
 /// menu.
 const double kTouchFraction = 0.06;
 
+/// Hauteur à donner à une bande qui ne contient qu'une ligne de texte.
+///
+/// Les bandes du menu sont des fractions de l'écran, comme chez Kivy. Sur un
+/// grand écran, la police grandit plus vite que la fraction et le texte se
+/// retrouve coupé : la bande ne descend donc jamais sous la hauteur d'une
+/// ligne.
+double labelHeight(double fraction, double fontSize) {
+  final line = SF(fontSize) * 1.45;
+  final band = SH(fraction);
+  return band > line ? band : line;
+}
+
 /// Épaisseur d'une touche, PARTOUT dans l'appli.
 ///
 /// C'est celle des grandes touches du menu, et c'est la seule. Les popups et

@@ -22,6 +22,7 @@ import '../../game/game_archive.dart';
 import '../../game/last_move.dart';
 import '../../game/match_play.dart';
 import '../../game/move_controller.dart';
+import '../../game/replay_controller.dart' show ejectedBetween;
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
@@ -54,6 +55,7 @@ class GameScreen extends StatefulWidget {
     this.analysis = false,
     this.analysisFromCorr = false,
     this.objectif = 'partie',
+    this.initialFlipped,
   });
 
   /// Cadence de la partie.
@@ -94,6 +96,14 @@ class GameScreen extends StatefulWidget {
 
   /// `partie` pour une partie unique, sinon le nombre de points du match.
   final String objectif;
+
+  /// Sens du plateau à l'ouverture. Nul : les Blancs en bas, sauf si l'humain
+  /// a les Noirs.
+  ///
+  /// L'analyse le reçoit de l'écran d'où elle vient : on y arrive pour
+  /// réfléchir à la position qu'on a sous les yeux, et la voir se retourner
+  /// oblige à tout relire à l'envers.
+  final bool? initialFlipped;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -155,8 +165,9 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   /// Mode profond de Deep Grey, basculable en cours de partie.
   late bool _deepMode = widget.aiDeepMode;
 
-  /// Orientation choisie à la main par le bouton « < > », si elle l'a été.
-  bool? _flipOverride;
+  /// Orientation choisie à la main par le bouton « < > », si elle l'a été —
+  /// ou celle reçue de l'écran d'où l'on vient.
+  late bool? _flipOverride = widget.initialFlipped;
 
   /// Orientation par défaut : les Blancs en bas, sauf si l'humain a les Noirs.
   bool get _defaultFlip => _aiCamp != Camp.blanc;
@@ -268,11 +279,19 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
 
   bool get _isAiTurn => _aiCamp != null && _game.turn == _aiCamp;
 
-  bool get _canPlay =>
-      !_game.gameOver && !_thinking && !_isAiTurn && !_isViewing;
+  bool get _canPlay {
+    if (_thinking || _isAiTurn) return false;
+    // En analyse, toucher le plateau depuis une position passée repart de
+    // là — même si la partie s'était terminée plus loin.
+    if (_isViewing) return widget.analysis;
+    return !_game.gameOver;
+  }
 
   void _onTapCell(Cell cell) {
     if (!_canPlay) return;
+    // On explorait le passé : les coups d'après sont oubliés et la partie
+    // reprend ici. C'est tout l'intérêt d'une analyse — essayer autre chose.
+    if (_isViewing) _branchFromViewed();
     final result = _game.tapCell(cell);
     if (result.effect == ControllerEffect.none) return;
 
@@ -317,6 +336,50 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       _game.board,
     );
     _snapshots.add(_game.board.clone());
+  }
+
+  /// Reprend la partie à la position regardée : les coups d'après sont
+  /// oubliés, et on repart d'ici.
+  ///
+  /// Réservé à l'analyse. Sans cela, reculer d'un coup enfermait dans la
+  /// suite déjà jouée : on pouvait la relire, jamais essayer autre chose.
+  ///
+  /// Le contrôleur est reconstruit sur la position regardée, avec les coups
+  /// gardés pour le bandeau et les prises recomptées depuis les positions
+  /// traversées — un contrôleur neuf croirait qu'aucune pièce n'est sortie.
+  void _branchFromViewed() {
+    final index = _viewingIndex;
+    if (index == null) return;
+
+    final kept = _game.history.sublist(0, index + 1);
+    final boards = _snapshots.sublist(0, index + 2);
+    final turn = kept.length.isEven
+        ? widget.initialTurn
+        : widget.initialTurn.opposite;
+
+    final game = MoveController(
+      board: boards.last.clone(),
+      turn: turn,
+      countRepetitions: false,
+    );
+    game.history.addAll(kept);
+    for (var i = 0; i < kept.length; i++) {
+      for (final piece in ejectedBetween(boards[i], boards[i + 1], kept[i])) {
+        game.captured[piece.camp]!.add(piece);
+      }
+    }
+
+    _game = game;
+    _snapshots
+      ..clear()
+      ..addAll(boards);
+    _lastMove = lastMoveFromNotation(kept.last, boards[index], boards.last);
+    _viewingIndex = null;
+    // La partie n'est plus finie : on vient d'en rouvrir le cours.
+    _verdict = null;
+    _lastWinner = null;
+    _nextGameFor = null;
+    _resetDrawOffers();
   }
 
   /// Revoir un coup passé. Le dernier coup, c'est le présent.
@@ -631,7 +694,12 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
         top: false,
         child: GameLayout(
           topBar: _topBar(palette, topCamp),
-          topPanel: _tickingPanel(palette, topCamp, mirrored: false),
+          // Pas de bandeaux en analyse : leur absence dit qu'on explore une
+          // position au lieu de jouer une partie, et le plateau y gagne leur
+          // place.
+          topPanel: widget.analysis
+              ? null
+              : _tickingPanel(palette, topCamp, mirrored: false),
           board: GameBoardView(
             board: _shownBoard,
             palette: palette,
@@ -649,7 +717,9 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
             slideToken: slideToken,
             slideDuration: slideDuration,
           ),
-          bottomPanel: _tickingPanel(palette, bottomCamp, mirrored: true),
+          bottomPanel: widget.analysis
+              ? null
+              : _tickingPanel(palette, bottomCamp, mirrored: true),
           moveStrip: MoveStrip(
             moves: _game.history,
             activeIndex: _viewingIndex,

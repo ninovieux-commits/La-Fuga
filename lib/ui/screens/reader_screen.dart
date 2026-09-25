@@ -80,16 +80,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
               titleSize: 26,
               onBack: () => Navigator.of(context).pop(),
             ),
-            SizedBox(
-              height: S(30),
-              child: Center(
-                child: Text(
-                  T("Collez le contenu d'un fichier .nmc ci-dessous :"),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: SF(13),
-                    color: const Color.fromRGBO(26, 26, 26, 1),
-                  ),
+            // Hauteur libre : la consigne passe à deux lignes sur un écran
+            // étroit, et une bande figée la coupait en deux.
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: S(12),
+                vertical: S(6),
+              ),
+              child: Text(
+                T("Collez le contenu d'un fichier .nmc ci-dessous :"),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: SF(13),
+                  color: const Color.fromRGBO(26, 26, 26, 1),
                 ),
               ),
             ),

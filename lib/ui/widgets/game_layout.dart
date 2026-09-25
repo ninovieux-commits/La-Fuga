@@ -26,9 +26,16 @@ class GameLayout extends StatelessWidget {
   });
 
   final Widget topBar;
-  final Widget topPanel;
+
+  /// Bandeau du joueur du haut. Nul en analyse : leur absence est le signe
+  /// qu'on explore une position au lieu de jouer une partie.
+  final Widget? topPanel;
+
   final Widget board;
-  final Widget bottomPanel;
+
+  /// Bandeau du joueur du bas. Nul en analyse, comme [topPanel].
+  final Widget? bottomPanel;
+
   final Widget moveStrip;
 
   /// Bandeau d'avertissement facultatif, sous le bandeau des touches.
@@ -37,11 +44,13 @@ class GameLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      // 7 + 12 + 66 + 12 + 7 = 104 parts.
+      // 7 + 12 + 66 + 12 + 7 = 104 parts. Sans les bandeaux, leurs 12 parts
+      // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / 104;
       final bar = unit * 7;
-      final panel = unit * 12;
-      final board = unit * 66;
+      final top = topPanel == null ? 0.0 : unit * 12;
+      final bottom = bottomPanel == null ? 0.0 : unit * 12;
+      final board = box.maxHeight - 2 * bar - top - bottom;
 
       return Stack(
         clipBehavior: Clip.none,
@@ -50,14 +59,15 @@ class GameLayout extends StatelessWidget {
             children: [
               SizedBox(height: bar, child: topBar),
               if (notice != null) notice!,
-              SizedBox(height: panel, child: topPanel),
+              if (topPanel != null) SizedBox(height: top, child: topPanel),
               SizedBox(height: board),
-              SizedBox(height: panel, child: bottomPanel),
+              if (bottomPanel != null)
+                SizedBox(height: bottom, child: bottomPanel),
               SizedBox(height: bar, child: moveStrip),
             ],
           ),
           Positioned(
-            top: bar + panel,
+            top: bar + top,
             left: 0,
             right: 0,
             height: board,

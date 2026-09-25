@@ -4,6 +4,8 @@
 /// et un vide de même largeur à droite pour que le titre reste centré).
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'fuga_button.dart';
@@ -38,10 +40,21 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
 
   static const double _sideWidth = 110;
 
-  /// Le bandeau fait la hauteur de sa touche, plus ses marges : c'est la
-  /// touche de retour qui commande, et elle a l'épaisseur des autres.
+  /// Hauteur du bandeau : la plus grande de sa touche et de son titre, plus
+  /// les marges.
+  ///
+  /// Le titre était écrit à sa taille de référence BRUTE, sans passer par
+  /// `SF` — un `32` fixe dans un bandeau qui n'en faisait que 24 de haut, et
+  /// le mot était coupé par le milieu. Il suit maintenant l'échelle de
+  /// l'écran, et le bandeau s'ouvre pour le laisser tenir en entier.
   @override
-  Size get preferredSize => Size.fromHeight(touchHeight() + 2 * S(6));
+  Size get preferredSize => Size.fromHeight(
+    math.max(touchHeight(), SF(titleSize) * _lineHeight) + 2 * S(6),
+  );
+
+  /// Hauteur d'une ligne rapportée à la taille de police. Mesurée sur la
+  /// police de l'appli : 1,43. Arrondie au-dessus, pour les accents.
+  static const double _lineHeight = 1.45;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -61,7 +74,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: titleSize,
+                fontSize: SF(titleSize),
                 fontStyle: bold ? FontStyle.normal : FontStyle.italic,
                 fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                 color: titleColor,

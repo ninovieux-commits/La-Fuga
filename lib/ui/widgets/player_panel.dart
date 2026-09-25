@@ -147,11 +147,21 @@ class PlayerPanel extends StatelessWidget {
       // Chez Kivy les deux rangées se partagent la hauteur du panneau. Ici on
       // fait de même quand la hauteur est donnée (écran de jeu) et on retombe
       // sur des hauteurs fixes quand elle ne l'est pas (colonne libre).
+      // La rangée d'actions prend l'épaisseur d'une touche quand le panneau
+      // la laisse passer, sinon tout ce qu'il peut lui donner sans écraser la
+      // ligne d'identité. Ses touches faisaient jusqu'ici 45 là où le reste de
+      // l'appli en fait 51.
+      final actions = box.maxHeight.isFinite
+          ? math.min(touchHeight(), (box.maxHeight - 2 * S(4)) * 0.55)
+          : S(32);
       final rows = box.maxHeight.isFinite
-          ? [Expanded(child: _identity()), Expanded(child: _actions())]
+          ? [
+              Expanded(child: _identity()),
+              SizedBox(height: actions, child: _actions()),
+            ]
           : [
               SizedBox(height: S(34), child: _identity()),
-              SizedBox(height: S(32), child: _actions()),
+              SizedBox(height: actions, child: _actions()),
             ];
 
       return Container(
@@ -280,7 +290,8 @@ class PlayerPanel extends StatelessWidget {
     child: Padding(
       padding: EdgeInsets.only(left: S(6)),
       child: FractionallySizedBox(
-        heightFactor: 0.96,
+        // La rangée est déjà à la bonne épaisseur : la touche la remplit.
+        heightFactor: 1,
         child: AspectRatio(
           aspectRatio: 1,
           child: Material(

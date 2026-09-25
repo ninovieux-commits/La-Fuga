@@ -11,6 +11,7 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -62,16 +63,15 @@ void main() {
       expect(game.gameOver, isFalse);
     });
 
-    testWidgets('l analyse s ouvre sans chrono', (tester) async {
+    testWidgets('l analyse s ouvre sans chrono ni bandeaux', (tester) async {
       await bootApp(tester);
       await openPlus(tester, 'Analyse');
 
       expect(find.byType(GameScreen), findsOneWidget);
-      expect(
-        find.text('∞'),
-        findsNWidgets(2),
-        reason: 'pas de chrono en analyse',
-      );
+      // Les bandeaux disparaissent en analyse : plus de chrono du tout, et
+      // c'est leur absence qui dit qu'on explore au lieu de jouer.
+      expect(find.byType(PlayerPanel), findsNothing);
+      expect(find.text('∞'), findsNothing, reason: 'pas de chrono en analyse');
       // Kivy offre, en analyse, de reprendre la position contre Deep Grey.
       expect(find.text('Deep Grey'), findsOneWidget);
     });

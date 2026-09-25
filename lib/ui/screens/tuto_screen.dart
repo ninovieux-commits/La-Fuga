@@ -173,10 +173,14 @@ class _TutoScreenState extends State<TutoScreen> {
       border: Border.all(color: const Color(0xFFD9C7A6), width: S(1.4)),
       borderRadius: BorderRadius.circular(S(12)),
     ),
-    child: Text(
-      T(_tuto.text),
-      textAlign: TextAlign.center,
-      style: TextStyle(color: const Color(0xFF1F1F1F), fontSize: SF(15)),
+    // Les explications les plus longues dépassent la boîte sur un écran
+    // étroit : elles défilent au lieu d'être tronquées.
+    child: SingleChildScrollView(
+      child: Text(
+        T(_tuto.text),
+        textAlign: TextAlign.center,
+        style: TextStyle(color: const Color(0xFF1F1F1F), fontSize: SF(15)),
+      ),
     ),
   );
 

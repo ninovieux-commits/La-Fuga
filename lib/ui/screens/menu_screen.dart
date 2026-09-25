@@ -1041,7 +1041,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           SizedBox(height: SH(0.02) + S(gap)),
 
           SizedBox(
-            height: SH(0.04),
+            height: labelHeight(0.04, 17),
             child: Center(
               child: Text(
                 T('Cadence (min / joueur)'),
@@ -1203,7 +1203,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// se tient à jour toute seule, comme sur les sites de jeu.
   Widget _corrHeader() => SizedBox(
     key: _tourKeys['corr'],
-    height: SH(0.04),
+    height: labelHeight(0.04, 15),
     child: Align(
       alignment: Alignment.centerLeft,
       child: Text(

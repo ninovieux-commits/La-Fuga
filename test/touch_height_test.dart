@@ -26,6 +26,7 @@ import 'package:lafuga/ui/screens/settings_screen.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:lafuga/ui/screens/theme_composer_screen.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
+import 'package:lafuga/ui/widgets/corr_slot.dart';
 import 'package:lafuga/ui/widgets/deep_grey_dialog.dart';
 import 'package:lafuga/ui/widgets/end_dialogs.dart';
 import 'package:lafuga/ui/widgets/first_launch.dart';
@@ -37,16 +38,14 @@ const Size _phone = Size(393, 851);
 const Size _small = Size(320, 640);
 const Size _tablet = Size(834, 1112);
 
-/// Les touches qui ne sont pas des touches d'écran : celles peintes dans une
-/// case de correspondance, taillées à leur vignette comme en Kivy
-/// (`size_hint=(0.8, 0.15)` du slot).
-const Set<String> _inSlot = {
-  'Accepter',
-  'Refuser',
-  'Annuler',
-  'Revanche',
-  'Fermer la case',
-};
+/// Les touches d'une case de correspondance ne sont pas des touches d'écran :
+/// elles sont taillées à leur vignette, comme en Kivy. `corr_slot_test.dart`
+/// les vérifie à leur propre mesure. L'exclusion est structurelle et non par
+/// intitulé : « Fermer » et « Annuler » sont aussi de vraies touches ailleurs.
+bool _inSlot(WidgetTester tester, Widget button) => find
+    .ancestor(of: find.byWidget(button), matching: find.byType(CorrSlot))
+    .evaluate()
+    .isNotEmpty;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +67,7 @@ void main() {
     var seen = 0;
     for (final element in find.byType(FugaButton).evaluate()) {
       final button = element.widget as FugaButton;
-      if (_inSlot.contains(button.text)) continue;
+      if (_inSlot(tester, button)) continue;
       final height = tester.getSize(find.byWidget(button)).height;
       expect(
         height,

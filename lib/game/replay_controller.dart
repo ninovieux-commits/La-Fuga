@@ -51,7 +51,10 @@ final class ReplayStep {
 
 /// Pièces qui quittent le plateau d'une position à l'autre — sans compter
 /// l'Héritier qui fugue, qui n'est pas une prise mais une victoire.
-List<Piece> _ejectedBetween(Board before, Board after, String notation) {
+///
+/// Sert à la relecture, et à l'analyse quand elle repart d'une position
+/// passée : les prises se recomptent alors depuis les positions traversées.
+List<Piece> ejectedBetween(Board before, Board after, String notation) {
   final counts = <Piece, int>{};
   for (var c = 0; c < kCols; c++) {
     for (var r = 0; r < kRows; r++) {
@@ -148,7 +151,7 @@ class ReplayController {
         break;
       }
       board = applied.board;
-      for (final piece in _ejectedBetween(before, board, notation)) {
+      for (final piece in ejectedBetween(before, board, notation)) {
         lost[piece.camp]!.add(piece);
       }
       turn = turn.opposite;

@@ -79,6 +79,8 @@ class _ReplayScreenState extends State<ReplayScreen> {
           initialBoard: step.board.clone(),
           initialTurn: step.turn,
           analysis: ai == null,
+          // On reprend la position telle qu'on la regardait.
+          initialFlipped: ai == null ? _flipped : null,
           themeName: Settings.instance.themeAxes.general,
         ),
       ),

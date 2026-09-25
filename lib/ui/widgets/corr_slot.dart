@@ -117,13 +117,13 @@ class CorrSlot extends StatelessWidget {
   List<Widget> _challenge(CorrGame g) => g.isChallenger
       ? [
           Align(alignment: Alignment.center, child: _plate(T('En attente…'))),
-          Align(
-            alignment: const Alignment(0, 0.92),
-            child: _smallButton(
-              T('Annuler'),
-              const Color(0xFF8C1A1A),
-              () => onCancel(g),
-            ),
+          _slotButton(
+            T('Annuler'),
+            const Color(0xFF8C1A1A),
+            () => onCancel(g),
+            width: 0.6,
+            height: 0.16,
+            y: 0.06,
           ),
         ]
       : [
@@ -136,21 +136,12 @@ class CorrSlot extends StatelessWidget {
               bold: true,
             ),
           ),
-          Align(
-            alignment: const Alignment(0, 0.55),
-            child: _smallButton(
-              T('Accepter'),
-              palette.fonce,
-              () => onAccept(g),
-            ),
-          ),
-          Align(
-            alignment: const Alignment(0, 0.95),
-            child: _smallButton(
-              T('Refuser'),
-              const Color(0xFF8C1A1A),
-              () => onRefuse(g),
-            ),
+          _slotButton(T('Accepter'), palette.fonce, () => onAccept(g), y: 0.24),
+          _slotButton(
+            T('Refuser'),
+            const Color(0xFF8C1A1A),
+            () => onRefuse(g),
+            y: 0.06,
           ),
         ];
 
@@ -165,14 +156,8 @@ class CorrSlot extends StatelessWidget {
         alignment: const Alignment(0, -0.1),
         child: _plate(text, bold: true, color: color),
       ),
-      Align(
-        alignment: const Alignment(0, 0.55),
-        child: _smallButton(T('Revanche'), palette.fonce, () => onRematch(g)),
-      ),
-      Align(
-        alignment: const Alignment(0, 0.95),
-        child: _smallButton(T('Fermer'), kFugaGrey, () => onClose(g)),
-      ),
+      _slotButton(T('Revanche'), palette.fonce, () => onRematch(g), y: 0.22),
+      _slotButton(T('Fermer'), kFugaGrey, () => onClose(g), y: 0.05),
     ];
   }
 
@@ -196,18 +181,41 @@ class CorrSlot extends StatelessWidget {
         ),
       );
 
-  Widget _smallButton(String text, Color color, VoidCallback onPressed) =>
-      FractionallySizedBox(
-        widthFactor: 0.82,
-        child: FugaButton(
-          text: text,
-          color: color,
-          onPressed: onPressed,
-          height: S(34),
-          fontSize: SF(12),
-          radius: 8,
-        ),
-      );
+  /// Une touche de la case, aux proportions de Kivy : une fraction de la
+  /// largeur et de la HAUTEUR de la case, posée à une hauteur donnée depuis le
+  /// bas — le `size_hint` et le `pos_hint` de `_make_corr_slot`.
+  ///
+  /// Elle était figée à `S(34)`, soit une hauteur de référence en largeur :
+  /// dans une case haute de deux cents pixels, cela donnait une touche de dix-
+  /// huit là où Kivy en met trente. Proportionnée à sa case, elle grandit avec
+  /// elle sans jamais en sortir.
+  Widget _slotButton(
+    String text,
+    Color color,
+    VoidCallback onPressed, {
+    double width = 0.8,
+    double height = 0.15,
+    required double y,
+  }) => Align(
+    alignment: Alignment(0, _fromBottom(y, height)),
+    child: FractionallySizedBox(
+      widthFactor: width,
+      heightFactor: height,
+      child: FugaButton(
+        text: text,
+        color: color,
+        onPressed: onPressed,
+        height: double.infinity,
+        fontSize: SF(12),
+        radius: S(8),
+      ),
+    ),
+  );
+
+  /// Convertit le `pos_hint.y` de Kivy — mesuré depuis le BAS de la case —
+  /// en alignement vertical de Flutter, mesuré de haut en bas.
+  static double _fromBottom(double y, double height) =>
+      2 * (1 - y - height) / (1 - height) - 1;
 }
 
 /// Le mini-plateau : quadrillage, image de plateau du thème, et les pièces.

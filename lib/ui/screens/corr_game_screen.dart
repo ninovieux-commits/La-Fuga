@@ -325,6 +325,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   Future<void> _openAnalysis() async {
     final c = _controller;
     if (c == null) return;
+    // Le plateau garde le sens qu'il a ici : on va analyser la position
+    // qu'on a sous les yeux.
+    final flipped = _flipOverride ?? (_g.myCamp == Camp.blanc);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
@@ -334,6 +337,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
           initialTurn: c.turn,
           analysis: true,
           analysisFromCorr: true,
+          initialFlipped: flipped,
           themeName: Settings.instance.themeAxes.general,
         ),
       ),
