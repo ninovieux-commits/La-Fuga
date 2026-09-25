@@ -139,6 +139,55 @@ class ProfilePhoto extends StatelessWidget {
   );
 }
 
+/// Grossissement de certaines pièces en photo de profil.
+///
+/// Sur le plateau, une pièce se lit par rapport à ses voisines. Seule dans un
+/// carré de photo de profil, une image dont le sujet occupe peu de place
+/// paraît minuscule — c'est le cas de la nurse du thème insectes, la
+/// coccinelle. On la grossit dans le MÊME cadre : c'est un zoom, pas un
+/// débordement, et rien ne mord sur ce qu'il y a autour.
+const Map<(String, PieceType), double> kProfileZoom = {
+  ('insectes', PieceType.nurse): 1.15,
+};
+
+/// Combien grossir cette pièce en photo de profil. 1 : pas de grossissement.
+double profileZoomFor(String? theme, PieceType piece) =>
+    kProfileZoom[(theme ?? '', piece)] ?? 1;
+
+/// Dessine la pièce d'une photo de profil dans [frame].
+///
+/// Le cadre reste celui qu'on lui donne : un grossissement se fait à
+/// l'intérieur, l'excédent est coupé.
+void paintProfilePiece(
+  Canvas canvas,
+  Rect frame,
+  Piece piece,
+  ThemePalette palette, {
+  LoadedThemeImages? images,
+  String? theme,
+}) {
+  final zoom = profileZoomFor(theme, piece.type);
+  if (zoom == 1) {
+    paintPiece(canvas, frame, piece, palette, images: images, theme: theme);
+    return;
+  }
+  canvas.save();
+  canvas.clipRect(frame);
+  paintPiece(
+    canvas,
+    Rect.fromCenter(
+      center: frame.center,
+      width: frame.width * zoom,
+      height: frame.height * zoom,
+    ),
+    piece,
+    palette,
+    images: images,
+    theme: theme,
+  );
+  canvas.restore();
+}
+
 class _PiecePhotoPainter extends CustomPainter {
   const _PiecePhotoPainter({
     required this.piece,
@@ -157,7 +206,7 @@ class _PiecePhotoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final side = size.shortestSide;
-    paintPiece(
+    paintProfilePiece(
       canvas,
       Rect.fromLTWH(
         (size.width - side) / 2,

@@ -89,6 +89,67 @@ void main() {
     );
   });
 
+  group('Le grossissement de certaines photos', () {
+    test('la nurse du thème insectes est grossie de 15 %', () {
+      expect(profileZoomFor('insectes', PieceType.nurse), 1.15);
+    });
+
+    test('et elle seule', () {
+      expect(profileZoomFor('insectes', PieceType.heritier), 1);
+      expect(profileZoomFor('insectes', PieceType.soldat), 1);
+      expect(profileZoomFor('fleur', PieceType.nurse), 1);
+      expect(profileZoomFor(null, PieceType.nurse), 1);
+    });
+
+    test('le cadre ne bouge pas : c est un zoom, pas un débordement', () {
+      const frame = Rect.fromLTWH(10, 20, 80, 80);
+
+      final zoome = _RecordingCanvas();
+      paintProfilePiece(
+        zoome,
+        frame,
+        const Piece(PieceType.nurse, Camp.blanc),
+        paletteOf('insectes'),
+        theme: 'insectes',
+      );
+      expect(
+        zoome.clips,
+        contains(frame),
+        reason: 'ce qui dépasse est coupé au cadre',
+      );
+      // Le même dessin sans grossissement, pour comparer.
+      final normal = _RecordingCanvas();
+      paintProfilePiece(
+        normal,
+        frame,
+        const Piece(PieceType.nurse, Camp.blanc),
+        paletteOf('fleur'),
+        theme: 'fleur',
+      );
+      expect(
+        normal.widest,
+        greaterThan(0),
+        reason: 'quelque chose est dessiné',
+      );
+      expect(
+        zoome.widest / normal.widest,
+        moreOrLessEquals(1.15, epsilon: 0.001),
+        reason: 'la coccinelle est dessinée 15 % plus grande',
+      );
+
+      final autrePiece = _RecordingCanvas();
+      paintProfilePiece(
+        autrePiece,
+        frame,
+        const Piece(PieceType.heritier, Camp.blanc),
+        paletteOf('insectes'),
+        theme: 'insectes',
+      );
+      expect(autrePiece.clips, isEmpty, reason: 'rien à couper sans zoom');
+      expect(autrePiece.widest, lessThanOrEqualTo(80.0));
+    });
+  });
+
   test(
     'une photo illisible retombe sur l Héritier blanc du thème original',
     () {
@@ -107,10 +168,32 @@ void main() {
 class _RecordingCanvas implements Canvas {
   final List<int> colors = [];
 
+  /// Rectangles passés à `clipRect`.
+  final List<Rect> clips = [];
+
+  /// Tailles demandées au canevas : côtés de rectangles et diamètres de
+  /// cercles. Une pièce se dessine de l'une ou l'autre façon, selon que son
+  /// thème a des images ou non.
+  final List<double> sizes = [];
+
+  /// La plus grande dimension dessinée.
+  double get widest =>
+      sizes.isEmpty ? 0 : sizes.reduce((a, b) => a > b ? a : b);
+
   @override
   dynamic noSuchMethod(Invocation invocation) {
+    final name = invocation.memberName.toString();
     for (final arg in invocation.positionalArguments) {
       if (arg is Paint) colors.add(arg.color.toARGB32());
+      if (arg is Rect) {
+        if (name.contains('clipRect')) {
+          clips.add(arg);
+        } else {
+          sizes.add(arg.width);
+        }
+      }
+      // Rayon d'un cercle : le rendu géométrique d'une ronde.
+      if (arg is double) sizes.add(arg * 2);
     }
     return null;
   }
