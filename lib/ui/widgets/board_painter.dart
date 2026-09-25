@@ -253,6 +253,8 @@ final class BoardPiecesPainter extends CustomPainter {
     }
 
     // Pièces.
+    final pushDirs = lastMove?.pushDirs;
+    final hasPushDirs = pushDirs != null && pushDirs.isNotEmpty;
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
         final p = board.at(c, r);
@@ -266,7 +268,9 @@ final class BoardPiecesPainter extends CustomPainter {
           p,
           palette,
           // Les points de poussée grossis, sur la pièce qui vient de pousser.
-          pushHighlightDirs: {...?lastMove?.pushDirs[cell]},
+          pushHighlightDirs: hasPushDirs
+              ? (pushDirs[cell] ?? const [])
+              : const [],
           flipped: g.flipped,
           boardColor: palette.board,
           images: images,

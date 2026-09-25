@@ -4,7 +4,7 @@ library;
 
 import '../board.dart';
 import '../move.dart';
-import '../move_generator.dart';
+import '../threats.dart';
 import '../piece.dart';
 import 'weights.dart';
 
@@ -14,18 +14,30 @@ final class EvalCache {
   EvalCache({this.maxEntries = 50000});
 
   final int maxEntries;
-  final Map<String, double> _entries = {};
 
-  double? get(String boardKey, Camp camp) => _entries['$boardKey|${camp.wire}'];
+  /// Une table par camp : concaténer le camp à la clé du plateau, c'était
+  /// allouer et hacher une chaîne de soixante caractères à chaque consultation,
+  /// pour une information qui tient dans le choix de la table.
+  final Map<String, double> _blanc = {};
+  final Map<String, double> _noir = {};
+
+  Map<String, double> _table(Camp camp) =>
+      camp == Camp.blanc ? _blanc : _noir;
+
+  double? get(String boardKey, Camp camp) => _table(camp)[boardKey];
 
   void put(String boardKey, Camp camp, double score) {
-    if (_entries.length >= maxEntries) return;
-    _entries['$boardKey|${camp.wire}'] = score;
+    final table = _table(camp);
+    if (_blanc.length + _noir.length >= maxEntries) return;
+    table[boardKey] = score;
   }
 
-  void clear() => _entries.clear();
+  void clear() {
+    _blanc.clear();
+    _noir.clear();
+  }
 
-  int get length => _entries.length;
+  int get length => _blanc.length + _noir.length;
 }
 
 /// Valeurs de position, calibrées sur la table du concepteur (unité ×10).
@@ -40,23 +52,36 @@ double positionalStrategy(Board board, Camp camp, DeepGreyWeights w) {
   final rally = camp.rallyRow;
   var score = 0.0;
 
-  Cell? myHeir, oppHeir;
-  final myNurses = <Cell>[], oppNurses = <Cell>[];
-  final mySquares = <Cell>[], oppSquares = <Cell>[];
+  // Les cases sont manipulées en index plat `c * kRows + r`, et les ensembles
+  // en masque de bits : le plateau fait cinquante-six cases, elles tiennent
+  // dans un entier. Allouer une vingtaine d'objets `Cell` et trois `Set` par
+  // évaluation, c'était le gros du coût d'une fonction appelée des dizaines de
+  // milliers de fois par coup de Deep Grey.
+  var myHeir = -1, oppHeir = -1;
+  final myNurses = <int>[], oppNurses = <int>[];
+  final mySquares = <int>[], oppSquares = <int>[];
+  var myNurseMask = 0, oppNurseMask = 0;
 
   for (var c = 0; c < kCols; c++) {
     for (var r = 0; r < kRows; r++) {
       final p = board.at(c, r);
       if (p == null || p.isKnight) continue;
-      final cell = Cell(c, r);
+      final index = c * kRows + r;
+      final mine = p.camp == camp;
       switch (p.type) {
         case PieceType.heritier:
-          p.camp == camp ? myHeir = cell : oppHeir = cell;
+          mine ? myHeir = index : oppHeir = index;
         case PieceType.nurse:
-          (p.camp == camp ? myNurses : oppNurses).add(cell);
+          if (mine) {
+            myNurses.add(index);
+            myNurseMask |= 1 << index;
+          } else {
+            oppNurses.add(index);
+            oppNurseMask |= 1 << index;
+          }
         case PieceType.soldat:
         case PieceType.garde:
-          (p.camp == camp ? mySquares : oppSquares).add(cell);
+          (mine ? mySquares : oppSquares).add(index);
         case PieceType.chevalier:
           break;
       }
@@ -65,14 +90,15 @@ double positionalStrategy(Board board, Camp camp, DeepGreyWeights w) {
 
   // ── Héritiers (les deux camps) ──
   for (final (heir, cp) in [(myHeir, camp), (oppHeir, opp)]) {
-    if (heir == null) continue;
+    if (heir < 0) continue;
     final sign = cp == camp ? 1.0 : -1.0;
-    final closeness = 8 - (heir.row - rally).abs();
+    final hc = heir ~/ kRows, hr = heir % kRows;
+    final closeness = 8 - (hr - rally).abs();
     score += closeness * 15 * w['heir_adv'];
-    if (heir.col == 0 || heir.col == kCols - 1) {
+    if (hc == 0 || hc == kCols - 1) {
       score -= sign * 30 * w['heir_edge'];
     }
-    if (isPieceStuck(board, heir.col, heir.row)) {
+    if (isPieceStuck(board, hc, hr)) {
       score -= sign * 40 * w['heir_immo'];
     }
   }
@@ -80,14 +106,15 @@ double positionalStrategy(Board board, Camp camp, DeepGreyWeights w) {
   // ── Nurses ──
   for (final (lst, cp) in [(myNurses, camp), (oppNurses, opp)]) {
     final sign = cp == camp ? 1.0 : -1.0;
-    for (final cell in lst) {
-      final closeness = 8 - (cell.row - rally).abs();
+    for (final index in lst) {
+      final nc = index ~/ kRows, nr = index % kRows;
+      final closeness = 8 - (nr - rally).abs();
       score += closeness * 10 * w['nurse_adv'];
-      if (cell.col == 0 || cell.col == kCols - 1) {
+      if (nc == 0 || nc == kCols - 1) {
         score -= sign * 20 * w['nurse_edge'];
       }
       score += sign * 40 * w['nurse_mat'];
-      if (isPieceStuck(board, cell.col, cell.row)) {
+      if (isPieceStuck(board, nc, nr)) {
         score -= sign * 30 * w['nurse_immo'];
       }
     }
@@ -96,59 +123,72 @@ double positionalStrategy(Board board, Camp camp, DeepGreyWeights w) {
   // ── Carrées ──
   for (final (lst, cp) in [(mySquares, camp), (oppSquares, opp)]) {
     final sign = cp == camp ? 1.0 : -1.0;
-    for (final cell in lst) {
+    for (final index in lst) {
+      final sc = index ~/ kRows, sr = index % kRows;
       score += sign * 50 * w['square_mat'];
-      if (isPieceStuck(board, cell.col, cell.row)) {
+      if (isPieceStuck(board, sc, sr)) {
         score -= sign * 20 * w['square_immo'];
       }
-      if (squareCanPushForward(board, cell.col, cell.row, cp)) {
+      if (squareCanPushForward(board, sc, sr, cp)) {
         score += sign * 10 * w['square_push'];
       }
     }
   }
 
   // ── Cohésion des nurses : un seul bloc vaut mieux que plusieurs ──
-  final mg = _countGroups(myNurses);
-  final og = _countGroups(oppNurses);
+  final mg = _countGroups(myNurseMask);
+  final og = _countGroups(oppNurseMask);
   if (mg > 1) score -= (mg - 1) * 10 * w['nurse_groups'];
   if (og > 1) score += (og - 1) * 10 * w['nurse_groups'];
 
   // ── L'Héritier doit rester au contact d'une nurse de son camp ──
-  if (!_heirTouches(myHeir, myNurses)) score -= 30 * w['heir_contact'];
-  if (!_heirTouches(oppHeir, oppNurses)) score += 30 * w['heir_contact'];
+  if (!_heirTouches(myHeir, myNurseMask)) score -= 30 * w['heir_contact'];
+  if (!_heirTouches(oppHeir, oppNurseMask)) score += 30 * w['heir_contact'];
 
   return score;
 }
 
-/// Nombre de groupes connectés (adjacence 8 directions) dans un ensemble de
+/// Nombre de groupes connectés (adjacence 8 directions) dans un masque de
 /// cases.
-int _countGroups(List<Cell> cells) {
-  final set = cells.toSet();
-  final seen = <Cell>{};
+int _countGroups(int mask) {
+  var remaining = mask;
   var groups = 0;
-  for (final cell in set) {
-    if (seen.contains(cell)) continue;
+  while (remaining != 0) {
     groups++;
-    final stack = <Cell>[cell];
-    seen.add(cell);
-    while (stack.isNotEmpty) {
-      final cur = stack.removeLast();
-      for (final (dx, dy) in kAllDirs) {
-        final nb = Cell(cur.col + dx, cur.row + dy);
-        if (set.contains(nb) && seen.add(nb)) stack.add(nb);
+    // Repartir de la case de poids le plus faible et vider tout son groupe.
+    var frontier = remaining & -remaining;
+    var group = 0;
+    while (frontier != 0) {
+      group |= frontier;
+      var next = 0;
+      var todo = frontier;
+      while (todo != 0) {
+        final bit = todo & -todo;
+        todo ^= bit;
+        final index = bit.bitLength - 1;
+        final c = index ~/ kRows, r = index % kRows;
+        for (final (dc, dr) in kAllDirs) {
+          final nc = c + dc, nr = r + dr;
+          if (!Board.onBoard(nc, nr)) continue;
+          next |= 1 << (nc * kRows + nr);
+        }
       }
+      frontier = next & remaining & ~group;
     }
+    remaining &= ~group;
   }
   return groups;
 }
 
 /// Un Héritier absent du plateau est considéré « au contact », pour ne pas
 /// pénaliser à tort.
-bool _heirTouches(Cell? heir, List<Cell> nurses) {
-  if (heir == null) return true;
-  final set = nurses.toSet();
+bool _heirTouches(int heir, int nurseMask) {
+  if (heir < 0) return true;
+  final hc = heir ~/ kRows, hr = heir % kRows;
   for (final (dx, dy) in kAllDirs) {
-    if (set.contains(Cell(heir.col + dx, heir.row + dy))) return true;
+    final nc = hc + dx, nr = hr + dy;
+    if (!Board.onBoard(nc, nr)) continue;
+    if (nurseMask & (1 << (nc * kRows + nr)) != 0) return true;
   }
   return false;
 }
@@ -174,18 +214,13 @@ double evaluate(
   var score = 0.0;
 
   // ── 1. Menaces adverses ──
-  var oppCanFugue = false;
-  var matThreat = false;
-  for (final mv in generateMoves(board, opp)) {
-    if (mv.fugue || mv.fugueBy == opp) {
-      oppCanFugue = true;
-      break; // rien de pire : inutile de continuer
-    }
-    if (mv.matOn == camp) matThreat = true;
-  }
-  if (oppCanFugue) {
+  //
+  // Détectées directement sur le plateau : générer les coups de l'adversaire
+  // pour n'en garder qu'un booléen coûtait dix fois le reste de l'évaluation.
+  final oppThreats = threatsOf(board, opp);
+  if (oppThreats.canFugue) {
     score -= 10000;
-  } else if (matThreat) {
+  } else if (oppThreats.matOn(camp)) {
     score -= 5000;
   }
 
@@ -209,18 +244,10 @@ double evaluate(
     }
   }
   if (propice) {
-    var ownCanFugue = false;
-    var ownCanMat = false;
-    for (final mv in generateMoves(board, camp)) {
-      if (mv.fugue || mv.fugueBy == camp) {
-        ownCanFugue = true;
-        break;
-      }
-      if (mv.matOn == opp) ownCanMat = true;
-    }
-    if (ownCanFugue) {
+    final mine = threatsOf(board, camp);
+    if (mine.canFugue) {
       score += 10000;
-    } else if (ownCanMat) {
+    } else if (mine.matOn(opp)) {
       score += 5000;
     }
   }

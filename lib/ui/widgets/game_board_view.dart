@@ -86,16 +86,34 @@ class _GameBoardViewState extends State<GameBoardView>
     value: 1,
   );
 
+  /// Cases dont la pièce est en vol.
+  ///
+  /// Ne change que DEUX fois par glissement — au décollage et à l'atterrissage
+  /// — là où l'avancement, lui, change soixante fois par seconde. C'est ce qui
+  /// permet à la couche des quarante pièces posées de ne pas être reconstruite
+  /// à chaque image : seule celle qui vole l'est.
+  final ValueNotifier<Set<Cell>> _flying = ValueNotifier(const {});
+
   @override
   void initState() {
     super.initState();
+    _slide.addStatusListener(_onSlideStatus);
     _loadImages();
   }
 
   @override
   void dispose() {
+    _slide.removeStatusListener(_onSlideStatus);
     _slide.dispose();
+    _flying.dispose();
     super.dispose();
+  }
+
+  /// Le glissement est fini : la pièce se repose sur sa case.
+  void _onSlideStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && _flying.value.isNotEmpty) {
+      _flying.value = const {};
+    }
   }
 
   @override
@@ -114,9 +132,11 @@ class _GameBoardViewState extends State<GameBoardView>
   /// c'est le mode « Instantané » des réglages.
   void _startSlide() {
     if (widget.slides.isEmpty || widget.slideDuration <= Duration.zero) {
+      _flying.value = const {};
       _slide.value = 1;
       return;
     }
+    _flying.value = {for (final (_, _, to) in widget.slides) to};
     _slide.duration = widget.slideDuration;
     _slide.forward(from: 0);
   }
@@ -179,44 +199,45 @@ class _GameBoardViewState extends State<GameBoardView>
               ),
               // Deux couches de pièces, chacune derrière sa frontière de
               // repeint : celles qui sont posées, et celle qui vole. Pendant
-              // une glissée, seule la seconde est redessinée à chaque image —
-              // les quarante autres pièces ne bougent pas.
-              AnimatedBuilder(
-                animation: _slide,
-                builder: (context, _) {
-                  final flying = FlyingPiecesPainter(
-                    geometry: geometry,
-                    palette: widget.palette,
-                    slides: widget.slides,
-                    progress: _slide.value,
-                    images: _pieceImages,
-                    theme: widget.pieceTheme,
-                  );
-                  return Stack(
-                    children: [
-                      RepaintBoundary(
-                        child: CustomPaint(
-                          size: size,
-                          painter: BoardPiecesPainter(
-                            geometry: geometry,
-                            palette: widget.palette,
-                            board: widget.board,
-                            selected: widget.selected,
-                            groupSelection: widget.groupSelection,
-                            destinations: widget.highlighted,
-                            lastMove: widget.lastMove,
-                            theme: widget.pieceTheme,
-                            images: _pieceImages,
-                            flying: flying.flying,
-                          ),
-                        ),
-                      ),
-                      RepaintBoundary(
-                        child: CustomPaint(size: size, painter: flying),
-                      ),
-                    ],
-                  );
-                },
+              // une glissée, seule la seconde est reconstruite à chaque image —
+              // les quarante autres pièces ne changent pas, et leur couche
+              // n'écoute que la liste des cases en vol, qui ne bouge qu'au
+              // décollage et à l'atterrissage.
+              ValueListenableBuilder<Set<Cell>>(
+                valueListenable: _flying,
+                builder: (context, flying, _) => RepaintBoundary(
+                  child: CustomPaint(
+                    size: size,
+                    painter: BoardPiecesPainter(
+                      geometry: geometry,
+                      palette: widget.palette,
+                      board: widget.board,
+                      selected: widget.selected,
+                      groupSelection: widget.groupSelection,
+                      destinations: widget.highlighted,
+                      lastMove: widget.lastMove,
+                      theme: widget.pieceTheme,
+                      images: _pieceImages,
+                      flying: flying,
+                    ),
+                  ),
+                ),
+              ),
+              RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _slide,
+                  builder: (context, _) => CustomPaint(
+                    size: size,
+                    painter: FlyingPiecesPainter(
+                      geometry: geometry,
+                      palette: widget.palette,
+                      slides: widget.slides,
+                      progress: _slide.value,
+                      images: _pieceImages,
+                      theme: widget.pieceTheme,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

@@ -9,6 +9,7 @@ import 'board.dart';
 import 'move.dart';
 import 'notation.dart';
 import 'piece.dart';
+import 'threats.dart';
 
 /// Résultat d'une application de poussées sur un plateau déjà muté.
 final class PushOutcome {
@@ -205,10 +206,11 @@ void _generateRoundMoves(
   simBoard.set(c, r, null);
 
   final jumpDestinations = <Cell>{};
-  // (col, row, cases visitées, dernière ronde sautée)
-  final toExplore = <(int, int, Set<Cell>, Cell?)>[
-    (c, r, {Cell(c, r)}, null),
-  ];
+  // Les cases déjà visitées d'une branche tiennent dans un entier : 7 × 8
+  // cases, soit 56 bits. Recopier un `Set` à chaque embranchement, comme le
+  // faisait ce parcours, coûtait plus cher que tout le reste du générateur.
+  // (colonne, rangée, cases visitées, index de la ronde sautée juste avant)
+  final toExplore = <(int, int, int, int)>[(c, r, 1 << (c * kRows + r), -1)];
 
   while (toExplore.isNotEmpty) {
     final (curC, curR, visited, lastJumped) = toExplore.removeLast();
@@ -219,9 +221,9 @@ void _generateRoundMoves(
 
       // Anti-aller-retour : interdit de re-sauter immédiatement par-dessus la
       // même ronde qu'au saut précédent (on peut la re-sauter plus tard).
-      if (lastJumped != null && mc == lastJumped.col && mr == lastJumped.row) {
-        continue;
-      }
+      final midOnBoard = Board.onBoard(mc, mr);
+      final midIndex = midOnBoard ? mc * kRows + mr : -1;
+      if (midIndex >= 0 && midIndex == lastJumped) continue;
 
       // Fugue par saut (Héritier seulement).
       if (p.isHeir && Board.isFugueDest(nc, nr, p)) {
@@ -242,13 +244,14 @@ void _generateRoundMoves(
         continue;
       }
 
-      if (!Board.onBoard(mc, mr)) continue;
+      if (!midOnBoard) continue;
       if (!Board.onBoard(nc, nr)) continue;
       final jumped = simBoard.at(mc, mr);
       if (jumped == null || !jumped.isRound) continue;
       if (simBoard.at(nc, nr) != null) continue;
+      final destBit = 1 << (nc * kRows + nr);
+      if (visited & destBit != 0) continue;
       final dest = Cell(nc, nr);
-      if (visited.contains(dest)) continue;
 
       if (jumpDestinations.add(dest)) {
         final nb = board.clone();
@@ -263,7 +266,7 @@ void _generateRoundMoves(
           ),
         );
       }
-      toExplore.add((nc, nr, {...visited, dest}, Cell(mc, mr)));
+      toExplore.add((nc, nr, visited | destBit, midIndex));
     }
   }
 }
@@ -469,12 +472,12 @@ bool anySquareCanMove(Board board) {
 
 /// Vrai si `camp` peut amener SON Héritier au ralliement en un seul coup,
 /// par déplacement, saut ou poussée. Sert à la règle auto de rattrapage.
-bool campCanFugue(Board board, Camp camp) {
-  for (final mv in generateMoves(board, camp)) {
-    if (mv.fugue || mv.fugueBy == camp) return true;
-  }
-  return false;
-}
+///
+/// Répondu en parcourant le plateau plutôt qu'en construisant les quelque
+/// cinquante coups légaux pour n'en regarder qu'un drapeau — la question se
+/// pose après chaque coup joué. `threats_parity_test.dart` vérifie que la
+/// réponse est bien celle du générateur.
+bool campCanFugue(Board board, Camp camp) => threatsOf(board, camp).canFugue;
 
 /// Cases effectivement poussées par un coup — portage de
 /// `_ai_compute_push_targets` (main.py).

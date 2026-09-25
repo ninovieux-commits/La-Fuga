@@ -31,7 +31,7 @@ void paintPiece(
   ThemePalette palette, {
   Color? outline,
   double outlineWidth = 2,
-  Set<(int, int)> pushHighlightDirs = const {},
+  List<(int, int)> pushHighlightDirs = const [],
   bool flipped = true,
   Color boardColor = const Color(0xFF8C8C8C),
   LoadedThemeImages? images,
@@ -95,9 +95,12 @@ void paintPiece(
 
   // Le joueur Noir voit le plateau tourné à 180° : les deux axes s'inversent.
   final axis = flipped ? 1 : -1;
-  final bigDirs = {
-    for (final (dc, dr) in pushHighlightDirs) (dc * axis, dr * axis),
-  };
+  // Le cas courant, et de loin : aucune direction à grossir. On ne construit
+  // alors rien du tout — quarante pièces à repeindre, c'était quarante
+  // ensembles alloués pour rien à chaque image.
+  final bigDirs = pushHighlightDirs.isEmpty
+      ? const <(int, int)>{}
+      : {for (final (dc, dr) in pushHighlightDirs) (dc * axis, dr * axis)};
   final bigColor = piece.camp == Camp.blanc
       ? const Color(0xFF000000)
       : const Color(0xFFFFFFFF);

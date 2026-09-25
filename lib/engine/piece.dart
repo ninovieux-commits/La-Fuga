@@ -97,7 +97,18 @@ final class Piece {
 
   /// Clé compacte d'une case, façon `_dg_board_key` : première lettre du type
   /// + première lettre du camp. 'H'/'N'/'S'/'G'/'C' × 'B'/'N'.
-  String get key => '${type.wire[0]}${camp.wire[0]}';
+  ///
+  /// Les dix chaînes sont écrites en toutes lettres plutôt que découpées dans
+  /// `type.wire` et `camp.wire` : la clé d'un plateau les demande cinquante-six
+  /// fois, et deux sous-chaînes plus une concaténation par case faisaient à
+  /// elles seules le gros du coût d'une clé.
+  String get key => switch (type) {
+    PieceType.heritier => camp == Camp.blanc ? 'HB' : 'HN',
+    PieceType.nurse => camp == Camp.blanc ? 'NB' : 'NN',
+    PieceType.soldat => camp == Camp.blanc ? 'SB' : 'SN',
+    PieceType.garde => camp == Camp.blanc ? 'GB' : 'GN',
+    PieceType.chevalier => camp == Camp.blanc ? 'CB' : 'CN',
+  };
 
   Map<String, String> toJson() => {'type': type.wire, 'camp': camp.wire};
 

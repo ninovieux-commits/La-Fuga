@@ -100,6 +100,67 @@ void main() {
     expect(painterOf(tester).flying, isEmpty, reason: 'elle est posée');
   });
 
+  testWidgets('pendant la glissée, les pièces posées ne sont pas repeintes', (
+    tester,
+  ) async {
+    await Settings.instance.setSlideSpeed(0.4);
+
+    final board = Board.initial();
+    const piece = Piece(PieceType.soldat, Camp.blanc);
+    var token = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => Column(
+            children: [
+              Expanded(
+                child: GameBoardView(
+                  board: board,
+                  palette: paletteOf(kDefaultTheme),
+                  flipped: true,
+                  onTapCell: (_) {},
+                  slides: const [(piece, Cell(0, 1), Cell(0, 2))],
+                  slideToken: token,
+                  slideDuration: const Duration(milliseconds: 400),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => token++),
+                child: const Text('jouer'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('jouer'));
+    await tester.pump();
+
+    // Le peintre des quarante pièces posées doit être le MÊME objet d'une
+    // image à l'autre : sa couche n'écoute pas l'avancement du glissement,
+    // seule celle de la pièce qui vole le fait. C'est toute la différence
+    // entre repeindre une pièce et en repeindre quarante, soixante fois par
+    // seconde.
+    final atStart = painterOf(tester);
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 25));
+      expect(
+        identical(painterOf(tester), atStart),
+        isTrue,
+        reason: 'image ${i + 1} : la couche des pièces posées a été reconstruite',
+      );
+      expect(flyingOf(tester).progress, lessThanOrEqualTo(1));
+    }
+
+    await tester.pumpAndSettle();
+    // À l'atterrissage, en revanche, elle est bien redessinée : la pièce se
+    // repose sur sa case.
+    expect(identical(painterOf(tester), atStart), isFalse);
+    expect(painterOf(tester).flying, isEmpty);
+  });
+
   testWidgets('en mode instantané, aucune animation', (tester) async {
     await Settings.instance.setSlideSpeed(0);
 
