@@ -114,9 +114,17 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   Timer? _corrPoll;
 
   /// Toutes les combien on redemande la liste, tant que le menu est à
-  /// l'écran. Assez souvent pour qu'un coup de l'adversaire apparaisse sans
-  /// rien faire, assez rare pour ne pas harceler le serveur.
-  static const Duration _corrInterval = Duration(seconds: 25);
+  /// l'écran ET au premier plan.
+  ///
+  /// Quatre secondes : un coup de l'adversaire apparaît pendant qu'on regarde
+  /// la grille, sans avoir rien à faire. Le battement s'arrête dès que
+  /// l'application passe en arrière-plan, et une demande ne part jamais si la
+  /// précédente n'est pas revenue — sur un réseau lent, elles
+  /// s'empileraient.
+  static const Duration _corrInterval = Duration(seconds: 4);
+
+  /// Une demande de liste est en cours.
+  bool _corrBusy = false;
 
   @override
   void initState() {
@@ -126,12 +134,21 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
   }
 
-  /// Au retour au premier plan, on remet la liste à jour tout de suite : le
+  /// Le battement ne tourne qu'au premier plan.
+  ///
+  /// En le quittant, on l'arrête : interroger le serveur toutes les quatre
+  /// secondes pour un écran que personne ne regarde coûte de la batterie et
+  /// des données. En y revenant, on remet la liste à jour tout de suite — le
   /// téléphone a pu rester des heures dans une poche.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
-    unawaited(_refreshAll());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshAll());
+      _startCorrPolling();
+      return;
+    }
+    _corrPoll?.cancel();
+    _corrPoll = null;
   }
 
   /// Tout premier lancement : la langue, puis le tuto — comme au démarrage de
@@ -241,6 +258,8 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshCorr() async {
+    // La précédente n'est pas revenue : on ne double pas la mise.
+    if (_corrBusy) return;
     if (!_online.isLoggedIn) {
       _corrPoll?.cancel();
       // Remis à zéro : une reconnexion doit relancer le battement.
@@ -248,7 +267,13 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       if (_corrGames.isNotEmpty) setState(() => _corrGames = const []);
       return;
     }
-    final games = await _corr.list();
+    _corrBusy = true;
+    final List<CorrGame>? games;
+    try {
+      games = await _corr.list();
+    } finally {
+      _corrBusy = false;
+    }
     if (!mounted || games == null) return;
     // Les parties où c'est à moi de jouer passent devant.
     final sorted = [...games]
@@ -262,7 +287,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// Deux listes qui se ressemblent assez pour qu'on ne redessine pas.
   ///
   /// L'actualisation tourne toute seule : redessiner la grille toutes les
-  /// vingt-cinq secondes pour rien ferait sauter le défilement sous le doigt.
+  /// quatre secondes pour rien ferait sauter le défilement sous le doigt.
   bool _sameGames(List<CorrGame> a, List<CorrGame> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {

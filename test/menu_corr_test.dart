@@ -1,6 +1,7 @@
 /// Les emplacements de correspondance, sur le menu — comme en Kivy.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -34,6 +35,10 @@ void main() {
   late Map<String, Map<String, dynamic>> replies;
   late List<({String path, Map<String, dynamic> body})> calls;
 
+  /// Quand elle n'est pas nulle, le serveur simulé attend qu'elle se réalise
+  /// avant de répondre.
+  Future<void>? slowdown;
+
   setUp(() async {
     SharedPreferences.setMockInitialValues(_launched);
     await Settings.load();
@@ -44,11 +49,14 @@ void main() {
     replies = {
       '/login': {'ok': true, 'token': 't', 'pseudo': 'Nino', 'melo': 1600},
     };
+    slowdown = null;
     final client = MockClient((request) async {
       calls.add((
         path: request.url.path,
         body: Map<String, dynamic>.from(jsonDecode(request.body) as Map),
       ));
+      // Permet à un test de laisser une demande en l'air.
+      if (slowdown != null) await slowdown;
       return http.Response(
         jsonEncode(replies[request.url.path] ?? {'ok': true}),
         200,
@@ -208,13 +216,84 @@ void main() {
     final first = calls.where((c) => c.path == '/corr_list').length;
     expect(first, greaterThan(0), reason: 'la liste arrive à l ouverture');
 
-    // Le battement redemande la liste sans qu'on ait rien fait.
-    await tester.pump(const Duration(seconds: 26));
+    // Le battement redemande la liste sans qu'on ait rien fait, et souvent :
+    // un coup de l'adversaire doit apparaître pendant qu'on regarde la grille.
+    await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     expect(
       calls.where((c) => c.path == '/corr_list').length,
       greaterThan(first),
+      reason: 'cinq secondes suffisent',
     );
+  });
+
+  testWidgets('en arrière-plan, le battement s arrête', (tester) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    await open(tester);
+
+    int corrCalls() => calls.where((c) => c.path == '/corr_list').length;
+
+    // L'application quitte le premier plan : interroger le serveur toutes les
+    // quatre secondes pour un écran que personne ne regarde ne sert à rien.
+    // Le passage doit suivre les étapes réelles d'Android.
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pump();
+    final endormi = corrCalls();
+    await tester.pump(const Duration(seconds: 20));
+    await tester.pumpAndSettle();
+    expect(corrCalls(), endormi, reason: 'plus rien ne part');
+
+    // De retour, la liste se remet à jour tout de suite, et le battement
+    // repart.
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pumpAndSettle();
+    expect(corrCalls(), greaterThan(endormi), reason: 'mise à jour immédiate');
+    final reveille = corrCalls();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(corrCalls(), greaterThan(reveille), reason: 'le battement repart');
+  });
+
+  testWidgets('une demande lente n en fait pas partir dix', (tester) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    await open(tester);
+
+    // Le serveur ne répond plus : la demande reste en l'air.
+    final bloque = Completer<void>();
+    slowdown = bloque.future;
+    addTearDown(() {
+      if (!bloque.isCompleted) bloque.complete();
+    });
+
+    final avant = calls.where((c) => c.path == '/corr_list').length;
+    // Quatre battements passent pendant que la première demande attend.
+    await tester.pump(const Duration(seconds: 17));
+    expect(
+      calls.where((c) => c.path == '/corr_list').length,
+      avant + 1,
+      reason: 'une seule demande en l air à la fois',
+    );
+
+    bloque.complete();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('après avoir joué, on reste sur la partie', (tester) async {
