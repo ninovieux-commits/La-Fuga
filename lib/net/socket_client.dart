@@ -69,12 +69,63 @@ abstract final class FugaEvents {
 ///
 /// Extrait en interface pour qu'une partie en ligne se teste sans serveur :
 /// c'est précisément la couche la plus pénible à déboguer en production.
+/// Ce qu'un écouteur d'événement serveur reçoit.
+typedef SocketHandler = void Function(Map<String, dynamic> data);
+
+/// Les écouteurs abonnés, par événement.
+///
+/// Partagée par la vraie connexion et par les doublures de test : c'est ici
+/// que se joue la règle « plusieurs écouteurs par événement », et deux
+/// implémentations divergentes en feraient une règle non vérifiée.
+final class SocketListeners {
+  final Map<String, List<SocketHandler>> _byEvent = {};
+
+  void add(String event, SocketHandler handler) {
+    final listeners = _byEvent.putIfAbsent(event, () => []);
+    if (!listeners.contains(handler)) listeners.add(handler);
+  }
+
+  /// Retire un écouteur, ou tous ceux de l'événement si [handler] est nul.
+  void remove(String event, [SocketHandler? handler]) {
+    if (handler == null) {
+      _byEvent.remove(event);
+      return;
+    }
+    final listeners = _byEvent[event];
+    if (listeners == null) return;
+    listeners.remove(handler);
+    if (listeners.isEmpty) _byEvent.remove(event);
+  }
+
+  /// Distribue un événement. La liste est copiée : un écouteur a le droit de
+  /// se retirer en se déclenchant.
+  void dispatch(String event, Map<String, dynamic> data) {
+    for (final handler in List.of(_byEvent[event] ?? const [])) {
+      handler(Map<String, dynamic>.from(data));
+    }
+  }
+
+  bool get isEmpty => _byEvent.isEmpty;
+  bool get isNotEmpty => _byEvent.isNotEmpty;
+  bool has(String event) => _byEvent[event]?.isNotEmpty ?? false;
+  int count(String event) => _byEvent[event]?.length ?? 0;
+  void clear() => _byEvent.clear();
+}
+
 abstract interface class GameSocket {
   /// Abonne un callback à un événement serveur.
-  void on(String event, void Function(Map<String, dynamic>) handler);
+  ///
+  /// **Plusieurs écouteurs peuvent suivre le même événement.** Un message
+  /// reçu intéresse à la fois le menu — pour sa pastille —, l'écran de
+  /// partie et la conversation ouverte. Tant qu'il n'y en avait qu'un seul,
+  /// ouvrir la boîte écrasait celui du menu et la refermer le supprimait :
+  /// plus rien n'arrivait en temps réel avant d'avoir quitté l'écran et d'y
+  /// être revenu.
+  void on(String event, SocketHandler handler);
 
-  /// Retire l'abonnement à un événement.
-  void off(String event);
+  /// Retire un abonnement. Sans [handler], retire tous ceux de l'événement —
+  /// à réserver aux fermetures globales.
+  void off(String event, [SocketHandler? handler]);
 
   /// Transmet un coup à l'adversaire.
   void jouerCoup({
@@ -109,8 +160,8 @@ abstract interface class GameSocket {
 ///
 /// Extrait en interface pour que tout le flux se teste sans serveur.
 abstract interface class ChallengeSocket {
-  void on(String event, void Function(Map<String, dynamic>) handler);
-  void off(String event);
+  void on(String event, SocketHandler handler);
+  void off(String event, [SocketHandler? handler]);
 
   void defier({
     required String pseudoCible,
@@ -160,7 +211,7 @@ class FugaSocket implements RealtimeSocket {
   io.Socket? _socket;
   String? _token;
 
-  final Map<String, void Function(Map<String, dynamic>)> _handlers = {};
+  final SocketListeners _handlers = SocketListeners();
   final StreamController<bool> _connectionState =
       StreamController<bool>.broadcast();
 
@@ -171,15 +222,12 @@ class FugaSocket implements RealtimeSocket {
   @override
   bool get isConnected => _socket?.connected ?? false;
 
-  /// Abonne un callback à un événement serveur. Un seul par événement, comme
-  /// en Kivy.
   @override
-  void on(String event, void Function(Map<String, dynamic>) handler) {
-    _handlers[event] = handler;
-  }
+  void on(String event, SocketHandler handler) => _handlers.add(event, handler);
 
   @override
-  void off(String event) => _handlers.remove(event);
+  void off(String event, [SocketHandler? handler]) =>
+      _handlers.remove(event, handler);
 
   /// Se connecte et s'authentifie.
   ///
@@ -218,9 +266,10 @@ class FugaSocket implements RealtimeSocket {
 
     for (final event in FugaEvents.all) {
       socket.on(event, (data) {
-        final handler = _handlers[event];
-        if (handler == null) return;
-        handler(data is Map ? Map<String, dynamic>.from(data) : {});
+        _handlers.dispatch(
+          event,
+          data is Map ? Map<String, dynamic>.from(data) : const {},
+        );
       });
     }
 

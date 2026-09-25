@@ -60,10 +60,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     super.initState();
     _sounds.init();
     _g.onChanged = _handleEvent;
+    // La pastille du bouton Chat suit les messages en direct.
+    OnlineService.instance.messages.addListener(_onMessages);
+  }
+
+  void _onMessages() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    OnlineService.instance.messages.removeListener(_onMessages);
     _sounds.dispose();
     _g.dispose();
     super.dispose();
@@ -219,6 +226,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             color: _campColor(palette, topCamp),
             onFlip: _toggleFlip,
             onChat: _openChat,
+            // La touche Chat ouvre la conversation privée avec l'adversaire :
+            // sa pastille s'allume pour un message de LUI, et pour lui seul.
+            unreadChat: OnlineService.instance.messages.unreadFrom(
+              _g.info.opponent,
+            ),
             onPause: _openPause,
             onMenu: _g.endReason != null
                 ? () => Navigator.of(context).pop()

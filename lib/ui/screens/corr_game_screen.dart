@@ -66,6 +66,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   void initState() {
     super.initState();
     _sounds.init();
+    // La pastille du bouton Chat suit les messages en direct.
+    OnlineService.instance.messages.addListener(_onMessages);
     _restore();
     if (_g.drawToAnswer) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _askDraw());
@@ -74,6 +76,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   @override
   void dispose() {
+    OnlineService.instance.messages.removeListener(_onMessages);
     _sounds.dispose();
     super.dispose();
   }
@@ -268,6 +271,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (mounted) setState(() {});
   }
 
+  void _onMessages() {
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
@@ -365,7 +372,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
     onFlip: _toggleFlip,
     onChat: _openChat,
-    unreadChat: _g.unreadChat,
+    // La touche Chat ouvre la conversation privée avec l'adversaire : sa
+    // pastille s'allume pour un message de LUI, et pour lui seul. La boîte
+    // aux lettres est la seule source — le compteur du serveur, lui, reste
+    // celui d'avant l'ouverture de la partie.
+    unreadChat: OnlineService.instance.messages.unreadFrom(_g.opponent),
     // Kivy garde « Analyser » en correspondance : on peut essayer des coups
     // avant de jouer le sien.
     onAnalyse: _controller == null ? null : _openAnalysis,

@@ -8,18 +8,18 @@ import 'package:test/test.dart';
 /// Connexion simulée : on relit ce qui est parti, et on rejoue ce que le
 /// serveur enverrait.
 final class _FakeSocket implements ChallengeSocket {
-  final Map<String, void Function(Map<String, dynamic>)> handlers = {};
+  final SocketListeners handlers = SocketListeners();
   final List<({String name, Map<String, dynamic> data})> sent = [];
 
   @override
-  void on(String event, void Function(Map<String, dynamic>) handler) =>
-      handlers[event] = handler;
+  void on(String event, SocketHandler handler) => handlers.add(event, handler);
 
   @override
-  void off(String event) => handlers.remove(event);
+  void off(String event, [SocketHandler? handler]) =>
+      handlers.remove(event, handler);
 
   void emit(String event, Map<String, dynamic> data) =>
-      handlers[event]?.call(data);
+      handlers.dispatch(event, data);
 
   Map<String, dynamic>? lastOf(String name) {
     for (final e in sent.reversed) {

@@ -6,7 +6,7 @@ import 'dart:async';
 import 'package:lafuga/net/socket_client.dart';
 
 final class FakeRealtime implements RealtimeSocket {
-  final Map<String, void Function(Map<String, dynamic>)> handlers = {};
+  final SocketListeners handlers = SocketListeners();
   final List<({String name, Map<String, dynamic> data})> sent = [];
   final StreamController<bool> _state = StreamController<bool>.broadcast();
 
@@ -17,7 +17,7 @@ final class FakeRealtime implements RealtimeSocket {
   Stream<bool> get onConnectionChanged => _state.stream;
 
   void emit(String event, Map<String, dynamic> data) =>
-      handlers[event]?.call(data);
+      handlers.dispatch(event, data);
 
   bool didSend(String name) => sent.any((e) => e.name == name);
 
@@ -32,11 +32,11 @@ final class FakeRealtime implements RealtimeSocket {
       sent.add((name: name, data: data));
 
   @override
-  void on(String event, void Function(Map<String, dynamic>) handler) =>
-      handlers[event] = handler;
+  void on(String event, SocketHandler handler) => handlers.add(event, handler);
 
   @override
-  void off(String event) => handlers.remove(event);
+  void off(String event, [SocketHandler? handler]) =>
+      handlers.remove(event, handler);
 
   @override
   Future<void> connect(String token) async => isConnected = true;

@@ -30,6 +30,7 @@ import '../scale.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/unread_dot.dart';
 import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
 import '../widgets/story_view.dart';
@@ -107,7 +108,6 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   int? _tourIndex;
 
   List<CorrGame> _corrGames = const [];
-  int _unreadMessages = 0;
   bool _searching = false;
 
   /// Battement de l'actualisation des parties par correspondance.
@@ -206,21 +206,22 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       },
     );
 
+    // Les messages ne passent plus par ici : la boîte aux lettres les suit
+    // pour toute l'appli, et la pastille s'y abonne à l'affichage.
     socket
       ..on(FugaEvents.partieTrouvee, _onGameFound)
-      ..on(FugaEvents.rechercheTimeout, (_) {
-        // Le serveur ne retire pas de la file : il suggère une autre cadence.
-        _say(T('Essayez une autre cadence'));
-      })
-      ..on(FugaEvents.messageRecu, (_) => _refreshUnread());
+      ..on(FugaEvents.rechercheTimeout, _onSearchTimeout);
   }
+
+  /// Le serveur ne retire pas de la file : il suggère une autre cadence.
+  void _onSearchTimeout(Map<String, dynamic> _) =>
+      _say(T('Essayez une autre cadence'));
 
   void _unbind() {
     _challenges?.unbind();
     _online.socket
-      ?..off(FugaEvents.partieTrouvee)
-      ..off(FugaEvents.rechercheTimeout)
-      ..off(FugaEvents.messageRecu);
+      ?..off(FugaEvents.partieTrouvee, _onGameFound)
+      ..off(FugaEvents.rechercheTimeout, _onSearchTimeout);
   }
 
   Future<void> _refreshAll() async {
@@ -277,18 +278,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     return true;
   }
 
-  Future<void> _refreshUnread() async {
-    if (!_online.isLoggedIn) return;
-    final r = await _online.client.listConversations();
-    if (!mounted || !r.isOk) return;
-    setState(
-      () => _unreadMessages = switch (r.get<Object>('total_unread')) {
-        final int n => n,
-        final num n => n.toInt(),
-        _ => 0,
-      },
-    );
-  }
+  Future<void> _refreshUnread() => _online.messages.refresh(_online.client);
 
   void _say(String message) {
     if (!mounted) return;
@@ -1107,14 +1097,20 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           SizedBox(height: SH(0.012) + S(gap)),
           _wide(_searchRow()),
           SizedBox(height: SH(0.012) + S(gap)),
+          // Une pastille rouge, pas un compteur : l'intitulé ne bouge plus,
+          // et elle s'allume à l'instant où un message arrive.
           _wide(
-            FugaButton(
-              text: _unreadMessages > 0
-                  ? '${T('Messages')}  ($_unreadMessages)'
-                  : T('Messages'),
-              height: touchHeight(),
-              fontSize: SF(16),
-              onPressed: _openMessages,
+            AnimatedBuilder(
+              animation: _online.messages,
+              builder: (context, _) => UnreadDot(
+                show: _online.messages.hasUnread,
+                child: FugaButton(
+                  text: T('Messages'),
+                  height: touchHeight(),
+                  fontSize: SF(16),
+                  onPressed: _openMessages,
+                ),
+              ),
             ),
           ),
           SizedBox(height: SH(0.012) + S(gap)),

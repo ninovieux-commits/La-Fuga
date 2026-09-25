@@ -83,39 +83,39 @@ class ChallengeService {
     void Function(String opponent)? onRefused,
     void Function()? onCancelled,
   }) {
-    socket
-      ..on(
-        FugaEvents.defiRecu,
-        (d) => onReceived?.call(IncomingChallenge.fromEvent(d)),
-      )
-      ..on(FugaEvents.defiEnvoye, (d) {
+    _listeners = {
+      FugaEvents.defiRecu: (d) =>
+          onReceived?.call(IncomingChallenge.fromEvent(d)),
+      FugaEvents.defiEnvoye: (d) {
         // Le serveur confirme que le défi est parti : on retient son
         // identifiant, sans quoi on ne saurait pas quoi annuler.
         _pendingId = '${d['defi_id'] ?? ''}';
         onSent?.call();
-      })
-      ..on(FugaEvents.defiEchec, (d) {
+      },
+      FugaEvents.defiEchec: (d) {
         _clear();
         onFailed?.call(failureFromReason(d['raison'] as String?));
-      })
-      ..on(FugaEvents.defiRefuse, (d) {
+      },
+      FugaEvents.defiRefuse: (d) {
         final opponent = '${d['cible'] ?? ''}';
         _clear();
         onRefused?.call(opponent);
-      })
-      ..on(FugaEvents.defiAnnule, (_) {
+      },
+      FugaEvents.defiAnnule: (_) {
         _clear();
         onCancelled?.call();
-      });
+      },
+    };
+    _listeners.forEach(socket.on);
   }
 
+  /// Ce que ce salon écoute — retiré un par un, pour ne pas couper l'écoute
+  /// des autres écrans.
+  Map<String, SocketHandler> _listeners = const {};
+
   void unbind() {
-    socket
-      ..off(FugaEvents.defiRecu)
-      ..off(FugaEvents.defiEnvoye)
-      ..off(FugaEvents.defiEchec)
-      ..off(FugaEvents.defiRefuse)
-      ..off(FugaEvents.defiAnnule);
+    _listeners.forEach(socket.off);
+    _listeners = const {};
   }
 
   /// Défie un joueur, avec l'objectif et la cadence choisis.

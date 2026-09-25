@@ -51,8 +51,22 @@ PushContent contentOf(RemoteMessage message) {
 ///
 /// Doit rester une fonction de premier niveau : Android la rappelle dans un
 /// isolate neuf, sans rien de l'application en cours.
+///
+/// **Un message qui porte une charge `notification` a déjà été affiché par
+/// Android avant d'arriver ici**, et en poster une seconde en faisait deux.
+/// C'est la différence avec le service Java de Kivy, dont `onMessageReceived`
+/// n'est tout simplement pas appelé dans ce cas : Flutter, lui, réveille
+/// quand même l'application. Seuls les messages de données pures nous
+/// reviennent donc à afficher.
+/// Faut-il afficher nous-mêmes ce message reçu en arrière-plan ?
+///
+/// Non s'il porte une charge `notification` : Android l'a déjà posée.
+bool shouldShowInBackground(RemoteMessage message) =>
+    message.notification == null;
+
 @pragma('vm:entry-point')
 Future<void> handleBackgroundMessage(RemoteMessage message) async {
+  if (!shouldShowInBackground(message)) return;
   await Firebase.initializeApp(options: kFirebaseOptions);
   await PushNotifications.show(message);
 }

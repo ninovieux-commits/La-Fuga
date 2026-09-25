@@ -9,6 +9,7 @@ import 'dart:async';
 
 import '../state/settings.dart';
 import 'api_client.dart';
+import 'message_hub.dart';
 import 'online_client.dart';
 import 'socket_client.dart';
 
@@ -62,6 +63,10 @@ class OnlineService {
       FugaSocket(serverUrl: serverUrl);
 
   RealtimeSocket? _socket;
+
+  /// Les messages non lus, en direct — un seul point d'écoute pour tous les
+  /// écrans qui en montrent une pastille.
+  final MessageHub messages = MessageHub();
 
   OnlineClient get client => _client;
   OnlineSession? get session => _client.session;
@@ -149,6 +154,9 @@ class OnlineService {
 
   /// Déconnexion : coupe le temps réel et efface la session enregistrée.
   Future<void> logout() async {
+    messages
+      ..detach()
+      ..clear();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
@@ -181,10 +189,15 @@ class OnlineService {
     final token = _client.token;
     if (token == null) return;
     _socket ??= _socketFactory(_client.serverUrl);
+    // La boîte aux lettres suit la connexion : elle doit écouter avant même
+    // qu'un écran s'y intéresse, sinon un message reçu au démarrage se perd.
+    messages.attach(_socket);
     await _socket!.connect(token);
+    unawaited(messages.refresh(_client));
   }
 
   void dispose() {
+    messages.dispose();
     _socket?.dispose();
     _socket = null;
     _client.close();

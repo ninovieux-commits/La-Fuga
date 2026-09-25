@@ -164,19 +164,23 @@ class OnlineGame {
 
   // ── Réception ─────────────────────────────────────────────────────────────
 
-  void _bind() {
-    socket
-      ..on(FugaEvents.coupAdverse, _onOpponentMove)
-      ..on(FugaEvents.partieTerminee, _onRemoteEnd)
-      ..on(FugaEvents.nulleProposee, _onDrawOffered)
-      ..on(FugaEvents.adversaireDeconnecte, _onOpponentGone)
-      ..on(FugaEvents.adversaireRevenu, _onOpponentBack)
-      ..on(FugaEvents.chatRecu, _onChat)
-      ..on(FugaEvents.meloMaj, _onMelo)
-      ..on(FugaEvents.matchContinue, _onMatchContinue)
-      ..on(FugaEvents.matchOver, _onMatchOver)
-      ..on(FugaEvents.adversairePret, _onOpponentReady);
-  }
+  /// Ce que cette partie écoute. Nommé une fois pour pouvoir se retirer
+  /// exactement : d'autres écrans suivent les mêmes événements, et couper
+  /// l'événement entier les rendrait sourds.
+  late final Map<String, SocketHandler> _listeners = {
+    FugaEvents.coupAdverse: _onOpponentMove,
+    FugaEvents.partieTerminee: _onRemoteEnd,
+    FugaEvents.nulleProposee: _onDrawOffered,
+    FugaEvents.adversaireDeconnecte: _onOpponentGone,
+    FugaEvents.adversaireRevenu: _onOpponentBack,
+    FugaEvents.chatRecu: _onChat,
+    FugaEvents.meloMaj: _onMelo,
+    FugaEvents.matchContinue: _onMatchContinue,
+    FugaEvents.matchOver: _onMatchOver,
+    FugaEvents.adversairePret: _onOpponentReady,
+  };
+
+  void _bind() => _listeners.forEach(socket.on);
 
   /// Applique un coup reçu de l'adversaire.
   ///
@@ -426,19 +430,6 @@ class OnlineGame {
 
   void dispose() {
     _ticker?.cancel();
-    for (final e in [
-      FugaEvents.coupAdverse,
-      FugaEvents.partieTerminee,
-      FugaEvents.nulleProposee,
-      FugaEvents.adversaireDeconnecte,
-      FugaEvents.adversaireRevenu,
-      FugaEvents.chatRecu,
-      FugaEvents.meloMaj,
-      FugaEvents.matchContinue,
-      FugaEvents.matchOver,
-      FugaEvents.adversairePret,
-    ]) {
-      socket.off(e);
-    }
+    _listeners.forEach(socket.off);
   }
 }

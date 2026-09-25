@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'unread_dot.dart';
 
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
 const Color kBarButtonDark = Color.fromRGBO(38, 38, 38, 1);
@@ -57,6 +58,9 @@ class GameTopBar extends StatelessWidget {
   final VoidCallback? onChat;
 
   /// Messages non lus : Kivy écrit « Chat (2) ».
+  /// Nombre de messages non lus de l'adversaire de cette partie : chat de la
+  /// partie et messages privés reçus de lui. Seul le fait qu'il y en ait
+  /// compte — la pastille ne montre pas de nombre.
   final int unreadChat;
 
   /// En relecture seulement.
@@ -97,13 +101,16 @@ class GameTopBar extends StatelessWidget {
         ],
         const Spacer(),
         if (onChat != null) ...[
-          _wide(
-            unreadChat > 0
-                ? T('Chat (%d)').replaceFirst('%d', '$unreadChat')
-                : T('Chat'),
-            onChat!,
-            width: S(104),
-            color: kBarButtonDark,
+          // Pastille plutôt que compteur, et elle ne s'allume que pour un
+          // message de l'adversaire de cette partie.
+          UnreadDot(
+            show: unreadChat > 0,
+            child: _wide(
+              T('Chat'),
+              onChat!,
+              width: S(104),
+              color: kBarButtonDark,
+            ),
           ),
           SizedBox(width: S(6)),
         ],

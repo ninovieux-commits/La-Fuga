@@ -2,12 +2,14 @@
 /// (main.py).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
-import '../../net/socket_client.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
@@ -30,17 +32,19 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   bool _loading = true;
   String? _error;
 
+  StreamSubscription<IncomingMessage>? _watch;
+
   @override
   void initState() {
     super.initState();
     _load();
     // Un message qui arrive pendant qu'on regarde la liste doit s'y voir.
-    widget.online.socket?.on(FugaEvents.messageRecu, (_) => _load());
+    _watch = widget.online.messages.incoming.listen((_) => _load());
   }
 
   @override
   void dispose() {
-    widget.online.socket?.off(FugaEvents.messageRecu);
+    _watch?.cancel();
     super.dispose();
   }
 
@@ -241,36 +245,43 @@ class _ConversationScreenState extends State<ConversationScreen> {
   bool _loading = true;
   String? _error;
 
+  StreamSubscription<IncomingMessage>? _watch;
+
   @override
   void initState() {
     super.initState();
     _load();
-    widget.online.socket?.on(FugaEvents.messageRecu, _onIncoming);
+    _watch = widget.online.messages.incoming.listen(_onIncoming);
   }
 
   @override
   void dispose() {
-    widget.online.socket?.off(FugaEvents.messageRecu);
+    _watch?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
   /// Message reçu en direct : on ne l'ajoute que s'il vient d'ici.
-  void _onIncoming(Map<String, dynamic> data) {
+  ///
+  /// La conversation est ouverte, donc lue : on l'annonce au serveur et à la
+  /// boîte aux lettres, sinon la pastille du menu s'allumerait pour un
+  /// message qu'on est en train de lire.
+  void _onIncoming(IncomingMessage message) {
     // Le message peut arriver alors que la conversation vient d'être quittée.
     if (!mounted) return;
-    if ('${data['de'] ?? ''}' != widget.pseudo) return;
+    if (message.from != widget.pseudo) return;
     setState(
-      () => _messages.add(
-        ChatMessage(text: '${data['texte'] ?? ''}', fromMe: false),
-      ),
+      () => _messages.add(ChatMessage(text: message.text, fromMe: false)),
     );
+    widget.online.messages.markRead(widget.pseudo);
+    unawaited(widget.online.client.markRead(widget.pseudo));
     _scrollToEnd();
   }
 
   Future<void> _load() async {
     // Ouvrir la conversation vaut lecture.
+    widget.online.messages.markRead(widget.pseudo);
     await widget.online.client.markRead(widget.pseudo);
     final r = await widget.online.client.listConversation(widget.pseudo);
     if (!mounted) return;
