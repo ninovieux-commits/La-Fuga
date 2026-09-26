@@ -126,6 +126,86 @@ void main() {
     expect(find.byType(SelectableText), findsOneWidget);
   });
 
+  testWidgets('CONNECTÉ, l onglet « En local » offre aussi la copie', (
+    tester,
+  ) async {
+    // Le piège : `_fromServer` vaut vrai dès qu'on est CONNECTÉ, y compris en
+    // mode local. Les deux onglets passent alors par la même ligne, celle des
+    // parties du serveur — et c'est là que la touche manquait. Un joueur
+    // connecté, c'est-à-dire tout le monde, ne la voyait donc jamais, dans
+    // aucun onglet. Le test qui existait ouvrait l'écran DÉCONNECTÉ : il
+    // vérifiait un chemin que personne n'emprunte.
+    const nmcServeur = '[Date "2026-09-26"]\n[Blanc "nino"]\n1. Dc3 Df6\n';
+    final service = OnlineService(
+      client: OnlineClient(
+        api: ApiClient(
+          client: MockClient((request) async {
+            final corps = switch (request.url.path) {
+              '/login' => {
+                'ok': true,
+                'token': 't',
+                'pseudo': 'nino',
+                'melo': 1600,
+              },
+              '/list_games' => {
+                'ok': true,
+                'games': [
+                  {
+                    'game_uid': 'local_7',
+                    'joueur1': 'nino',
+                    'joueur2': 'deep grey',
+                    'resultat': '1-0',
+                    'methode': 'fugue',
+                    'cadence': 'zen',
+                    'objectif': 'partie',
+                    'played_at': '1790000000',
+                  },
+                ],
+              },
+              '/get_game' => {'ok': true, 'nmc_text': nmcServeur},
+              _ => {'ok': true},
+            };
+            return http.Response(
+              jsonEncode(corps),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }),
+        ),
+      ),
+    );
+    await tester.runAsync(() => service.login('nino', 'mdp'));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HistoryScreen(
+          online: service,
+          mode: HistoryMode.local,
+          store: magasin,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('deep grey'),
+      findsWidgets,
+      reason: 'la partie locale du serveur ne s affiche pas : test sans valeur',
+    );
+    expect(
+      find.text('Copier'),
+      findsOneWidget,
+      reason:
+          'connecté, l onglet En local n offre pas de quoi copier le .nmc '
+          '— c est exactement ce que voit le joueur',
+    );
+
+    await tester.tap(find.text('Copier'));
+    await tester.pumpAndSettle();
+
+    expect(copie, nmcServeur);
+  });
+
   testWidgets('une partie EN LIGNE se copie aussi, depuis le serveur', (
     tester,
   ) async {
