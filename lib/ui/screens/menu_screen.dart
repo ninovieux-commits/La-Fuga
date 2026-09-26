@@ -998,7 +998,12 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
             if (background != null &&
                 (_axes.menu == 'fleur' || _axes.menu == 'dragon'))
               Container(color: Colors.white.withValues(alpha: 0.45)),
-            SafeArea(child: _content(palette)),
+            // Pas de SafeArea autour du menu : Kivy donne au défilement TOUTE
+            // la fenêtre (`ScrollView(size_hint=(1, 1))`) et l'appli est en
+            // plein écran immersif. Une marge de sécurité en haut laissait une
+            // bande vide que rien ne remplissait, et empêchait le menu de
+            // défiler jusqu'au bord.
+            _content(palette),
             _topBar(palette),
             if (_tourIndex != null)
               // Les anneaux se recalculent à chaque défilement : sans cela ils
@@ -1280,47 +1285,47 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   ///
   /// Aligné en haut et de hauteur fixe : sinon la barre couvrirait tout
   /// l'écran et avalerait les touchers destinés aux boutons du menu.
-  Widget _topBar(ThemePalette palette) => SafeArea(
-    child: Align(
-      alignment: Alignment.topCenter,
-      child: Padding(
-        // Kivy cale ces trois éléments à 3 % du bord et leur donne 20 % de la
-        // largeur sur 5 % de la hauteur.
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.sizeOf(context).width * 0.03,
-          vertical: SH(0.008),
-        ),
-        child: SizedBox(
-          height: touchHeight(),
-          child: Row(
-            children: [
-              SizedBox(
-                width: MediaQuery.sizeOf(context).width * 0.2,
-                child: FugaButton(
-                  key: _tourKeys['random'],
-                  text: 'Random',
-                  fontSize: SF(14),
-                  height: double.infinity,
-                  color: _random ? palette.clair : kFugaGrey,
-                  textColor: _random ? Colors.black87 : Colors.white,
-                  onPressed: () => setState(() => _random = !_random),
-                ),
+  Widget _topBar(ThemePalette palette) => Align(
+    alignment: Alignment.topCenter,
+    child: Padding(
+      // Kivy cale ces touches à 3 % du bord en largeur et à `top: 0.985`,
+      // c'est-à-dire 1,5 % du haut de la FENÊTRE — pas d'une zone sûre :
+      // l'appli est en plein écran immersif, il n'y a rien au-dessus.
+      padding: EdgeInsets.only(
+        left: MediaQuery.sizeOf(context).width * 0.03,
+        right: MediaQuery.sizeOf(context).width * 0.03,
+        top: SH(0.015),
+      ),
+      child: SizedBox(
+        height: touchHeight(),
+        child: Row(
+          children: [
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.2,
+              child: FugaButton(
+                key: _tourKeys['random'],
+                text: 'Random',
+                fontSize: SF(14),
+                height: double.infinity,
+                color: _random ? palette.clair : kFugaGrey,
+                textColor: _random ? Colors.black87 : Colors.white,
+                onPressed: () => setState(() => _random = !_random),
               ),
-              const Spacer(),
-              SizedBox(
-                width: MediaQuery.sizeOf(context).width * 0.2,
-                child: FugaButton(
-                  key: _tourKeys['compte'],
-                  // Le mélo est DANS le bouton, comme en Kivy :
-                  // `account_btn.text = "%s (%d)"`.
-                  text: _online.isLoggedIn ? _accountLabel() : T('Compte'),
-                  fontSize: SF(14),
-                  height: double.infinity,
-                  onPressed: _openAccount,
-                ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.2,
+              child: FugaButton(
+                key: _tourKeys['compte'],
+                // Le mélo est DANS le bouton, comme en Kivy :
+                // `account_btn.text = "%s (%d)"`.
+                text: _online.isLoggedIn ? _accountLabel() : T('Compte'),
+                fontSize: SF(14),
+                height: double.infinity,
+                onPressed: _openAccount,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     ),

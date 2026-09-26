@@ -81,6 +81,26 @@ void main() {
     expect(seen, greaterThan(0), reason: '$where : aucune touche mesurée');
   }
 
+  /// Un champ de saisie d'UNE ligne se vise avec le pouce comme une touche : il
+  /// a la même épaisseur. C'est ce que demandait la barre de recherche du menu,
+  /// qui restait fine à côté de l'étoile. Les champs multi-lignes (le lecteur
+  /// nmc, une description) sont exclus : ils sont faits pour s'étirer.
+  void expectAllFields(WidgetTester tester, String where) {
+    final wanted = touchHeight();
+    for (final element in find.byType(TextField).evaluate()) {
+      final field = element.widget as TextField;
+      if (field.maxLines != 1) continue;
+      final height = (element.renderObject as RenderBox).size.height;
+      expect(
+        height,
+        moreOrLessEquals(wanted, epsilon: 0.5),
+        reason:
+            '$where : le champ « ${field.decoration?.hintText ?? '?'} » fait '
+            '${height.toStringAsFixed(1)} au lieu de ${wanted.toStringAsFixed(1)}',
+      );
+    }
+  }
+
   for (final (shape, size) in [
     ('un téléphone', _phone),
     ('un petit écran', _small),
@@ -116,6 +136,11 @@ void main() {
         testWidgets('les touches de $name', (tester) async {
           await open(tester, build());
           expectAllTouches(tester, name);
+        });
+
+        testWidgets('les champs de saisie de $name', (tester) async {
+          await open(tester, build());
+          expectAllFields(tester, name);
         });
       }
 
