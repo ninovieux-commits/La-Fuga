@@ -51,6 +51,13 @@ const Size _phone = Size(393, 851);
 const Size _small = Size(320, 640);
 const Size _tablet = Size(834, 1112);
 
+/// Les deux FORMES extrêmes du marché du téléphone. C'est la forme, et elle
+/// seule, qui fait diverger les deux familles de proportions : les touches
+/// suivent la hauteur, les polices et les écarts suivent la largeur. Ni la
+/// taille ni la résolution n'y changent quoi que ce soit.
+const Size _large169 = Size(375, 667); // 16:9, le plus trapu — iPhone SE
+const Size _etroit219 = Size(411, 960); // 21:9, le plus élancé — Xperia 1
+
 /// Les touches d'une case de correspondance ne sont pas des touches d'écran :
 /// elles sont taillées à leur vignette, comme en Kivy. `corr_slot_test.dart`
 /// les vérifie à leur propre mesure. L'exclusion est structurelle et non par
@@ -128,6 +135,8 @@ void main() {
     ('un téléphone', _phone),
     ('un petit écran', _small),
     ('une tablette', _tablet),
+    ('un écran 16:9', _large169),
+    ('un écran 21:9', _etroit219),
   ]) {
     Future<void> open(WidgetTester tester, Widget home) async {
       tester.view.physicalSize = size;
