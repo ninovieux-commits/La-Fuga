@@ -15,6 +15,30 @@
 /// Flutter raisonne en pixels logiques là où Kivy raisonne en pixels physiques
 /// — mais la formule est la même, parce que ce qui compte est la FRACTION de
 /// la largeur : `S(44)` vaut toujours 44/720 de l'écran.
+///
+/// ## Rien n'est en pixels fixes
+///
+/// Toute taille de l'application est un pourcentage d'écran. Il y en a deux
+/// familles, et choisir la mauvaise est la source d'erreur la plus fréquente :
+///
+/// | écriture        | signifie                    | pour quoi              |
+/// |-----------------|-----------------------------|------------------------|
+/// | `S(12)`         | 1,67 % de la **largeur**    | écarts, rayons, marges |
+/// | `S(44)`         | 6,11 % de la **largeur**    | largeurs               |
+/// | `SF(14)`        | 3,31 % de la largeur (x1,7) | polices                |
+/// | `SH(0.06)`      | 6 % de la **hauteur**       | bandes du menu         |
+/// | `touchHeight()` | 6 % de la **hauteur**       | TOUTE touche           |
+///
+/// La règle : ce qui se **vise avec le pouce**, ou se lit comme une bande, se
+/// mesure sur la HAUTEUR ; ce qui accompagne le texte — écarts, rayons,
+/// largeurs — se mesure sur la largeur, comme les polices, sinon les deux se
+/// désaccordent.
+///
+/// Sur un téléphone les deux familles se ressemblent et l'erreur passe
+/// inaperçue : la touche « Copier » de l'historique était en `S(90)`, soit
+/// 49,1 là où une touche fait 51,1 — 4 % d'écart, invisible. Sur une tablette,
+/// la même ligne donnait 104,2 contre 66,7 : **56 % trop épaisse**. C'est
+/// pourquoi `touch_height_test.dart` mesure trois formes d'écran.
 // Les noms `S` et `SF` sont ceux de main.py, et ils se lisent partout dans le
 // code comme là-bas : on les garde tels quels.
 // ignore_for_file: non_constant_identifier_names
@@ -41,13 +65,19 @@ double get scaleFactor => _factor ?? _fromWindow();
 double get screenHeight => _height ?? _windowHeight();
 
 /// Met une taille de référence à l'échelle de l'écran — `S`.
+///
+/// **C'est un POURCENTAGE DE LA LARGEUR**, pas un nombre de pixels : `S(12)`
+/// vaut 12/720 de la largeur, soit 1,67 %, sur n'importe quel écran. Les
+/// chiffres sont ceux de main.py, qu'on relit ligne à ligne ; le tableau en
+/// tête de ce fichier donne la conversion.
 double S(double value) => value * scaleFactor;
 
 /// Met une taille de police à l'échelle de l'écran — `SF`.
 double SF(double value) => value * scaleFactor * kFontBoost;
 
-/// Hauteur donnée en fraction de l'écran — les `Window.height * f` du menu,
-/// où Kivy proportionne à la HAUTEUR plutôt qu'à la largeur.
+/// **Pourcentage de la HAUTEUR** — les `Window.height * f` du menu, où Kivy
+/// proportionne à la hauteur plutôt qu'à la largeur. `SH(0.06)` = 6 % de la
+/// hauteur, sur n'importe quel écran.
 double SH(double fraction) => screenHeight * fraction;
 
 /// Épaisseur d'une touche : la fraction de hauteur des grandes touches du

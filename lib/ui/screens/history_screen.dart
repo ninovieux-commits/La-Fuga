@@ -394,7 +394,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         SizedBox(width: S(8)),
         SizedBox(
           width: S(76),
-          height: S(90),
+          // L'épaisseur d'une touche, comme partout : une fraction de la
+          // HAUTEUR de l'écran. Elle était calculée sur la LARGEUR — S(90) —
+          // et c'est passé inaperçu parce que sur un téléphone les deux se
+          // ressemblent à 4 % près. Sur une tablette, la touche sortait 56 %
+          // trop épaisse.
+          height: touchHeight(),
           child: FugaButton(
             text: T('Copier'),
             fontSize: SF(13),

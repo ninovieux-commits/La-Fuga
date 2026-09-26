@@ -29,6 +29,11 @@ import 'package:lafuga/ui/screens/parties_menu_screen.dart';
 import 'package:lafuga/ui/screens/photo_picker.dart';
 import 'package:lafuga/ui/screens/reader_screen.dart';
 import 'package:lafuga/ui/screens/settings_screen.dart';
+import 'package:lafuga/engine/board.dart';
+import 'package:lafuga/engine/move_generator.dart';
+import 'package:lafuga/engine/piece.dart';
+import 'package:lafuga/game/nmc.dart';
+import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:lafuga/ui/screens/theme_composer_screen.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
@@ -38,6 +43,8 @@ import 'package:lafuga/ui/widgets/end_dialogs.dart';
 import 'package:lafuga/ui/widgets/first_launch.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/pause_dialog.dart';
+import 'dart:io';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Size _phone = Size(393, 851);
@@ -52,6 +59,36 @@ bool _inSlot(WidgetTester tester, Widget button) => find
     .ancestor(of: find.byWidget(button), matching: find.byType(CorrSlot))
     .evaluate()
     .isNotEmpty;
+
+/// Une partie jouable, pour peupler l'historique.
+List<String> _quelquesCoups(int nombre) {
+  var board = Board.initial();
+  var camp = Camp.blanc;
+  final coups = <String>[];
+  for (var i = 0; i < nombre; i++) {
+    final legaux = generateMoves(
+      board,
+      camp,
+    ).where((m) => !m.fugue && m.matOn == null && m.fugueBy == null).toList();
+    final coup = legaux[i % legaux.length];
+    coups.add(notationOn(board, coup));
+    board = coup.board;
+    camp = camp.opposite;
+  }
+  return coups;
+}
+
+const _partie = NmcMeta(
+  date: '2026-09-19',
+  player1: 'Nino',
+  player2: 'Deep Grey',
+  blanc: 'Nino',
+  objectif: 'partie',
+  cadence: '5min',
+  result: '1-0',
+  method: 'fugue',
+  points: '2',
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -124,6 +161,32 @@ void main() {
           expectAllTouches(tester, name);
         });
       }
+
+      // L'historique VIDE ne montre aucune partie, donc aucune touche
+      // « Copier » : sa hauteur, calculée sur la LARGEUR, n'a jamais été
+      // mesurée. Un écran vide ne prouve rien sur les touches qu'il cache.
+      testWidgets('les touches de l historique AVEC une partie', (
+        tester,
+      ) async {
+        final dossier = Directory.systemTemp.createTempSync('lafuga_touches');
+        addTearDown(() => dossier.deleteSync(recursive: true));
+        final magasin = LocalGamesStore(directory: dossier);
+        await magasin.save(_partie, _quelquesCoups(4), name: 'partie1');
+        await open(
+          tester,
+          HistoryScreen(
+            online: OnlineService(),
+            mode: HistoryMode.local,
+            store: magasin,
+          ),
+        );
+        expect(
+          find.text('Copier'),
+          findsWidgets,
+          reason: 'la partie enregistrée ne s affiche pas : test sans valeur',
+        );
+        expectAllTouches(tester, 'l historique avec une partie');
+      });
 
       testWidgets('les touches de la pause', (tester) async {
         await open(
