@@ -192,11 +192,11 @@ List<Cell> jumpPathOf(Board before, Cell start, Cell end) {
 /// coup chez Kivy), [after] celle d'après — elle ne sert qu'à choisir la
 /// couleur du cadre, prise sur la pièce qui occupe la case d'arrivée.
 LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
-  var n = notation.trim();
+  // La marque de fin de partie — `*` d'un gain à deux points, `#` d'un mat —
+  // ne décrit pas le déplacement. Seule la fugue sans case nommable garde son
+  // `*`, et [splitEndMark] le sait.
+  final n = splitEndMark(notation).move;
   if (n.isEmpty) return null;
-  while (n.endsWith('#')) {
-    n = n.substring(0, n.length - 1);
-  }
 
   final from = <Cell>{};
   final to = <Cell>{};
@@ -244,10 +244,7 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
   }
 
   final chevron = n.indexOf('>');
-  var movePart = chevron >= 0 ? n.substring(0, chevron) : n;
-  if (movePart.endsWith('*')) {
-    movePart = movePart.substring(0, movePart.length - 1);
-  }
+  final movePart = chevron >= 0 ? n.substring(0, chevron) : n;
   final dash = movePart.indexOf('-');
   final startStr = dash >= 0 ? movePart.substring(0, dash) : movePart;
   final endStr = dash >= 0 ? movePart.substring(dash + 1) : '';
@@ -301,17 +298,14 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
 /// Cases effectivement poussées, relues depuis la notation —
 /// `_reconstruct_push_targets`.
 List<Cell> reconstructPushTargets(String notation, Board? before) {
-  var n = notation.trim();
-  while (n.endsWith('#')) {
-    n = n.substring(0, n.length - 1);
-  }
+  // Même marque de fin à écarter : collée à la dernière case poussée, elle
+  // faisait refuser toute la liste, et les points de poussée grossis du
+  // dernier coup disparaissaient sur le coup qui clôt la partie.
+  final n = splitEndMark(notation).move;
   final chevron = n.indexOf('>');
   if (chevron < 0) return const [];
-  var movePart = n.substring(0, chevron);
+  final movePart = n.substring(0, chevron);
   final afterPush = n.substring(chevron + 1).trim();
-  if (movePart.endsWith('*')) {
-    movePart = movePart.substring(0, movePart.length - 1);
-  }
   final dash = movePart.indexOf('-');
   if (dash < 0) return const [];
   final end = notationToCell(movePart.substring(dash + 1));

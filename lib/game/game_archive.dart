@@ -29,19 +29,30 @@ int pointsForMethod(String method) => switch (method) {
 String nmcMethod(String method) =>
     method.startsWith('nulle') || method == 'repetition' ? 'nulle' : method;
 
-/// Marque le dernier coup du mode de fin : `#` pour un mat, `*` pour un temps
-/// écoulé ou un abandon.
+/// Marque le dernier coup du résultat : `*` pour un gain à DEUX points — fugue,
+/// abandon, temps écoulé — et `#` pour un gain simple, c'est-à-dire un Héritier
+/// éjecté hors du plateau.
 ///
-/// Une fugue se termine déjà par `*` ; on n'ajoute donc rien.
+/// La fugue y est comprise, et ce n'était pas le cas. Une fugue par POUSSÉE
+/// s'écrit « Mi6-Fa7>Fa8 » : rien n'y disait que la partie était gagnée, là où
+/// une fugue marchée s'écrit « Fa8* » et le dit. Le fichier ne décrivait donc
+/// pas le même événement selon la façon de l'obtenir. Il écrit maintenant
+/// « Mi6-Fa7>Fa8* » dans les deux cas.
+///
+/// La marque n'est JAMAIS ce qui fait apparaître l'Héritier dans son
+/// ralliement : un abandon et un temps écoulé portent le même `*` sans qu'aucun
+/// Héritier n'ait fugué. C'est la relecture du coup qui le décide, en regardant
+/// ce qui quitte le plateau.
 List<String> withEndSuffix(List<String> history, String method) {
   if (history.isEmpty) return history;
   final last = history.last;
-  // Les conditions sont celles de `_end_game_by_color`, au caractère près :
-  // un mat ne double pas son dièse, et un temps ou un abandon ne marque ni un
-  // coup déjà fugué (`Mi7*`) ni un coup déjà mat (`Do1-Do2#`).
+  // Un mat ne double pas son dièse, et aucun gain à deux points ne remarque un
+  // coup déjà fugué (« Mi7* ») ni un coup déjà mat (« Do1-Do2# »).
   final suffix = switch (method) {
     'mat' when !last.endsWith('#') => '#',
-    'temps' || 'abandon' when !last.endsWith('*') && !last.endsWith('#') => '*',
+    'fugue' ||
+    'temps' ||
+    'abandon' when !last.endsWith('*') && !last.endsWith('#') => '*',
     _ => null,
   };
   if (suffix == null) return history;

@@ -152,6 +152,33 @@ String notationOfMove(Move move, {List<Cell> pushTargets = const []}) {
   return buildMoveNotation(start: move.from, end: move.to);
 }
 
+/// Sépare un coup de sa MARQUE DE FIN DE PARTIE.
+///
+/// Le dernier coup d'une partie porte une marque de résultat : `*` pour un gain
+/// à deux points — fugue, abandon, temps écoulé — et `#` pour un gain simple,
+/// c'est-à-dire un Héritier éjecté hors du plateau. C'est `withEndSuffix` qui
+/// l'écrit au moment d'enregistrer la partie.
+///
+/// Elle ne décrit jamais le déplacement, à une exception près : une fugue vers
+/// une case de ralliement, qui n'a pas de nom, s'écrit « Fa8* » et là le `*`
+/// EST le coup. On la reconnaît à l'absence de tiret.
+///
+/// Sans ce découpage, « Mi6-Fa7>Fa8* » — un abandon juste après une poussée,
+/// ou une fugue par poussée — ne se relisait pas du tout : la marque restait
+/// collée à la dernière case poussée, `parseCellsConcat` la refusait, et la
+/// poussée n'était pas appliquée. La position d'arrivée était fausse, et le
+/// lecteur annonçait une partie interrompue.
+({String move, String mark}) splitEndMark(String notation) {
+  final s = notation.trim();
+  // Pas de tiret : « Fa8* » ou « Fa8 ». Le `*` appartient au coup.
+  if (!s.contains('-')) return (move: s, mark: '');
+  var i = s.length;
+  while (i > 0 && (s[i - 1] == '*' || s[i - 1] == '#')) {
+    i--;
+  }
+  return (move: s.substring(0, i).trimRight(), mark: s.substring(i));
+}
+
 /// Ce qu'une notation `.nmc` décrit, une fois découpée.
 ///
 /// Portage du découpage de `_apply_notation`, `_apply_simple_or_push` et
@@ -195,21 +222,13 @@ final class ManeuverNotation extends NotationParts {
 
 /// Découpe une notation. `null` si elle ne veut rien dire.
 NotationParts? parseNotation(String notation) {
-  var s = notation.trim();
-  if (s.isEmpty) return null;
-  // Les marques de fin de partie ne font pas partie du coup.
-  while (s.endsWith('#')) {
-    s = s.substring(0, s.length - 1).trimRight();
-  }
+  final s = splitEndMark(notation).move;
   if (s.isEmpty) return null;
 
   if (s.startsWith('(')) {
     final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(s);
     if (m == null) return null;
-    var destStr = m.group(2)!;
-    if (destStr.endsWith('#')) {
-      destStr = destStr.substring(0, destStr.length - 1);
-    }
+    final destStr = m.group(2)!;
     final cells = parseCellsConcat(m.group(1)!);
     final dest = notationToCell(destStr);
     if (cells == null || cells.isEmpty || dest == null) return null;
@@ -232,9 +251,7 @@ NotationParts? parseNotation(String notation) {
 
   final dash = movePart.indexOf('-');
   if (dash < 0) return null;
-  var endStr = movePart.substring(dash + 1);
-  // `Do1-Do2*` : fugue sur une case nommable.
-  if (endStr.endsWith('*')) endStr = endStr.substring(0, endStr.length - 1);
+  final endStr = movePart.substring(dash + 1);
 
   final start = notationToCell(movePart.substring(0, dash));
   if (start == null) return null;

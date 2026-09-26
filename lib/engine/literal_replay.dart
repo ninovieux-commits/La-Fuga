@@ -53,9 +53,9 @@ final class LiteralMove {
 LiteralMove applyNotationLiterally(Board board, String notation) {
   final clean = notation.trim();
   if (clean.isEmpty) return LiteralMove(board: board, ok: false);
-  // Seule la marque de fin de partie est retirée ; le `*` d'une fugue, lui,
-  // fait partie du coup.
-  final s = clean.endsWith('#') ? clean.substring(0, clean.length - 1) : clean;
+  // La marque de fin de partie est retirée ; le `*` d'une fugue sans case
+  // nommable, lui, fait partie du coup — [splitEndMark] fait la différence.
+  final s = splitEndMark(clean).move;
   if (s.startsWith('(')) return _maneuver(board, s);
   return _simpleOrPush(board, s);
 }
@@ -86,9 +86,7 @@ LiteralMove _simpleOrPush(Board board, String s) {
 
   final dash = movePart.indexOf('-');
   if (dash < 0) return LiteralMove(board: board, ok: false);
-  var endStr = movePart.substring(dash + 1);
-  // `Do1-Do2*` : fugue vers une case qui, elle, a un nom.
-  if (endStr.endsWith('*')) endStr = endStr.substring(0, endStr.length - 1);
+  final endStr = movePart.substring(dash + 1);
 
   final start = notationToCell(movePart.substring(0, dash));
   if (start == null) return LiteralMove(board: board, ok: false);
@@ -123,10 +121,8 @@ LiteralMove _simpleOrPush(Board board, String s) {
 LiteralMove _maneuver(Board board, String s) {
   final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(s);
   if (m == null) return LiteralMove(board: board, ok: false);
-  var destStr = m.group(2)!;
-  if (destStr.endsWith('#')) {
-    destStr = destStr.substring(0, destStr.length - 1);
-  }
+  // La marque de fin est déjà retirée par l'appelant.
+  final destStr = m.group(2)!;
   var cells = parseCellsConcat(m.group(1)!);
   if (cells == null || cells.isEmpty) {
     return LiteralMove(board: board, ok: false);
