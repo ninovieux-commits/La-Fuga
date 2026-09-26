@@ -39,6 +39,7 @@ class CorrGameScreen extends StatefulWidget {
     required this.service,
     required this.myPseudo,
     this.archive,
+    this.initialBoard,
   });
 
   final CorrGame game;
@@ -47,6 +48,12 @@ class CorrGameScreen extends StatefulWidget {
 
   /// Où ranger la partie une fois finie. Injectable pour les tests.
   final GameArchive? archive;
+
+  /// Position de départ imposée. Injectable pour les tests : certaines fins de
+  /// partie — pousser l'Héritier adverse dans son ralliement, éjecter le sien —
+  /// ne s'atteignent pas en un coup depuis la position standard, et ce sont
+  /// justement celles où le gagnant n'est pas celui qui joue.
+  final Board? initialBoard;
 
   @override
   State<CorrGameScreen> createState() => _CorrGameScreenState();
@@ -156,9 +163,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   /// s'affiche donc toujours.
   void _restore() {
     final state = replay(_g);
+    // La position imposée ne vaut qu'avant le premier coup : dès qu'il y en a,
+    // c'est la relecture du serveur qui fait foi.
+    final depart = _g.movesText.trim().isEmpty && widget.initialBoard != null
+        ? widget.initialBoard!.clone()
+        : state.board;
     setState(() {
       _controller = MoveController(
-        board: state.board,
+        board: depart,
         turn: state.turn,
         // Les prises des coups déjà joués : sans elles, les panneaux d'une
         // partie en correspondance restaient vides du début à la fin.
@@ -231,10 +243,17 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
         ? result.endReason
         : null;
 
+    // QUI gagne. Pas forcément celui qui joue : pousser l'Héritier adverse
+    // dans son ralliement le fait fuguer — donc gagner — et éjecter le sien
+    // est un mat contre soi-même. Le serveur donnait la partie au joueur qui
+    // venait de jouer, c'est-à-dire au perdant.
+    final winner = result.loser?.opposite;
+
     final ok = await widget.service.play(
       _g.id,
       result.notation!,
       method: method,
+      winner: method == null ? null : winner,
     );
     if (!mounted) return;
 

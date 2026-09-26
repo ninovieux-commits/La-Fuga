@@ -107,27 +107,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     // Le préfixe de l'identifiant sépare les deux historiques.
-    final prefix = widget.mode == HistoryMode.online ? 'online_' : 'local_';
     setState(() {
       _loading = false;
       _accountGames = [
         for (final g in r.get<List<dynamic>>('games') ?? const [])
           if (g is Map)
-            if ('${g['game_uid'] ?? ''}'.startsWith(prefix) &&
+            if (_inThisTab('${g['game_uid'] ?? ''}') &&
                 _keep(Map<String, dynamic>.from(g)))
               Map<String, dynamic>.from(g),
       ];
     });
   }
 
-  /// Filtre tête-à-tête : le mode se lit dans l'identifiant, comme en Kivy —
+  /// Cette partie appartient-elle à l'onglet affiché ?
+  ///
+  /// Le préfixe de l'identifiant le dit : `online_` pour les parties du compte,
+  /// `local_` pour celles de l'appareil. Une exception, et c'était un trou :
+  /// le serveur archivait les parties de correspondance sous `corr_<id>`, qui
+  /// ne commence ni par l'un ni par l'autre. Elles étaient bien enregistrées
+  /// et n'apparaissaient NULLE PART. Le serveur les nomme désormais
+  /// `online_corr<id>` ; celles d'avant sont rattachées ici à « En ligne », là
+  /// où elles ont toujours eu leur place.
+  bool _inThisTab(String uid) {
+    if (uid.startsWith('local_')) return widget.mode == HistoryMode.local;
+    if (uid.startsWith('online_') || _isLegacyCorr(uid)) {
+      return widget.mode == HistoryMode.online;
+    }
+    return false;
+  }
+
+  /// Identifiant de correspondance d'avant la correction du serveur.
+  static bool _isLegacyCorr(String uid) => uid.startsWith('corr_');
+
+  /// Filtre tête-à-tête : le mode se lit dans l'identifiant —
   /// `online_corr…` pour la correspondance, `online_…` pour le direct.
   bool _keep(Map<String, dynamic> game) {
     final opponent = widget.opponent;
     if (opponent == null) return true;
 
     final uid = '${game['game_uid'] ?? ''}';
-    final isCorr = uid.startsWith('online_corr');
+    final isCorr = uid.startsWith('online_corr') || _isLegacyCorr(uid);
     if (widget.h2hMode == 'corr' && !isCorr) return false;
     if (widget.h2hMode == 'direct' && isCorr) return false;
 

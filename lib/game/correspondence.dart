@@ -300,8 +300,20 @@ class CorrespondenceService {
   }
 
   /// Joue un coup. [method] n'est fourni que si ce coup termine la partie.
-  Future<bool> play(String gameId, String notation, {String? method}) async {
-    final r = await _client.corrJouer(gameId, notation, methode: method);
+  /// [winner] : le camp gagnant quand le coup clôt la partie. Le serveur ne
+  /// peut pas le déduire du coup — voir [OnlineClient.corrJouer].
+  Future<bool> play(
+    String gameId,
+    String notation, {
+    String? method,
+    Camp? winner,
+  }) async {
+    final r = await _client.corrJouer(
+      gameId,
+      notation,
+      methode: method,
+      gagnant: winner,
+    );
     return r.isOk;
   }
 

@@ -3,6 +3,7 @@
 /// change pas.
 library;
 
+import '../engine/piece.dart';
 import 'api_client.dart';
 
 /// Session du joueur connecté.
@@ -239,16 +240,25 @@ class OnlineClient {
   /// enregistre le coup et clôt la partie dans la même requête. C'est
   /// volontairement atomique, pour éviter tout double envoi et toute course
   /// entre deux appels.
+  /// [gagnant] : le camp qui GAGNE, quand le coup clôt la partie.
+  ///
+  /// Ce n'est pas toujours celui qui joue, et le serveur ne peut pas le
+  /// deviner : un coup peut pousser l'Héritier ADVERSE dans son ralliement —
+  /// l'adversaire fugue, donc gagne — ou éjecter son PROPRE Héritier, ce qui
+  /// est un mat contre soi-même. Le serveur donnait la partie à celui qui
+  /// avait joué, c'est-à-dire au perdant.
   Future<ApiResult> corrJouer(
     String gameId,
     String notation, {
     String? methode,
+    Camp? gagnant,
   }) => _api.post(
     '/corr_jouer',
     _auth({
       'game_id': gameId,
       'notation': notation,
       if (methode != null) 'methode': methode,
+      if (gagnant != null) 'gagnant': gagnant.wire,
     }),
   );
 
