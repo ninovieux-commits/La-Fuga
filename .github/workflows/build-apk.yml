@@ -82,20 +82,35 @@ jobs:
       # plusieurs fois plus longtemps, les animations sautent et le toucher
       # traîne. Ce n'est pas l'application qu'on veut juger. Le mode debug
       # reste accessible à la main, pour diagnostiquer.
+      # Chaque APK porte le commit dont il sort — dans le nom de l'artefact,
+      # dans le nom du fichier, et dans la version que montre Android
+      # (Réglages › Applications › La Fuga). Sans ça tous les
+      # téléchargements s'appellent « lafuga-apk-release » et rien ne
+      # distingue le build qui porte un correctif de celui qui le précède :
+      # on a perdu trois échanges à chercher un bug dans un APK trop vieux
+      # pour le contenir.
       - name: Compiler l'APK
         id: build
         run: |
+          COURT="$(echo "${{ github.sha }}" | cut -c1-7)"
+          # La version doit rester un « x.y.z » valide pour Flutter : le
+          # commit part en suffixe de pré-version, ce que semver autorise.
+          BASE="$(grep '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)"
           if [ "${{ inputs.debug }}" = "true" ]; then
             echo "Mode debug — à ne pas utiliser pour juger la fluidité"
-            flutter build apk --debug --target-platform android-arm64
-            echo "apk=build/app/outputs/flutter-apk/app-debug.apk" >> "$GITHUB_OUTPUT"
-            echo "nom=lafuga-apk-debug" >> "$GITHUB_OUTPUT"
+            MODE=debug
           else
             echo "Mode release"
-            flutter build apk --release --target-platform android-arm64
-            echo "apk=build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
-            echo "nom=lafuga-apk-release" >> "$GITHUB_OUTPUT"
+            MODE=release
           fi
+          flutter build apk --"$MODE" --target-platform android-arm64 \
+            --build-name="$BASE-$COURT" --build-number="${{ github.run_number }}"
+          SORTIE="build/app/outputs/flutter-apk/app-$MODE.apk"
+          FINAL="build/app/outputs/flutter-apk/lafuga-$MODE-$COURT.apk"
+          mv "$SORTIE" "$FINAL"
+          echo "apk=$FINAL" >> "$GITHUB_OUTPUT"
+          echo "nom=lafuga-apk-$MODE-$COURT" >> "$GITHUB_OUTPUT"
+          echo "version=$BASE-$COURT ($MODE, build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
 
       - name: Récapitulatif
         if: always()
@@ -108,17 +123,20 @@ jobs:
             echo "- Fichier : \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
             echo "- Taille : **$TAILLE**" >> "$GITHUB_STEP_SUMMARY"
             echo "- Commit : \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Version affichée par Android : **${{ steps.build.outputs.version }}**" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### APK introuvable" >> "$GITHUB_STEP_SUMMARY"
             echo "Attendu à \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
+      # Sans le garde, un build échoué enverrait un chemin vide à
+      # upload-artifact ; c'est le récapitulatif qui fait échouer le job.
       - name: Publier l'APK
-        if: always()
+        if: always() && steps.build.outputs.apk != ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.nom || 'lafuga-apk' }}
-          path: build/app/outputs/flutter-apk/*.apk
+          path: ${{ steps.build.outputs.apk }}
           if-no-files-found: error
           retention-days: 30
