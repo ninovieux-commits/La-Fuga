@@ -1,4 +1,4 @@
-/// Pastille rouge d'un message non lu.
+/// Pastille rouge d'un message non lu, en bas à droite de la touche.
 ///
 /// Un compteur entre parenthèses — « Messages (1) » — allonge l'intitulé et le
 /// fait déborder dès qu'il y a deux chiffres. La pastille dit la même chose
@@ -24,13 +24,15 @@ class UnreadDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!show) return child;
-    final size = S(14);
+    final size = S(22);
     return Stack(
       clipBehavior: Clip.none,
       children: [
         child,
         Positioned(
-          top: -size / 4,
+          // En BAS de la touche : en haut, la pastille se confondait avec le
+          // bord supérieur de la touche du dessus dans une liste serrée.
+          bottom: -size / 4,
           right: -size / 4,
           child: Container(
             width: size,

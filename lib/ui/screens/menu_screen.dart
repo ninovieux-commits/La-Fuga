@@ -51,6 +51,10 @@ const Color kMenuInk = Color.fromRGBO(38, 38, 38, 1);
 /// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
 typedef FavoriteChoice = ({String pseudo, bool challenge});
 
+/// La barre de recherche du menu, repérée pour `menu_search_bar_test.dart` :
+/// c'est sa hauteur PEINTE qui compte, pas celle de la boîte du `TextField`.
+const Key kBarreRechercheKey = Key('barre_recherche');
+
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key, this.online});
 
@@ -70,6 +74,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   );
 
   final TextEditingController _searchField = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
 
   ThemeAxes get _axes => Settings.instance.themeAxes;
 
@@ -181,6 +186,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
     _searchField.dispose();
+    _searchFocus.dispose();
     _unbind();
     super.dispose();
   }
@@ -1186,25 +1192,43 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       key: _tourKeys['search'],
       children: [
         Expanded(
-          child: TextField(
-            controller: _searchField,
-            textInputAction: TextInputAction.search,
-            style: TextStyle(color: Colors.white, fontSize: SF(14)),
-            decoration: InputDecoration(
-              hintText: T('Rechercher un joueur…'),
-              hintStyle: TextStyle(color: Colors.white70, fontSize: SF(13)),
-              filled: true,
-              fillColor: kFugaGrey,
-              isDense: true,
-              // Le cadre fait toute l'épaisseur d'une touche.
-              constraints: BoxConstraints.tightFor(height: touchHeight()),
-              contentPadding: EdgeInsets.symmetric(horizontal: S(12)),
-              border: OutlineInputBorder(
+          // Le fond gris est une boîte que NOUS dessinons, à la hauteur d'une
+          // touche. La taille n'est plus confiée à `InputDecoration` :
+          // `constraints: BoxConstraints.tightFor(...)` était pourtant bien là,
+          // et mes rendus donnaient 52 px logiques — mais sur le téléphone de
+          // Nino la barre sortait à 19, la valeur qu'elle prend SANS contrainte,
+          // pendant que l'étoile juste à côté faisait bien ses 52. N'ayant pas
+          // pu reproduire l'écart, je retire le mécanisme au lieu de le deviner :
+          // un `Container` d'une hauteur donnée ne peut pas être réinterprété.
+          child: GestureDetector(
+            // Le champ ne remplit pas la boîte en hauteur : sans ça, toucher
+            // le gris au-dessus ou en dessous du texte ne ferait rien.
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _searchFocus.requestFocus(),
+            child: Container(
+              // La clé sert au test qui compte les pixels peints de la barre.
+              key: kBarreRechercheKey,
+              height: touchHeight(),
+              alignment: Alignment.centerLeft,
+              padding: EdgeInsets.symmetric(horizontal: S(12)),
+              decoration: BoxDecoration(
+                color: kFugaGrey,
                 borderRadius: BorderRadius.circular(S(12)),
-                borderSide: BorderSide.none,
+              ),
+              child: TextField(
+                controller: _searchField,
+                focusNode: _searchFocus,
+                textInputAction: TextInputAction.search,
+                style: TextStyle(color: Colors.white, fontSize: SF(14)),
+                // `collapsed` : plus aucune mise en page de Material autour du
+                // texte, donc plus rien qui puisse imposer une autre hauteur.
+                decoration: InputDecoration.collapsed(
+                  hintText: T('Rechercher un joueur…'),
+                  hintStyle: TextStyle(color: Colors.white70, fontSize: SF(13)),
+                ),
+                onSubmitted: (_) => _searchPlayer(),
               ),
             ),
-            onSubmitted: (_) => _searchPlayer(),
           ),
         ),
         SizedBox(width: S(6)),

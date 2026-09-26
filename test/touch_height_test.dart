@@ -6,6 +6,12 @@
 /// un écran de téléphone, plus haut que large, ces touches sortaient deux fois
 /// plus fines que celles du menu. Ce test les mesure toutes, dans trois formes
 /// d'écran, et refuse le moindre écart.
+///
+/// Les champs de saisie ne sont PAS mesurés ici : la boîte d'un `TextField` ne
+/// dit rien de ce qu'on VOIT. C'est exactement ce qui m'a trompé — la boîte
+/// faisait bien 51 px pendant que la barre peinte sur le téléphone en faisait
+/// 19. La barre de recherche a donc sa propre épreuve, en pixels :
+/// `menu_search_bar_test.dart`.
 library;
 
 import 'package:flutter/material.dart';
@@ -81,32 +87,6 @@ void main() {
     expect(seen, greaterThan(0), reason: '$where : aucune touche mesurée');
   }
 
-  /// Un champ de saisie d'UNE ligne se vise avec le pouce comme une touche : il
-  /// n'est JAMAIS plus fin qu'elle. C'est le défaut qu'avait la barre de
-  /// recherche du menu, qui tombait à 19 px au lieu de 51 et paraissait
-  /// minuscule à côté de l'étoile.
-  ///
-  /// La règle est un plancher, pas une égalité : un champ légèrement plus haut
-  /// ne gêne personne, c'est la finesse qui rend la visée difficile. Les champs
-  /// multi-lignes (le lecteur nmc, une description) sont exclus : ils sont
-  /// faits pour s'étirer.
-  void expectAllFields(WidgetTester tester, String where) {
-    final floor = touchHeight();
-    for (final element in find.byType(TextField).evaluate()) {
-      final field = element.widget as TextField;
-      if (field.maxLines != 1) continue;
-      final height = (element.renderObject as RenderBox).size.height;
-      expect(
-        height,
-        greaterThanOrEqualTo(floor - 0.5),
-        reason:
-            '$where : le champ « ${field.decoration?.hintText ?? '?'} » fait '
-            '${height.toStringAsFixed(1)}, plus fin qu\'une touche '
-            '(${floor.toStringAsFixed(1)})',
-      );
-    }
-  }
-
   for (final (shape, size) in [
     ('un téléphone', _phone),
     ('un petit écran', _small),
@@ -142,11 +122,6 @@ void main() {
         testWidgets('les touches de $name', (tester) async {
           await open(tester, build());
           expectAllTouches(tester, name);
-        });
-
-        testWidgets('les champs de saisie de $name', (tester) async {
-          await open(tester, build());
-          expectAllFields(tester, name);
         });
       }
 
