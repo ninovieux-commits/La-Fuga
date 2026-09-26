@@ -77,6 +77,20 @@ class MessageHub extends ChangeNotifier {
       clear();
       return;
     }
+    // La précédente n'est pas revenue : on ne double pas la mise. Sur un
+    // réseau lent, un battement de quatre secondes empilerait les requêtes.
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      await _refresh(client);
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  bool _refreshing = false;
+
+  Future<void> _refresh(OnlineClient client) async {
     final r = await client.listConversations();
     if (!r.isOk) return;
     final rows = r.get<List<dynamic>>('conversations') ?? const [];

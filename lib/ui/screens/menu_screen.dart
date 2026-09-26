@@ -260,12 +260,18 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// Redemande la liste toutes les [_corrInterval], tant qu'on est connecté
   /// et que le menu est là. Plus de touche « Actualiser » : comme sur les
   /// sites de jeu, la liste se tient à jour toute seule.
+  ///
+  /// Les non-lus battent au même rythme. Ils ne le faisaient pas : la pastille
+  /// rouge du bouton Messages ne changeait que sur un événement temps réel.
+  /// Quand il n'arrivait pas, elle restait éteinte alors qu'un message
+  /// attendait — il fallait quitter le menu et y revenir pour la voir.
   void _startCorrPolling() {
     _corrPoll?.cancel();
     if (!_online.isLoggedIn) return;
     _corrPoll = Timer.periodic(_corrInterval, (_) {
       if (!mounted || !_online.isLoggedIn) return;
       unawaited(_refreshCorr());
+      unawaited(_refreshUnread());
     });
   }
 

@@ -19,6 +19,7 @@ import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/net/avatar_photos.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
+import 'package:lafuga/ui/widgets/unread_dot.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -360,6 +361,40 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     expect(corrCalls(), greaterThan(reveille), reason: 'le battement repart');
+  });
+
+  testWidgets('la pastille des messages s allume sans événement temps réel', (
+    tester,
+  ) async {
+    // Elle ne changeait que sur `message_recu`. Quand l événement n arrive
+    // pas, elle restait éteinte alors qu un message attendait : il fallait
+    // quitter le menu et y revenir. Ici, AUCUN socket n est sollicité.
+    replies['/corr_list'] = {'ok': true, 'games': const []};
+    replies['/list_conversations'] = {'ok': true, 'conversations': const []};
+    await open(tester);
+    bool allumee() =>
+        tester.widgetList<UnreadDot>(find.byType(UnreadDot)).any((d) => d.show);
+    expect(
+      allumee(),
+      isFalse,
+      reason: 'une pastille allumée dès le départ : le test ne prouve rien',
+    );
+
+    // Un message arrive côté serveur. Personne ne prévient l application.
+    replies['/list_conversations'] = {
+      'ok': true,
+      'conversations': [
+        {'pseudo': 'Ana', 'unread': 1},
+      ],
+    };
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    expect(
+      allumee(),
+      isTrue,
+      reason: 'la pastille rouge reste éteinte alors qu un message attend',
+    );
   });
 
   testWidgets('au réveil, la connexion temps réel est relancée', (
