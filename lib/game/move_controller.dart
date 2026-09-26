@@ -183,9 +183,6 @@ class MoveController {
   /// Plateau au début du tour, pour annuler un coup en cours.
   late Board _turnStartBoard;
 
-  /// Le camp Blanc a fugué : cas particulier du rattrapage.
-  bool blancFugued = false;
-
   // ── Geste principal ───────────────────────────────────────────────────────
 
   /// Traite un appui sur une case.
@@ -594,7 +591,6 @@ class MoveController {
   ControllerResult _fugue(Camp camp, List<(Piece, Cell, Cell)> slidesBruts) {
     final mover = turn;
     fuguedHeirs.add(camp);
-    if (camp == Camp.blanc) blancFugued = true;
 
     // La glissée de l'Héritier finit là où il s'affichera — au milieu. Sans
     // ce recalage, elle le posait sur sa colonne de sortie et il sautait
@@ -738,7 +734,7 @@ class MoveController {
 
     final mover = turn;
     final before = board;
-    final slides = _slidesBetween(board, move.board);
+    var slides = _slidesBetween(board, move.board);
     final notation = notationOn(board, move);
     final hadEjection = move.ejected > 0;
 
@@ -756,7 +752,15 @@ class MoveController {
     final fugueCamp = move.fugue ? mover : move.fugueBy;
     if (fugueCamp != null) {
       fuguedHeirs.add(fugueCamp);
-      if (fugueCamp == Camp.blanc) blancFugued = true;
+
+      // Et il GLISSE jusqu'à son ralliement. `_slidesBetween` ne compare que
+      // les rangées jouables : une pièce qui quitte le plateau y a un départ
+      // sans arrivée, donc aucune glissée. Le coup gagnant de Deep Grey, celui
+      // de l'adversaire en ligne et celui d'une correspondance faisaient donc
+      // disparaître l'Héritier d'un coup sec, là où le même coup joué au doigt
+      // le faisait glisser. C'est le coup le plus important d'une partie : il
+      // se voit partir.
+      slides = [...slides, ..._fugueSlide(before, move.board, fugueCamp)];
 
       if (fugueCamp != mover) {
         // On a poussé l'Héritier adverse dans SON ralliement : il gagne.
@@ -845,6 +849,28 @@ class MoveController {
   ///
   /// Portage de `_build_slides_from_diff` : sert à animer un coup dont on ne
   /// connaît que le plateau résultant.
+  /// La glissée de sortie de l'Héritier de [camp] : de la case qu'il occupait
+  /// à celle où il s'affiche, au milieu de son ralliement.
+  ///
+  /// Sa case de départ est le seul endroit où il était avant le coup et où il
+  /// n'est plus après. On la cherche plutôt que de la déduire du coup, parce
+  /// que l'Héritier peut aussi bien avoir marché que s'être fait pousser.
+  static List<(Piece, Cell, Cell)> _fugueSlide(
+    Board before,
+    Board after,
+    Camp camp,
+  ) {
+    for (var c = 0; c < kCols; c++) {
+      for (var r = 0; r < kRows; r++) {
+        final p = before.at(c, r);
+        if (p == null || !p.isHeir || p.camp != camp) continue;
+        if (after.at(c, r) == p) continue;
+        return [(p, Cell(c, r), rallyDisplayCell(camp))];
+      }
+    }
+    return const [];
+  }
+
   static List<(Piece, Cell, Cell)> _slidesBetween(Board before, Board after) {
     final departures = <(Piece, Cell)>[];
     final arrivals = <(Piece, Cell)>[];

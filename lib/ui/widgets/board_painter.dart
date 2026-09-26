@@ -314,7 +314,9 @@ final class BoardPiecesPainter extends CustomPainter {
     // une image de thème ne se voit pas. Vers l'intérieur : le trait tient
     // entièrement dans sa case, il ne mord pas sur les voisines.
     void frame(Cell cell, Color color, double width) {
-      if (!cell.onBoard) return;
+      // Les zones de ralliement sont à l'écran : un Héritier qui vient d'y
+      // entrer s'encadre comme n'importe quelle case d'arrivée.
+      if (!cell.onBoard && !cell.inRally) return;
       canvas.drawRect(
         g.cellRect(cell.col, cell.row).deflate(width / 2),
         Paint()

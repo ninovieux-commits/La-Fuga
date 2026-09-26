@@ -201,11 +201,26 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
   final from = <Cell>{};
   final to = <Cell>{};
 
-  // Fugue depuis une case nommée : `Mi7*`. Rien n'est encadré à l'arrivée.
+  // Fugue depuis une case nommée : `Mi7*`. La case d'arrivée est le ralliement
+  // du camp qui fugue — hors du plateau de jeu, mais bien à l'écran, là où
+  // l'Héritier se pose. L'encadrer aussi, c'est dire le coup en entier : il
+  // part de là, il est maintenant ici. Le cadre d'arrivée manquait, et la
+  // fugue était le seul coup du jeu à n'être montré qu'à moitié.
+  //
+  // Le camp ne peut pas se lire sur la position d'APRÈS — l'Héritier n'y est
+  // plus — donc il se lit sur celle d'avant. Sans elle, on s'en tient au
+  // départ plutôt que d'encadrer le mauvais ralliement.
   if (n.contains('*') && !n.contains('-')) {
     final start = notationToCell(n.replaceAll('*', '').trim());
-    if (start != null) from.add(start);
-    return _framed(after, from, to);
+    if (start == null) return _framed(after, from, to);
+    from.add(start);
+    final leaving = before?.atCell(start);
+    if (leaving == null || !leaving.isHeir) return _framed(after, from, to);
+    return LastMove(
+      camp: leaving.camp,
+      from: from,
+      to: {rallyDisplayCell(leaving.camp)},
+    );
   }
 
   // Manœuvre : seules les cases NOMMÉES sont encadrées, même quand c'est le

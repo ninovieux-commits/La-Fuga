@@ -42,6 +42,10 @@ final class Cell {
 
   bool get onBoard => col >= 0 && col < kCols && row >= 0 && row < kRows;
 
+  /// Dans l'une des deux zones de ralliement : hors du plateau de jeu, mais
+  /// bien à l'écran, et donc encadrable.
+  bool get inRally => kRally.contains(col) && (row == 8 || row == -1);
+
   Cell shifted(int dc, int dr) => Cell(col + dc, row + dr);
 
   @override
