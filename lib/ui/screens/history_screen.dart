@@ -193,6 +193,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _copyNmc(LocalGame game) async {
     final content = await widget.store.read(game.file);
     if (content == null || !mounted) return;
+    await _showNmc(content);
+  }
+
+  /// Le .nmc d'une partie EN LIGNE. Le fichier n'est pas sur le téléphone :
+  /// le serveur le rend par `get_game`, à partir du `game_uid`.
+  Future<void> _copyAccountNmc(Map<String, dynamic> game) async {
+    final r = await widget.online.client.getGame('${game['game_uid'] ?? ''}');
+    if (!mounted) return;
+    final content = r.get<String>('nmc_text');
+    if (content == null || content.isEmpty) {
+      await _showError(T('Impossible de charger la partie.'));
+      return;
+    }
+    await _showNmc(content);
+  }
+
+  /// Met le .nmc dans le presse-papiers et le montre, sélectionnable — comme
+  /// la popup de Kivy, qui demande de sélectionner le texte à la main.
+  Future<void> _showNmc(String content) async {
     await Clipboard.setData(ClipboardData(text: content));
     if (!mounted) return;
     await showDialog<void>(
@@ -339,7 +358,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _ => ('½', const Color.fromRGBO(191, 191, 191, 1)),
     };
 
-    return _card(
+    final carte = _card(
       onTap: () => _openAccountGame(g),
       sym: sym,
       symColor: symColor,
@@ -360,6 +379,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       date: date,
       info: '${_cadenceLabel('${g['cadence'] ?? '?'}')}  •  ${T(method)}',
+    );
+
+    // Même touche « Copier » que sur l'historique local. Kivy ne l'offre que
+    // pour les parties du téléphone, mais rien ne le justifie : une partie en
+    // ligne a le même .nmc, le serveur sait le rendre.
+    return Row(
+      children: [
+        Expanded(child: carte),
+        SizedBox(width: S(8)),
+        SizedBox(
+          width: S(76),
+          height: touchHeight(),
+          child: FugaButton(
+            text: T('Copier'),
+            fontSize: SF(13),
+            radius: S(8),
+            height: double.infinity,
+            onPressed: () => _copyAccountNmc(g),
+          ),
+        ),
+      ],
     );
   }
 
