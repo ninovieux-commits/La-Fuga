@@ -16,6 +16,7 @@ import '../../game/online_game.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
+import '../../net/avatar_photos.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -60,9 +61,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   OnlineGame get _g => widget.game;
 
+  /// La photo de l'adversaire : le serveur ne l'envoie pas avec la partie, on
+  /// va la chercher par son pseudo (voir `AvatarPhotos`). Vide en attendant.
+  String _photoAdverse = '';
+
+  /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
+  Future<void> _chargerPhotoAdverse() async {
+    final photo = await AvatarPhotos.resolve(_g.info.opponent);
+    if (mounted && photo != _photoAdverse) {
+      setState(() => _photoAdverse = photo);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _photoAdverse = AvatarPhotos.known(_g.info.opponent);
+    _chargerPhotoAdverse();
     _sounds.init();
     _g.onChanged = _handleEvent;
     // La pastille du bouton Chat suit les messages en direct.
@@ -349,7 +364,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       isWhite: camp == Camp.blanc,
       isTurn: _g.game.turn == camp && !_g.game.gameOver,
       captures: _g.game.captured[camp.opposite] ?? const [],
-      photo: isMine ? (OnlineService.instance.session?.photo ?? '') : '',
+      photo: isMine
+          ? (OnlineService.instance.session?.photo ?? '')
+          : _photoAdverse,
       score: _g.scoreLine.isEmpty
           ? null
           : (camp == Camp.blanc ? '${_g.scoreBlanc}' : '${_g.scoreNoir}'),

@@ -17,8 +17,10 @@ import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/net/avatar_photos.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
@@ -68,6 +70,10 @@ void main() {
       socketFactory: (_) => socket,
     );
     await online.login('Nino', 'mdp');
+    // Les écrans de partie lisent `OnlineService.instance` — ma photo hier,
+    // celle de l'adversaire aujourd'hui. Sans ce branchement, le test
+    // interrogerait un service vide et ne prouverait rien.
+    OnlineService.instance = online;
   });
 
   Map<String, dynamic> game({
@@ -138,19 +144,6 @@ void main() {
     expect(bodyOf('/corr_repondre')!['accepte'], isTrue);
   });
 
-  testWidgets('un défi envoyé attend, et s annule', (tester) async {
-    replies['/corr_list'] = {
-      'ok': true,
-      'games': [game(statut: 'defi', myTurn: false, isDefieur: true)],
-    };
-    await open(tester);
-
-    expect(find.text('En attente…'), findsOneWidget);
-    await tapVisible(tester, find.text('Annuler'));
-
-    expect(bodyOf('/corr_repondre')!['accepte'], isFalse);
-  });
-
   testWidgets('une partie terminée se referme', (tester) async {
     replies['/corr_list'] = {
       'ok': true,
@@ -164,6 +157,65 @@ void main() {
     await tapVisible(tester, find.text('Fermer'));
 
     expect(bodyOf('/corr_close')!['game_id'], 'g1');
+  });
+
+  testWidgets('annuler un défi ENVOYÉ passe par l abandon, pas par la réponse', (
+    tester,
+  ) async {
+    // Le serveur refuse `corr_repondre` au défieur — « Vous êtes le défieur » —
+    // et c'est pour ça que la touche ne faisait rien. Kivy annule par
+    // l'abandon, qui accepte le statut « defi ».
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(statut: 'defi', myTurn: false, isDefieur: true)],
+    };
+    await open(tester);
+
+    expect(find.text('En attente…'), findsOneWidget);
+    await tapVisible(tester, find.text('Annuler'));
+
+    expect(
+      bodyOf('/corr_abandon'),
+      isNotNull,
+      reason: 'la touche Annuler n a appelé aucune route d abandon',
+    );
+    expect(bodyOf('/corr_abandon')!['game_id'], 'g1');
+    expect(
+      bodyOf('/corr_repondre'),
+      isNull,
+      reason:
+          'corr_repondre est refusé au défieur : la touche resterait sans '
+          'effet, exactement le bug signalé',
+    );
+  });
+
+  testWidgets('la photo de l adversaire s affiche en correspondance', (
+    tester,
+  ) async {
+    // Ni `corr_list` ni `partie_trouvee` ne portent la photo de l'adversaire :
+    // il faut aller la chercher par son profil, comme Kivy. Sans ça, l'avatar
+    // d'en face restait la pièce par défaut.
+    AvatarPhotos.clear();
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game()],
+    };
+    replies['/get_profile'] = {'ok': true, 'pseudo': 'Ana', 'photo': 'nurse'};
+    await open(tester);
+    await tapVisible(tester, find.byType(CorrSlot).first);
+    await tester.pumpAndSettle();
+
+    final panneaux = tester
+        .widgetList<PlayerPanel>(find.byType(PlayerPanel))
+        .toList();
+    expect(panneaux.length, 2, reason: 'les deux panneaux de joueur');
+    expect(
+      panneaux.map((p) => p.photo),
+      contains('nurse'),
+      reason:
+          'aucun panneau ne porte la photo de l adversaire : '
+          '${panneaux.map((p) => p.photo).toList()}',
+    );
   });
 
   testWidgets('toucher une partie en cours l ouvre', (tester) async {

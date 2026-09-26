@@ -25,6 +25,7 @@ import '../../game/move_controller.dart';
 import '../../game/captures.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
+import '../../net/avatar_photos.dart';
 import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
@@ -817,7 +818,16 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       isWhite: camp == Camp.blanc,
       isTurn: _game.turn == camp && !_game.gameOver,
       captures: _game.captured[camp.opposite] ?? const [],
-      photo: isAi ? 'deepgrey' : (OnlineService.instance.session?.photo ?? ''),
+      // Deep Grey a son portrait ; MA photo ne va qu'à MOI. En local à deux,
+      // le second joueur n'est pas un compte : il garde la pièce par défaut.
+      // Sans cette distinction, les deux avatars portaient ma photo.
+      photo: isAi
+          ? kDeepGreyPhoto
+          : (_aiCamp != null ||
+                    _playerOf(camp) ==
+                        (OnlineService.instance.pseudo ?? '\u0000')
+                ? (OnlineService.instance.session?.photo ?? '')
+                : ''),
       // Kivy affiche toujours le score, dénominateur compris : « 0 / 1 »
       // pour une partie unique, « 0 / 5 » pour un match en cinq points.
       score:

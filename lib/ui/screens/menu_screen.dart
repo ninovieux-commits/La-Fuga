@@ -770,6 +770,17 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     await _refreshCorr();
   }
 
+  /// Annuler un défi de correspondance que J'AI envoyé.
+  ///
+  /// La touche ne faisait rien parce qu'elle appelait `corr_repondre`, que le
+  /// serveur refuse au défieur : « Vous êtes le défieur ». Kivy passe par
+  /// l'abandon, qui accepte le statut « defi » et clôt la partie sans compter
+  /// de point ni l'archiver.
+  Future<void> _corrCancelChallenge(CorrGame game) async {
+    await _corr.resign(game.id);
+    await _refreshCorr();
+  }
+
   Future<void> _corrClose(CorrGame game) async {
     await _corr.close(game.id);
     await _refreshCorr();
@@ -1297,7 +1308,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           onTap: () => _onCorrSlot(game),
           onAccept: (g) => _corrAnswer(g, true),
           onRefuse: (g) => _corrAnswer(g, false),
-          onCancel: (g) => _corrAnswer(g, false),
+          onCancel: _corrCancelChallenge,
           onRematch: _corrRematch,
           onClose: _corrClose,
         );

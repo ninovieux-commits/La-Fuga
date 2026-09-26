@@ -16,6 +16,7 @@ import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../../net/avatar_photos.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
@@ -74,9 +75,23 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   CorrGame get _g => widget.game;
 
+  /// La photo de l'adversaire : le serveur ne l'envoie pas avec la partie, on
+  /// va la chercher par son pseudo (voir `AvatarPhotos`). Vide en attendant.
+  String _photoAdverse = '';
+
+  /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
+  Future<void> _chargerPhotoAdverse() async {
+    final photo = await AvatarPhotos.resolve(_g.opponent);
+    if (mounted && photo != _photoAdverse) {
+      setState(() => _photoAdverse = photo);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _photoAdverse = AvatarPhotos.known(_g.opponent);
+    _chargerPhotoAdverse();
     _sounds.init();
     // La pastille du bouton Chat suit les messages en direct.
     OnlineService.instance.messages.addListener(_onMessages);
@@ -494,7 +509,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       isWhite: camp == Camp.blanc,
       isTurn: c.turn == camp && _g.status == CorrStatus.enCours,
       captures: c.captured[camp.opposite] ?? const [],
-      photo: isMine ? (OnlineService.instance.session?.photo ?? '') : '',
+      photo: isMine
+          ? (OnlineService.instance.session?.photo ?? '')
+          : _photoAdverse,
       // En correspondance le score est cumulatif, sans objectif fixe : Kivy
       // écrit « X / ... ».
       score: '${isMine ? _g.myScore : _g.opponentScore} / ...',

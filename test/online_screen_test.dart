@@ -4,6 +4,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/net/avatar_photos.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/game/clock.dart';
 import 'package:lafuga/game/online_game.dart';
@@ -46,6 +48,33 @@ void main() {
     await tester.pump();
     return game;
   }
+
+  testWidgets('la photo de l adversaire s affiche en partie en ligne', (
+    tester,
+  ) async {
+    // `partie_trouvee` ne porte pas la photo de l'adversaire : comme en
+    // correspondance, l'écran la demande à `AvatarPhotos`. On garnit le cache
+    // pour que la réponse soit immédiate — le chemin réseau est éprouvé par
+    // `menu_corr_test`, ici on vérifie que l'écran s'en sert.
+    AvatarPhotos.clear();
+    AvatarPhotos.remember('Adversaire', 'nurse');
+    addTearDown(AvatarPhotos.clear);
+
+    await open(tester);
+    await tester.pump();
+
+    final panneaux = tester
+        .widgetList<PlayerPanel>(find.byType(PlayerPanel))
+        .toList();
+    expect(panneaux.length, 2);
+    expect(
+      panneaux.map((p) => p.photo),
+      contains('nurse'),
+      reason:
+          'aucun panneau ne porte la photo de l adversaire : '
+          '${panneaux.map((p) => p.photo).toList()}',
+    );
+  });
 
   testWidgets('le bandeau porte le chat, la pause et rien d autre', (
     tester,

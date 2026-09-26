@@ -2,7 +2,14 @@
 /// joueurs avec pièces prises, et bandeau des coups navigable.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:lafuga/net/api_client.dart';
+import 'package:lafuga/net/online_client.dart';
+import 'package:lafuga/net/online_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/engine/move_generator.dart';
 import 'package:lafuga/engine/piece.dart';
@@ -48,6 +55,61 @@ void main() {
     view.onTapCell(to);
     await tester.pumpAndSettle();
   }
+
+  testWidgets('en local à deux, ma photo ne va pas aux DEUX joueurs', (
+    tester,
+  ) async {
+    // Le second joueur d'une partie locale n'est pas un compte : il garde la
+    // pièce par défaut. Le code donnait MA photo aux deux côtés, si bien que
+    // les deux avatars étaient identiques.
+    //
+    // Il FAUT un compte connecté avec une photo : sans lui les deux côtés
+    // sortent vides et le test passerait quoi qu'il arrive.
+    final service = OnlineService(
+      client: OnlineClient(
+        api: ApiClient(
+          client: MockClient(
+            (request) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'token': 't',
+                'pseudo': 'Nino',
+                'melo': 1600,
+                'photo': 'nurse',
+              }),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            ),
+          ),
+        ),
+      ),
+    );
+    // Hors du temps simulé : la connexion pose un minuteur que le cadre de
+    // test compterait comme resté en suspens.
+    await tester.runAsync(() => service.login('Nino', 'mdp'));
+    expect(
+      service.session?.photo,
+      'nurse',
+      reason: 'sans MA photo, le test ne pourrait pas échouer',
+    );
+    final precedent = OnlineService.instance;
+    OnlineService.instance = service;
+    addTearDown(() => OnlineService.instance = precedent);
+
+    await open(tester);
+
+    final panneaux = tester
+        .widgetList<PlayerPanel>(find.byType(PlayerPanel))
+        .toList();
+    expect(panneaux.length, 2);
+    expect(
+      panneaux[0].photo == panneaux[1].photo && panneaux[0].photo.isNotEmpty,
+      isFalse,
+      reason:
+          'les deux joueurs portent la même photo : '
+          '${panneaux.map((p) => p.photo).toList()}',
+    );
+  });
 
   testWidgets('les deux panneaux portent noms, chronos et pièces prises', (
     tester,
