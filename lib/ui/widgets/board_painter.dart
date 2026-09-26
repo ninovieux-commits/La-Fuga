@@ -198,6 +198,7 @@ final class BoardPiecesPainter extends CustomPainter {
     this.images,
     this.theme,
     this.flying = const {},
+    this.fuguedHeirs = const {},
   }) : boardKey = board.key;
 
   final BoardGeometry geometry;
@@ -235,6 +236,11 @@ final class BoardPiecesPainter extends CustomPainter {
   /// coup, mais tant que le glissement dure la pièce n'est pas dessinée là.
   /// Elle l'est entre deux cases, par [FlyingPiecesPainter].
   final Set<Cell> flying;
+
+  /// Camps dont l'Héritier a rejoint son ralliement : il y est dessiné, au
+  /// milieu de la zone, et il y reste. Sans cela il disparaissait du plateau
+  /// au moment même où il gagnait la partie.
+  final Set<Camp> fuguedHeirs;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -278,6 +284,28 @@ final class BoardPiecesPainter extends CustomPainter {
           rainbowFraction: rainbowFractionOf(c, r),
         );
       }
+    }
+
+    // Héritiers qui ont fugué, dessinés dans leur ralliement — hors de la
+    // zone de jeu, donc hors de la double boucle ci-dessus. Sans contour :
+    // la partie est finie, il n'y a plus rien à y désigner.
+    for (final camp in fuguedHeirs) {
+      // Tant que la glissée l'emmène encore vers le ralliement, c'est la
+      // couche des pièces en vol qui le dessine : le dessiner ici aussi le
+      // ferait apparaître en double, arrivé avant d'être parti.
+      if (flying.any((c) => !c.onBoard && c.row == camp.rallyRow)) continue;
+      final cell = rallyDisplayCell(camp);
+      paintPiece(
+        canvas,
+        g.cellRect(cell.col, cell.row),
+        camp == Camp.blanc ? Piece.blancHeritier : Piece.noirHeritier,
+        palette,
+        flipped: g.flipped,
+        boardColor: palette.board,
+        images: images,
+        theme: theme,
+        rainbowFraction: rainbowFractionOf(cell.col, cell.row),
+      );
     }
 
     // ── Cadres, PAR-DESSUS les pièces et VERS L'INTÉRIEUR de la case ──
@@ -353,6 +381,7 @@ final class BoardPiecesPainter extends CustomPainter {
       !setEquals(old.destinations, destinations) ||
       !setEquals(old.groupSelection, groupSelection) ||
       !setEquals(old.flying, flying) ||
+      !setEquals(old.fuguedHeirs, fuguedHeirs) ||
       old.theme != theme ||
       old.lastMove != lastMove;
 }

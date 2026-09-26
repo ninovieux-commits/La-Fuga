@@ -725,7 +725,19 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       return;
     }
     if (game.status != CorrStatus.enCours || !mounted) return;
+    await _openCorrGame(game);
+  }
 
+  /// Revoir une partie de correspondance TERMINÉE — la touche « Afficher ».
+  ///
+  /// Le même écran que pour jouer : il est déjà en lecture seule quand la
+  /// partie n'est plus en cours (`_canPlay`), et il montre ce qu'on vient
+  /// chercher — la position finale, le dernier coup encadré, et l'Héritier
+  /// dans son ralliement s'il a fugué. Jusqu'ici une partie finie ne se
+  /// rouvrait plus : on ne pouvait que la refermer.
+  Future<void> _corrShow(CorrGame game) => _openCorrGame(game);
+
+  Future<void> _openCorrGame(CorrGame game) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CorrGameScreen(
@@ -1311,6 +1323,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           onCancel: _corrCancelChallenge,
           onRematch: _corrRematch,
           onClose: _corrClose,
+          onShow: _corrShow,
         );
       },
     );

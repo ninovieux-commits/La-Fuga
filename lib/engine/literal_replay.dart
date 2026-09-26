@@ -28,12 +28,31 @@ import 'piece.dart';
 /// « poussée » est illisible a déjà déplacé sa pièce. C'est au lecteur de
 /// `.nmc` d'en tirer les conséquences (Kivy y refuse la partie entière) ;
 /// une correspondance, elle, passe simplement au coup suivant.
-typedef LiteralMove = ({Board board, bool ok});
+final class LiteralMove {
+  const LiteralMove({
+    required this.board,
+    required this.ok,
+    this.fugued = const {},
+  });
+
+  final Board board;
+  final bool ok;
+
+  /// Camps dont l'Héritier vient de rejoindre son ralliement par ce coup.
+  ///
+  /// La notation ne le dit pas en toutes lettres : « Mi7* » est une sortie par
+  /// le ralliement, et une poussée peut y envoyer un Héritier sans qu'aucun
+  /// signe ne l'annonce. C'est donc la relecture qui le CONSTATE, en regardant
+  /// ce qui quitte le plateau — exactement le test du contrôleur de coups en
+  /// partie. Sans ça, l'Héritier disparaissait purement et simplement de la
+  /// position finale d'une partie relue.
+  final Set<Camp> fugued;
+}
 
 /// Applique [notation] sur [board], à la lettre — `_apply_notation`.
 LiteralMove applyNotationLiterally(Board board, String notation) {
   final clean = notation.trim();
-  if (clean.isEmpty) return (board: board, ok: false);
+  if (clean.isEmpty) return LiteralMove(board: board, ok: false);
   // Seule la marque de fin de partie est retirée ; le `*` d'une fugue, lui,
   // fait partie du coup.
   final s = clean.endsWith('#') ? clean.substring(0, clean.length - 1) : clean;
@@ -46,9 +65,15 @@ LiteralMove _simpleOrPush(Board board, String s) {
   // Fugue vers une case sans nom : la pièce sort par sa zone de ralliement.
   if (s.contains('*') && !s.contains('-')) {
     final start = notationToCell(s.replaceAll('*', '').trim());
-    if (start == null) return (board: board, ok: false);
-    if (board.atCell(start) == null) return (board: board, ok: false);
-    return (board: board.clone()..setCell(start, null), ok: true);
+    if (start == null) return LiteralMove(board: board, ok: false);
+    final leaving = board.atCell(start);
+    if (leaving == null) return LiteralMove(board: board, ok: false);
+    return LiteralMove(
+      board: board.clone()..setCell(start, null),
+      ok: true,
+      // Seul un Héritier fugue ; une autre pièce qui sort est éjectée.
+      fugued: leaving.isHeir ? {leaving.camp} : const {},
+    );
   }
 
   var movePart = s;
@@ -60,57 +85,60 @@ LiteralMove _simpleOrPush(Board board, String s) {
   }
 
   final dash = movePart.indexOf('-');
-  if (dash < 0) return (board: board, ok: false);
+  if (dash < 0) return LiteralMove(board: board, ok: false);
   var endStr = movePart.substring(dash + 1);
   // `Do1-Do2*` : fugue vers une case qui, elle, a un nom.
   if (endStr.endsWith('*')) endStr = endStr.substring(0, endStr.length - 1);
 
   final start = notationToCell(movePart.substring(0, dash));
-  if (start == null) return (board: board, ok: false);
+  if (start == null) return LiteralMove(board: board, ok: false);
   final piece = board.atCell(start);
-  if (piece == null) return (board: board, ok: false);
+  if (piece == null) return LiteralMove(board: board, ok: false);
 
   final end = notationToCell(endStr);
   final next = board.clone();
   next.setCell(start, null);
   if (end != null) next.setCell(end, piece);
 
+  final fugued = <Camp>{};
   if (chevron >= 0 && end != null) {
     if (pushPart.trim().isEmpty) {
       // Rien après le chevron : Kivy pousse TOUT ce qui peut l'être.
       for (final target in _pushableCells(next, end.col, end.row, piece.type)) {
-        _push(next, target, target.col - end.col, target.row - end.row);
+        _push(next, target, target.col - end.col, target.row - end.row, fugued);
       }
     } else {
       final cells = parseCellsConcat(pushPart);
       // Cases illisibles : le déplacement reste fait, les poussées non.
-      if (cells == null) return (board: next, ok: false);
+      if (cells == null) return LiteralMove(board: next, ok: false);
       for (final target in cells) {
-        _push(next, target, target.col - end.col, target.row - end.row);
+        _push(next, target, target.col - end.col, target.row - end.row, fugued);
       }
     }
   }
-  return (board: next, ok: true);
+  return LiteralMove(board: next, ok: true, fugued: fugued);
 }
 
 /// `(Do1)-Ré2` ou `(Do8Mi8)-Do7` — `_apply_maneuver`.
 LiteralMove _maneuver(Board board, String s) {
   final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(s);
-  if (m == null) return (board: board, ok: false);
+  if (m == null) return LiteralMove(board: board, ok: false);
   var destStr = m.group(2)!;
   if (destStr.endsWith('#')) {
     destStr = destStr.substring(0, destStr.length - 1);
   }
   var cells = parseCellsConcat(m.group(1)!);
-  if (cells == null || cells.isEmpty) return (board: board, ok: false);
+  if (cells == null || cells.isEmpty) {
+    return LiteralMove(board: board, ok: false);
+  }
   final dest = notationToCell(destStr);
-  if (dest == null) return (board: board, ok: false);
+  if (dest == null) return LiteralMove(board: board, ok: false);
 
   final master = cells.first;
   // Une seule case nommée : c'est le groupe entier qui bouge.
   if (cells.length == 1) {
     final group = board.groupOf(master.col, master.row);
-    if (group.isEmpty) return (board: board, ok: false);
+    if (group.isEmpty) return LiteralMove(board: board, ok: false);
     final others = group.where((c) => c != master).toList()
       ..sort((a, b) => a.col != b.col ? a.col - b.col : a.row - b.row);
     cells = [master, ...others];
@@ -125,13 +153,13 @@ LiteralMove _maneuver(Board board, String s) {
   }
   for (final entry in carried.entries) {
     final p = entry.value;
-    if (p == null) return (board: next, ok: false);
+    if (p == null) return LiteralMove(board: next, ok: false);
     final nc = entry.key.col + dc;
     final nr = entry.key.row + dr;
-    if (!Board.onBoard(nc, nr)) return (board: next, ok: false);
+    if (!Board.onBoard(nc, nr)) return LiteralMove(board: next, ok: false);
     next.set(nc, nr, p);
   }
-  return (board: next, ok: true);
+  return LiteralMove(board: next, ok: true);
 }
 
 /// Cases adjacentes occupées, dans les directions de poussée du type —
@@ -155,7 +183,7 @@ List<(int, int)> pushDirsOfType(PieceType type) => switch (type) {
 /// Pousse la ligne qui commence en [from], d'une case dans la direction
 /// donnée — portage de `do_push`. Un Chevalier bloque toute la ligne ; ce qui
 /// sort du plateau disparaît.
-void _push(Board board, Cell from, int dc, int dr) {
+void _push(Board board, Cell from, int dc, int dr, [Set<Camp>? fugued]) {
   final line = <(Cell, Piece)>[];
   var c = from.col, r = from.row;
   while (Board.onBoard(c, r)) {
@@ -171,6 +199,16 @@ void _push(Board board, Cell from, int dc, int dr) {
   for (final (cell, piece) in line.reversed) {
     board.setCell(cell, null);
     final landing = Cell(cell.col + dc, cell.row + dr);
-    if (landing.onBoard) board.setCell(landing, piece);
+    if (landing.onBoard) {
+      board.setCell(landing, piece);
+      continue;
+    }
+    // La pièce quitte le plateau. Un Héritier poussé dans SON ralliement n'est
+    // pas éjecté : il fugue. Même test qu'en partie (`MoveController`).
+    final ownRally =
+        kRally.contains(landing.col) && landing.row == piece.camp.rallyRow;
+    if (piece.isHeir && ownRally) {
+      fugued?.add(piece.camp);
+    }
   }
 }

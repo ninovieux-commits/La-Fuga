@@ -21,6 +21,7 @@ class GameBoardView extends StatefulWidget {
     required this.palette,
     required this.flipped,
     required this.onTapCell,
+    this.fuguedHeirs = const {},
     this.selected,
     this.groupSelection = const {},
     this.highlighted = const {},
@@ -39,6 +40,9 @@ class GameBoardView extends StatefulWidget {
   final bool flipped;
 
   final void Function(Cell cell) onTapCell;
+
+  /// Camps dont l'Héritier a rejoint son ralliement : il s'y affiche.
+  final Set<Camp> fuguedHeirs;
 
   final Cell? selected;
   final Set<Cell> groupSelection;
@@ -219,6 +223,7 @@ class _GameBoardViewState extends State<GameBoardView>
                       theme: widget.pieceTheme,
                       images: _pieceImages,
                       flying: flying,
+                      fuguedHeirs: widget.fuguedHeirs,
                     ),
                   ),
                 ),

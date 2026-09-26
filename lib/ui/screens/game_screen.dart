@@ -52,6 +52,7 @@ class GameScreen extends StatefulWidget {
     this.memory,
     this.initialBoard,
     this.initialTurn = Camp.blanc,
+    this.initialFugued = const {},
     this.randomCode,
     this.analysis = false,
     this.analysisFromCorr = false,
@@ -82,6 +83,13 @@ class GameScreen extends StatefulWidget {
 
   /// Camp au trait dans cette position.
   final Camp initialTurn;
+
+  /// Camps dont l'Héritier a déjà fugué dans la position de départ.
+  ///
+  /// Analyser la position finale d'une partie gagnée par fugue doit montrer
+  /// l'Héritier dans son ralliement : il n'est plus sur le plateau, et sans
+  /// cette information il ne serait nulle part.
+  final Set<Camp> initialFugued;
 
   /// Code de la position tirée au sort, à inscrire dans le `.nmc`. Sans lui,
   /// la partie serait irrejouable.
@@ -276,6 +284,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     board: widget.initialBoard?.clone(),
     turn: widget.initialTurn,
     countRepetitions: !widget.analysis,
+    fugued: widget.initialFugued,
   );
 
   bool get _isAiTurn => _aiCamp != null && _game.turn == _aiCamp;
@@ -715,6 +724,9 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
                 ? const {}
                 : _game.availablePushCells.toSet(),
             lastMove: _isViewing ? null : _lastMove,
+            // En revoyant un coup passé, l'Héritier n'a pas encore fugué : la
+            // fugue clôt la partie, elle est donc toujours au dernier coup.
+            fuguedHeirs: _isViewing ? const {} : _game.fuguedHeirs,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,
@@ -779,6 +791,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
           aiCamp: mine.opposite,
           initialBoard: _shownBoard.clone(),
           initialTurn: _game.turn,
+          initialFugued: _isViewing ? const {} : _game.fuguedHeirs,
           themeName: widget.themeName,
         ),
       ),

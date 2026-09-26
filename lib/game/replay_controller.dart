@@ -21,6 +21,7 @@ final class ReplayStep {
     this.notation,
     this.boardBefore,
     this.captured = const {},
+    this.fugued = const {},
   });
 
   final Board board;
@@ -37,6 +38,13 @@ final class ReplayStep {
   /// Pièces éjectées depuis le début, par camp d'appartenance : de quoi
   /// remplir les panneaux comme en partie.
   final Map<Camp, List<Piece>> captured;
+
+  /// Camps dont l'Héritier a rejoint son ralliement, à cette position.
+  ///
+  /// Cumulé depuis le début : une fois dans son ralliement, l'Héritier y
+  /// reste. Reculer d'un coup le fait donc revenir sur le plateau, comme il
+  /// se doit.
+  final Set<Camp> fugued;
 
   /// Mise en évidence du coup qui a mené ici, reconstruite depuis sa seule
   /// notation — c'est tout ce dont Kivy dispose en relisant une partie.
@@ -106,6 +114,7 @@ class ReplayController {
     var board = start;
     var turn = Camp.blanc;
     int? broken;
+    final fugued = <Camp>{};
 
     // Relecture LITTÉRALE, comme `_load_game_from_moves` : chaque notation est
     // appliquée telle qu'elle est écrite, sans la confronter aux règles. Kivy
@@ -120,6 +129,7 @@ class ReplayController {
         break;
       }
       board = applied.board;
+      fugued.addAll(applied.fugued);
       for (final piece in ejectedBetween(before, board, notation)) {
         lost[piece.camp]!.add(piece);
       }
@@ -134,6 +144,7 @@ class ReplayController {
             Camp.blanc: List.of(lost[Camp.blanc]!),
             Camp.noir: List.of(lost[Camp.noir]!),
           },
+          fugued: Set.of(fugued),
         ),
       );
     }

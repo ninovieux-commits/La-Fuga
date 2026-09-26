@@ -122,6 +122,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
         // Les prises des coups déjà joués : sans elles, les panneaux d'une
         // partie en correspondance restaient vides du début à la fin.
         captured: state.captured,
+        // Et l'Héritier qui a fugué : la partie est finie, il est dans son
+        // ralliement, et c'est la relecture des coups qui le sait.
+        fugued: state.fugued,
       );
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
       _lastMove = state.lastMove;
@@ -395,6 +398,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   groupSelection: c.groupSelection,
                   highlighted: c.availablePushCells.toSet(),
                   lastMove: _lastMove,
+                  fuguedHeirs: c.fuguedHeirs,
                   pieceTheme: axes.pieces,
                   boardTheme: axes.board,
                   slides: slides,
@@ -434,6 +438,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
           aiCamp: null,
           initialBoard: c.board.clone(),
           initialTurn: c.turn,
+          initialFugued: c.fuguedHeirs,
           analysis: true,
           analysisFromCorr: true,
           initialFlipped: flipped,

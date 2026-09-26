@@ -144,9 +144,7 @@ void main() {
         // Les prises affichées doivent être EXACTEMENT les pièces absentes du
         // plateau, à l'Héritier fugué près.
         final absentes = missing(depart, game.board)
-          ..removeWhere(
-            (p) => p.isHeir && game.fuguedHeirs.any((f) => f.$1 == p.camp),
-          );
+          ..removeWhere((p) => p.isHeir && game.fuguedHeirs.contains(p.camp));
         final montrees = [
           ...game.captured[Camp.blanc]!,
           ...game.captured[Camp.noir]!,

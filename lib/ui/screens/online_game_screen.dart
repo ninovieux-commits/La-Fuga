@@ -272,6 +272,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             groupSelection: _g.game.groupSelection,
             highlighted: _g.game.availablePushCells.toSet(),
             lastMove: _lastMove,
+            fuguedHeirs: _g.game.fuguedHeirs,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,

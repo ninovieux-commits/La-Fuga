@@ -159,6 +159,47 @@ void main() {
     expect(bodyOf('/corr_close')!['game_id'], 'g1');
   });
 
+  testWidgets('une partie terminée se ROUVRE par « Afficher »', (tester) async {
+    // Une partie finie n offrait que Revanche et Fermer : impossible de revoir
+    // comment elle s était terminée. Toucher la case ne faisait rien non plus,
+    // le gestionnaire refusant tout ce qui n était pas « en cours ».
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [
+        {
+          ...game(statut: 'termine', myTurn: false),
+          'resultat': '1-0',
+          'gagne': true,
+          // Une vraie fugue : Blanc joue, puis l Héritier NOIR sort par son
+          // ralliement depuis Fa8, où la position standard le place.
+          'moves_text': 'Do2-Do3\nFa8*',
+        },
+      ],
+    };
+    await open(tester);
+
+    expect(find.text('Afficher'), findsOneWidget);
+    await tapVisible(tester, find.text('Afficher'));
+
+    expect(
+      find.byType(CorrGameScreen),
+      findsOneWidget,
+      reason: 'la touche Afficher n ouvre pas la partie terminée',
+    );
+    // La position finale, avec l Héritier dans son ralliement.
+    final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
+    expect(
+      view.fuguedHeirs,
+      {Camp.noir},
+      reason: 'la partie rouverte ne montre pas l Héritier qui a fugué',
+    );
+    expect(
+      view.lastMove,
+      isNotNull,
+      reason: 'le dernier coup de la partie n est pas mis en évidence',
+    );
+  });
+
   testWidgets('annuler un défi ENVOYÉ passe par l abandon, pas par la réponse', (
     tester,
   ) async {

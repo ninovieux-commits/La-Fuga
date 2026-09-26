@@ -78,6 +78,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
           aiCamp: ai,
           initialBoard: step.board.clone(),
           initialTurn: step.turn,
+          initialFugued: step.fugued,
           analysis: ai == null,
           // On reprend la position telle qu'on la regardait.
           initialFlipped: ai == null ? _flipped : null,
@@ -129,6 +130,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
             flipped: _flipped,
             onTapCell: (_) {},
             lastMove: step.lastMove,
+            fuguedHeirs: step.fugued,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
           ),

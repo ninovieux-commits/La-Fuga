@@ -148,7 +148,10 @@ final class CorrGame {
 /// Rejouer une partie demande d'appliquer chaque notation ; l'aperçu du menu,
 /// lui, se reconstruit à chaque défilement. Le texte des coups est la clé :
 /// dès qu'il change, le rejeu est refait.
-final Map<String, ({Board board, LastMove? lastMove, Captures captured})>
+final Map<
+  String,
+  ({Board board, LastMove? lastMove, Captures captured, Set<Camp> fugued})
+>
 _replayCache = {};
 
 /// Pièces sorties du plateau, par camp d'appartenance.
@@ -181,9 +184,14 @@ List<String> corrMoveLines(String movesText) => [
 ///
 /// Le plateau rendu est une copie : l'appelant peut jouer dessus sans abîmer
 /// ce qui est mémorisé.
-({Board board, Camp turn, LastMove? lastMove, Captures captured}) replay(
-  CorrGame game,
-) {
+({
+  Board board,
+  Camp turn,
+  LastMove? lastMove,
+  Captures captured,
+  Set<Camp> fugued,
+})
+replay(CorrGame game) {
   final key = '${game.randomCode}|${game.movesText}';
   final hit = _replayCache[key] ?? _replayNow(game);
   if (_replayCache.length >= _replayCacheMax) {
@@ -198,12 +206,12 @@ List<String> corrMoveLines(String movesText) => [
     captured: {
       for (final e in hit.captured.entries) e.key: List<Piece>.of(e.value),
     },
+    fugued: hit.fugued,
   );
 }
 
-({Board board, LastMove? lastMove, Captures captured}) _replayNow(
-  CorrGame game,
-) {
+({Board board, LastMove? lastMove, Captures captured, Set<Camp> fugued})
+_replayNow(CorrGame game) {
   var board = game.initialBoard;
   // Les prises se recomptent en chemin : la position finale seule ne dit pas
   // ce qui est sorti, et les panneaux restaient vides toute la partie.
@@ -214,11 +222,13 @@ List<String> corrMoveLines(String movesText) => [
   Board? beforeLast;
   Board? lastSnapshot;
   String? lastNotation;
+  final fugued = <Camp>{};
 
   for (final notation in corrMoveLines(game.movesText)) {
     final before = board;
     final applied = applyNotationLiterally(board, notation);
     board = applied.board;
+    fugued.addAll(applied.fugued);
     if (!applied.ok) continue;
     for (final piece in ejectedBetween(before, board, notation)) {
       captured[piece.camp]!.add(piece);
@@ -235,7 +245,7 @@ List<String> corrMoveLines(String movesText) => [
           beforeLast ?? game.initialBoard,
           board,
         );
-  return (board: board, lastMove: last, captured: captured);
+  return (board: board, lastMove: last, captured: captured, fugued: fugued);
 }
 
 /// Méthode de fin à transmettre avec un coup qui clôt la partie.

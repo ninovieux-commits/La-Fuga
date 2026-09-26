@@ -62,6 +62,7 @@ void main() {
                 onCancel: (_) {},
                 onRematch: (_) {},
                 onClose: (_) {},
+                onShow: (_) {},
               ),
             ),
           ),
@@ -109,20 +110,43 @@ void main() {
     }
   });
 
-  testWidgets('une partie finie : Revanche et Fermer tiennent aussi', (
+  testWidgets('une partie finie : Afficher, Revanche et Fermer tiennent', (
     tester,
   ) async {
+    // Trois touches depuis qu'on peut revoir une partie finie. Le test en
+    // attendait deux et vérifiait UNE séparation ; avec trois, une paire
+    // pouvait se chevaucher sans qu'il le voie. Il vérifie maintenant chaque
+    // paire consécutive, ce qui vaut pour n'importe quel nombre de touches.
     final rects = await slotButtons(
       tester,
-      gameOf({'statut': 'termine', 'resultat': 'gagne'}),
+      gameOf({'statut': 'termine', 'resultat': '1-0', 'gagne': true}),
     );
-    expect(rects, hasLength(2));
+    expect(rects, hasLength(3));
+    expect(find.text('Afficher'), findsOneWidget);
+    expect(find.text('Revanche'), findsOneWidget);
+    expect(find.text('Fermer'), findsOneWidget);
+
     final slot = tester.getRect(find.byType(CorrSlot));
     final sorted = rects.toList()..sort((a, b) => a.top.compareTo(b.top));
-    expect(sorted[1].top - sorted[0].bottom, greaterThan(0));
+    for (var i = 1; i < sorted.length; i++) {
+      expect(
+        sorted[i].top - sorted[i - 1].bottom,
+        greaterThan(0),
+        reason: 'les touches $i et ${i - 1} se chevauchent',
+      );
+    }
     for (final r in rects) {
       expect(r.height, moreOrLessEquals(innerHeight() * 0.15, epsilon: 0.5));
       expect(slot.bottom - r.bottom, greaterThan(0));
+      expect(slot.contains(r.topLeft), isTrue, reason: 'une touche déborde');
     }
+
+    // Le résultat de la partie reste lisible au-dessus des trois touches.
+    final texte = tester.getRect(find.text('Gagné !'));
+    expect(
+      sorted.first.top - texte.bottom,
+      greaterThan(0),
+      reason: 'le résultat chevauche la première touche',
+    );
   });
 }

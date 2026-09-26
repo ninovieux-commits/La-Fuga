@@ -17,6 +17,21 @@ const int kExtRows = 10;
 /// Colonnes sur lesquelles existent les zones de ralliement.
 const Set<int> kRally = {2, 3, 4};
 
+/// Colonne du MILIEU d'une zone de ralliement.
+///
+/// Un test vérifie qu'elle est bien la médiane de [kRally] : changer le
+/// ralliement sans la changer ferait sortir l'Héritier de sa zone.
+const int kRallyMiddle = 3;
+
+/// Case où s'affiche l'Héritier d'un camp qui a rejoint son ralliement.
+///
+/// **Toujours le milieu**, quelle que soit la colonne par laquelle il est
+/// sorti. Le `.nmc` ne l'écrit pas : « Mi7* » dit d'où l'Héritier part, pas
+/// vers laquelle des trois cases du ralliement il va. Le milieu est donc le
+/// seul choix qui donne la même image en direct et en relecture — et c'est ce
+/// qui compte, puisque la même partie est vue des deux façons.
+Cell rallyDisplayCell(Camp camp) => Cell(kRallyMiddle, camp.rallyRow);
+
 /// Une case du plateau. Les zones de ralliement ont `row == 8` (Blanc) ou
 /// `row == -1` (Noir) et ne sont donc pas « sur le plateau ».
 final class Cell {

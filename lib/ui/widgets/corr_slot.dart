@@ -33,6 +33,7 @@ class CorrSlot extends StatelessWidget {
     required this.onCancel,
     required this.onRematch,
     required this.onClose,
+    required this.onShow,
   });
 
   /// La partie affichée, ou `null` pour une case vide.
@@ -47,6 +48,12 @@ class CorrSlot extends StatelessWidget {
   final void Function(CorrGame) onCancel;
   final void Function(CorrGame) onRematch;
   final void Function(CorrGame) onClose;
+
+  /// Revoir une partie finie : la position finale, avec le dernier coup
+  /// encadré et l'Héritier dans son ralliement s'il a fugué. Sans cette
+  /// touche, une partie de correspondance terminée ne se rouvrait plus : on ne
+  /// pouvait que la refermer ou en redemander une.
+  final void Function(CorrGame) onShow;
 
   @override
   Widget build(BuildContext context) {
@@ -152,10 +159,13 @@ class CorrSlot extends StatelessWidget {
       null => (T('Nulle'), const Color(0xFFE6E699)),
     };
     return [
+      // Trois touches maintenant, au lieu de deux : le résultat remonte pour
+      // leur laisser la place.
       Align(
-        alignment: const Alignment(0, -0.1),
+        alignment: const Alignment(0, -0.42),
         child: _plate(text, bold: true, color: color),
       ),
+      _slotButton(T('Afficher'), palette.clair, () => onShow(g), y: 0.39),
       _slotButton(T('Revanche'), palette.fonce, () => onRematch(g), y: 0.22),
       _slotButton(T('Fermer'), kFugaGrey, () => onClose(g), y: 0.05),
     ];

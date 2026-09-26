@@ -116,7 +116,9 @@ class MoveController {
     this.turn = Camp.blanc,
     this.countRepetitions = true,
     Map<Camp, List<Piece>>? captured,
+    Set<Camp> fugued = const {},
   }) : board = board ?? Board.initial(),
+       fuguedHeirs = {...fugued},
        captured = {
          for (final camp in Camp.values) camp: [...?captured?[camp]],
        } {
@@ -160,8 +162,15 @@ class MoveController {
   /// premier coup annulé effacerait tout le tableau.
   final Map<Camp, List<Piece>> captured;
 
-  /// Héritiers ayant fugué, à afficher en permanence dans le ralliement.
-  final List<(Camp, Cell)> fuguedHeirs = [];
+  /// Camps dont l'Héritier a fugué, à afficher en permanence dans son
+  /// ralliement.
+  ///
+  /// Le camp suffit : la case d'affichage est toujours le milieu du
+  /// ralliement ([rallyDisplayCell]), et un camp n'a qu'un Héritier. Une
+  /// partie reprise en route — correspondance, reconnexion, analyse — la
+  /// reçoit à la construction, sinon l'Héritier manquerait à l'écran alors
+  /// qu'il manque au plateau.
+  final Set<Camp> fuguedHeirs;
 
   /// Notations jouées, dans l'ordre.
   final List<String> history = [];
@@ -308,7 +317,7 @@ class MoveController {
     if (!cell.onBoard) {
       // L'Héritier atteint son ralliement : fugue.
       moved = true;
-      return _fugue(piece.camp, cell, slides);
+      return _fugue(piece.camp, slides);
     }
 
     board.setCell(cell, piece);
@@ -346,7 +355,7 @@ class MoveController {
 
     if (!cell.onBoard) {
       moved = true;
-      return _fugue(piece.camp, cell, slides);
+      return _fugue(piece.camp, slides);
     }
 
     board.setCell(cell, piece);
@@ -429,7 +438,6 @@ class MoveController {
     ];
 
     Camp? fugueBy;
-    Cell? fugueCell;
     Camp? matOn;
 
     for (final (c, p) in line.reversed) {
@@ -443,7 +451,6 @@ class MoveController {
       final ownRally = kRally.contains(dest.col) && dest.row == p.camp.rallyRow;
       if (p.isHeir && ownRally) {
         fugueBy = p.camp;
-        fugueCell = dest;
       } else {
         captured[p.camp]!.add(p);
         tracking.hadEjection = true;
@@ -452,7 +459,7 @@ class MoveController {
     }
 
     if (fugueBy != null) {
-      return _fugue(fugueBy, fugueCell!, slides);
+      return _fugue(fugueBy, slides);
     }
     if (matOn != null) {
       // Le coup de mat doit être ENREGISTRÉ avant la fin de partie, sinon il
@@ -581,14 +588,26 @@ class MoveController {
   /// l'adversaire peut fuguer en un coup — oui : nulle, non : victoire. Si un
   /// camp a poussé l'Héritier ADVERSE dans le ralliement adverse, l'adversaire
   /// gagne immédiatement.
-  ControllerResult _fugue(
-    Camp camp,
-    Cell rallyCell,
-    List<(Piece, Cell, Cell)> slides,
-  ) {
+  // La case d'arrivée exacte ne sert plus : l'Héritier s'affiche au milieu du
+  // ralliement, toujours, pour que la même partie donne la même image relue
+  // depuis son `.nmc`, qui ne dit pas par où il est sorti.
+  ControllerResult _fugue(Camp camp, List<(Piece, Cell, Cell)> slidesBruts) {
     final mover = turn;
-    fuguedHeirs.add((camp, rallyCell));
+    fuguedHeirs.add(camp);
     if (camp == Camp.blanc) blancFugued = true;
+
+    // La glissée de l'Héritier finit là où il s'affichera — au milieu. Sans
+    // ce recalage, elle le posait sur sa colonne de sortie et il sautait
+    // d'une case au moment de se poser. La zone de ralliement est dessinée
+    // d'une seule bande de trois cases : glisser vers son centre se voit
+    // moins qu'un saut à l'atterrissage.
+    final slides = [
+      for (final (piece, from, to) in slidesBruts)
+        if (piece.isHeir && !to.onBoard && to.row == camp.rallyRow)
+          (piece, from, rallyDisplayCell(camp))
+        else
+          (piece, from, to),
+    ];
 
     final notation = buildMoveNotation(
       start: tracking.start!,
@@ -736,7 +755,7 @@ class MoveController {
     // Fugue : l'Héritier a rejoint un ralliement.
     final fugueCamp = move.fugue ? mover : move.fugueBy;
     if (fugueCamp != null) {
-      fuguedHeirs.add((fugueCamp, move.to));
+      fuguedHeirs.add(fugueCamp);
       if (fugueCamp == Camp.blanc) blancFugued = true;
 
       if (fugueCamp != mover) {
