@@ -38,8 +38,16 @@ final class FakeRealtime implements RealtimeSocket {
   void off(String event, [SocketHandler? handler]) =>
       handlers.remove(event, handler);
 
+  /// Combien de fois la connexion a été demandée. Au retour au premier plan,
+  /// elle doit l'être à nouveau : le téléphone a pu passer des heures en
+  /// poche, et une connexion morte ne se signale pas toujours.
+  int connexions = 0;
+
   @override
-  Future<void> connect(String token) async => isConnected = true;
+  Future<void> connect(String token) async {
+    connexions++;
+    isConnected = true;
+  }
 
   @override
   void disconnect() => isConnected = false;

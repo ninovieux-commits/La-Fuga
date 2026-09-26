@@ -148,6 +148,12 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // La connexion temps réel d'abord : après des heures en veille, le
+      // réseau mobile l'a souvent coupée sans que personne ne le dise, et
+      // rien ne la relançait. Tout ce qui en dépend — les messages, les
+      // défis, la partie en ligne — restait muet jusqu'au redémarrage de
+      // l'application.
+      unawaited(_online.connectSocket());
       unawaited(_refreshAll());
       _startCorrPolling();
       return;

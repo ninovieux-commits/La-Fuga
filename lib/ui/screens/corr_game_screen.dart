@@ -73,7 +73,18 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   late final GameArchive _store = widget.archive ?? GameArchive();
 
-  CorrGame get _g => widget.game;
+  /// La partie, telle qu'on la connaît. Elle CHANGE : le serveur en renvoie
+  /// une version plus récente dès que l'adversaire a joué.
+  late CorrGame _g = widget.game;
+
+  /// Relecture périodique. La correspondance passe par HTTP : le serveur
+  /// n'émet aucun événement temps réel pour elle, donc rien ne réveillait cet
+  /// écran. Il fallait le quitter et y revenir pour voir le coup adverse.
+  Timer? _poll;
+  bool _polling = false;
+
+  /// Même cadence que les aperçus du menu.
+  static const Duration _pollInterval = Duration(seconds: 4);
 
   /// La photo de l'adversaire : le serveur ne l'envoie pas avec la partie, on
   /// va la chercher par son pseudo (voir `AvatarPhotos`). Vide en attendant.
@@ -96,13 +107,43 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     // La pastille du bouton Chat suit les messages en direct.
     OnlineService.instance.messages.addListener(_onMessages);
     _restore();
+    _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh()));
     if (_g.drawToAnswer) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _askDraw());
     }
   }
 
+  /// Redemande la partie au serveur et redessine si elle a bougé.
+  ///
+  /// Trois gardes, et chacune répare un dégât précis :
+  ///   — un coup en cours de composition ne doit pas être effacé sous le doigt ;
+  ///   — un envoi en vol non plus, le serveur ne connaît pas encore le coup ;
+  ///   — et on ne redessine que si le texte des coups a VRAIMENT changé, sinon
+  ///     on reconstruirait le plateau toutes les quatre secondes pour rien.
+  Future<void> _refresh() async {
+    if (!mounted || _polling || _sending) return;
+    if (_controller?.moved ?? false) return;
+    _polling = true;
+    try {
+      final games = await widget.service.list();
+      if (!mounted || games == null) return;
+      final fraiche = games.where((g) => g.id == _g.id).firstOrNull;
+      if (fraiche == null) return;
+      if (fraiche.movesText == _g.movesText && fraiche.status == _g.status) {
+        return;
+      }
+      _g = fraiche;
+      // L'adversaire a répondu : c'est de nouveau à nous.
+      if (fraiche.myTurn) _played = false;
+      _restore();
+    } finally {
+      _polling = false;
+    }
+  }
+
   @override
   void dispose() {
+    _poll?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
     _sounds.dispose();
     super.dispose();

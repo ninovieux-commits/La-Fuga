@@ -362,6 +362,39 @@ void main() {
     expect(corrCalls(), greaterThan(reveille), reason: 'le battement repart');
   });
 
+  testWidgets('au réveil, la connexion temps réel est relancée', (
+    tester,
+  ) async {
+    // Rien ne la relançait. Après des heures en poche, le réseau mobile a
+    // souvent coupé la connexion sans que personne ne le dise : les messages,
+    // les défis et la partie en ligne restaient muets jusqu au redémarrage de
+    // l application.
+    replies['/corr_list'] = {'ok': true, 'games': const []};
+    await open(tester);
+
+    final avant = socket.connexions;
+    expect(avant, greaterThan(0), reason: 'jamais connecté : test sans objet');
+
+    // Flutter refuse qu'on saute une étape du cycle de vie.
+    for (final etat in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(etat);
+    }
+    await tester.pumpAndSettle();
+
+    expect(
+      socket.connexions,
+      greaterThan(avant),
+      reason: 'au retour au premier plan, personne ne redemande la connexion',
+    );
+  });
+
   testWidgets('une demande lente n en fait pas partir dix', (tester) async {
     replies['/corr_list'] = {
       'ok': true,

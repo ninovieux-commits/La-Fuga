@@ -70,7 +70,17 @@ class ApiClient {
           )
           .timeout(_timeout);
 
-      if (response.body.isEmpty) return const ApiResult.ok({});
+      // Un corps VIDE n'est pas une réussite. Il l'était, et l'appel remontait
+      // alors comme réussi avec zéro donnée : l'appelant y lisait « aucun
+      // message », « aucune partie », ou affichait « Erreur inconnue » faute de
+      // message. C'est une panne de transport, et la dire telle quelle garde le
+      // jeton valide pour la reconnexion automatique.
+      if (response.body.isEmpty) {
+        return const ApiResult.failure(
+          'Réponse vide du serveur',
+          isNetworkError: true,
+        );
+      }
       final decoded = jsonDecode(utf8.decode(response.bodyBytes));
       if (decoded is! Map) {
         return const ApiResult.failure('Réponse inattendue du serveur');

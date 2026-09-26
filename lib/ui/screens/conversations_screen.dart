@@ -247,19 +247,61 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   StreamSubscription<IncomingMessage>? _watch;
 
+  /// Filet de sécurité derrière le temps réel.
+  ///
+  /// L'écran n'avait QUE l'événement `message_recu` pour se réveiller. Quand il
+  /// n'arrive pas — socket coupé, réseau mobile qui a lâché la connexion sans
+  /// le dire, application revenue du fond — la conversation restait figée
+  /// jusqu'à ce qu'on la quitte et qu'on y revienne. Le socket rend le message
+  /// instantané ; cette relecture garantit qu'il arrive.
+  Timer? _poll;
+  bool _polling = false;
+  static const Duration _pollInterval = Duration(seconds: 4);
+
   @override
   void initState() {
     super.initState();
     _load();
     _watch = widget.online.messages.incoming.listen(_onIncoming);
+    _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh()));
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
     _watch?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Relit la conversation et ne redessine que si elle a changé.
+  ///
+  /// Sans marquer comme lu : `_load` le fait à l'ouverture, et le refaire
+  /// toutes les quatre secondes ajouterait une écriture serveur pour rien.
+  Future<void> _refresh() async {
+    if (!mounted || _polling) return;
+    _polling = true;
+    try {
+      final r = await widget.online.client.listConversation(widget.pseudo);
+      if (!mounted || !r.isOk) return;
+      final frais = [
+        for (final m in r.get<List<dynamic>>('messages') ?? const [])
+          if (m is Map) ChatMessage.fromJson(Map<String, dynamic>.from(m)),
+      ];
+      if (frais.length == _messages.length) return;
+      setState(() {
+        _messages
+          ..clear()
+          ..addAll(frais);
+      });
+      // Un message vient d'arriver : la conversation est ouverte, donc lue.
+      widget.online.messages.markRead(widget.pseudo);
+      unawaited(widget.online.client.markRead(widget.pseudo));
+      _scrollToEnd();
+    } finally {
+      _polling = false;
+    }
   }
 
   /// Message reçu en direct : on ne l'ajoute que s'il vient d'ici.
