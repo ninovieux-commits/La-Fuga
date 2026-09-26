@@ -174,11 +174,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   hintText: T('Pseudo'),
                   filled: true,
                   fillColor: Colors.white,
-                  // Même épaisseur qu'une touche : un champ de saisie se vise
-                  // avec le pouce comme un bouton.
-                  constraints: BoxConstraints.tightFor(height: touchHeight()),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: S(12)),
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -194,13 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: T('Mot de passe'),
                         filled: true,
                         fillColor: Colors.white,
-                        // Même épaisseur qu'une touche : un champ de saisie se vise
-                        // avec le pouce comme un bouton.
-                        constraints: BoxConstraints.tightFor(
-                          height: touchHeight(),
-                        ),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: S(12)),
                         border: const OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _submit(),
@@ -229,11 +217,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: T('Email (optionnel)'),
                     filled: true,
                     fillColor: Colors.white,
-                    // Même épaisseur qu'une touche : un champ de saisie se vise
-                    // avec le pouce comme un bouton.
-                    constraints: BoxConstraints.tightFor(height: touchHeight()),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: S(12)),
                     border: const OutlineInputBorder(),
                   ),
                 ),

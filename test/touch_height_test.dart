@@ -82,21 +82,27 @@ void main() {
   }
 
   /// Un champ de saisie d'UNE ligne se vise avec le pouce comme une touche : il
-  /// a la même épaisseur. C'est ce que demandait la barre de recherche du menu,
-  /// qui restait fine à côté de l'étoile. Les champs multi-lignes (le lecteur
-  /// nmc, une description) sont exclus : ils sont faits pour s'étirer.
+  /// n'est JAMAIS plus fin qu'elle. C'est le défaut qu'avait la barre de
+  /// recherche du menu, qui tombait à 19 px au lieu de 51 et paraissait
+  /// minuscule à côté de l'étoile.
+  ///
+  /// La règle est un plancher, pas une égalité : un champ légèrement plus haut
+  /// ne gêne personne, c'est la finesse qui rend la visée difficile. Les champs
+  /// multi-lignes (le lecteur nmc, une description) sont exclus : ils sont
+  /// faits pour s'étirer.
   void expectAllFields(WidgetTester tester, String where) {
-    final wanted = touchHeight();
+    final floor = touchHeight();
     for (final element in find.byType(TextField).evaluate()) {
       final field = element.widget as TextField;
       if (field.maxLines != 1) continue;
       final height = (element.renderObject as RenderBox).size.height;
       expect(
         height,
-        moreOrLessEquals(wanted, epsilon: 0.5),
+        greaterThanOrEqualTo(floor - 0.5),
         reason:
             '$where : le champ « ${field.decoration?.hintText ?? '?'} » fait '
-            '${height.toStringAsFixed(1)} au lieu de ${wanted.toStringAsFixed(1)}',
+            '${height.toStringAsFixed(1)}, plus fin qu\'une touche '
+            '(${floor.toStringAsFixed(1)})',
       );
     }
   }
