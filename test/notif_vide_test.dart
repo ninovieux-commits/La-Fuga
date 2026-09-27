@@ -79,6 +79,23 @@ void main() {
       expect(hasSomethingToSay(contentOf(_message())), isFalse);
     });
 
+    test('un message qui porte un type mais pas de texte se tait', () {
+      // On n'invente rien a partir du `type` : ces cartes-la n'annoncent
+      // aucun evenement — rien ne bouge dans l'application quand elles
+      // tombent — et leur fabriquer un texte en ferait de nouvelles.
+      for (final type in const [
+        'corr_turn',
+        'corr_fin',
+        'defi_corr',
+        'message',
+        'corr_chat',
+      ]) {
+        final c = contentOf(_message(data: {'type': type, 'game_id': '7'}));
+        expect(c.body, '', reason: 'type $type');
+        expect(hasSomethingToSay(c), isFalse, reason: 'type $type');
+      }
+    });
+
     test('un corps de blancs ne dit rien non plus', () {
       expect(hasSomethingToSay((title: 'mesange', body: '   ')), isFalse);
       expect(hasSomethingToSay((title: 'mesange', body: '\n')), isFalse);
@@ -132,42 +149,6 @@ void main() {
       );
       expect(greffon.posees.single['title'], 'mesange');
       expect(greffon.posees.single['body'], 'a joué 6.Sol1-Sol2>Fa3');
-    });
-  });
-
-  group('Un vrai événement dont le texte s est perdu', () {
-    // C est la nuance qui compte : taire une carte vide est bon, taire une
-    // notification de coup ferait manquer un coup.
-    test('il n est pas tu : il annonce ce qu on sait encore', () {
-      const attendus = {
-        'corr_turn': 'À vous de jouer',
-        'corr_fin': 'Partie terminée',
-        'defi_corr': 'Nouveau défi en correspondance',
-        'defi_direct': 'Nouveau défi',
-        'message': 'Nouveau message',
-        'corr_chat': 'Nouveau message',
-      };
-      attendus.forEach((type, texte) {
-        final c = contentOf(_message(data: {'type': type, 'game_id': '7'}));
-        expect(c.body, texte, reason: 'type $type');
-        expect(hasSomethingToSay(c), isTrue, reason: 'type $type serait tu');
-      });
-    });
-
-    test('le vrai texte l emporte toujours sur le repli', () {
-      final c = contentOf(
-        _message(
-          titre: 'mesange',
-          corps: 'a joué 6.Sol1-Sol2>Fa3',
-          data: {'type': 'corr_turn'},
-        ),
-      );
-      expect(c.body, 'a joué 6.Sol1-Sol2>Fa3');
-    });
-
-    test('un type inconnu ne fabrique rien', () {
-      expect(fallbackBody(const {'type': 'trucmuche'}), isNull);
-      expect(fallbackBody(const {}), isNull);
     });
   });
 
