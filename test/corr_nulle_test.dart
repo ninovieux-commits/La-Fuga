@@ -159,6 +159,52 @@ void main() {
     });
   });
 
+  group('Le ½ éteint, quand on appuie quand même', () {
+    testWidgets('il dit ce qui manque : jouer son coup', (tester) async {
+      // L'infobulle demande de rester appuyé, et personne ne le fait. La
+      // question se pose au moment de l'appui : c'est là qu'on répond.
+      await ouvrir(tester, jeuJson(monTour: true));
+      await tester.tap(find.text('½'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Jouez votre coup pour pouvoir proposer la nulle'),
+        findsOneWidget,
+      );
+      expect(appele('/corr_proposer_nulle'), isFalse);
+    });
+
+    testWidgets('et quand c est une nulle qui attend, il le dit aussi', (
+      tester,
+    ) async {
+      await ouvrir(
+        tester,
+        jeuJson(monTour: false, nulleARepondre: true, coups: 'Do1-Do2'),
+      );
+      await tester.tap(find.text('½'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Répondez d abord à la nulle proposée'),
+        findsOneWidget,
+        reason: 'le motif du blocage n est pas celui qu on croit',
+      );
+    });
+
+    testWidgets('allumé, il ne dit rien : il propose', (tester) async {
+      await ouvrir(tester, jeuJson(monTour: false, coups: 'Do1-Do2'));
+      await tester.tap(find.text('½'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(AlertDialog),
+        findsNothing,
+        reason: 'une explication s est affichée alors que le geste a marché',
+      );
+      expect(appele('/corr_proposer_nulle'), isTrue);
+    });
+  });
+
   group('L offre reçue', () {
     testWidgets('elle prend la place du panneau de l adversaire', (
       tester,

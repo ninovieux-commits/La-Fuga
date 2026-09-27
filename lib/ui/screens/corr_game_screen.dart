@@ -22,6 +22,7 @@ import '../../net/avatar_photos.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
+import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
@@ -511,6 +512,29 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     }
   }
 
+  /// Le ½ est éteint et on vient d'appuyer dessus : dire pourquoi.
+  ///
+  /// L'infobulle ne suffit pas — elle demande de rester appuyé, et personne
+  /// ne le fait. Ici la question est posée au moment où elle se pose.
+  Future<void> _expliquerNulle() async {
+    final texte = _g.drawToAnswer
+        ? T('Répondez d abord à la nulle proposée')
+        : T('Jouez votre coup pour pouvoir proposer la nulle');
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kFugaGrey,
+        content: Text(texte, style: const TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Fermer')),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Proposer la nulle. Possible seulement quand on a déjà joué son coup :
   /// tant qu'on a le trait, on joue, on ne négocie pas.
   Future<void> _offerDraw() async {
@@ -772,6 +796,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       // il ne répond pas.
       onDraw: (isMine && enCours) ? () => unawaited(_offerDraw()) : null,
       drawEnabled: _aJoue && !_g.drawToAnswer && !_offreNulle,
+      onDrawBlocked: _expliquerNulle,
       drawOffered: isMine && _g.drawOfferedByMe,
       onResign: canAct ? _resign : null,
     );

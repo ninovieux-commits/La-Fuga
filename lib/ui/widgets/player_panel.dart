@@ -97,6 +97,7 @@ class PlayerPanel extends StatelessWidget {
     this.onNameTap,
     this.drawOffered = false,
     this.drawEnabled = true,
+    this.onDrawBlocked,
     this.busy = false,
     this.mirrored = false,
     this.onUndo,
@@ -144,6 +145,11 @@ class PlayerPanel extends StatelessWidget {
   /// rien : on ne sait pas qu'il existe, ni pourquoi il n'est pas là. Éteint,
   /// il se montre et son infobulle dit ce qui manque.
   final bool drawEnabled;
+
+  /// Touché alors qu'il est éteint. L'infobulle demande de rester appuyé —
+  /// personne ne le fait : c'est ce rappel-ci qui dit ce qui manque, au
+  /// moment où on se pose la question.
+  final VoidCallback? onDrawBlocked;
 
   /// Ce camp a proposé la nulle : Kivy allume alors son ½ en orange.
   final bool drawOffered;
@@ -275,6 +281,7 @@ class PlayerPanel extends StatelessWidget {
           onDraw!,
           color: drawOffered ? palette.clair : kFugaGrey,
           enabled: drawEnabled,
+          onBlocked: onDrawBlocked,
         ),
       // L'abandon est rouge sombre chez Kivy : on n'y touche pas par mégarde.
       if (onResign != null)
@@ -297,6 +304,7 @@ class PlayerPanel extends StatelessWidget {
     Color color = kFugaGrey,
     double? fontSize,
     bool enabled = true,
+    VoidCallback? onBlocked,
   }) => Tooltip(
     message: tooltip,
     child: Padding(
@@ -314,7 +322,7 @@ class PlayerPanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(S(16)),
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),
-              onTap: enabled ? onPressed : null,
+              onTap: enabled ? onPressed : onBlocked,
               child: Center(
                 child: Text(
                   label,
