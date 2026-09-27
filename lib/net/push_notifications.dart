@@ -67,7 +67,29 @@ typedef PushContent = ({String title, String body});
 ///
 /// Les six notifications du serveur portent toutes un corps ; une carte sans
 /// corps ne peut donc rien annoncer. On ne l'affiche pas.
+///
+/// Attention : un message dont le texte s'est perdu mais qui porte un `type`
+/// connu a déjà reçu un corps de repli dans [contentOf]. Il n'est donc pas
+/// tu — seuls les messages qui n'annoncent VRAIMENT rien le sont.
 bool hasSomethingToSay(PushContent content) => content.body.trim().isNotEmpty;
+
+/// Ce qu'annonce un message dont le TEXTE s'est perdu en route.
+///
+/// Le serveur met toujours un `type` dans les données d'une notification.
+/// Un message qui en porte un mais qui arrive sans texte est donc un VRAI
+/// événement, pas un message vide : le taire ferait manquer un coup. On
+/// annonce alors ce qu'on sait encore, faute du reste.
+///
+/// Sans `type` connu, il n'y a rien à annoncer : `null`, et la notification
+/// ne sera pas affichée.
+String? fallbackBody(Map<String, dynamic> data) => switch (data['type']) {
+  'corr_turn' => 'À vous de jouer',
+  'corr_fin' => 'Partie terminée',
+  'defi_corr' => 'Nouveau défi en correspondance',
+  'defi_direct' => 'Nouveau défi',
+  'message' || 'corr_chat' => 'Nouveau message',
+  _ => null,
+};
 
 /// Démêle un message comme le fait `onMessageReceived` : la charge
 /// `notification` d'abord, puis les clés `data` qui l'emportent.
@@ -77,6 +99,7 @@ PushContent contentOf(RemoteMessage message) {
   final data = message.data;
   if (data['title'] is String) title = data['title'] as String;
   if (data['body'] is String) body = data['body'] as String;
+  if (body.trim().isEmpty) body = fallbackBody(data) ?? '';
   return (title: title, body: body);
 }
 

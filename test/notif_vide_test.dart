@@ -68,11 +68,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Ce qu un message dit', () {
-    test('un message de données pures ne dit rien', () {
-      final c = contentOf(_message(data: {'type': 'corr_turn'}));
+    test('un message sans texte ni type connu ne dit rien', () {
+      final c = contentOf(_message(data: {'google.c.a.e': '1'}));
       expect(c.title, kDefaultTitle, reason: 'le titre retombe sur le défaut');
       expect(c.body, '');
       expect(hasSomethingToSay(c), isFalse);
+    });
+
+    test('un message entièrement nu ne dit rien', () {
+      expect(hasSomethingToSay(contentOf(_message())), isFalse);
     });
 
     test('un corps de blancs ne dit rien non plus', () {
@@ -104,7 +108,7 @@ void main() {
     tearDown(() => greffon.debrancher());
 
     test('rien, pour un message sans contenu', () async {
-      await PushNotifications.show(_message(data: {'type': 'corr_turn'}));
+      await PushNotifications.show(_message(data: {'google.c.a.e': '1'}));
       expect(
         greffon.posees,
         isEmpty,
@@ -128,6 +132,42 @@ void main() {
       );
       expect(greffon.posees.single['title'], 'mesange');
       expect(greffon.posees.single['body'], 'a joué 6.Sol1-Sol2>Fa3');
+    });
+  });
+
+  group('Un vrai événement dont le texte s est perdu', () {
+    // C est la nuance qui compte : taire une carte vide est bon, taire une
+    // notification de coup ferait manquer un coup.
+    test('il n est pas tu : il annonce ce qu on sait encore', () {
+      const attendus = {
+        'corr_turn': 'À vous de jouer',
+        'corr_fin': 'Partie terminée',
+        'defi_corr': 'Nouveau défi en correspondance',
+        'defi_direct': 'Nouveau défi',
+        'message': 'Nouveau message',
+        'corr_chat': 'Nouveau message',
+      };
+      attendus.forEach((type, texte) {
+        final c = contentOf(_message(data: {'type': type, 'game_id': '7'}));
+        expect(c.body, texte, reason: 'type $type');
+        expect(hasSomethingToSay(c), isTrue, reason: 'type $type serait tu');
+      });
+    });
+
+    test('le vrai texte l emporte toujours sur le repli', () {
+      final c = contentOf(
+        _message(
+          titre: 'mesange',
+          corps: 'a joué 6.Sol1-Sol2>Fa3',
+          data: {'type': 'corr_turn'},
+        ),
+      );
+      expect(c.body, 'a joué 6.Sol1-Sol2>Fa3');
+    });
+
+    test('un type inconnu ne fabrique rien', () {
+      expect(fallbackBody(const {'type': 'trucmuche'}), isNull);
+      expect(fallbackBody(const {}), isNull);
     });
   });
 
