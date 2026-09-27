@@ -160,6 +160,34 @@ void main() {
     expect(bodyOf('/corr_close')!['game_id'], 'g1');
   });
 
+  testWidgets('jamais trois cases vides à la fois', (tester) async {
+    // Une seule partie en cours affichait une ligne entière de cases vides
+    // SOUS une ligne à moitié remplie : trois vides pour une partie. Une
+    // nouvelle ligne ne doit apparaître que quand les deux du dessus sont
+    // prises.
+    Future<int> casesPour(int parties) async {
+      replies['/corr_list'] = {
+        'ok': true,
+        'games': [for (var i = 0; i < parties; i++) game(id: 'g$i')],
+      };
+      // Un écran NEUF à chaque mesure : rouvrir le même menu réutilise son
+      // état, la liste n'est pas redemandée, et la mesure ne vaut rien.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await open(tester);
+      return tester.widgetList<CorrSlot>(find.byType(CorrSlot)).length;
+    }
+
+    expect(await casesPour(0), 2, reason: 'aucune partie : une ligne vide');
+    expect(await casesPour(1), 2, reason: 'une partie : UNE case vide');
+    expect(await casesPour(2), 4, reason: 'deux parties : une ligne de plus');
+    expect(await casesPour(3), 4, reason: 'trois parties : UNE case vide');
+    expect(await casesPour(4), 6);
+    // Le serveur refuse une onzième partie : à dix, plus de case vide.
+    expect(await casesPour(9), 10);
+    expect(await casesPour(10), 10, reason: 'on proposerait une 11e partie');
+  });
+
   testWidgets('une partie terminée se ROUVRE par « Afficher »', (tester) async {
     // Une partie finie n offrait que Revanche et Fermer : impossible de revoir
     // comment elle s était terminée. Toucher la case ne faisait rien non plus,

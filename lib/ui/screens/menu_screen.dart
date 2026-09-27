@@ -1302,11 +1302,18 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     ),
   );
 
-  /// Deux colonnes de plateaux : assez pour les parties en cours, plus deux
-  /// cases vides pour en lancer, et dix au maximum.
+  /// Deux colonnes de plateaux : les parties en cours, et de quoi en lancer.
+  ///
+  /// Une ligne de cases vides n'apparaît que lorsque les DEUX du dessus sont
+  /// prises. Il y a donc toujours une ou deux cases vides, jamais trois : on
+  /// en ajoutait systématiquement deux, ce qui laissait une ligne entière
+  /// vide sous une ligne à moitié remplie.
+  ///
+  /// Dix au maximum, comme le serveur, qui refuse une onzième partie
+  /// simultanée : à dix, plus aucune case vide, et c'est juste.
   Widget _corrGrid(ThemePalette palette) {
-    final rows = (_corrGames.length + 2 + 1) ~/ 2;
-    final count = (rows.clamp(1, 5)) * 2;
+    final jouees = _corrGames.length;
+    final count = (jouees.isEven ? jouees + 2 : jouees + 1).clamp(2, 10);
 
     // Kivy donne à la grille 92 % de la LARGEUR de l'écran, deux colonnes,
     // et à chaque case la forme du plateau (7 colonnes pour 8 rangées).
