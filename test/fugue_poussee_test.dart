@@ -107,6 +107,65 @@ void main() {
       );
     });
 
+    test('les deux orthographes du .nmc, telles que Nino les décrit', () {
+      // « Fa2-Fa3> »        : toutes les lignes poussables l ont été.
+      // « Fa2-Fa3>Mi4Sol4 » : ces deux-là seulement.
+      // Une fugue par poussée n a aucune raison de s écrire autrement.
+      final b = _positionAmbigue();
+
+      MoveController jouer(List<Cell> gestes) {
+        final c = MoveController(board: b.clone(), turn: Camp.noir);
+        for (final g in gestes) {
+          c.tapCell(g);
+        }
+        return c;
+      }
+
+      // Mi6 -> Fa7 en diagonale (le Garde active ainsi sa poussée), puis on
+      // pousse les QUATRE lignes qui partent de Fa7 : Mi7, Sol7, Fa6, et
+      // Fa8 où est l'Héritier. En oublier une suffit à faire nommer les
+      // autres — c'est ce que ce test a attrapé.
+      final toutes = jouer(const [
+        Cell(2, 5),
+        Cell(3, 6),
+        Cell(2, 6),
+        Cell(4, 6),
+        Cell(3, 5),
+        Cell(3, 7),
+      ]);
+      expect(
+        toutes.history.last,
+        'Mi6-Fa7>',
+        reason: 'tout poussé : rien ne doit suivre le chevron',
+      );
+
+      final deux = jouer(const [
+        Cell(2, 5),
+        Cell(3, 6),
+        Cell(2, 6),
+        Cell(3, 7),
+      ]);
+      expect(
+        deux.history.last,
+        'Mi6-Fa7>Mi7Fa8',
+        reason: 'les lignes poussées doivent être nommées',
+      );
+
+      // Et les deux se relisent, marque de fin comprise.
+      for (final c in [toutes, deux]) {
+        final marque = withEndSuffix([c.history.last], 'fugue').single;
+        expect(marque, endsWith('*'));
+        final relu = applyNotationLiterally(b, marque);
+        expect(relu.ok, isTrue, reason: 'illisible : $marque');
+        expect(relu.fugued, {Camp.blanc}, reason: 'fugue ratée : $marque');
+        expect(
+          relu.board.positionKey(Camp.blanc),
+          c.board.positionKey(Camp.blanc),
+          reason: 'la position relue diffère de celle jouée : $marque',
+        );
+      }
+    });
+
     test('et ce qui est écrit se rejoue à l identique', () {
       final depart = _positionDePoussee();
       final (c, ecrit) = jouerLaPoussee();
