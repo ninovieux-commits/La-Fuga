@@ -25,6 +25,7 @@ import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
+import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Map<String, Object> _launched = {'lang_chosen': true, 'tuto_seen': true};
@@ -279,5 +280,35 @@ void main() {
 
     expect(copie, nmcServeur, reason: 'le .nmc du serveur n a pas été copié');
     expect(find.text('Contenu .nmc'), findsOneWidget);
+  });
+
+  group('Pendant la relecture', () {
+    testWidgets('« Copier » est là, avec Analyser et Deep Grey', (
+      tester,
+    ) async {
+      // Il fallait ressortir jusqu à l historique pour copier le .nmc d une
+      // partie qu on était en train de relire.
+      const nmc = '[Date "2026-09-27"]\n[Blanc "nino"]\n\n1.Do2-Do3/Do7-Do6';
+      await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: nmc)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Analyser'), findsOneWidget, reason: 'repère');
+      expect(
+        find.text('Copier'),
+        findsOneWidget,
+        reason: 'la touche manque dans le bandeau du lecteur',
+      );
+
+      await tester.tap(find.text('Copier'));
+      await tester.pumpAndSettle();
+
+      expect(
+        copie,
+        nmc,
+        reason: 'le presse-papiers ne contient pas le .nmc de la partie',
+      );
+      // Et le contenu s affiche, comme depuis l historique.
+      expect(find.text('Contenu .nmc'), findsOneWidget);
+    });
   });
 }

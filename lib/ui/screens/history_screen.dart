@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/messages.dart';
@@ -18,6 +17,7 @@ import '../../state/local_games.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/nmc_dialog.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
 import 'replay_screen.dart';
@@ -212,7 +212,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _copyNmc(LocalGame game) async {
     final content = await widget.store.read(game.file);
     if (content == null || !mounted) return;
-    await _showNmc(content);
+    await showNmcDialog(context, content);
   }
 
   /// Le .nmc d'une partie EN LIGNE. Le fichier n'est pas sur le téléphone :
@@ -225,39 +225,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       await _showError(T('Impossible de charger la partie.'));
       return;
     }
-    await _showNmc(content);
-  }
-
-  /// Met le .nmc dans le presse-papiers et le montre, sélectionnable — comme
-  /// la popup de Kivy, qui demande de sélectionner le texte à la main.
-  Future<void> _showNmc(String content) async {
-    await Clipboard.setData(ClipboardData(text: content));
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kFugaGrey,
-        title: Text(
-          T('Contenu .nmc'),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              content,
-              style: TextStyle(color: Colors.white, fontSize: SF(13)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Fermer')),
-          ),
-        ],
-      ),
-    );
+    await showNmcDialog(context, content);
   }
 
   // ── Affichage ─────────────────────────────────────────────────────────────

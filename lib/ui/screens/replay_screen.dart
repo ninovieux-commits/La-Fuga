@@ -20,6 +20,7 @@ import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
+import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
@@ -154,6 +155,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
             onFlip: () => setState(() => _flipped = !_flipped),
             pauseLabel: '<<',
             onPause: () => Navigator.of(context).pop(),
+            onCopyNmc: () => showNmcDialog(context, widget.nmc),
             onAnalyse: () => _playFromHere(false),
             onDeepGrey: _playAgainstDeepGrey,
           ),

@@ -32,6 +32,7 @@ class GameTopBar extends StatelessWidget {
     this.onMenu,
     this.onChat,
     this.unreadChat = 0,
+    this.onCopyNmc,
     this.onAnalyse,
     this.onDeepGrey,
     this.aiDeepMode,
@@ -62,6 +63,10 @@ class GameTopBar extends StatelessWidget {
   /// partie et messages privés reçus de lui. Seul le fait qu'il y en ait
   /// compte — la pastille ne montre pas de nombre.
   final int unreadChat;
+
+  /// En relecture : copier le `.nmc` de la partie qu'on est en train de
+  /// relire, sans avoir à ressortir jusqu'à l'historique pour le faire.
+  final VoidCallback? onCopyNmc;
 
   /// En relecture seulement.
   final VoidCallback? onAnalyse;
@@ -122,6 +127,16 @@ class GameTopBar extends StatelessWidget {
             color: kBarButtonDark,
             fontSize: SF(17),
             tooltip: T('Deep Grey'),
+          ),
+          SizedBox(width: S(6)),
+        ],
+        if (onCopyNmc != null) ...[
+          _wide(
+            T('Copier'),
+            onCopyNmc!,
+            width: S(104),
+            color: kBarButtonDark,
+            tooltip: T('Contenu .nmc'),
           ),
           SizedBox(width: S(6)),
         ],

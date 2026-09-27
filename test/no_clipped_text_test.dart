@@ -26,6 +26,7 @@ import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/screens/parties_menu_screen.dart';
 import 'package:lafuga/ui/screens/photo_picker.dart';
 import 'package:lafuga/ui/screens/reader_screen.dart';
+import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/screens/settings_screen.dart';
 import 'package:lafuga/ui/screens/theme_composer_screen.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
@@ -75,6 +76,14 @@ void main() {
       ('le tuto', () => const TutoScreen()),
       ('la messagerie', () => ConversationsScreen(online: OnlineService())),
       ('l historique', () => HistoryScreen(online: OnlineService())),
+      // Le bandeau du lecteur porte une touche de plus depuis qu on peut y
+      // copier le .nmc : trois touches côte à côte, plus le retournement.
+      (
+        'le lecteur de partie',
+        () => const ReplayScreen(
+          nmc: '[Date "2026-09-27"]\n[Blanc "nino"]\n\n1.Do2-Do3/Do7-Do6',
+        ),
+      ),
     ]) {
       testWidgets('rien n est coupé sur $name, sur $shape', (tester) async {
         tester.view.physicalSize = size;
