@@ -29,6 +29,7 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/name_menu.dart';
 import '../widgets/pause_dialog.dart';
+import '../widgets/draw_offer_panel.dart';
 import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
 import 'conversations_screen.dart';
@@ -133,9 +134,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     OnlineService.instance.messages.addListener(_onMessages);
     _restore();
     _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh()));
-    if (_g.drawToAnswer) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _askDraw());
-    }
   }
 
   /// Redemande la partie au serveur et redessine si elle a bougé.
@@ -154,12 +152,27 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       if (!mounted || games == null) return;
       final fraiche = games.where((g) => g.id == _g.id).firstOrNull;
       if (fraiche == null) return;
-      if (fraiche.movesText == _g.movesText && fraiche.status == _g.status) {
+      // Une proposition de nulle ne change NI les coups NI le statut : s'en
+      // tenir à ces deux-là la laissait passer sous le nez, et l'offre
+      // n'apparaissait qu'en rouvrant la partie.
+      final memeNulle =
+          fraiche.drawToAnswer == _g.drawToAnswer &&
+          fraiche.drawOfferedByMe == _g.drawOfferedByMe;
+      if (fraiche.movesText == _g.movesText &&
+          fraiche.status == _g.status &&
+          memeNulle) {
         return;
       }
+      final memeCoups = fraiche.movesText == _g.movesText;
       _g = fraiche;
       // L'adversaire a répondu : c'est de nouveau à nous.
       if (fraiche.myTurn) _played = false;
+      // Rien qu'une nulle a bougé : rejouer la partie rembobinerait le
+      // plateau sous les yeux pour rien.
+      if (memeCoups && _controller != null) {
+        setState(() {});
+        return;
+      }
       _restore();
     } finally {
       _polling = false;
@@ -472,31 +485,50 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     return winner == _g.myCamp ? widget.myPseudo : _g.opponent;
   }
 
-  /// Répondre à une nulle proposée. On ne peut pas en proposer une soi-même :
-  /// Kivy cache le ½ en correspondance (`_update_side_buttons`), le temps y
-  /// étant illimité.
-  Future<void> _askDraw() async {
-    final accept = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(T('Nulle')),
-        content: Text('${_g.drawProposer} ${T('propose la nulle')}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Refuser')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Accepter')),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    await widget.service.answerDraw(_g.id, accept == true);
-    if (accept == true && mounted) Navigator.of(context).pop();
+  /// Une réponse à la nulle est en vol : on ne répond pas deux fois.
+  bool _repondNulle = false;
+
+  /// Répondre à la nulle proposée par l'adversaire.
+  ///
+  /// Sans popup : l'offre est dans le bandeau du haut, le plateau reste
+  /// entier et l'analyse reste atteignable. C'est tout l'intérêt — on
+  /// n'accepte pas une nulle sans avoir pu regarder la position.
+  Future<void> _answerDraw(bool accept) async {
+    if (_repondNulle) return;
+    setState(() => _repondNulle = true);
+    try {
+      await widget.service.answerDraw(_g.id, accept);
+      if (!mounted) return;
+      if (accept) {
+        Navigator.of(context).pop();
+        return;
+      }
+      // Refusée : le serveur a effacé la proposition, on redemande la partie
+      // pour que le bandeau reprenne sa place.
+      await _refresh();
+    } finally {
+      if (mounted) setState(() => _repondNulle = false);
+    }
   }
+
+  /// Proposer la nulle. Possible seulement quand on a déjà joué son coup :
+  /// tant qu'on a le trait, on joue, on ne négocie pas.
+  Future<void> _offerDraw() async {
+    if (_offreNulle) return;
+    setState(() => _offreNulle = true);
+    try {
+      await widget.service.offerDraw(_g.id);
+      if (mounted) await _refresh();
+    } finally {
+      if (mounted) setState(() => _offreNulle = false);
+    }
+  }
+
+  bool _offreNulle = false;
+
+  /// Ai-je déjà joué mon coup ? Le serveur met un temps à le savoir : après
+  /// l'envoi, [_played] l'affirme avant que la partie ne revienne.
+  bool get _aJoue => _played || !_g.myTurn;
 
   Future<void> _resign() async {
     final ok = await showDialog<bool>(
@@ -695,6 +727,19 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   Widget _panel(ThemePalette palette, Camp camp, MoveController c) {
     final isMine = camp == _g.myCamp;
     final canAct = isMine && _g.status == CorrStatus.enCours && !_played;
+    final enCours = _g.status == CorrStatus.enCours;
+
+    // L'adversaire propose la nulle : son panneau cède la place à l'offre.
+    // Le plateau reste entier derrière, et l'analyse à portée de touche.
+    if (!isMine && enCours && _g.drawToAnswer) {
+      return DrawOfferPanel(
+        proposer: _g.drawProposer.isEmpty ? _g.opponent : _g.drawProposer,
+        palette: palette,
+        busy: _repondNulle,
+        onAccept: () => unawaited(_answerDraw(true)),
+        onRefuse: () => unawaited(_answerDraw(false)),
+      );
+    }
 
     return PlayerPanel(
       // Comme en ligne, le mélo suit le nom.
@@ -721,8 +766,13 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
               if (c.cancelCurrentMove()) setState(() {});
             }
           : null,
-      // Pas de ½ en correspondance : le temps est illimité, Kivy ne montre
-      // que l'abandon (`_update_side_buttons`).
+      // Le ½ EXISTE en correspondance — Kivy le cachait. Mais on ne le
+      // touche qu'une fois son coup joué : tant qu'on a le trait, on joue.
+      // Éteint plutôt que caché, pour qu'on voie qu'il est là et pourquoi
+      // il ne répond pas.
+      onDraw: (isMine && enCours) ? () => unawaited(_offerDraw()) : null,
+      drawEnabled: _aJoue && !_g.drawToAnswer && !_offreNulle,
+      drawOffered: isMine && _g.drawOfferedByMe,
       onResign: canAct ? _resign : null,
     );
   }

@@ -96,6 +96,7 @@ class PlayerPanel extends StatelessWidget {
     this.nameColor = kPanelInk,
     this.onNameTap,
     this.drawOffered = false,
+    this.drawEnabled = true,
     this.busy = false,
     this.mirrored = false,
     this.onUndo,
@@ -136,6 +137,13 @@ class PlayerPanel extends StatelessWidget {
   /// Annuler le coup en cours. Absent = geste indisponible de ce côté.
   final VoidCallback? onUndo;
   final VoidCallback? onDraw;
+
+  /// Le ½ est-il actionnable ? Faux : il reste VISIBLE mais éteint.
+  ///
+  /// Le cacher serait plus simple, mais un bouton qui disparaît n'apprend
+  /// rien : on ne sait pas qu'il existe, ni pourquoi il n'est pas là. Éteint,
+  /// il se montre et son infobulle dit ce qui manque.
+  final bool drawEnabled;
 
   /// Ce camp a proposé la nulle : Kivy allume alors son ½ en orange.
   final bool drawOffered;
@@ -261,9 +269,12 @@ class PlayerPanel extends StatelessWidget {
       if (onDraw != null)
         _button(
           '½',
-          T('Proposer nulle'),
+          drawEnabled
+              ? (drawOffered ? T('Nulle proposée') : T('Proposer nulle'))
+              : T('Jouez votre coup d abord'),
           onDraw!,
           color: drawOffered ? palette.clair : kFugaGrey,
+          enabled: drawEnabled,
         ),
       // L'abandon est rouge sombre chez Kivy : on n'y touche pas par mégarde.
       if (onResign != null)
@@ -285,6 +296,7 @@ class PlayerPanel extends StatelessWidget {
     VoidCallback onPressed, {
     Color color = kFugaGrey,
     double? fontSize,
+    bool enabled = true,
   }) => Tooltip(
     message: tooltip,
     child: Padding(
@@ -295,16 +307,19 @@ class PlayerPanel extends StatelessWidget {
         child: AspectRatio(
           aspectRatio: 1,
           child: Material(
-            color: color,
+            // Éteinte, la touche se fond à moitié dans le panneau et son
+            // libellé pâlit : elle reste lisible, mais visiblement hors
+            // d'usage.
+            color: enabled ? color : Color.lerp(color, palette.menu, 0.6)!,
             borderRadius: BorderRadius.circular(S(16)),
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),
-              onTap: onPressed,
+              onTap: enabled ? onPressed : null,
               child: Center(
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: enabled ? Colors.white : Colors.white54,
                     fontSize: fontSize ?? SF(18),
                     fontWeight: FontWeight.bold,
                   ),
