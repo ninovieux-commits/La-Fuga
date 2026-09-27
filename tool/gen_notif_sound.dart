@@ -1,4 +1,4 @@
-// Fabrique le son des notifications, un par instrument — lancé à la main :
+// Fabrique le son des notifications — lancé à la main :
 //
 //     dart run tool/gen_notif_sound.dart
 //
@@ -11,7 +11,13 @@
 //
 // Le glissando choisi monte jusqu'au MILIEU de la tessiture : quatre octaves
 // vont de do2 à si5, et il arrive sur do4, la note exactement médiane. Ni
-// trop aigu ni trop grave, comme demandé.
+// trop aigu ni trop grave.
+//
+// PIANO POUR TOUT LE MONDE, quel que soit l'instrument choisi pour les
+// parties. Un son par instrument voulait dire un salon de notification par
+// instrument — Android fige le son d'un salon à sa création — donc quatre
+// lignes dans les réglages du téléphone et quatre fichiers dans l'APK. Pour
+// un son de trois secondes par jour, ça ne valait pas son prix.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -105,7 +111,7 @@ void main() {
   final sortie = Directory('android/app/src/main/res/raw');
   sortie.createSync(recursive: true);
 
-  for (final instrument in kInstruments) {
+  for (final instrument in const ['piano']) {
     final banque = <String, Pcm>{};
     var rate = 44100;
     for (final note in notes) {
