@@ -25,7 +25,10 @@ import 'package:http/testing.dart';
 import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/engine/move_generator.dart';
 import 'package:lafuga/engine/piece.dart';
+import 'package:lafuga/engine/move.dart';
 import 'package:lafuga/game/correspondence.dart';
+import 'package:lafuga/game/last_move.dart';
+import 'package:lafuga/game/move_controller.dart';
 import 'package:lafuga/game/nmc.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
@@ -163,6 +166,43 @@ void main() {
       expect(
         slidePosition(g, chemin, 0.5),
         Rect.lerp(g.cellRect(0, 0), g.cellRect(0, 3), 0.5),
+      );
+    });
+  });
+
+  group('Un coup construit ailleurs garde son chemin', () {
+    test('Deep Grey, le réseau, la relecture : le multisaut ne coupe pas', () {
+      // Le générateur ne retient que l'ARRIVÉE d'un saut : le chemin n'est
+      // porté par aucun coup. `applyGeneratedMove` ne le transmettait donc
+      // pas, et la pièce de Deep Grey coupait en ligne droite là où la nôtre
+      // passait par ses atterrissages.
+      final board = Board.empty();
+      board.set(0, 0, Piece.blancHeritier);
+      board.set(0, 1, Piece.blancNurse);
+      board.set(0, 3, Piece.blancNurse);
+      board.set(6, 7, Piece.noirHeritier);
+      final game = MoveController(board: board);
+
+      final multisaut = generateMoves(game.board, Camp.blanc)
+          .where(
+            (m) =>
+                m.kind == MoveKind.jump &&
+                jumpPathOf(game.board, m.from, m.to).isNotEmpty,
+          )
+          .toList();
+      if (multisaut.isEmpty) {
+        fail('aucun multisaut dans cette position : le test ne prouve rien');
+      }
+
+      final result = game.applyGeneratedMove(multisaut.first);
+      expect(
+        result.jumpPath,
+        isNotEmpty,
+        reason: 'le coup arrive sans son chemin : la pièce coupera tout droit',
+      );
+      expect(
+        result.jumpPath,
+        jumpPathOf(board, multisaut.first.from, multisaut.first.to),
       );
     });
   });

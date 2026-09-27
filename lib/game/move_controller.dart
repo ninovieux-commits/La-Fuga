@@ -16,6 +16,7 @@ import '../engine/move.dart';
 import '../engine/move_generator.dart';
 import '../engine/notation.dart';
 import 'captures.dart';
+import 'last_move.dart';
 import 'slides.dart';
 import '../engine/piece.dart';
 
@@ -738,6 +739,13 @@ class MoveController {
     var slides = slidesBetween(board, move.board);
     final notation = notationOn(board, move);
     final hadEjection = move.ejected > 0;
+    // Le chemin d'un multisaut n'est pas porté par le coup : le générateur ne
+    // retient que l'arrivée. On le reconstruit, sinon la pièce de Deep Grey
+    // coupe en ligne droite au lieu de passer par ses atterrissages — ceux-là
+    // mêmes où s'affichent les petits carrés du dernier coup.
+    final jumped = move.kind == MoveKind.jump
+        ? jumpPathOf(before, move.from, move.to)
+        : const <Cell>[];
 
     board = move.board;
     // Les prises se lisent sur la différence entre les deux positions : un
@@ -771,6 +779,7 @@ class MoveController {
           r.effect,
           notation: notation,
           slides: slides,
+          jumpPath: jumped,
           hadEjection: hadEjection,
           endReason: r.endReason,
           loser: r.loser,
@@ -786,6 +795,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         hadEjection: hadEjection,
         endReason: r.endReason,
         loser: r.loser,
@@ -801,6 +811,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         hadEjection: hadEjection,
         endReason: r.endReason,
         loser: r.loser,
@@ -812,6 +823,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         endReason: r.endReason,
       );
     }
@@ -821,6 +833,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         endReason: r.endReason,
       );
     }
@@ -830,6 +843,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         endReason: r.endReason,
         loser: r.loser,
       );
@@ -841,6 +855,7 @@ class MoveController {
       ControllerEffect.turnEnded,
       notation: notation,
       slides: slides,
+      jumpPath: jumped,
       hadEjection: hadEjection,
     );
   }
