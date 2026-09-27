@@ -675,25 +675,43 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     );
   }
 
-  /// Analyser la position courante. L'IA y est interdite : elle soufflerait
-  /// le coup d'une partie en cours.
+  /// Analyser LA POSITION AFFICHÉE — pas forcément la dernière.
+  ///
+  /// On part en analyse depuis ce qu'on a sous les yeux : si on revoit le
+  /// coup 7 d'une partie qui en compte 20, c'est le coup 7 qu'on veut
+  /// examiner, pas le dernier.
+  ///
+  /// Et l'analyse emporte L'HISTOIRE de la partie jusque-là, pour qu'on
+  /// puisse y remonter encore et essayer autre chose. Sans elle, elle
+  /// s'ouvrait sur une position orpheline : les flèches ne menaient nulle
+  /// part.
+  ///
+  /// L'IA y est interdite : elle soufflerait le coup d'une partie en cours.
   Future<void> _openAnalysis() async {
     final c = _controller;
     if (c == null) return;
-    // Le plateau garde le sens qu'il a ici : on va analyser la position
-    // qu'on a sous les yeux.
+    // Le plateau garde le sens qu'il a ici.
     final flipped = _flipOverride ?? (_g.myCamp == Camp.blanc);
+    final coups = _allMoves();
+    // Le coup affiché : le dernier quand on ne revoit rien.
+    final jusque = ((_viewingIndex ?? coups.length - 1) + 1).clamp(
+      0,
+      coups.length,
+    );
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
           cadence: Cadence.zen,
           aiCamp: null,
-          initialBoard: c.board.clone(),
-          initialTurn: c.turn,
-          initialFugued: c.fuguedHeirs,
+          // La position de DÉPART de la partie, Random Fuga compris : les
+          // coups qui suivent la rejouent jusqu'à celle qu'on regarde.
+          initialBoard: _steps.isEmpty ? null : _steps.first.clone(),
+          initialTurn: Camp.blanc,
+          initialMoves: coups.take(jusque).toList(),
           analysis: true,
           analysisFromCorr: true,
           initialFlipped: flipped,
+          randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
           themeName: Settings.instance.themeAxes.general,
         ),
       ),

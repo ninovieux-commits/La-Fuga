@@ -16,6 +16,7 @@ import '../../engine/ai/weights.dart';
 import '../../engine/board.dart';
 import '../../engine/move.dart';
 import '../../engine/move_generator.dart';
+import '../../engine/literal_replay.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
 import '../../game/slides.dart';
@@ -54,6 +55,7 @@ class GameScreen extends StatefulWidget {
     this.initialBoard,
     this.initialTurn = Camp.blanc,
     this.initialFugued = const {},
+    this.initialMoves = const [],
     this.randomCode,
     this.analysis = false,
     this.analysisFromCorr = false,
@@ -91,6 +93,14 @@ class GameScreen extends StatefulWidget {
   /// l'Héritier dans son ralliement : il n'est plus sur le plateau, et sans
   /// cette information il ne serait nulle part.
   final Set<Camp> initialFugued;
+
+  /// Coups déjà joués depuis [initialBoard], à rejouer au démarrage.
+  ///
+  /// Analyser une partie de correspondance depuis une position passée, c'est
+  /// vouloir REMONTER plus loin encore pour essayer autre chose. Sans son
+  /// histoire, l'analyse commençait sur une position orpheline : les flèches
+  /// ne menaient nulle part, et on ne pouvait rien tester en amont.
+  final List<String> initialMoves;
 
   /// Code de la position tirée au sort, à inscrire dans le `.nmc`. Sans lui,
   /// la partie serait irrejouable.
@@ -204,6 +214,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     _snapshots
       ..clear()
       ..add(_game.board.clone());
+    if (widget.initialMoves.isNotEmpty) _rejouerHistorique();
     _clock = GameClock(widget.analysis ? Cadence.zen : widget.cadence);
     if (_aiCamp != null) {
       _engine.start();
@@ -280,6 +291,47 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     builder: (context, _, __) =>
         _playerPanel(palette, camp, mirrored: mirrored),
   );
+
+  /// Rejoue [GameScreen.initialMoves] pour se donner un passé.
+  ///
+  /// La relecture est LITTÉRALE, comme partout : on reconstruit exactement
+  /// la position que l'autre écran affichait, et chaque étape est gardée
+  /// pour que les flèches puissent remonter jusqu'au premier coup.
+  void _rejouerHistorique() {
+    var board = _snapshots.first;
+    final captured = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
+    final fugued = <Camp>{...widget.initialFugued};
+    final joues = <String>[];
+
+    for (final coup in widget.initialMoves) {
+      final avant = board;
+      final relu = applyNotationLiterally(avant, coup);
+      board = relu.board;
+      fugued.addAll(relu.fugued);
+      for (final piece in ejectedBetween(avant, board, coup)) {
+        captured[piece.camp]!.add(piece);
+      }
+      joues.add(coup);
+      _snapshots.add(board.clone());
+    }
+
+    _game = MoveController(
+      board: board.clone(),
+      turn: joues.length.isEven
+          ? widget.initialTurn
+          : widget.initialTurn.opposite,
+      countRepetitions: !widget.analysis,
+      captured: captured,
+      fugued: fugued,
+    )..history.addAll(joues);
+    if (joues.isNotEmpty) {
+      _lastMove = lastMoveFromNotation(
+        joues.last,
+        _snapshots[_snapshots.length - 2],
+        _snapshots.last,
+      );
+    }
+  }
 
   MoveController _newGame() => MoveController(
     board: widget.initialBoard?.clone(),
