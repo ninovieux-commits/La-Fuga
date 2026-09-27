@@ -24,6 +24,77 @@ import 'theme_image_cache.dart';
 /// sinon on prend le contour par défaut du camp.
 /// [pushHighlightDirs] grossit les points correspondant aux directions de
 /// poussée disponibles, en couleur inversée, comme en Kivy.
+/// La croix d'activation d'une pièce carrée : « + » pour le Soldat, « × »
+/// pour le Garde.
+///
+/// C'est ce qui les distingue à l'œil dans le rendu géométrique. Le thème
+/// insectes s'en sert aussi, POSÉE DERRIÈRE l'image : là-bas le Soldat et le
+/// Garde partagent le même dessin d'insecte, et rien ne disait lequel on
+/// regardait — ni même qu'il s'agissait d'une carrée.
+void paintActivationCross(
+  Canvas canvas,
+  Rect box,
+  PieceType type,
+  Paint trait, {
+  double insetFraction = 0.18,
+}) {
+  final inset = box.width * insetFraction;
+  final centre = box.center;
+  if (type == PieceType.soldat) {
+    // « + » : le Soldat s'active en orthogonal.
+    canvas.drawLine(
+      Offset(box.left + inset, centre.dy),
+      Offset(box.right - inset, centre.dy),
+      trait,
+    );
+    canvas.drawLine(
+      Offset(centre.dx, box.top + inset),
+      Offset(centre.dx, box.bottom - inset),
+      trait,
+    );
+    return;
+  }
+  // « × » : le Garde s'active en diagonal.
+  canvas.drawLine(
+    Offset(box.left + inset, box.top + inset),
+    Offset(box.right - inset, box.bottom - inset),
+    trait,
+  );
+  canvas.drawLine(
+    Offset(box.left + inset, box.bottom - inset),
+    Offset(box.right - inset, box.top + inset),
+    trait,
+  );
+}
+
+/// Thèmes dont les images ne distinguent pas le Soldat du Garde.
+///
+/// Les autres thèmes à images leur donnent chacun le sien : y ajouter une
+/// croix ne ferait que surcharger le dessin.
+const Set<String> kThemesSansFormeCarree = {'insectes'};
+
+/// Pose la croix d'activation DERRIÈRE l'image d'une pièce carrée.
+///
+/// Elle déborde volontiers de l'insecte : ses branches doivent rester
+/// visibles autour de lui, sinon elle ne servirait à rien. Un lisere de la
+/// couleur opposée la détache du plateau, quel qu'il soit.
+void _paintCrossBehind(Canvas canvas, Rect rect, Piece piece) {
+  final clair = piece.camp == Camp.blanc;
+  final epaisseur = rect.width * 0.12;
+  final lisere = Paint()
+    ..color = clair ? const Color(0xCC000000) : const Color(0xCCFFFFFF)
+    ..strokeWidth = epaisseur * 1.7
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+  final trait = Paint()
+    ..color = clair ? const Color(0xFFFFFFFF) : const Color(0xFF000000)
+    ..strokeWidth = epaisseur
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+  paintActivationCross(canvas, rect, piece.type, lisere, insetFraction: 0.10);
+  paintActivationCross(canvas, rect, piece.type, trait, insetFraction: 0.10);
+}
+
 void paintPiece(
   Canvas canvas,
   Rect rect,
@@ -42,6 +113,9 @@ void paintPiece(
   // retombe sur le rendu géométrique plutôt que de laisser un trou.
   final themed = images?.pieceFor(piece);
   if (themed != null) {
+    if (piece.isSquare && kThemesSansFormeCarree.contains(theme)) {
+      _paintCrossBehind(canvas, rect, piece);
+    }
     _paintPieceImage(
       canvas,
       rect,
@@ -110,20 +184,9 @@ void paintPiece(
     case PieceType.garde:
       canvas.drawRect(box, fill);
       canvas.drawRect(box, line);
-      final inset = inner * 0.18;
       acc.strokeWidth = kivyLine(math.max(2.0, inner * 0.10));
+      paintActivationCross(canvas, box, piece.type, acc);
       if (piece.type == PieceType.soldat) {
-        // Croix « + » : le Soldat s'active en orthogonal…
-        canvas.drawLine(
-          Offset(box.left + inset, centre.dy),
-          Offset(box.right - inset, centre.dy),
-          acc,
-        );
-        canvas.drawLine(
-          Offset(centre.dx, box.top + inset),
-          Offset(centre.dx, box.bottom - inset),
-          acc,
-        );
         // …et pousse en diagonale : les points marquent les 4 diagonales.
         _paintDots(
           canvas,
@@ -137,17 +200,6 @@ void paintPiece(
           offset: 0.30,
         );
       } else {
-        // Croix « × » : le Garde s'active en diagonal…
-        canvas.drawLine(
-          Offset(box.left + inset, box.top + inset),
-          Offset(box.right - inset, box.bottom - inset),
-          acc,
-        );
-        canvas.drawLine(
-          Offset(box.left + inset, box.bottom - inset),
-          Offset(box.right - inset, box.top + inset),
-          acc,
-        );
         // …et pousse en orthogonal.
         _paintDots(
           canvas,

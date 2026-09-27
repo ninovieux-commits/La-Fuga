@@ -11,6 +11,7 @@ import '../state/settings.dart';
 import 'api_client.dart';
 import 'message_hub.dart';
 import 'push_notifications.dart';
+import 'avatar_photos.dart';
 import 'online_client.dart';
 import 'socket_client.dart';
 
@@ -164,6 +165,9 @@ class OnlineService {
     _socket?.dispose();
     _socket = null;
     _client.logout();
+    // Les portraits appris pendant la session sont ceux des adversaires de
+    // CE compte : les garder les montrerait au suivant.
+    AvatarPhotos.clear();
     await _settings.clearOnlineSession();
   }
 

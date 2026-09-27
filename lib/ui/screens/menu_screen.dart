@@ -30,6 +30,7 @@ import '../scale.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
 import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
@@ -1089,14 +1090,16 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           SizedBox(height: S(gap)),
           GestureDetector(
             onTap: _showStory,
+            // `logoAssetOf` et non le chemin à la main : trois thèmes ont
+            // un logo dont le fichier ne porte pas leur nom, et l'image
+            // manquante retombait silencieusement sur celle d'origine. Le
+            // médiéval et les fleurs n'ont jamais montré la leur.
             child: Image.asset(
-              'assets/logos/logo_${_axes.logo}.webp',
+              logoAssetOf(_axes.logo),
               height: SH(0.13),
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Image.asset(
-                'assets/logos/logo_original.webp',
-                height: SH(0.13),
-              ),
+              errorBuilder: (_, __, ___) =>
+                  Image.asset(logoAssetOf(kDefaultTheme), height: SH(0.13)),
             ),
           ),
           SizedBox(height: SH(0.02) + S(gap)),

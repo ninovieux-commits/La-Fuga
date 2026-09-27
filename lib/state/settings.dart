@@ -153,6 +153,13 @@ class Settings {
     await _prefs.remove(SettingsKeys.onlinePseudo);
     await _prefs.remove(SettingsKeys.onlineMelo);
     await _prefs.remove(SettingsKeys.onlineMeloRandom);
+    // Le thème appartient au COMPTE : le serveur le garde avec le profil et
+    // le rend à la connexion. Le laisser en place faisait suivre celui du
+    // compte précédent — et le compte suivant héritait de ses couleurs.
+    //
+    // Le volume, la langue, l'instrument et la vitesse de glissée restent :
+    // ce sont des réglages de l'APPAREIL, les mêmes pour qui s'en sert.
+    await _prefs.remove(SettingsKeys.theme);
   }
 }
 
