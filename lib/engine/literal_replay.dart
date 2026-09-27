@@ -18,6 +18,8 @@
 library;
 
 import 'board.dart';
+import 'move.dart';
+import 'move_generator.dart';
 import 'notation.dart';
 import 'piece.dart';
 
@@ -68,11 +70,16 @@ LiteralMove _simpleOrPush(Board board, String s) {
     if (start == null) return LiteralMove(board: board, ok: false);
     final leaving = board.atCell(start);
     if (leaving == null) return LiteralMove(board: board, ok: false);
+    // La case nommée ne porte pas d'Héritier : ce n'est donc pas lui qui
+    // sort. C'est une VIEILLE notation de fugue par poussée, que le jeu
+    // écrivait « Départ* » — la case du POUSSEUR — en perdant sa case
+    // d'arrivée et ce qu'il poussait. Appliquée à la lettre, elle effaçait
+    // le pousseur du plateau et ratait la fugue.
+    if (!leaving.isHeir) return _fugueRetrouvee(board, start, leaving.camp);
     return LiteralMove(
       board: board.clone()..setCell(start, null),
       ok: true,
-      // Seul un Héritier fugue ; une autre pièce qui sort est éjectée.
-      fugued: leaving.isHeir ? {leaving.camp} : const {},
+      fugued: {leaving.camp},
     );
   }
 
@@ -115,6 +122,62 @@ LiteralMove _simpleOrPush(Board board, String s) {
     }
   }
   return LiteralMove(board: next, ok: true, fugued: fugued);
+}
+
+/// Retrouve le coup derrière une vieille notation « Départ* » de fugue par
+/// poussée, que le format ne dit plus.
+///
+/// On demande au générateur les coups légaux partant de cette case qui
+/// finissent par une fugue. Le camp qui fugue est en général le même pour
+/// tous — c'est ce qui compte, puisqu'il décide du vainqueur. La position,
+/// elle, peut rester incertaine : le joueur a pu pousser d'AUTRES lignes en
+/// même temps, et rien ne le dit. On retient alors la reconstruction la plus
+/// SOBRE, celle qui déplace le moins de pièces : c'est la seule qui
+/// n'invente rien au-delà du coup nécessaire.
+///
+/// Les parties jouées depuis la correction n'en ont plus besoin : elles
+/// écrivent leur poussée en toutes lettres.
+LiteralMove _fugueRetrouvee(Board board, Cell depart, Camp mover) {
+  final candidats = <Move>[
+    for (final m in generateMoves(board, mover))
+      if (m.from == depart && (m.fugue || m.fugueBy != null)) m,
+  ];
+  if (candidats.isEmpty) {
+    // Aucun coup de fugue depuis cette case : la notation ne veut rien dire
+    // ici. On ne touche à rien — surtout pas effacer la pièce.
+    return LiteralMove(board: board, ok: false);
+  }
+  final fugueurs = {for (final m in candidats) m.fugue ? mover : m.fugueBy!};
+  if (fugueurs.length != 1) return LiteralMove(board: board, ok: false);
+
+  var choisi = candidats.first;
+  var moindre = _pieceMoved(board, choisi.board);
+  for (final m in candidats.skip(1)) {
+    final n = _pieceMoved(board, m.board);
+    // À égalité, la clé de position départage : deux appareils qui relisent
+    // la même partie doivent trouver le même plateau.
+    if (n < moindre ||
+        (n == moindre &&
+            m.board
+                    .positionKey(mover)
+                    .compareTo(choisi.board.positionKey(mover)) <
+                0)) {
+      choisi = m;
+      moindre = n;
+    }
+  }
+  return LiteralMove(board: choisi.board, ok: true, fugued: fugueurs);
+}
+
+/// Nombre de cases qui diffèrent entre deux plateaux.
+int _pieceMoved(Board a, Board b) {
+  var n = 0;
+  for (var c = 0; c < 7; c++) {
+    for (var r = 0; r < 8; r++) {
+      if (a.at(c, r) != b.at(c, r)) n++;
+    }
+  }
+  return n;
 }
 
 /// `(Do1)-Ré2` ou `(Do8Mi8)-Do7` — `_apply_maneuver`.

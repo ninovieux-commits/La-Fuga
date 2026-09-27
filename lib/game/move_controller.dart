@@ -458,7 +458,10 @@ class MoveController {
     }
 
     if (fugueBy != null) {
-      return _fugue(fugueBy, slides);
+      // Le pousseur est déjà arrivé sur `selected` : c'est la case d'arrivée
+      // du coup, sans laquelle la notation ne dirait pas d'où vient la
+      // poussée.
+      return _fugue(fugueBy, slides, end: selected);
     }
     if (matOn != null) {
       // Le coup de mat doit être ENREGISTRÉ avant la fin de partie, sinon il
@@ -590,7 +593,16 @@ class MoveController {
   // La case d'arrivée exacte ne sert plus : l'Héritier s'affiche au milieu du
   // ralliement, toujours, pour que la même partie donne la même image relue
   // depuis son `.nmc`, qui ne dit pas par où il est sorti.
-  ControllerResult _fugue(Camp camp, List<(Piece, Cell, Cell)> slidesBruts) {
+  ///
+  /// [end] est la case d'arrivée du POUSSEUR quand la fugue vient d'une
+  /// poussée. Nulle quand l'Héritier sort de lui-même, en marchant ou en
+  /// sautant : là, il n'a pas de case d'arrivée sur le plateau, et le coup
+  /// s'écrit « Départ* ».
+  ControllerResult _fugue(
+    Camp camp,
+    List<(Piece, Cell, Cell)> slidesBruts, {
+    Cell? end,
+  }) {
     final mover = turn;
     fuguedHeirs.add(camp);
 
@@ -607,9 +619,15 @@ class MoveController {
           (piece, from, to),
     ];
 
+    // « Départ* » ne convient QUE si l'Héritier est sorti de lui-même : sa
+    // case d'arrivée n'a alors pas de nom. Une fugue obtenue en POUSSANT a,
+    // elle, une case d'arrivée — celle du pousseur — et des cases poussées ;
+    // l'écrire « Départ* » perdait tout le coup, et la partie devenait
+    // irrejouable à partir de là. Elle s'écrit maintenant comme la poussée
+    // qu'elle est : « Fa4-Mi5>Mi4 », que l'archive marque d'un `*`.
     final notation = buildMoveNotation(
       start: tracking.start!,
-      end: null, // fugue : « Départ* »
+      end: end,
       isPush: tracking.isPush,
       pushTargets: tracking.pushTargets,
       pushableDirs: tracking.pushableDirs,

@@ -78,12 +78,22 @@ void main() {
       );
     });
 
-    test('une autre pièce qui sort n est pas une fugue', () {
+    test('une pièce qui n est pas l Héritier ne fugue pas, et ne '
+        'disparaît pas', () {
+      // « Fa8* » désignant autre chose qu un Héritier est soit une vieille
+      // notation de fugue par poussée, soit du charabia. Ici rien ne peut
+      // fuguer : le coup est refusé, et SURTOUT la Nourrice reste sur le
+      // plateau. Elle en était purement et simplement effacée.
       final b = Board.empty();
       b.set(3, 7, const Piece(PieceType.nurse, Camp.blanc));
       final r = applyNotationLiterally(b, 'Fa8*');
-      expect(r.ok, isTrue);
       expect(r.fugued, isEmpty, reason: 'seul un Héritier fugue');
+      expect(r.ok, isFalse, reason: 'la notation ne veut rien dire ici');
+      expect(
+        r.board.at(3, 7),
+        isNotNull,
+        reason: 'la pièce a été effacée du plateau',
+      );
     });
 
     test('un Héritier POUSSÉ dans son ralliement fugue aussi', () {

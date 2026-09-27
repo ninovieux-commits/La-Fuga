@@ -1,0 +1,36 @@
+{
+ "corrections": [
+  {
+   "game_id": 2,
+   "resultat": "1-0",
+   "methode": "fugue",
+   "avant": "0-1"
+  },
+  {
+   "game_id": 8,
+   "resultat": "1-0",
+   "methode": "mat",
+   "avant": "0-1"
+  },
+  {
+   "game_id": 18,
+   "resultat": "0-1",
+   "methode": "fugue",
+   "avant": "1-0"
+  }
+ ],
+ "scores": {
+  "1|2": [
+   12,
+   0
+  ],
+  "1|3": [
+   2,
+   0
+  ],
+  "1|5": [
+   4,
+   0
+  ]
+ }
+}
