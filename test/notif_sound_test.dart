@@ -161,6 +161,23 @@ void main() {
       );
     });
 
+    test('le salon PRÉCÉDENT est effacé : il pourrait être muet', () {
+      // Android fige le son d'un salon à sa création et le garde après les
+      // mises à jour. Un salon créé une fois sans le bon son reste muet pour
+      // toujours : la seule issue est d'en changer le nom ET d'effacer
+      // l'ancien, sinon il traîne dans les réglages du téléphone.
+      expect(
+        kChannelId,
+        'lafuga_notif_2',
+        reason: 'le nom du salon a changé sans que l ancien soit listé',
+      );
+      expect(
+        kLegacyChannelIds,
+        contains('lafuga_notif'),
+        reason: 'le salon d avant survit, peut-être muet',
+      );
+    });
+
     test('son nom ne nomme aucun instrument : il n y en a qu un', () {
       expect(kChannelName, 'La Fuga');
       for (final i in kInstruments) {

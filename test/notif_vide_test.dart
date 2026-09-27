@@ -23,6 +23,9 @@ import 'package:lafuga/net/push_notifications.dart';
 class _Greffon {
   final List<Map<Object?, Object?>> posees = [];
 
+  /// Nombre d'appels à « tout effacer ».
+  int annulations = 0;
+
   void brancher() {
     // Hors appareil, le greffon n'a pas d'implémentation Android enregistrée
     // et `show` ne fait rien du tout — le test passerait donc quoi qu'il
@@ -37,6 +40,7 @@ class _Greffon {
             if (call.method == 'show') {
               posees.add(call.arguments as Map<Object?, Object?>);
             }
+            if (call.method == 'cancelAll') annulations++;
             // `initialize` attend un booléen : lui rendre `null` faisait
             // échouer l'appel, et tout ce qui suit ne partait jamais.
             return call.method == 'initialize' ? true : null;
@@ -149,6 +153,58 @@ void main() {
       );
       expect(greffon.posees.single['title'], 'mesange');
       expect(greffon.posees.single['body'], 'a joué 6.Sol1-Sol2>Fa3');
+    });
+  });
+
+  group('Quand on est déjà dans l application', () {
+    late _Greffon greffon;
+
+    setUp(() {
+      greffon = _Greffon()..brancher();
+    });
+    tearDown(() async {
+      greffon.debrancher();
+      await PushNotifications.setForeground(false);
+    });
+
+    testWidgets('aucune notification ne s affiche', (tester) async {
+      await PushNotifications.setForeground(true);
+      greffon.posees.clear();
+      greffon.annulations = 0;
+
+      await PushNotifications.show(
+        _message(titre: 'mesange', corps: 'a joué 6.Sol1-Sol2>Fa3'),
+      );
+      expect(
+        greffon.posees,
+        isEmpty,
+        reason: 'on est devant l écran : la notification n apprend rien',
+      );
+    });
+
+    testWidgets('revenir dessus efface celles qui attendaient', (tester) async {
+      await PushNotifications.setForeground(false);
+      greffon.annulations = 0;
+      await PushNotifications.setForeground(true);
+      expect(
+        greffon.annulations,
+        greaterThan(0),
+        reason: 'le volet garde des notifications déjà lues',
+      );
+    });
+
+    testWidgets('mais en arrière-plan, elle s affiche', (tester) async {
+      await PushNotifications.setForeground(false);
+      greffon.posees.clear();
+
+      await PushNotifications.show(
+        _message(titre: 'mesange', corps: 'a joué 6.Sol1-Sol2>Fa3'),
+      );
+      expect(
+        greffon.posees.length,
+        1,
+        reason: 'la garde du premier plan mange tout',
+      );
     });
   });
 

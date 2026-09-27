@@ -35,6 +35,7 @@ const List<String> kLegacyChannelIds = [
   'lafuga_orgue',
   'lafuga_guitare',
   'lafuga_cloche',
+  'lafuga_notif',
 ];
 
 /// Le salon de notification. Un seul.
@@ -44,7 +45,17 @@ const List<String> kLegacyChannelIds = [
 /// les réglages du téléphone et quatre fichiers dans l'APK. Pour un son de
 /// trois secondes, ça ne valait pas son prix : c'est le piano pour tout le
 /// monde.
-const String kChannelId = 'lafuga_notif';
+/// Le NUMÉRO fait partie de l'identifiant, et c'est délibéré.
+///
+/// Android fige le son d'un salon à sa création, et le garde même après une
+/// mise à jour de l'application. Un salon créé une seule fois sans le bon
+/// son — par Android lui-même, quand une notification le nomme avant que
+/// l'application ne l'ait créé — reste muet POUR TOUJOURS : le corriger dans
+/// le code n'y change rien. La seule issue est un salon neuf, donc un
+/// identifiant neuf. Le précédent est dans la liste des salons à effacer.
+///
+/// À changer de nouveau si le son change un jour.
+const String kChannelId = 'lafuga_notif_2';
 const String kChannelName = 'La Fuga';
 
 /// Fichier de son embarqué, fabriqué par `tool/gen_notif_sound.dart` à partir
@@ -115,6 +126,35 @@ Future<void> handleBackgroundMessage(RemoteMessage message) async {
 class PushNotifications {
   static final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
+
+  /// L'application est-elle sous les yeux du joueur ?
+  ///
+  /// Faux dans l'isolate d'arrière-plan, qui repart de zéro : une
+  /// notification reçue application fermée s'affiche donc normalement.
+  static bool _auPremierPlan = false;
+
+  /// Suit le cycle de vie de l'application.
+  ///
+  /// Au premier plan on n'affiche plus rien : le joueur est déjà là, la
+  /// partie est devant lui, une notification ne lui apprendrait rien. Et en
+  /// revenant, on efface celles qui attendaient : il vient de les lire en
+  /// ouvrant l'application.
+  static Future<void> setForeground(bool value) async {
+    _auPremierPlan = value;
+    if (value) await clearAll();
+  }
+
+  /// Retire du volet toutes les notifications de l'application.
+  ///
+  /// Pas de garde « Android seulement » : effacer des notifications locales
+  /// ne touche pas à Firebase, et ailleurs le greffon ne fait rien.
+  static Future<void> clearAll() async {
+    try {
+      await _local.cancelAll();
+    } catch (_) {
+      // Une notification qui s'efface mal ne doit pas gêner le jeu.
+    }
+  }
 
   /// Jeton de l'appareil, une fois connu.
   static String? token;
@@ -194,6 +234,8 @@ class PushNotifications {
   /// Affiche une notification. Reprend l'icône, le salon et l'importance du
   /// service Java de Kivy.
   static Future<void> show(RemoteMessage message) async {
+    // Déjà dans l'application : rien à annoncer, on y est.
+    if (_auPremierPlan) return;
     final content = contentOf(message);
     if (!hasSomethingToSay(content)) return;
     try {

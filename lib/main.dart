@@ -115,9 +115,13 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
   /// le redemander quand l'application revient au premier plan.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    final devant = state == AppLifecycleState.resumed;
+    if (devant) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
+    // Les notifications s'effacent en revenant sur l'application, et ne
+    // s'affichent pas tant qu'on y est.
+    unawaited(PushNotifications.setForeground(devant));
   }
 
   @override
