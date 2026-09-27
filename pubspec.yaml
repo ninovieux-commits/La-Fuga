@@ -28,6 +28,10 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   test: ^1.25.8
+  # Pour enregistrer l'implémentation Android du greffon de notifications
+  # dans les tests : hors appareil, aucune ne l'est, et `show` ne ferait
+  # rien du tout — le test passerait quoi qu'il arrive.
+  flutter_local_notifications_platform_interface: ^8.0.0
 
 flutter:
   uses-material-design: true

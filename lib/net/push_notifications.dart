@@ -58,6 +58,17 @@ const String kDefaultTitle = 'La Fuga';
 /// Ce qu'un message push contient, une fois démêlé.
 typedef PushContent = ({String title, String body});
 
+/// Ce message a-t-il quelque chose à dire ?
+///
+/// Un message de données pures — sans charge `notification`, et sans `title`
+/// ni `body` dans `data` — donnait une carte vide dans le volet : « La Fuga »
+/// et rien d'autre, ou même rien du tout. Le titre par défaut ne dit rien
+/// qu'Android n'écrive déjà au-dessus, avec l'icône.
+///
+/// Les six notifications du serveur portent toutes un corps ; une carte sans
+/// corps ne peut donc rien annoncer. On ne l'affiche pas.
+bool hasSomethingToSay(PushContent content) => content.body.trim().isNotEmpty;
+
 /// Démêle un message comme le fait `onMessageReceived` : la charge
 /// `notification` d'abord, puis les clés `data` qui l'emportent.
 PushContent contentOf(RemoteMessage message) {
@@ -177,6 +188,7 @@ class PushNotifications {
   /// service Java de Kivy.
   static Future<void> show(RemoteMessage message) async {
     final content = contentOf(message);
+    if (!hasSomethingToSay(content)) return;
     try {
       await _prepareChannel();
       await _local.show(
