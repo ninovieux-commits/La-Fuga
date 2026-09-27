@@ -23,12 +23,31 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../game/sound_plan.dart';
+import '../state/settings.dart';
 import 'firebase_options.dart';
 import 'online_service.dart';
 
-/// Salon de notification, identique à celui du service Java de Kivy.
-const String kChannelId = 'lafuga_default';
-const String kChannelName = 'La Fuga';
+/// Ancien salon, sans son choisi. Supprimé au démarrage : il resterait sinon
+/// dans les réglages Android du téléphone, muet et sans emploi.
+const String kLegacyChannelId = 'lafuga_default';
+
+/// Salon de notification, un par instrument.
+///
+/// Android FIGE le son d'un salon à sa création : on ne peut pas le changer
+/// ensuite. Changer d'instrument dans les réglages veut donc dire changer de
+/// salon, et il en faut un par instrument. C'est la seule façon d'avoir un son
+/// de notification qui suive le réglage du joueur.
+String channelIdFor(String instrument) => 'lafuga_$instrument';
+
+/// Nom affiché dans les réglages Android. L'instrument y figure, sinon quatre
+/// lignes « La Fuga » s'y empileraient sans qu'on sache laquelle est laquelle.
+String channelNameFor(String instrument) => 'La Fuga — $instrument';
+
+/// Fichier de son embarqué, fabriqué par `tool/gen_notif_sound.dart` à partir
+/// des vraies notes du jeu : le glissando qui arrive au milieu de la
+/// tessiture, joué par l'instrument choisi.
+String channelSoundFor(String instrument) => 'notif_$instrument';
 
 /// Titre par défaut, quand le message n'en porte pas — comme en Kivy.
 const String kDefaultTitle = 'La Fuga';
@@ -88,7 +107,7 @@ class PushNotifications {
     if (!_supported) return;
     try {
       await Firebase.initializeApp(options: kFirebaseOptions);
-      await _prepareChannel();
+      await _prepareChannel(await currentInstrument());
 
       // Android 13 et au-delà demandent la permission d'afficher.
       await FirebaseMessaging.instance.requestPermission();
@@ -156,18 +175,24 @@ class PushNotifications {
   static Future<void> show(RemoteMessage message) async {
     final content = contentOf(message);
     try {
-      await _prepareChannel();
+      final instrument = await currentInstrument();
+      await _prepareChannel(instrument);
       await _local.show(
         DateTime.now().millisecondsSinceEpoch % 100000,
         content.title,
         content.body,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
-            kChannelId,
-            kChannelName,
+            channelIdFor(instrument),
+            channelNameFor(instrument),
             importance: Importance.high,
             priority: Priority.high,
             icon: 'notif_icon',
+            // Le salon décide sur Android 8 et au-delà ; avant, c'est cette
+            // ligne-ci. Les deux disent la même chose.
+            sound: RawResourceAndroidNotificationSound(
+              channelSoundFor(instrument),
+            ),
           ),
         ),
       );
@@ -176,26 +201,53 @@ class PushNotifications {
     }
   }
 
-  static bool _channelReady = false;
+  /// L'instrument choisi dans les réglages, piano à défaut.
+  ///
+  /// Une notification reçue application fermée est affichée dans un ISOLAT à
+  /// part, où les réglages ne sont pas chargés : il faut les y ouvrir. Si rien
+  /// n'y parvient, le piano — le réglage par défaut — plutôt que pas de son.
+  static Future<String> currentInstrument() async {
+    try {
+      return Settings.instance.instrument;
+    } catch (_) {
+      try {
+        await Settings.load();
+        return Settings.instance.instrument;
+      } catch (_) {
+        return kInstruments.first;
+      }
+    }
+  }
 
-  static Future<void> _prepareChannel() async {
-    if (_channelReady) return;
-    await _local.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('notif_icon'),
-      ),
-    );
-    await _local
+  /// Salons déjà créés dans cette exécution.
+  static final Set<String> _channelsReady = {};
+  static bool _initialised = false;
+
+  static Future<void> _prepareChannel(String instrument) async {
+    final android = _local
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            kChannelId,
-            kChannelName,
-            importance: Importance.high,
-          ),
-        );
-    _channelReady = true;
+        >();
+    if (!_initialised) {
+      await _local.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('notif_icon'),
+        ),
+      );
+      // L'ancien salon n'a pas de son choisi et ne sert plus. Le laisser
+      // laisserait une ligne morte dans les réglages du téléphone.
+      await android?.deleteNotificationChannel(kLegacyChannelId);
+      _initialised = true;
+    }
+    if (_channelsReady.contains(instrument)) return;
+    await android?.createNotificationChannel(
+      AndroidNotificationChannel(
+        channelIdFor(instrument),
+        channelNameFor(instrument),
+        importance: Importance.high,
+        sound: RawResourceAndroidNotificationSound(channelSoundFor(instrument)),
+      ),
+    );
+    _channelsReady.add(instrument);
   }
 }
