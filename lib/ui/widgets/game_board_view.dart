@@ -146,7 +146,14 @@ class _GameBoardViewState extends State<GameBoardView>
       return;
     }
     _flying.value = {for (final (_, _, to) in widget.slides) to};
-    _slide.duration = widget.slideDuration;
+    // La durée suit la DISTANCE : le réglage donne le temps d'UNE case, et
+    // l'animation dure le temps qu'il faut à la pièce qui va le plus loin.
+    // À durée fixe, un multisaut de six cases filait six fois plus vite
+    // qu'un pas simple.
+    final cases = slideSpan(widget.slides, widget.slideJumpPath);
+    _slide.duration = cases <= 1
+        ? widget.slideDuration
+        : widget.slideDuration * cases;
     _slide.forward(from: 0);
   }
 

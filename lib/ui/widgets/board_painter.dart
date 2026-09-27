@@ -401,14 +401,68 @@ Rect slidePosition(BoardGeometry g, List<Cell> etapes, double t) {
     final seule = etapes.isEmpty ? const Cell(0, 0) : etapes.first;
     return g.cellRect(seule.col, seule.row);
   }
-  final bonds = etapes.length - 1;
-  final avance = (t.clamp(0.0, 1.0) * bonds).clamp(0.0, bonds.toDouble());
-  final bond = avance.floor().clamp(0, bonds - 1);
-  return Rect.lerp(
-    g.cellRect(etapes[bond].col, etapes[bond].row),
-    g.cellRect(etapes[bond + 1].col, etapes[bond + 1].row),
-    avance - bond,
-  )!;
+  // Le temps se répartit selon la DISTANCE, pas selon le nombre de bonds.
+  // À temps égal par bond, un multisaut de trois bonds couvrait six cases
+  // dans le temps d'une seule : la pièce filait trois fois plus vite.
+  final total = pathLength(etapes);
+  if (total <= 0) return g.cellRect(etapes.last.col, etapes.last.row);
+  var reste = t.clamp(0.0, 1.0) * total;
+  for (var i = 0; i < etapes.length - 1; i++) {
+    final bond = cellDistance(etapes[i], etapes[i + 1]);
+    if (reste <= bond || i == etapes.length - 2) {
+      return Rect.lerp(
+        g.cellRect(etapes[i].col, etapes[i].row),
+        g.cellRect(etapes[i + 1].col, etapes[i + 1].row),
+        bond <= 0 ? 1.0 : (reste / bond).clamp(0.0, 1.0),
+      )!;
+    }
+    reste -= bond;
+  }
+  return g.cellRect(etapes.last.col, etapes.last.row);
+}
+
+/// Distance entre deux cases, en cases : un pas de diagonale en vaut UNE,
+/// comme un pas droit. C'est la distance que l'œil perçoit.
+double cellDistance(Cell a, Cell b) {
+  final dc = (b.col - a.col).abs();
+  final dr = (b.row - a.row).abs();
+  return (dc > dr ? dc : dr).toDouble();
+}
+
+/// Longueur d'un chemin, en cases.
+double pathLength(List<Cell> etapes) {
+  var total = 0.0;
+  for (var i = 0; i < etapes.length - 1; i++) {
+    total += cellDistance(etapes[i], etapes[i + 1]);
+  }
+  return total;
+}
+
+/// Le chemin que suit une pièce : tout droit, sauf le multisaut qui passe
+/// par ses atterrissages.
+List<Cell> slideSteps(
+  Cell from,
+  Cell to,
+  List<Cell> jumpPath, {
+  required bool isJumper,
+}) => isJumper && jumpPath.isNotEmpty
+    ? <Cell>[from, ...jumpPath, to]
+    : <Cell>[from, to];
+
+/// La plus longue distance parcourue par ce lot de glissées, en cases.
+///
+/// C'est elle qui donne la durée : à vitesse constante, l'animation dure le
+/// temps qu'il faut à la pièce qui va le plus loin. Les autres arrivent
+/// avant, chacune à sa propre distance.
+double slideSpan(List<(Piece, Cell, Cell)> slides, List<Cell> jumpPath) {
+  var plus = 0.0;
+  for (final (_, from, to) in slides) {
+    final d = pathLength(
+      slideSteps(from, to, jumpPath, isJumper: to == slides.last.$3),
+    );
+    if (d > plus) plus = d;
+  }
+  return plus;
 }
 
 /// Les pièces en vol, par-dessus le reste — l'équivalent de la couche animée
@@ -456,14 +510,24 @@ final class FlyingPiecesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (progress >= 1) return;
     final g = geometry;
+    // Toutes les pièces vont à la MÊME vitesse : celle qui va le plus loin
+    // occupe toute l'animation, les autres arrivent avant et s'y posent.
+    final span = slideSpan(slides, jumpPath);
     for (final (piece, from, to) in slides) {
       // Le multisaut suit ses atterrissages ; tout le reste va tout droit.
-      final etapes = jumpPath.isNotEmpty && to == slides.last.$3
-          ? <Cell>[from, ...jumpPath, to]
-          : <Cell>[from, to];
+      final etapes = slideSteps(
+        from,
+        to,
+        jumpPath,
+        isJumper: to == slides.last.$3,
+      );
+      final mienne = pathLength(etapes);
+      final avance = (mienne <= 0 || span <= 0)
+          ? 1.0
+          : (progress * span / mienne).clamp(0.0, 1.0);
       paintPiece(
         canvas,
-        slidePosition(g, etapes, progress),
+        slidePosition(g, etapes, avance),
         piece,
         palette,
         flipped: g.flipped,

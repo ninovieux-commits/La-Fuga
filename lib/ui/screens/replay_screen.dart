@@ -80,20 +80,26 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   void _animerVers(int depuis, int vers) {
     if (depuis == vers) return;
     final recule = vers < depuis;
-    // En reculant : le coup défait est celui qu'on quitte. En avançant ou en
-    // sautant d'un coup à l'autre : celui qui mène là où l'on va.
-    final coup = recule ? _replay.steps[vers + 1] : _replay.steps[vers];
-    final origine = recule ? _replay.steps[vers + 1] : _replay.steps[vers - 1];
+    // En reculant : le coup défait est celui qu'on QUITTE — `steps[depuis]`,
+    // pas `steps[vers + 1]`, qui ne lui est égal que d'un cran à l'autre. En
+    // sautant de plusieurs coups en arrière, on défaisait donc le mauvais.
+    // En avançant : le coup qui mène là où l'on va.
+    final coup = recule ? _replay.steps[depuis] : _replay.steps[vers];
+    final origine = recule ? _replay.steps[depuis] : _replay.steps[vers - 1];
     final arrivee = _replay.steps[vers];
+    // Reculer d'un seul cran défait un coup connu : on peut le rejouer à
+    // l'envers, atterrissages compris. Sauter plus loin, non.
+    final unSeulCran = !recule || depuis - vers == 1;
 
-    final chemin = coup.lastMove?.jumpPath ?? const <Cell>[];
-    final glissees = [
-      ...slidesBetween(origine.board, arrivee.board),
-      // L'Héritier qui fugue quitte le plateau : il n'a pas d'arrivée à
-      // apparier, et sans cela le coup final ne montrait rien glisser.
-      for (final camp in arrivee.fugued.difference(origine.fugued))
-        ...fugueSlide(origine.board, arrivee.board, camp),
-    ];
+    final chemin = unSeulCran
+        ? (coup.lastMove?.jumpPath ?? const <Cell>[])
+        : const <Cell>[];
+    final glissees = glisseesDuCoup(
+      avant: recule ? arrivee.board : origine.board,
+      apres: recule ? origine.board : arrivee.board,
+      notation: unSeulCran ? (coup.notation ?? '') : '',
+      recule: recule,
+    );
     rememberSlides(
       glissees,
       jumpPath: recule ? chemin.reversed.toList() : chemin,

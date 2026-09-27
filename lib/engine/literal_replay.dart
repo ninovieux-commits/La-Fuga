@@ -35,10 +35,24 @@ final class LiteralMove {
     required this.board,
     required this.ok,
     this.fugued = const {},
+    this.slides = const [],
   });
 
   final Board board;
   final bool ok;
+
+  /// Qui a bougé, et d'où vers où — (pièce, départ, arrivée).
+  ///
+  /// Comparer les deux plateaux ne suffit pas : une poussée de pièces
+  /// IDENTIQUES ne laisse de trace qu'aux deux bouts de la chaîne, et
+  /// l'appariement au plus court fait alors glisser une seule pièce sur
+  /// toute la longueur, ou en croise deux. Ici, chaque déplacement est noté
+  /// au moment où il est fait : plus rien à deviner.
+  ///
+  /// Vide quand le coup n'a pas pu être appliqué, ou quand il a fallu le
+  /// reconstruire (vieille notation de fugue par poussée) : l'appelant
+  /// retombe alors sur la comparaison de plateaux.
+  final List<(Piece, Cell, Cell)> slides;
 
   /// Camps dont l'Héritier vient de rejoindre son ralliement par ce coup.
   ///
@@ -80,6 +94,8 @@ LiteralMove _simpleOrPush(Board board, String s) {
       board: board.clone()..setCell(start, null),
       ok: true,
       fugued: {leaving.camp},
+      // Il glisse jusqu'au milieu de son ralliement, là où il s'affichera.
+      slides: [(leaving, start, rallyDisplayCell(leaving.camp))],
     );
   }
 
@@ -106,22 +122,38 @@ LiteralMove _simpleOrPush(Board board, String s) {
   if (end != null) next.setCell(end, piece);
 
   final fugued = <Camp>{};
+  // Le pousseur d'abord : c'est lui qui mène le coup.
+  final glissees = <(Piece, Cell, Cell)>[if (end != null) (piece, start, end)];
   if (chevron >= 0 && end != null) {
     if (pushPart.trim().isEmpty) {
       // Rien après le chevron : Kivy pousse TOUT ce qui peut l'être.
       for (final target in _pushableCells(next, end.col, end.row, piece.type)) {
-        _push(next, target, target.col - end.col, target.row - end.row, fugued);
+        _push(
+          next,
+          target,
+          target.col - end.col,
+          target.row - end.row,
+          fugued,
+          glissees,
+        );
       }
     } else {
       final cells = parseCellsConcat(pushPart);
       // Cases illisibles : le déplacement reste fait, les poussées non.
       if (cells == null) return LiteralMove(board: next, ok: false);
       for (final target in cells) {
-        _push(next, target, target.col - end.col, target.row - end.row, fugued);
+        _push(
+          next,
+          target,
+          target.col - end.col,
+          target.row - end.row,
+          fugued,
+          glissees,
+        );
       }
     }
   }
-  return LiteralMove(board: next, ok: true, fugued: fugued);
+  return LiteralMove(board: next, ok: true, fugued: fugued, slides: glissees);
 }
 
 /// Retrouve le coup derrière une vieille notation « Départ* » de fugue par
@@ -210,6 +242,7 @@ LiteralMove _maneuver(Board board, String s) {
   for (final cell in cells) {
     next.setCell(cell, null);
   }
+  final glissees = <(Piece, Cell, Cell)>[];
   for (final entry in carried.entries) {
     final p = entry.value;
     if (p == null) return LiteralMove(board: next, ok: false);
@@ -217,8 +250,9 @@ LiteralMove _maneuver(Board board, String s) {
     final nr = entry.key.row + dr;
     if (!Board.onBoard(nc, nr)) return LiteralMove(board: next, ok: false);
     next.set(nc, nr, p);
+    glissees.add((p, entry.key, Cell(nc, nr)));
   }
-  return LiteralMove(board: next, ok: true);
+  return LiteralMove(board: next, ok: true, slides: glissees);
 }
 
 /// Cases adjacentes occupées, dans les directions de poussée du type —
@@ -242,7 +276,14 @@ List<(int, int)> pushDirsOfType(PieceType type) => switch (type) {
 /// Pousse la ligne qui commence en [from], d'une case dans la direction
 /// donnée — portage de `do_push`. Un Chevalier bloque toute la ligne ; ce qui
 /// sort du plateau disparaît.
-void _push(Board board, Cell from, int dc, int dr, [Set<Camp>? fugued]) {
+void _push(
+  Board board,
+  Cell from,
+  int dc,
+  int dr, [
+  Set<Camp>? fugued,
+  List<(Piece, Cell, Cell)>? slides,
+]) {
   final line = <(Cell, Piece)>[];
   var c = from.col, r = from.row;
   while (Board.onBoard(c, r)) {
@@ -260,6 +301,7 @@ void _push(Board board, Cell from, int dc, int dr, [Set<Camp>? fugued]) {
     final landing = Cell(cell.col + dc, cell.row + dr);
     if (landing.onBoard) {
       board.setCell(landing, piece);
+      slides?.add((piece, cell, landing));
       continue;
     }
     // La pièce quitte le plateau. Un Héritier poussé dans SON ralliement n'est
@@ -268,6 +310,9 @@ void _push(Board board, Cell from, int dc, int dr, [Set<Camp>? fugued]) {
         kRally.contains(landing.col) && landing.row == piece.camp.rallyRow;
     if (piece.isHeir && ownRally) {
       fugued?.add(piece.camp);
+      // Il glisse jusqu'au milieu de son ralliement, comme en partie.
+      slides?.add((piece, cell, rallyDisplayCell(piece.camp)));
     }
+    // Une pièce éjectée ne glisse pas : elle est prise.
   }
 }

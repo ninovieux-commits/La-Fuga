@@ -14,7 +14,6 @@ import '../../engine/ai/deep_grey_isolate.dart';
 import '../../engine/ai/opening_book.dart';
 import '../../engine/ai/weights.dart';
 import '../../engine/board.dart';
-import '../../engine/literal_replay.dart';
 import '../../engine/move.dart';
 import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
@@ -408,7 +407,14 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final avant = _viewingIndex ?? total - 1;
     setState(() {
       _viewingIndex = wanted == total - 1 ? null : wanted;
-      _animerCoup(wanted + 1, recule: wanted < avant);
+      // En reculant, le coup à défaire est celui qu'on QUITTE, pas celui
+      // vers lequel on va : animer `wanted + 1` rejouait le coup d'avant à
+      // l'envers, c'est-à-dire n'importe quoi.
+      _animerCoup(
+        wanted < avant ? avant + 1 : wanted + 1,
+        recule: wanted < avant,
+        versIndex: wanted + 1,
+      );
     });
   }
 
@@ -416,7 +422,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   ///
   /// `_snapshots[0]` est la position de départ, `_snapshots[k]` celle d'après
   /// le k-ième coup.
-  void _animerCoup(int index, {bool recule = false}) {
+  void _animerCoup(int index, {bool recule = false, int? versIndex}) {
     if (index <= 0 || index >= _snapshots.length) return;
     final avant = _snapshots[index - 1];
     final apres = _snapshots[index];
@@ -424,13 +430,21 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final chemin =
         lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
         const <Cell>[];
-    final fugues = recule
-        ? const <Camp>{}
-        : applyNotationLiterally(avant, notation).fugued;
-    rememberSlides([
-      ...slidesBetween(recule ? apres : avant, recule ? avant : apres),
-      for (final camp in fugues) ...fugueSlide(avant, apres, camp),
-    ], jumpPath: recule ? chemin.reversed.toList() : chemin);
+    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
+    // position affichée, pas sur celle d'un coup intermédiaire.
+    final cible = recule ? (versIndex ?? index - 1) : index;
+    final saut = recule && cible != index - 1;
+    rememberSlides(
+      glisseesDuCoup(
+        avant: avant,
+        apres: saut ? _snapshots[cible] : apres,
+        notation: saut ? '' : notation,
+        recule: recule,
+      ),
+      jumpPath: saut
+          ? const <Cell>[]
+          : (recule ? chemin.reversed.toList() : chemin),
+    );
   }
 
   Future<void> _playAi() async {

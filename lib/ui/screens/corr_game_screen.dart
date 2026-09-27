@@ -265,29 +265,30 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   }
 
   /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
-  void _animerCoup(int index, {bool recule = false}) {
+  void _animerCoup(int index, {bool recule = false, int? versIndex}) {
     if (index <= 0 || index >= _steps.length) return;
     final avant = _steps[index - 1];
     final apres = _steps[index];
     final notations = _allMoves();
-    final chemin = index - 1 < notations.length
-        ? (lastMoveFromNotation(notations[index - 1], avant, apres)?.jumpPath ??
-              const <Cell>[])
-        : const <Cell>[];
-    final depuis = recule ? apres : avant;
-    final vers = recule ? avant : apres;
-    final fugues = recule
-        ? const <Camp>{}
-        : applyNotationLiterally(
-            avant,
-            index - 1 < notations.length ? notations[index - 1] : '',
-          ).fugued;
-    rememberSlides([
-      ...slidesBetween(depuis, vers),
-      // L'Héritier qui fugue quitte le plateau : sans cela, le coup final
-      // ne montrait rien glisser.
-      for (final camp in fugues) ...fugueSlide(avant, apres, camp),
-    ], jumpPath: recule ? chemin.reversed.toList() : chemin);
+    final notation = index - 1 < notations.length ? notations[index - 1] : '';
+    final chemin =
+        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
+        const <Cell>[];
+    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
+    // position affichée, pas sur celle d'un coup intermédiaire.
+    final cible = recule ? (versIndex ?? index - 1) : index;
+    final saut = recule && cible != index - 1;
+    rememberSlides(
+      glisseesDuCoup(
+        avant: avant,
+        apres: saut ? _steps[cible] : apres,
+        notation: saut ? '' : notation,
+        recule: recule,
+      ),
+      jumpPath: saut
+          ? const <Cell>[]
+          : (recule ? chemin.reversed.toList() : chemin),
+    );
   }
 
   /// Revoir un coup passé, en le montrant se jouer. Le dernier, c'est le
@@ -299,7 +300,12 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     final avant = _viewingIndex ?? total - 1;
     setState(() {
       _viewingIndex = voulu == total - 1 ? null : voulu;
-      _animerCoup(voulu + 1, recule: voulu < avant);
+      // En reculant, le coup à défaire est celui qu'on QUITTE.
+      _animerCoup(
+        voulu < avant ? avant + 1 : voulu + 1,
+        recule: voulu < avant,
+        versIndex: voulu + 1,
+      );
     });
     _sounds.playNotation(_allMoves()[voulu]);
   }
