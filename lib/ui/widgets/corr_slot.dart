@@ -27,6 +27,7 @@ class CorrSlot extends StatelessWidget {
     required this.game,
     required this.palette,
     required this.boardTheme,
+    required this.pieceTheme,
     required this.onTap,
     required this.onAccept,
     required this.onRefuse,
@@ -41,6 +42,13 @@ class CorrSlot extends StatelessWidget {
 
   final ThemePalette palette;
   final String boardTheme;
+
+  /// Thème des PIÈCES, distinct de celui du plateau.
+  ///
+  /// L'aperçu n'en recevait qu'un et s'en servait pour les deux : les pièces
+  /// portaient donc le thème du PLATEAU, et le leur était ignoré. Deepgrey,
+  /// qui n'a pas d'images et se reconnaît à son rendu, ne s'y voyait pas.
+  final String pieceTheme;
 
   final VoidCallback onTap;
   final void Function(CorrGame) onAccept;
@@ -76,7 +84,12 @@ class CorrSlot extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _MiniBoard(game: g, palette: palette, boardTheme: boardTheme),
+              _MiniBoard(
+                game: g,
+                palette: palette,
+                boardTheme: boardTheme,
+                pieceTheme: pieceTheme,
+              ),
               if (g != null) ..._overlay(g) else _emptyHint(),
             ],
           ),
@@ -234,11 +247,13 @@ class _MiniBoard extends StatelessWidget {
     required this.game,
     required this.palette,
     required this.boardTheme,
+    required this.pieceTheme,
   });
 
   final CorrGame? game;
   final ThemePalette palette;
   final String boardTheme;
+  final String pieceTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -249,15 +264,23 @@ class _MiniBoard extends StatelessWidget {
     final board = state?.board ?? g?.initialBoard;
     final asset = imagesFor(boardTheme)?.board;
 
+    // Deux thèmes, deux jeux d'images : celui du plateau pour le fond, celui
+    // des pièces pour les pièces. Les confondre faisait porter aux pièces le
+    // thème du plateau.
     return ThemeImagesBuilder(
       theme: boardTheme,
-      builder: (context, images) => CustomPaint(
-        painter: _MiniBoardPainter(
-          board: board,
-          // Mes pièces en bas, comme sur le plateau de jeu.
-          flipped: g?.myCamp != Camp.noir,
-          palette: palette,
-          images: asset == null ? null : images,
+      builder: (context, imagesPlateau) => ThemeImagesBuilder(
+        theme: pieceTheme,
+        builder: (context, imagesPieces) => CustomPaint(
+          painter: _MiniBoardPainter(
+            board: board,
+            // Mes pièces en bas, comme sur le plateau de jeu.
+            flipped: g?.myCamp != Camp.noir,
+            palette: palette,
+            images: asset == null ? null : imagesPlateau,
+            pieceImages: imagesPieces,
+            pieceTheme: pieceTheme,
+          ),
         ),
       ),
     );
@@ -269,7 +292,9 @@ class _MiniBoardPainter extends CustomPainter {
     required this.board,
     required this.flipped,
     required this.palette,
+    required this.pieceTheme,
     this.images,
+    this.pieceImages,
   }) : boardKey = board?.key;
 
   /// Empreinte de la position au moment de la construction : un plateau se
@@ -280,6 +305,11 @@ class _MiniBoardPainter extends CustomPainter {
   final bool flipped;
   final ThemePalette palette;
   final LoadedThemeImages? images;
+
+  /// Images et NOM du thème des pièces. Le nom compte autant que les images :
+  /// deepgrey n'en a aucune, il se reconnaît à son rendu.
+  final LoadedThemeImages? pieceImages;
+  final String pieceTheme;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -343,7 +373,8 @@ class _MiniBoardPainter extends CustomPainter {
           palette,
           outlineWidth: 1,
           flipped: flipped,
-          images: images,
+          images: pieceImages,
+          theme: pieceTheme,
         );
       }
     }
@@ -354,5 +385,11 @@ class _MiniBoardPainter extends CustomPainter {
       old.boardKey != boardKey ||
       old.flipped != flipped ||
       old.palette != palette ||
-      old.images != images;
+      old.images != images ||
+      old.pieceImages != pieceImages ||
+      // Le NOM en plus des images : aujourd'hui deepgrey a une image de
+      // plateau, donc ses images diffèrent déjà de celles de l'original et
+      // cette ligne ne sert pas. Elle servira le jour où deux thèmes sans
+      // aucune image se distingueront par leur seul rendu.
+      old.pieceTheme != pieceTheme;
 }

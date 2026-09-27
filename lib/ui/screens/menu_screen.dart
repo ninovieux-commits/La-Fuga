@@ -1339,6 +1339,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           game: game,
           palette: palette,
           boardTheme: _axes.board,
+          pieceTheme: _axes.pieces,
           onTap: () => _onCorrSlot(game),
           onAccept: (g) => _corrAnswer(g, true),
           onRefuse: (g) => _corrAnswer(g, false),

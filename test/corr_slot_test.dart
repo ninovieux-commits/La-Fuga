@@ -56,6 +56,7 @@ void main() {
                 game: game,
                 palette: paletteOf(kDefaultTheme),
                 boardTheme: kDefaultTheme,
+                pieceTheme: kDefaultTheme,
                 onTap: () {},
                 onAccept: (_) {},
                 onRefuse: (_) {},
