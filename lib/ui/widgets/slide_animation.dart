@@ -17,10 +17,18 @@ mixin SlideAnimation {
   /// Change à chaque coup, même si les cases se répètent.
   int slideToken = 0;
 
+  /// Atterrissages intermédiaires du multisaut en cours d'animation, s'il y en
+  /// a un. La pièce doit y passer au lieu de couper tout droit.
+  List<Cell> slideJumpPath = const [];
+
   /// Retient un coup à animer. Sans rien à déplacer, on n'anime pas.
-  void rememberSlides(List<(Piece, Cell, Cell)> moved) {
+  void rememberSlides(
+    List<(Piece, Cell, Cell)> moved, {
+    List<Cell> jumpPath = const [],
+  }) {
     if (moved.isEmpty) return;
     slides = moved;
+    slideJumpPath = jumpPath;
     slideToken++;
   }
 

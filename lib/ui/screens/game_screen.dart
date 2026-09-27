@@ -14,10 +14,12 @@ import '../../engine/ai/deep_grey_isolate.dart';
 import '../../engine/ai/opening_book.dart';
 import '../../engine/ai/weights.dart';
 import '../../engine/board.dart';
+import '../../engine/literal_replay.dart';
 import '../../engine/move.dart';
 import '../../engine/move_generator.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
+import '../../game/slides.dart';
 import '../../game/game_archive.dart';
 import '../../game/last_move.dart';
 import '../../game/match_play.dart';
@@ -308,7 +310,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     // Kivy anime CHAQUE geste au moment où il est fait : le déplacement, le
     // saut, la manœuvre et chaque poussée. Attendre la validation du coup ne
     // ferait glisser que les coups de Deep Grey.
-    rememberSlides(result.slides);
+    rememberSlides(result.slides, jumpPath: result.jumpPath);
     setState(() {
       // Un coup joué annule les propositions de nulle en cours.
       if (result.notation != null) {
@@ -339,7 +341,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   /// `_record_move` chez Kivy : c'est la même pour un coup joué au doigt, un
   /// coup de Deep Grey, un coup reçu du réseau ou un coup relu d'un `.nmc`.
   void _rememberLastMove(ControllerResult result) {
-    rememberSlides(result.slides);
+    rememberSlides(result.slides, jumpPath: result.jumpPath);
     _lastMove = lastMoveFromNotation(
       result.notation!,
       _snapshots.last,
@@ -396,10 +398,40 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   }
 
   /// Revoir un coup passé. Le dernier coup, c'est le présent.
-  void _viewMove(int? index) => setState(() {
-    final wanted = index?.clamp(0, _game.history.length - 1);
-    _viewingIndex = wanted == _game.history.length - 1 ? null : wanted;
-  });
+  ///
+  /// Le coup se rejoue sous les yeux au lieu d'apparaître d'un bloc : c'est ce
+  /// qu'on vient chercher en touchant une flèche ou une case du bandeau.
+  void _viewMove(int? index) {
+    final total = _game.history.length;
+    if (total == 0) return;
+    final wanted = (index ?? total - 1).clamp(0, total - 1);
+    final avant = _viewingIndex ?? total - 1;
+    setState(() {
+      _viewingIndex = wanted == total - 1 ? null : wanted;
+      _animerCoup(wanted + 1, recule: wanted < avant);
+    });
+  }
+
+  /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
+  ///
+  /// `_snapshots[0]` est la position de départ, `_snapshots[k]` celle d'après
+  /// le k-ième coup.
+  void _animerCoup(int index, {bool recule = false}) {
+    if (index <= 0 || index >= _snapshots.length) return;
+    final avant = _snapshots[index - 1];
+    final apres = _snapshots[index];
+    final notation = _game.history[index - 1];
+    final chemin =
+        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
+        const <Cell>[];
+    final fugues = recule
+        ? const <Camp>{}
+        : applyNotationLiterally(avant, notation).fugued;
+    rememberSlides([
+      ...slidesBetween(recule ? apres : avant, recule ? avant : apres),
+      for (final camp in fugues) ...fugueSlide(avant, apres, camp),
+    ], jumpPath: recule ? chemin.reversed.toList() : chemin);
+  }
 
   Future<void> _playAi() async {
     final aiCamp = _aiCamp;
@@ -730,6 +762,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,
+            slideJumpPath: slideJumpPath,
             slideToken: slideToken,
             slideDuration: slideDuration,
           ),

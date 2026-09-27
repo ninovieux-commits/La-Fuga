@@ -388,6 +388,29 @@ final class BoardPiecesPainter extends CustomPainter {
       old.lastMove != lastMove;
 }
 
+/// Où se trouve une pièce qui glisse, à cet avancement, le long d'un chemin.
+///
+/// [etapes] va du départ à l'arrivée, atterrissages intermédiaires compris.
+/// Chaque bond dure le même temps : c'est ce qui donne le rythme d'une pièce
+/// qui rebondit, là où un découpage à la distance parcourue la ferait ralentir
+/// sur les bonds courts. À mi-parcours d'un double saut, la pièce est donc
+/// EXACTEMENT sur son atterrissage intermédiaire — la case où s'affiche le
+/// petit carré du dernier coup.
+Rect slidePosition(BoardGeometry g, List<Cell> etapes, double t) {
+  if (etapes.length < 2) {
+    final seule = etapes.isEmpty ? const Cell(0, 0) : etapes.first;
+    return g.cellRect(seule.col, seule.row);
+  }
+  final bonds = etapes.length - 1;
+  final avance = (t.clamp(0.0, 1.0) * bonds).clamp(0.0, bonds.toDouble());
+  final bond = avance.floor().clamp(0, bonds - 1);
+  return Rect.lerp(
+    g.cellRect(etapes[bond].col, etapes[bond].row),
+    g.cellRect(etapes[bond + 1].col, etapes[bond + 1].row),
+    avance - bond,
+  )!;
+}
+
 /// Les pièces en vol, par-dessus le reste — l'équivalent de la couche animée
 /// que Kivy dessine au-dessus du plateau (`animate_slide`).
 ///
@@ -400,6 +423,7 @@ final class FlyingPiecesPainter extends CustomPainter {
     required this.palette,
     required this.slides,
     required this.progress,
+    this.jumpPath = const [],
     this.images,
     this.theme,
   });
@@ -413,6 +437,14 @@ final class FlyingPiecesPainter extends CustomPainter {
   /// Avancement du glissement, de 0 à 1. À 1, plus rien ne vole.
   final double progress;
 
+  /// Atterrissages intermédiaires d'un multisaut, sans le départ ni l'arrivée.
+  ///
+  /// La pièce y PASSE, au lieu de couper en ligne droite jusqu'au bout. Ce
+  /// sont exactement les cases où s'affichent les petits carrés du dernier
+  /// coup : on doit la voir sauter de l'une à l'autre, sinon le chemin
+  /// parcouru reste une devinette.
+  final List<Cell> jumpPath;
+
   final LoadedThemeImages? images;
   final String? theme;
 
@@ -425,11 +457,13 @@ final class FlyingPiecesPainter extends CustomPainter {
     if (progress >= 1) return;
     final g = geometry;
     for (final (piece, from, to) in slides) {
-      final start = g.cellRect(from.col, from.row);
-      final end = g.cellRect(to.col, to.row);
+      // Le multisaut suit ses atterrissages ; tout le reste va tout droit.
+      final etapes = jumpPath.isNotEmpty && to == slides.last.$3
+          ? <Cell>[from, ...jumpPath, to]
+          : <Cell>[from, to];
       paintPiece(
         canvas,
-        Rect.lerp(start, end, progress)!,
+        slidePosition(g, etapes, progress),
         piece,
         palette,
         flipped: g.flipped,
@@ -445,6 +479,7 @@ final class FlyingPiecesPainter extends CustomPainter {
   bool shouldRepaint(FlyingPiecesPainter old) =>
       old.progress != progress ||
       old.slides.length != slides.length ||
+      !listEquals(old.jumpPath, jumpPath) ||
       old.images != images ||
       old.palette != palette ||
       old.geometry.flipped != geometry.flipped ||

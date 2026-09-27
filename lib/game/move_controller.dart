@@ -16,6 +16,7 @@ import '../engine/move.dart';
 import '../engine/move_generator.dart';
 import '../engine/notation.dart';
 import 'captures.dart';
+import 'slides.dart';
 import '../engine/piece.dart';
 
 /// Ce que le contrôleur demande à l'interface après un geste.
@@ -734,7 +735,7 @@ class MoveController {
 
     final mover = turn;
     final before = board;
-    var slides = _slidesBetween(board, move.board);
+    var slides = slidesBetween(board, move.board);
     final notation = notationOn(board, move);
     final hadEjection = move.ejected > 0;
 
@@ -760,7 +761,7 @@ class MoveController {
       // disparaître l'Héritier d'un coup sec, là où le même coup joué au doigt
       // le faisait glisser. C'est le coup le plus important d'une partie : il
       // se voit partir.
-      slides = [...slides, ..._fugueSlide(before, move.board, fugueCamp)];
+      slides = [...slides, ...fugueSlide(before, move.board, fugueCamp)];
 
       if (fugueCamp != mover) {
         // On a poussé l'Héritier adverse dans SON ralliement : il gagne.
@@ -849,64 +850,6 @@ class MoveController {
   ///
   /// Portage de `_build_slides_from_diff` : sert à animer un coup dont on ne
   /// connaît que le plateau résultant.
-  /// La glissée de sortie de l'Héritier de [camp] : de la case qu'il occupait
-  /// à celle où il s'affiche, au milieu de son ralliement.
-  ///
-  /// Sa case de départ est le seul endroit où il était avant le coup et où il
-  /// n'est plus après. On la cherche plutôt que de la déduire du coup, parce
-  /// que l'Héritier peut aussi bien avoir marché que s'être fait pousser.
-  static List<(Piece, Cell, Cell)> _fugueSlide(
-    Board before,
-    Board after,
-    Camp camp,
-  ) {
-    for (var c = 0; c < kCols; c++) {
-      for (var r = 0; r < kRows; r++) {
-        final p = before.at(c, r);
-        if (p == null || !p.isHeir || p.camp != camp) continue;
-        if (after.at(c, r) == p) continue;
-        return [(p, Cell(c, r), rallyDisplayCell(camp))];
-      }
-    }
-    return const [];
-  }
-
-  static List<(Piece, Cell, Cell)> _slidesBetween(Board before, Board after) {
-    final departures = <(Piece, Cell)>[];
-    final arrivals = <(Piece, Cell)>[];
-    for (var c = 0; c < kCols; c++) {
-      for (var r = 0; r < kRows; r++) {
-        final b = before.at(c, r);
-        final a = after.at(c, r);
-        if (b == a) continue;
-        if (b != null) departures.add((b, Cell(c, r)));
-        if (a != null) arrivals.add((a, Cell(c, r)));
-      }
-    }
-
-    final slides = <(Piece, Cell, Cell)>[];
-    final used = <int>{};
-    for (final (piece, from) in departures) {
-      var bestIndex = -1;
-      var bestDistance = 1 << 30;
-      for (var i = 0; i < arrivals.length; i++) {
-        if (used.contains(i)) continue;
-        final (other, to) = arrivals[i];
-        if (other.type != piece.type || other.camp != piece.camp) continue;
-        final d = (to.col - from.col).abs() + (to.row - from.row).abs();
-        if (d < bestDistance) {
-          bestDistance = d;
-          bestIndex = i;
-        }
-      }
-      if (bestIndex >= 0) {
-        used.add(bestIndex);
-        slides.add((piece, from, arrivals[bestIndex].$2));
-      }
-    }
-    return slides;
-  }
-
   /// Cases à mettre en évidence pendant la construction du coup : les
   /// directions de poussée encore disponibles.
   List<Cell> get availablePushCells {

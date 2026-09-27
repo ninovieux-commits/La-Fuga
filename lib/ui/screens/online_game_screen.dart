@@ -119,7 +119,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (incoming != null) {
       _g.pendingHighlight = null;
       _lastMove = incoming.lastMove;
-      rememberSlides(incoming.slides);
+      rememberSlides(
+        incoming.slides,
+        jumpPath: incoming.lastMove?.jumpPath ?? const [],
+      );
     }
     setState(() {});
 
@@ -139,7 +142,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (result.effect == ControllerEffect.none) return;
 
     // Chaque geste glisse au moment où il est fait, comme en Kivy.
-    rememberSlides(result.slides);
+    rememberSlides(result.slides, jumpPath: result.jumpPath);
     final notation = result.notation;
     if (notation != null) {
       _lastMove = lastMoveFromNotation(
@@ -276,6 +279,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,
+            slideJumpPath: slideJumpPath,
             slideToken: slideToken,
             slideDuration: slideDuration,
           ),

@@ -22,6 +22,7 @@ class GameBoardView extends StatefulWidget {
     required this.flipped,
     required this.onTapCell,
     this.fuguedHeirs = const {},
+    this.slideJumpPath = const [],
     this.selected,
     this.groupSelection = const {},
     this.highlighted = const {},
@@ -43,6 +44,10 @@ class GameBoardView extends StatefulWidget {
 
   /// Camps dont l'Héritier a rejoint son ralliement : il s'y affiche.
   final Set<Camp> fuguedHeirs;
+
+  /// Atterrissages intermédiaires du coup en cours d'animation : la pièce y
+  /// passe au lieu de couper en ligne droite.
+  final List<Cell> slideJumpPath;
 
   final Cell? selected;
   final Set<Cell> groupSelection;
@@ -238,6 +243,7 @@ class _GameBoardViewState extends State<GameBoardView>
                       palette: widget.palette,
                       slides: widget.slides,
                       progress: _slide.value,
+                      jumpPath: widget.slideJumpPath,
                       images: _pieceImages,
                       theme: widget.pieceTheme,
                     ),

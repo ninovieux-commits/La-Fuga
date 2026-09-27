@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
 import '../../engine/piece.dart';
+import '../../engine/literal_replay.dart';
 import '../../game/correspondence.dart';
 import '../../game/game_archive.dart';
 import '../../game/move_controller.dart';
+import '../../game/slides.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
@@ -92,6 +94,22 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   /// Même cadence que les aperçus du menu.
   static const Duration _pollInterval = Duration(seconds: 4);
+
+  /// Toutes les positions de la partie : `_steps[0]` est la position de
+  /// départ, `_steps[k]` celle d'après le k-ième coup. C'est ce qui permet de
+  /// revoir un coup passé — le bandeau du bas et ses flèches ne faisaient
+  /// rien du tout — et de faire glisser les pièces d'une position à l'autre.
+  List<Board> _steps = const [];
+
+  /// Coup regardé. `null` = le présent, c'est-à-dire le dernier.
+  int? _viewingIndex;
+
+  bool get _isViewing => _viewingIndex != null;
+
+  /// Combien de coups ont déjà été montrés en train de se jouer. Sans ce
+  /// compte, la relecture périodique rejouerait l'animation de notre propre
+  /// coup quand le serveur nous le renvoie.
+  int _dejaAnime = 0;
 
   /// La photo de l'adversaire : le serveur ne l'envoie pas avec la partie, on
   /// va la chercher par son pseudo (voir `AvatarPhotos`). Vide en attendant.
@@ -181,7 +199,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       );
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
       _lastMove = state.lastMove;
+      _viewingIndex = null;
+      _rebuildSteps();
     });
+    _animerDernierCoupArrive();
 
     // Close par l'adversaire pendant notre absence : elle a sa place dans
     // l'historique, et nous sommes peut-être les seuls à pouvoir l'y mettre.
@@ -197,11 +218,104 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     }
   }
 
+  /// Rejoue les coups depuis le départ pour retenir chaque position.
+  ///
+  /// À la lettre, comme partout ailleurs : c'est ce qui garantit que les deux
+  /// téléphones reconstruisent la même partie à partir du même texte.
+  void _rebuildSteps() {
+    var board = _g.movesText.trim().isEmpty && widget.initialBoard != null
+        ? widget.initialBoard!.clone()
+        : _g.initialBoard;
+    final steps = <Board>[board];
+    for (final notation in _allMoves()) {
+      board = applyNotationLiterally(board, notation).board;
+      steps.add(board);
+    }
+    _steps = steps;
+  }
+
+  /// Montre le dernier coup ARRIVÉ en train de se jouer.
+  ///
+  /// À l'ouverture d'une partie, on tombait directement sur la position : le
+  /// coup de l'adversaire s'était joué sans qu'on le voie. Pareil quand il
+  /// répond pendant qu'on regarde. Le compte `_dejaAnime` évite de rejouer
+  /// notre propre coup quand le serveur nous le renvoie.
+  void _animerDernierCoupArrive() {
+    final dernier = _steps.length - 1;
+    if (dernier <= 0 || dernier <= _dejaAnime) {
+      _dejaAnime = dernier;
+      return;
+    }
+    _dejaAnime = dernier;
+    _animerCoup(dernier);
+  }
+
+  /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
+  void _animerCoup(int index, {bool recule = false}) {
+    if (index <= 0 || index >= _steps.length) return;
+    final avant = _steps[index - 1];
+    final apres = _steps[index];
+    final notations = _allMoves();
+    final chemin = index - 1 < notations.length
+        ? (lastMoveFromNotation(notations[index - 1], avant, apres)?.jumpPath ??
+              const <Cell>[])
+        : const <Cell>[];
+    final depuis = recule ? apres : avant;
+    final vers = recule ? avant : apres;
+    final fugues = recule
+        ? const <Camp>{}
+        : applyNotationLiterally(
+            avant,
+            index - 1 < notations.length ? notations[index - 1] : '',
+          ).fugued;
+    rememberSlides([
+      ...slidesBetween(depuis, vers),
+      // L'Héritier qui fugue quitte le plateau : sans cela, le coup final
+      // ne montrait rien glisser.
+      for (final camp in fugues) ...fugueSlide(avant, apres, camp),
+    ], jumpPath: recule ? chemin.reversed.toList() : chemin);
+  }
+
+  /// Revoir un coup passé, en le montrant se jouer. Le dernier, c'est le
+  /// présent : on y revient et la partie redevient jouable.
+  void _viewMove(int index) {
+    final total = _allMoves().length;
+    if (total == 0) return;
+    final voulu = index.clamp(0, total - 1);
+    final avant = _viewingIndex ?? total - 1;
+    setState(() {
+      _viewingIndex = voulu == total - 1 ? null : voulu;
+      _animerCoup(voulu + 1, recule: voulu < avant);
+    });
+    _sounds.playNotation(_allMoves()[voulu]);
+  }
+
+  /// Plateau affiché : celui du coup regardé, ou la position courante.
+  Board? get _shownBoard {
+    final index = _viewingIndex;
+    if (index == null) return _controller?.board;
+    return index + 1 < _steps.length ? _steps[index + 1] : _controller?.board;
+  }
+
+  /// Mise en évidence du coup affiché.
+  LastMove? get _shownLastMove {
+    final index = _viewingIndex;
+    if (index == null) return _lastMove;
+    final notations = _allMoves();
+    if (index >= notations.length || index + 1 >= _steps.length) return null;
+    return lastMoveFromNotation(
+      notations[index],
+      _steps[index],
+      _steps[index + 1],
+    );
+  }
+
   bool get _canPlay =>
       _g.status == CorrStatus.enCours &&
       _g.myTurn &&
       !_played &&
       !_sending &&
+      !_isViewing &&
       _controller != null;
 
   Future<void> _onTapCell(Cell cell) async {
@@ -212,7 +326,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (result.effect == ControllerEffect.none) return;
 
     // Chaque geste glisse au moment où il est fait, comme en Kivy.
-    rememberSlides(result.slides);
+    rememberSlides(result.slides, jumpPath: result.jumpPath);
     final notation = result.notation;
     if (notation != null) {
       _lastMove = lastMoveFromNotation(
@@ -221,7 +335,13 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
         c.board,
       );
     }
-    setState(() {});
+    setState(() {
+      // Notre coup entre dans la liste des positions, et il est déjà montré :
+      // sans ce compte, la relecture le rejouerait en animation quand le
+      // serveur nous le renverra.
+      _rebuildSteps();
+      _dejaAnime = _steps.length - 1;
+    });
     // Le son part après l'écran : le plateau doit répondre au doigt.
     if (notation != null) _sounds.playNotation(notation);
 
@@ -450,18 +570,23 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                 topBar: _bar(palette, flipped),
                 topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
                 board: GameBoardView(
-                  board: c.board,
+                  board: _shownBoard ?? c.board,
                   palette: palette,
                   flipped: flipped,
                   onTapCell: _onTapCell,
-                  selected: c.selected,
-                  groupSelection: c.groupSelection,
-                  highlighted: c.availablePushCells.toSet(),
-                  lastMove: _lastMove,
-                  fuguedHeirs: c.fuguedHeirs,
+                  selected: _isViewing ? null : c.selected,
+                  groupSelection: _isViewing ? const {} : c.groupSelection,
+                  highlighted: _isViewing
+                      ? const {}
+                      : c.availablePushCells.toSet(),
+                  lastMove: _shownLastMove,
+                  // La fugue clôt la partie : en revoyant un coup passé,
+                  // l'Héritier n'a pas encore rejoint son ralliement.
+                  fuguedHeirs: _isViewing ? const {} : c.fuguedHeirs,
                   pieceTheme: axes.pieces,
                   boardTheme: axes.board,
                   slides: slides,
+                  slideJumpPath: slideJumpPath,
                   slideToken: slideToken,
                   slideDuration: slideDuration,
                 ),
@@ -471,12 +596,17 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   c,
                 ),
                 moveStrip: MoveStrip(
-                  moves: _g.moves,
+                  // Nos propres coups compris : le bandeau n'affichait que
+                  // ceux que le serveur avait déjà renvoyés, donc le dernier
+                  // coup joué manquait jusqu'à la relecture suivante.
+                  moves: _allMoves(),
+                  activeIndex: _viewingIndex,
                   color: _campColor(palette, flipped ? Camp.blanc : Camp.noir),
                   palette: palette,
-                  // La correspondance se relit, elle ne se remonte pas : le
-                  // bandeau sert d'abord à relire les coups joués.
-                  onSelect: (_) {},
+                  // Les flèches et le bandeau ne faisaient RIEN : on ne
+                  // pouvait pas revoir un coup sans quitter la partie.
+                  onSelect: _viewMove,
+                  randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
                 ),
               ),
       ),
