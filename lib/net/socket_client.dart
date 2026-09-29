@@ -9,6 +9,42 @@ import 'dart:async';
 
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+/// Ce que le client doit se rappeler d'une recherche de partie.
+///
+/// Le serveur retire un joueur de sa file dès que la socket tombe. Une
+/// coupure d'une seconde — écran éteint, passage du Wi-Fi à la 4G — l'en
+/// sortait donc sans rien lui dire : l'application affichait encore
+/// « recherche en cours », et plus personne ne le trouvait jamais. C'est au
+/// client de s'y remettre en se reconnectant, et donc de se souvenir de ce
+/// qu'il cherchait.
+///
+/// Il l'oublie dès que la recherche est finie — partie trouvée, délai
+/// dépassé, annulation — sans quoi une reconnexion bien plus tard
+/// remettrait le joueur dans la file à son insu.
+class FileAttente {
+  Map<String, dynamic>? _enCours;
+
+  /// Ce qu'il faut réémettre à la reconnexion, ou `null`.
+  Map<String, dynamic>? get enCours =>
+      _enCours == null ? null : Map<String, dynamic>.from(_enCours!);
+
+  void cherche({
+    required String objectif,
+    required String cadence,
+    bool random = false,
+  }) => _enCours = {'objectif': objectif, 'cadence': cadence, 'random': random};
+
+  void annule() => _enCours = null;
+
+  /// Un événement du serveur est arrivé : la recherche est-elle finie ?
+  void surEvenement(String event) {
+    if (event == FugaEvents.partieTrouvee ||
+        event == FugaEvents.rechercheTimeout) {
+      _enCours = null;
+    }
+  }
+}
+
 /// Événements émis par le serveur, tels que le client Kivy les écoute.
 abstract final class FugaEvents {
   static const String authOk = 'auth_ok';
@@ -261,11 +297,21 @@ class FugaSocket implements RealtimeSocket {
       _connectionState.add(true);
       final t = _token;
       if (t != null) socket.emit('auth', {'token': t});
+      // Se REMETTRE dans la file. Le serveur en retire dès que la socket
+      // tombe ; sans ce rappel, une coupure d'une seconde — écran éteint,
+      // passage du Wi-Fi à la 4G — sortait le joueur de la file sans rien
+      // lui dire. L'application affichait encore « recherche en cours », et
+      // plus personne ne le trouvait jamais.
+      final encore = _file.enCours;
+      if (t != null && encore != null) {
+        socket.emit('chercher_partie', encore);
+      }
     });
     socket.onDisconnect((_) => _connectionState.add(false));
 
     for (final event in FugaEvents.all) {
       socket.on(event, (data) {
+        _file.surEvenement(event);
         _handlers.dispatch(
           event,
           data is Map ? Map<String, dynamic>.from(data) : const {},
@@ -282,19 +328,23 @@ class FugaSocket implements RealtimeSocket {
 
   // ── Matchmaking ───────────────────────────────────────────────────────────
 
+  final FileAttente _file = FileAttente();
+
   @override
   void chercherPartie({
     required String objectif,
     required String cadence,
     bool random = false,
-  }) => _emit('chercher_partie', {
-    'objectif': objectif,
-    'cadence': cadence,
-    'random': random,
-  });
+  }) {
+    _file.cherche(objectif: objectif, cadence: cadence, random: random);
+    _emit('chercher_partie', _file.enCours!);
+  }
 
   @override
-  void annulerRecherche() => _emit('annuler_recherche');
+  void annulerRecherche() {
+    _file.annule();
+    _emit('annuler_recherche');
+  }
 
   // ── Défis ─────────────────────────────────────────────────────────────────
 
