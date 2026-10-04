@@ -19,6 +19,15 @@ import '../theme/themes.dart';
 /// qu'une, on n'en propose qu'une.
 const String kSupportLink = 'https://paypal.me/lafugaonline';
 
+/// Crédit des enregistrements d'instruments.
+///
+/// Les quatre instruments ne sont plus synthétisés mais enregistrés : une
+/// synthèse écrite à la main, si soignée soit-elle, sonne comme un
+/// synthétiseur. Leur licence — Creative Commons Attribution 3.0 — demande
+/// que la source soit nommée, et c'est la contrepartie de pouvoir s'en
+/// servir. Ce texte s'affiche sous le choix de l'instrument.
+const String kCreditSons = 'Instruments : FluidR3_GM (CC BY 3.0)';
+
 abstract final class SettingsKeys {
   static const theme = 'theme';
   static const volume = 'volume';

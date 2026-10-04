@@ -179,6 +179,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     T(kInstrumentLabels[kInstruments[_instrumentIndex]] ?? ''),
                     _setInstrument,
                   ),
+                  // La licence des enregistrements demande que leur source
+                  // soit nommée. Sa place est ici, sous le choix de
+                  // l'instrument — pas enterrée dans un écran que personne
+                  // n'ouvre.
+                  _sub(kCreditSons),
 
                   _label(T('Vitesse de glissée des pièces')),
                   Slider(
