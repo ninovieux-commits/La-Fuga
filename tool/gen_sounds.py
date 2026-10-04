@@ -36,7 +36,8 @@ RATE = 44100
 NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']
 SEMITONES = {'do': 0, 're': 2, 'mi': 4, 'fa': 5, 'sol': 7, 'la': 9, 'si': 11}
 OCTAVES = [2, 3, 4, 5]
-INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche']
+INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche',
+               'clavecin', 'xylophone', 'harpe', 'trompette']
 
 SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       'sons_source')
@@ -46,16 +47,50 @@ SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # L'orgue est court exprès : chaque note est un coup joué, pas une touche
 # qu'on tient, et un glissando de quatre notes empilerait sinon un accord.
 # La cloche a besoin de temps — c'est ce qui la distingue d'un « cling ».
-NOTE_SECONDS = {'piano': 1.70, 'guitare': 1.70, 'orgue': 0.42, 'cloche': 2.40}
+# Chaque durée est choisie sur la MESURE de l'enregistrement, pas au jugé :
+#   le xylophone meurt de lui-même en moins d'une seconde ;
+#   la trompette bouchée ne décroît JAMAIS (-0 dB encore à 1,7 s), comme
+#   l'orgue : il lui faut une note courte et une soupape qui se ferme.
+NOTE_SECONDS = {
+    'piano': 1.70,
+    'guitare': 1.70,
+    'orgue': 0.42,
+    'cloche': 2.40,
+    'clavecin': 1.70,
+    'xylophone': 0.80,
+    'harpe': 1.70,
+    'trompette': 0.50,
+}
 
 # Niveau crête visé, par instrument.
-PEAK = {'piano': 0.70, 'guitare': 0.82, 'orgue': 0.82, 'cloche': 0.82}
+PEAK = {
+    'piano': 0.70,
+    'guitare': 0.82,
+    'orgue': 0.82,
+    'cloche': 0.82,
+    'clavecin': 0.82,
+    # Le xylophone est sec et perçant : un peu moins fort que les autres.
+    'xylophone': 0.75,
+    'harpe': 0.82,
+    'trompette': 0.82,
+}
 
 # L'étouffoir, à la fin : la durée pendant laquelle le son se retire.
 # L'orgue a la plus longue : il ne décroît pas tout seul, on le coupe donc
 # en plein son, et c'est la soupape qui doit se fermer proprement. Avec
 # 60 ms, la mesure disait que ça claquait encore à -10 dB.
-TAIL = {'piano': 0.14, 'guitare': 0.12, 'orgue': 0.15, 'cloche': 0.22}
+TAIL = {
+    'piano': 0.14,
+    'guitare': 0.12,
+    'orgue': 0.15,
+    'cloche': 0.22,
+    'clavecin': 0.12,
+    'xylophone': 0.05,
+    'harpe': 0.14,
+    # Comme l'orgue : on la coupe en plein son, la soupape doit se fermer
+    # proprement.
+    'trompette': 0.16,
+}
 
 
 def freq_of(note, octave):
@@ -134,7 +169,8 @@ def fade_in(x, seconds=0.0015):
 # l'oreille reconstruit. Aucune mesure de périodicité ne la retrouve, et c'est
 # justement ce qui fait une cloche. On mesure quand même, pour l'afficher,
 # mais on ne refuse pas le fichier là-dessus.
-HARMONIQUES = ['piano', 'guitare', 'orgue']
+HARMONIQUES = ['piano', 'guitare', 'orgue',
+               'clavecin', 'xylophone', 'harpe', 'trompette']
 
 
 def presence_hauteur(x, attendue):

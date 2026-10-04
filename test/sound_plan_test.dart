@@ -5,6 +5,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:lafuga/game/sound_plan.dart';
+import 'package:lafuga/ui/screens/settings_screen.dart' show kInstrumentLabels;
 import 'package:test/test.dart';
 
 void main() {
@@ -357,7 +358,31 @@ void main() {
     });
   });
 
-  test('les quatre instruments sont déclarés', () {
-    expect(kInstruments, ['piano', 'orgue', 'guitare', 'cloche']);
+  test('les huit instruments sont déclarés', () {
+    // Quatre d'origine, quatre ajoutés. Chacun choisi sur la MESURE de son
+    // attaque : la banque en compte 128, mais un violon met 465 ms à parler
+    // et arriverait après le doigt.
+    expect(kInstruments, [
+      'piano',
+      'orgue',
+      'guitare',
+      'cloche',
+      'clavecin',
+      'xylophone',
+      'harpe',
+      'trompette',
+    ]);
+  });
+
+  test('et chacun a son libellé, dans toutes les langues', () {
+    // Un instrument sans libellé s'afficherait comme une ligne vide dans
+    // les réglages — on ne saurait plus lequel on choisit.
+    for (final nom in kInstruments) {
+      expect(
+        kInstrumentLabels[nom],
+        isNotNull,
+        reason: '« $nom » n a pas de nom affichable',
+      );
+    }
   });
 }

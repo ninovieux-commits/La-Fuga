@@ -32,6 +32,10 @@ const Map<String, String> kInstrumentLabels = {
   'orgue': 'Orgue',
   'guitare': 'Guitare',
   'cloche': 'Cloche',
+  'clavecin': 'Clavecin',
+  'xylophone': 'Xylophone',
+  'harpe': 'Harpe',
+  'trompette': 'Trompette bouchée',
 };
 
 class SettingsScreen extends StatefulWidget {

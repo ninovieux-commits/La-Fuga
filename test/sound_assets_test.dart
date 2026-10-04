@@ -61,6 +61,10 @@ void main() {
     'guitare': 1.70,
     'orgue': 0.42,
     'cloche': 2.40,
+    'clavecin': 1.70,
+    'xylophone': 0.80,
+    'harpe': 1.70,
+    'trompette': 0.50,
   };
 
   /// En dessous, le son serait tronqué plutôt que relâché.
@@ -69,6 +73,12 @@ void main() {
     'guitare': 1.00,
     'orgue': 0.25,
     'cloche': 1.50,
+    'clavecin': 1.00,
+    // Le xylophone meurt de lui-même en moins d'une seconde : sa note est
+    // courte parce que l'instrument l'est, pas parce qu'on l'a tranchée.
+    'xylophone': 0.50,
+    'harpe': 1.00,
+    'trompette': 0.30,
   };
 
   test('chaque instrument a ses 28 notes, et rien d autre', () {

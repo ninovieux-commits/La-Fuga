@@ -36,6 +36,14 @@ SOURCES = {
     # un glissando cadencé à 100 ms, il n'arriverait pas du tout.
     'orgue': 'drawbar_organ',
     'cloche': 'tubular_bells',
+    # Quatre ajouts. Tous choisis sur la MESURE de leur attaque : une note
+    # doit parler en moins d'une centaine de millisecondes, sinon elle
+    # arrive après le doigt. Un violon en met 465, un violoncelle 1184 —
+    # ils sont dans la banque, ils sont inutilisables ici.
+    'clavecin': 'harpsichord',          # 67 ms
+    'xylophone': 'xylophone',           # 4 ms
+    'harpe': 'orchestral_harp',         # 23 ms
+    'trompette': 'muted_trumpet',       # 23 ms
 }
 
 NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']

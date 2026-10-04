@@ -148,12 +148,22 @@ void main() {
     });
 
     test('les anciens salons sont tous listés, pour être effacés', () {
-      // Le muet d avant, et les quatre de la version par instrument.
+      // Cette liste est un fait HISTORIQUE, pas une dérivée de
+      // `kInstruments` : ce sont les salons qui ont réellement existé sur
+      // les téléphones. Elle était construite à partir des instruments, et
+      // en ajouter quatre lui a fait réclamer la suppression de
+      // « lafuga_clavecin » — un salon que personne n'a jamais eu.
+      //
+      // Elle ne grandira que si une version PUBLIÉE crée un nouveau salon.
       expect(
         kLegacyChannelIds,
         containsAll(<String>[
-          'lafuga_default',
-          for (final i in kInstruments) 'lafuga_$i',
+          'lafuga_default', // le muet du tout début
+          'lafuga_piano', // les quatre de la version par instrument
+          'lafuga_orgue',
+          'lafuga_guitare',
+          'lafuga_cloche',
+          'lafuga_notif', // le premier salon unique
         ]),
         reason:
             'un salon oublié reste une ligne morte dans les réglages '

@@ -18,8 +18,22 @@ import '../engine/notation.dart';
 /// Attention : `re` sans accent, contrairement à la notation affichée `Ré`.
 const List<String> kSoundNotes = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
 
-/// Instruments disponibles, dans l'ordre du menu Kivy.
-const List<String> kInstruments = ['piano', 'orgue', 'guitare', 'cloche'];
+/// Instruments disponibles, dans l'ordre du sélecteur des réglages.
+///
+/// Les quatre derniers ont été choisis sur la MESURE de leur attaque : une
+/// note doit parler en moins d'une centaine de millisecondes, sinon elle
+/// arrive après le doigt. La banque en compte 128, mais un violon met 465 ms
+/// à parler et un violoncelle 1184 — ils sont inutilisables ici.
+const List<String> kInstruments = [
+  'piano',
+  'orgue',
+  'guitare',
+  'cloche',
+  'clavecin',
+  'xylophone',
+  'harpe',
+  'trompette',
+];
 
 /// Les quatre octaves des fichiers de notes.
 const List<int> kSoundOctaves = [2, 3, 4, 5];
