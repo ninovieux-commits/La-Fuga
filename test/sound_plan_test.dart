@@ -19,25 +19,32 @@ void main() {
       expect(noteForCell(6, 2), startsWith('si'));
     });
 
-    test('les rangées donnent les octaves', () {
-      expect(octaveForRow(0), 5, reason: 'rangée 1');
-      expect(octaveForRow(7), 5, reason: 'rangée 8');
-      expect(octaveForRow(1), 4);
-      expect(octaveForRow(6), 4);
-      expect(octaveForRow(2), 3);
-      expect(octaveForRow(5), 3);
-      expect(octaveForRow(3), 5, reason: 'rangée 4');
-      expect(octaveForRow(4), 5, reason: 'rangée 5');
-    });
-
-    test('la correspondance est symétrique entre les deux camps', () {
+    test('une octave par moitié de plateau, et deux en tout', () {
+      // Le jeu tenait sur quatre octaves réparties par rangée, selon une
+      // table où les rangées 1, 4, 5 et 8 sonnaient toutes à l'octave 5 :
+      // un coup d'une rangée à l'autre pouvait sauter de deux octaves.
       for (var row = 0; row < 4; row++) {
+        expect(octaveForRow(row), kOctaveProche, reason: 'rangée ${row + 1}');
+      }
+      for (var row = 4; row < 8; row++) {
         expect(
           octaveForRow(row),
-          octaveForRow(7 - row),
-          reason: 'rangées $row et ${7 - row}',
+          kOctaveLointaine,
+          reason: 'rangée ${row + 1}',
         );
       }
+      final toutes = {for (var r = 0; r < 8; r++) octaveForRow(r)};
+      expect(toutes, hasLength(2), reason: 'deux octaves, pas une de plus');
+    });
+
+    test('avancer vers l adversaire monte, une seule fois', () {
+      // Le franchissement est au milieu du plateau, et nulle part ailleurs.
+      var sauts = 0;
+      for (var row = 1; row < 8; row++) {
+        if (octaveForRow(row) != octaveForRow(row - 1)) sauts++;
+      }
+      expect(sauts, 1);
+      expect(octaveForRow(0), lessThan(octaveForRow(7)));
     });
 
     test('une colonne hors plateau ne donne pas de note', () {
@@ -187,19 +194,67 @@ void main() {
       expect(cues[1].delay, const Duration(milliseconds: 250));
     });
 
-    test('poussée : glissando montant vers l arrivée', () {
+    test('poussée : deux sons, comme tout coup', () {
+      // Elle déclenchait un glissando de quatre notes, dont trois ne
+      // correspondaient à AUCUNE case. On entendait une fioriture au lieu
+      // d'un déplacement.
       final cues = planForNotation('Do1-Do2>');
+      expect(cues, hasLength(2));
+      expect(cues.first.name, noteForCell(0, 0));
       expect(cues.first.delay, Duration.zero, reason: 'note de départ');
-      // Une note de départ plus quatre notes de glissando.
-      expect(cues.length, 5);
-      expect(cues.last.name, noteForCell(0, 1), reason: 'arrive sur la cible');
+      expect(cues.last.name, noteForCell(0, 1), reason: 'note d arrivée');
     });
 
-    test('manœuvre : note de la maîtresse puis glissando descendant', () {
+    test('manœuvre : la maîtresse, puis l arrivée', () {
       final cues = planForNotation('(Do1Ré1)-Do2');
+      expect(cues, hasLength(2));
       expect(cues.first.name, noteForCell(0, 0));
-      expect(cues.length, 5);
       expect(cues.last.name, noteForCell(0, 1));
+    });
+
+    test('et chaque son désigne une case réelle du plateau', () {
+      // C'est la règle, et c'est ce qui manquait : « les notes doivent
+      // correspondre aux notes des cases ».
+      final cases = {
+        for (var c = 0; c < 7; c++)
+          for (var r = 0; r < 8; r++) noteForCell(c, r),
+      };
+      for (final notation in [
+        'Do1-Do2',
+        'Do1-Do2>',
+        'Do1-Do2>Ré3Mi4',
+        '(Do1Ré1)-Do2',
+        'Mi2-Mi4',
+        'Fa7-Mi8#',
+      ]) {
+        final cues = planForNotation(notation);
+        expect(cues, isNotEmpty, reason: notation);
+        for (final cue in cues) {
+          expect(
+            cases,
+            contains(cue.name),
+            reason:
+                '« $notation » joue ${cue.name}, '
+                'qui ne désigne aucune case',
+          );
+        }
+      }
+    });
+
+    test('un coup ne fait jamais plus de deux sons', () {
+      for (final notation in [
+        'Do1-Do2',
+        'Do1-Do2>',
+        'Do1-Do2>Ré3Mi4Fa5',
+        '(Do1Ré1Mi1Fa1)-Do2',
+        'Si8-La7',
+      ]) {
+        expect(
+          planForNotation(notation).length,
+          lessThanOrEqualTo(2),
+          reason: notation,
+        );
+      }
     });
 
     test('fugue : la seule note de la case de départ', () {

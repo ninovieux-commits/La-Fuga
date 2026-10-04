@@ -53,14 +53,16 @@ void main() {
     expect(hits(once), hits(twice));
   });
 
-  test('le glissando de poussée est régulier : une note toutes les 100 ms', () {
+  test('un coup fait deux sons : le départ, puis l arrivée', () {
+    // La poussée déclenchait un glissando de quatre notes à partir de
+    // 250 ms. Trois d'entre elles ne correspondaient à aucune case, et
+    // Nino les a supprimées : « les notes doivent correspondre aux notes
+    // des cases ».
     final mixed = mixCues(planForNotation('Do1-Do2>'), impulses(), 1)!;
     final at = hits(mixed);
-    // Départ à 0, puis quatre notes à partir de 250 ms, toutes les 100 ms.
-    expect(at.first, 0);
-    expect(at.length, 5);
-    final steps = [for (var i = 2; i < at.length; i++) at[i] - at[i - 1]];
-    expect(steps.toSet(), {100 * rate ~/ 1000}, reason: 'pas régulier');
+    expect(at, hasLength(2));
+    expect(at.first, 0, reason: 'le départ, tout de suite');
+    expect(at.last, 250 * rate ~/ 1000, reason: 'l arrivée, 250 ms après');
   });
 
   test('rien à jouer ne fabrique pas de tampon', () {

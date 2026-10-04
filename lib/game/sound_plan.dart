@@ -24,20 +24,21 @@ const List<String> kInstruments = ['piano', 'orgue', 'guitare', 'cloche'];
 /// Les quatre octaves des fichiers de notes.
 const List<int> kSoundOctaves = [2, 3, 4, 5];
 
-/// Octave associée à une rangée.
+/// Les deux octaves du plateau : une par moitié.
 ///
-/// Les rangées du fond sonnent aigu, celles du milieu grave : le mouvement
-/// vers l'adversaire s'entend.
-int octaveForRow(int row) {
-  final line = row + 1; // rangées 1 à 8
-  return switch (line) {
-    1 || 8 => 5,
-    2 || 7 => 4,
-    3 || 6 => 3,
-    4 || 5 => 5,
-    _ => 3,
-  };
-}
+/// Tout le jeu tient sur deux octaves. Il en utilisait quatre, réparties par
+/// rangée selon une table où les rangées 1, 4, 5 et 8 sonnaient toutes à
+/// l'octave 5 : un coup d'une rangée à l'autre pouvait sauter de deux
+/// octaves, et l'oreille n'y entendait aucune géographie.
+///
+/// Maintenant, chaque moitié de plateau a son octave. Avancer vers
+/// l'adversaire monte d'une octave, une seule fois, au milieu — et ce
+/// franchissement s'entend pour ce qu'il est.
+const int kOctaveProche = 3;
+const int kOctaveLointaine = 4;
+
+/// Octave associée à une rangée : la moitié d'où vient la case.
+int octaveForRow(int row) => row + 1 <= 4 ? kOctaveProche : kOctaveLointaine;
 
 /// Nom du fichier de note pour une case, par exemple `fa5`.
 String? noteForCell(int col, int row) {
@@ -126,6 +127,15 @@ int _noteIndex(int col, int octave) => (octave - 2) * 7 + col;
 
 /// Notes d'un glissando arrivant **sur** la case cible.
 ///
+/// Plus utilisée en partie : un coup se dit en DEUX sons, celui de la case
+/// d'où l'on vient et celui de la case où l'on arrive, et rien d'autre. Les
+/// notes intermédiaires d'un glissando ne correspondaient à aucune case.
+///
+/// Elle survit pour le son de NOTIFICATION (`tool/gen_notif_sound.dart`),
+/// qui est un petit motif de quatre notes montantes et n'a rien à voir avec
+/// la géographie du plateau.
+///
+///
 /// [direction] vaut `+1` pour monter vers la cible, `-1` pour descendre.
 /// La dernière note est toujours celle de la case cible.
 List<String> glissandoNotes(
@@ -146,10 +156,17 @@ List<String> glissandoNotes(
   return notes;
 }
 
-const Duration _glissandoStep = Duration(milliseconds: 100);
 const Duration _arrivalDelay = Duration(milliseconds: 250);
 
 /// Traduit une notation `.nmc` en suite de sons.
+///
+/// DEUX sons par coup : la case d'où l'on vient, puis celle où l'on arrive.
+/// Chaque son correspond donc à une case réelle du plateau. Une poussée et
+/// une manœuvre déclenchaient auparavant un glissando de quatre notes, dont
+/// trois ne désignaient rien.
+///
+/// La fugue fait exception, et elle n'a pas le choix : sa case d'arrivée est
+/// hors du plateau et n'a pas de nom. Un seul son, celui du départ.
 ///
 /// Renvoie une liste vide si la notation n'est pas exploitable — on préfère
 /// le silence à un son faux.
@@ -162,7 +179,7 @@ List<SoundCue> planForNotation(String? notation) {
   // La marque de mat ne fait pas partie du coup : elle ne s'entend pas.
   if (n.endsWith('#')) n = n.substring(0, n.length - 1);
 
-  // ── Manœuvre : note de la maîtresse, puis glissando descendant ──
+  // ── Manœuvre : la case de la maîtresse, puis celle d'arrivée ──
   if (n.startsWith('(')) {
     final match = RegExp(r'^\((.*)\)-(.+)$').firstMatch(n);
     if (match != null) {
@@ -173,7 +190,8 @@ List<SoundCue> planForNotation(String? notation) {
       }
       final dest = notationToCell(match.group(2)!);
       if (dest != null) {
-        _addGlissando(cues, dest, 4, -1, _arrivalDelay);
+        final note = noteForCell(dest.col, dest.row);
+        if (note != null) cues.add(SoundCue(note, _arrivalDelay));
       }
     }
     return cues;
@@ -205,28 +223,14 @@ List<SoundCue> planForNotation(String? notation) {
     if (note != null) cues.add(SoundCue(note, Duration.zero));
   }
 
+  // La poussée ne change rien : c'est toujours la case d'arrivée qu'on
+  // entend. Elle déclenchait un glissando de quatre notes, dont trois ne
+  // correspondaient à AUCUNE case — l'oreille entendait une fioriture au
+  // lieu d'un déplacement.
   if (end != null) {
-    if (hasPush) {
-      // Une poussée monte vers la note d'arrivée : on entend la ligne partir.
-      _addGlissando(cues, end, 4, 1, _arrivalDelay);
-    } else {
-      final note = noteForCell(end.col, end.row);
-      if (note != null) cues.add(SoundCue(note, _arrivalDelay));
-    }
+    final note = noteForCell(end.col, end.row);
+    if (note != null) cues.add(SoundCue(note, _arrivalDelay));
   }
 
   return cues;
-}
-
-void _addGlissando(
-  List<SoundCue> cues,
-  Cell target,
-  int count,
-  int direction,
-  Duration initialDelay,
-) {
-  final notes = glissandoNotes(target.col, target.row, count, direction);
-  for (var i = 0; i < notes.length; i++) {
-    cues.add(SoundCue(notes[i], initialDelay + _glissandoStep * i));
-  }
 }
