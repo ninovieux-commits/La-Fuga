@@ -29,7 +29,6 @@ const List<String> kInstruments = [
   'orgue',
   'guitare',
   'cloche',
-  'clavecin',
   'xylophone',
   'harpe',
   'choeur',

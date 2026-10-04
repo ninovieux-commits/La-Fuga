@@ -61,7 +61,6 @@ void main() {
     'guitare': 1.70,
     'orgue': 0.42,
     'cloche': 2.40,
-    'clavecin': 1.70,
     'xylophone': 0.80,
     'harpe': 1.70,
     'choeur': 1.00,
@@ -73,7 +72,6 @@ void main() {
     'guitare': 1.00,
     'orgue': 0.25,
     'cloche': 1.50,
-    'clavecin': 1.00,
     // Le xylophone meurt de lui-même en moins d'une seconde : sa note est
     // courte parce que l'instrument l'est, pas parce qu'on l'a tranchée.
     'xylophone': 0.50,

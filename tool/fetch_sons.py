@@ -40,7 +40,6 @@ SOURCES = {
     # doit parler en moins d'une centaine de millisecondes, sinon elle
     # arrive après le doigt. Un violon en met 465, un violoncelle 1184 —
     # ils sont dans la banque, ils sont inutilisables ici.
-    'clavecin': 'harpsichord',          # 67 ms
     'xylophone': 'xylophone',           # 4 ms
     'harpe': 'orchestral_harp',         # 23 ms
     # « Enleve trompette (c'est moche) et ajoute choeurs (premier de la

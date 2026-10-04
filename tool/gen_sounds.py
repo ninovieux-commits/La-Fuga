@@ -37,7 +37,7 @@ NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']
 SEMITONES = {'do': 0, 're': 2, 'mi': 4, 'fa': 5, 'sol': 7, 'la': 9, 'si': 11}
 OCTAVES = [2, 3, 4, 5]
 INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche',
-               'clavecin', 'xylophone', 'harpe', 'choeur']
+               'xylophone', 'harpe', 'choeur']
 
 SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       'sons_source')
@@ -56,7 +56,6 @@ NOTE_SECONDS = {
     'guitare': 1.70,
     'orgue': 0.42,
     'cloche': 2.40,
-    'clavecin': 1.70,
     'xylophone': 0.80,
     'harpe': 1.70,
     # Le choeur ne decroit pas, comme l'orgue : note courte et soupape.
@@ -71,7 +70,6 @@ PEAK = {
     'guitare': 0.82,
     'orgue': 0.82,
     'cloche': 0.82,
-    'clavecin': 0.82,
     # Le xylophone est sec et perçant : un peu moins fort que les autres.
     'xylophone': 0.75,
     'harpe': 0.82,
@@ -87,7 +85,6 @@ TAIL = {
     'guitare': 0.12,
     'orgue': 0.15,
     'cloche': 0.22,
-    'clavecin': 0.12,
     'xylophone': 0.05,
     'harpe': 0.14,
     # Comme l'orgue : on le coupe en plein son, la soupape doit se fermer
@@ -173,7 +170,7 @@ def fade_in(x, seconds=0.0015):
 # justement ce qui fait une cloche. On mesure quand même, pour l'afficher,
 # mais on ne refuse pas le fichier là-dessus.
 HARMONIQUES = ['piano', 'guitare', 'orgue',
-               'clavecin', 'xylophone', 'harpe', 'choeur']
+               'xylophone', 'harpe', 'choeur']
 
 
 def presence_hauteur(x, attendue):

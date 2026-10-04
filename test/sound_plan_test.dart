@@ -367,7 +367,6 @@ void main() {
       'orgue',
       'guitare',
       'cloche',
-      'clavecin',
       'xylophone',
       'harpe',
       'choeur',

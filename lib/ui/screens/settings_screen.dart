@@ -23,6 +23,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/instrument_preview.dart';
 import '../widgets/theme_preview.dart';
 import 'theme_composer_screen.dart';
 
@@ -32,7 +33,6 @@ const Map<String, String> kInstrumentLabels = {
   'orgue': 'Orgue',
   'guitare': 'Guitare',
   'cloche': 'Cloche',
-  'clavecin': 'Clavecin',
   'xylophone': 'Xylophone',
   'harpe': 'Harpe',
   'choeur': 'Chœur',
@@ -179,9 +179,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   _sub('${(_settings.volume * 100).round()}%'),
 
-                  _selector(
-                    T(kInstrumentLabels[kInstruments[_instrumentIndex]] ?? ''),
-                    _setInstrument,
+                  SizedBox(
+                    // Même gabarit que l'aperçu de thème, juste en dessous.
+                    height: math.max(S(80), touchHeight()),
+                    child: Row(
+                      children: [
+                        _arrow('<', () => _setInstrument(-1)),
+                        Expanded(
+                          flex: 32,
+                          child: Center(
+                            child: Text(
+                              T(
+                                kInstrumentLabels[kInstruments[_instrumentIndex]] ??
+                                    '',
+                              ),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: SF(14),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 36,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: S(8)),
+                            child: InstrumentPreview(
+                              instrument: kInstruments[_instrumentIndex],
+                              couleur: palette.clair,
+                            ),
+                          ),
+                        ),
+                        _arrow('>', () => _setInstrument(1)),
+                      ],
+                    ),
                   ),
                   // La licence des enregistrements demande que leur source
                   // soit nommée. Sa place est ici, sous le choix de

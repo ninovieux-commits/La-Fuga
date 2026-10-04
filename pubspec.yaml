@@ -40,10 +40,19 @@ flutter:
     - assets/i18n/
     - assets/images/
     - assets/logos/
+    # Un dossier par instrument, et il FAUT les lister : Flutter ne descend
+    # pas dans les sous-dossiers d'une entrée. Quatre instruments ajoutés
+    # sans toucher à cette liste, et leurs 112 notes restaient hors de
+    # l'APK — muettes, sans la moindre erreur. `instruments_test.dart` le
+    # vérifie maintenant.
+    - assets/sounds/choeur/
     - assets/sounds/cloche/
     - assets/sounds/guitare/
+    - assets/sounds/harpe/
     - assets/sounds/orgue/
     - assets/sounds/piano/
+    - assets/sounds/xylophone/
+    - assets/instruments/
     - assets/themes/theme_deepgrey/
     - assets/themes/themebataille/
     - assets/themes/themedragon/
