@@ -28,6 +28,7 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/ai_memory.dart';
 import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -164,6 +165,66 @@ void main() {
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('il prend son temps avant de poser son coup', (tester) async {
+      // Nino : « il faut que Deep Grey attende une seconde avant de jouer à
+      // chaque fois que c'est à lui ». Une position simple est trouvée en
+      // quelques millisecondes, et le coup apparaissait au moment même où on
+      // relâchait le doigt — on ne voyait pas qui avait joué quoi.
+      //
+      // On ALLONGE la pause pour l'épreuve : à une seconde, la réflexion
+      // elle-même dure déjà plus longtemps sur certaines machines, et le
+      // test passait aussi bien avec que sans l'attente. Il ne prouvait
+      // rien. À quatre secondes, le temps de calcul ne peut plus se faire
+      // passer pour la pause.
+      //
+      // `runAsync` est indispensable : la recherche tourne dans un isolate,
+      // et l'horloge truquée des tests ne la fait pas avancer.
+      const pause = Duration(seconds: 4);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(
+            cadence: Cadence.zen,
+            aiCamp: Camp.blanc,
+            aiPause: pause,
+            archive: GameArchive(local: LocalGamesStore(directory: tmp)),
+            memory: AiMemory(directory: tmp),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      String plateau() => tester
+          .widget<GameBoardView>(find.byType(GameBoardView))
+          .board
+          .render();
+      final depart = plateau();
+
+      // Deux horloges, et il faut les faire avancer toutes les deux :
+      // `runAsync` donne du temps RÉEL à l'isolate, et `pump(durée)` avance
+      // l'horloge truquée — la seule que l'attente de Deep Grey consulte.
+      // C'est donc celle-là qu'on mesure.
+      const pas = Duration(milliseconds: 150);
+      var ecoule = Duration.zero;
+      Duration? joueA;
+      for (var i = 0; i < 60 && joueA == null; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 40)),
+        );
+        await tester.pump(pas);
+        ecoule += pas;
+        if (plateau() != depart) joueA = ecoule;
+      }
+
+      expect(joueA, isNotNull, reason: 'il n a jamais joué');
+      expect(
+        joueA!.inMilliseconds,
+        greaterThan(pause.inMilliseconds - 500),
+        reason:
+            'il a joué au bout de ${joueA.inMilliseconds} ms, '
+            'donc sans attendre',
+      );
     });
   });
 

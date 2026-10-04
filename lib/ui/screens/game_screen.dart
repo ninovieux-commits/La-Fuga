@@ -61,7 +61,22 @@ class GameScreen extends StatefulWidget {
     this.analysisFromCorr = false,
     this.objectif = 'partie',
     this.initialFlipped,
+    this.aiPause = _tempsDeDeepGrey,
   });
+
+  /// Le temps que Deep Grey prend AVANT de jouer, à chaque fois.
+  ///
+  /// Un minimum, pas une addition : une position simple est trouvée en
+  /// quelques millisecondes, et le coup apparaissait alors au moment même où
+  /// on relâchait le doigt — on ne voyait pas qui avait joué quoi. Quand la
+  /// réflexion dure déjà plus longtemps, on n'ajoute rien.
+  ///
+  /// Injectable pour les tests : la réflexion dure ce qu'elle veut selon la
+  /// machine, et sans pouvoir allonger la pause on ne saurait pas distinguer
+  /// l'attente voulue du temps de calcul.
+  final Duration aiPause;
+
+  static const Duration _tempsDeDeepGrey = Duration(seconds: 1);
 
   /// Cadence de la partie.
   final Cadence cadence;
@@ -503,6 +518,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     final aiCamp = _aiCamp;
     if (aiCamp == null) return;
     setState(() => _thinking = true);
+    final chrono = Stopwatch()..start();
 
     final result = await _engine.think(
       board: _game.board,
@@ -514,6 +530,13 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       bookMove: _book?.lookup(_game.board, aiCamp),
       avoidManeuver: _consecutiveManeuvers >= 2,
     );
+    if (!mounted) return;
+
+    // Le compte à rebours ne part pas d'ici mais du DÉBUT du tour : ce qui
+    // compte est le temps écoulé depuis que c'est à lui, pas celui qu'on
+    // ajoute après coup.
+    final reste = widget.aiPause - chrono.elapsed;
+    if (reste > Duration.zero) await Future<void>.delayed(reste);
     if (!mounted) return;
 
     if (!result.hasMove) {
