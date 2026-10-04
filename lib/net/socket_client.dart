@@ -9,6 +9,44 @@ import 'dart:async';
 
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+/// Les transports Socket.IO, et pourquoi il n'y en a qu'un.
+///
+/// **Sur mobile, le polling n'existe pas.** `socket_io_client` compile pour
+/// Android et iOS une fabrique de transports qui ignore le nom demandé et
+/// renvoie toujours un WebSocket (`engine/transport/io_transports.dart` :
+/// « Native only supports websocket »). Le moteur, lui, écrit dans l'URL le
+/// transport qu'il croit ouvrir. Demander `polling` fabriquait donc une
+/// poignée de main WebSocket sur `/socket.io/?EIO=4&transport=polling` : le
+/// serveur basculait en WebSocket, le client attendait une réponse de
+/// polling, et personne ne levait d'erreur. La socket restait muette pour
+/// toujours — ni `connect`, ni `connect_error`.
+///
+/// C'est ce qui cassait le matchmaking (« on attend sans fin ») et les
+/// messages en direct : le temps réel de l'application n'a jamais fonctionné.
+/// Mettre `polling` en tête de liste ne protégeait rien, puisqu'il n'a jamais
+/// été disponible ; cela garantissait l'échec.
+///
+/// Vérifiable : `dart run tool/sonde_socket.dart <url> <pseudo>`.
+const List<String> kTransportsSocket = ['websocket'];
+
+/// Les options de connexion, en un seul endroit.
+///
+/// `tool/sonde_socket.dart` appelle cette fonction : c'est la seule façon
+/// d'éprouver pour de vrai la configuration de l'application, les tests
+/// Flutter ne pouvant pas ouvrir de connexion réseau.
+/// [transports] n'existe que pour la sonde, qui doit pouvoir remettre
+/// l'ancienne liste et montrer qu'elle échoue. L'application ne le passe
+/// jamais.
+Map<String, dynamic> optionsSocket({List<String>? transports}) =>
+    io.OptionBuilder()
+        .setTransports(transports ?? kTransportsSocket)
+        .enableReconnection()
+        .setReconnectionAttempts(1 << 30)
+        .setReconnectionDelay(1000)
+        .setReconnectionDelayMax(10000)
+        .disableAutoConnect()
+        .build();
+
 /// Ce que le client doit se rappeler d'une recherche de partie.
 ///
 /// Le serveur retire un joueur de sa file dès que la socket tombe. Une
@@ -240,9 +278,13 @@ abstract interface class RealtimeSocket implements GameSocket, ChallengeSocket {
 
 /// Connexion temps réel : matchmaking, défis et parties.
 class FugaSocket implements RealtimeSocket {
-  FugaSocket({required this.serverUrl});
+  FugaSocket({required this.serverUrl, this.transports});
 
   final String serverUrl;
+
+  /// Réservé à `tool/sonde_matchmaking.dart`, qui doit pouvoir remettre
+  /// l'ancienne liste de transports pour prouver qu'elle ne marchait pas.
+  final List<String>? transports;
 
   io.Socket? _socket;
   String? _token;
@@ -279,19 +321,7 @@ class FugaSocket implements RealtimeSocket {
       return;
     }
 
-    final socket = io.io(
-      serverUrl,
-      io.OptionBuilder()
-          // On laisse négocier polling puis montée en websocket : forcer un
-          // seul transport échouait sur certains réseaux mobiles.
-          .setTransports(['polling', 'websocket'])
-          .enableReconnection()
-          .setReconnectionAttempts(1 << 30)
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(10000)
-          .disableAutoConnect()
-          .build(),
-    );
+    final socket = io.io(serverUrl, optionsSocket(transports: transports));
 
     socket.onConnect((_) {
       _connectionState.add(true);
@@ -337,7 +367,12 @@ class FugaSocket implements RealtimeSocket {
     bool random = false,
   }) {
     _file.cherche(objectif: objectif, cadence: cadence, random: random);
-    _emit('chercher_partie', _file.enCours!);
+    // Tant qu'on n'est pas connecté, on ne fait que mémoriser : `onConnect`
+    // émettra `auth` PUIS la recherche, dans cet ordre. Émettre tout de
+    // suite, comme le fait l'écran du menu, mettait la recherche en file
+    // dans la bibliothèque, d'où elle partait avant `auth` — le serveur
+    // l'exige — et le serveur répondait `auth_erreur`.
+    if (isConnected) _emit('chercher_partie', _file.enCours!);
   }
 
   @override

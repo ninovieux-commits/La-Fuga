@@ -95,4 +95,35 @@ void main() {
       );
     });
   });
+
+  group('Les transports de la socket', () {
+    // Le correctif suivant, et la vraie cause de « on attend sans fin ».
+    //
+    // La remise en file ci-dessus ne suffisait pas : la socket ne s'ouvrait
+    // JAMAIS. Sur Android et iOS, `socket_io_client` compile une fabrique de
+    // transports qui ignore le nom demandé et renvoie toujours un WebSocket
+    // (engine/transport/io_transports.dart : « Native only supports
+    // websocket »), pendant que le moteur écrit dans l'URL le transport
+    // qu'il croit ouvrir. Demander « polling » fabriquait donc une poignée
+    // de main WebSocket sur /socket.io/?EIO=4&transport=polling : le serveur
+    // basculait en WebSocket, le client attendait une réponse de polling, et
+    // AUCUN des deux ne levait d'erreur — ni « connect », ni
+    // « connect_error ». Matchmaking et messages en direct étaient morts
+    // depuis toujours.
+    //
+    // Vérifié sur un vrai serveur : `tool/sonde_matchmaking.dart`. Avec
+    // « polling,websocket », deux clients ne se connectent même pas ; avec
+    // la liste ci-dessous, ils s'apparient en moins d'une seconde.
+    test('websocket seul — le polling n existe pas sur mobile', () {
+      expect(
+        kTransportsSocket,
+        ['websocket'],
+        reason: 'ajouter « polling » rend la connexion muette pour toujours',
+      );
+    });
+
+    test('et c est bien ce que reçoit la bibliothèque', () {
+      expect(optionsSocket()['transports'], ['websocket']);
+    });
+  });
 }
