@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/game/sound_plan.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,6 +55,18 @@ void main() {
       final s = await Settings.load();
       await s.setInstrument('kazoo');
       expect(s.instrument, 'piano', reason: 'on garde le précédent');
+    });
+
+    test('et un instrument RETIRÉ depuis retombe sur le premier', () async {
+      // La trompette bouchée a existé dans une version, puis a été retirée.
+      // Un téléphone qui l'avait choisie garde son nom en mémoire : sans ce
+      // repli, la banque chercherait des fichiers absents, chaque note
+      // serait sautée en silence — et les réglages afficheraient « Piano »
+      // par-dessus le marché. On aurait cherché longtemps.
+      SharedPreferences.setMockInitialValues({'instrument': 'trompette'});
+      final s = await Settings.load();
+      expect(s.instrument, kInstruments.first);
+      expect(kInstruments, isNot(contains('trompette')));
     });
 
     test('une langue inconnue est refusée', () async {

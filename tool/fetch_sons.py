@@ -43,7 +43,11 @@ SOURCES = {
     'clavecin': 'harpsichord',          # 67 ms
     'xylophone': 'xylophone',           # 4 ms
     'harpe': 'orchestral_harp',         # 23 ms
-    'trompette': 'muted_trumpet',       # 23 ms
+    # « Enleve trompette (c'est moche) et ajoute choeurs (premier de la
+    # liste est le plus realiste) » : c'est le choeur « aah » TEL QUEL,
+    # celui qui enfle. J'en avais prepare une version a l'entree franche,
+    # ou l'enflure est sautee ; Nino a choisi la naturelle.
+    'choeur': 'choir_aahs',             # 197 ms a mi-volume
 }
 
 NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']

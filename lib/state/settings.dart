@@ -91,8 +91,17 @@ class Settings {
   Future<void> setVolume(double value) =>
       _prefs.setDouble(SettingsKeys.volume, value.clamp(0.0, 1.0));
 
-  String get instrument =>
-      _prefs.getString(SettingsKeys.instrument) ?? kInstruments.first;
+  /// L'instrument choisi, et toujours un instrument QUI EXISTE.
+  ///
+  /// Un nom inconnu reviendrait au premier. Sans ce garde-fou, retirer un
+  /// instrument de la liste rendait muet tout téléphone qui l'avait choisi :
+  /// la banque de sons cherchait des fichiers absents, chaque note était
+  /// sautée en silence, et les réglages affichaient « Piano » par-dessus le
+  /// marché — on n'aurait rien compris.
+  String get instrument {
+    final enregistre = _prefs.getString(SettingsKeys.instrument);
+    return kInstruments.contains(enregistre) ? enregistre! : kInstruments.first;
+  }
 
   Future<void> setInstrument(String value) async {
     if (!kInstruments.contains(value)) return;

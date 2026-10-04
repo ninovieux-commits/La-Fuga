@@ -370,7 +370,7 @@ void main() {
       'clavecin',
       'xylophone',
       'harpe',
-      'trompette',
+      'choeur',
     ]);
   });
 

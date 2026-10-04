@@ -37,7 +37,7 @@ NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']
 SEMITONES = {'do': 0, 're': 2, 'mi': 4, 'fa': 5, 'sol': 7, 'la': 9, 'si': 11}
 OCTAVES = [2, 3, 4, 5]
 INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche',
-               'clavecin', 'xylophone', 'harpe', 'trompette']
+               'clavecin', 'xylophone', 'harpe', 'choeur']
 
 SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       'sons_source')
@@ -59,7 +59,10 @@ NOTE_SECONDS = {
     'clavecin': 1.70,
     'xylophone': 0.80,
     'harpe': 1.70,
-    'trompette': 0.50,
+    # Le choeur ne decroit pas, comme l'orgue : note courte et soupape.
+    # Il enfle aussi — il est a mi-volume en 197 ms — et c'est voulu : une
+    # entree franche existait, Nino a choisi la naturelle.
+    'choeur': 1.00,
 }
 
 # Niveau crête visé, par instrument.
@@ -72,7 +75,7 @@ PEAK = {
     # Le xylophone est sec et perçant : un peu moins fort que les autres.
     'xylophone': 0.75,
     'harpe': 0.82,
-    'trompette': 0.82,
+    'choeur': 0.82,
 }
 
 # L'étouffoir, à la fin : la durée pendant laquelle le son se retire.
@@ -87,9 +90,9 @@ TAIL = {
     'clavecin': 0.12,
     'xylophone': 0.05,
     'harpe': 0.14,
-    # Comme l'orgue : on la coupe en plein son, la soupape doit se fermer
+    # Comme l'orgue : on le coupe en plein son, la soupape doit se fermer
     # proprement.
-    'trompette': 0.16,
+    'choeur': 0.18,
 }
 
 
@@ -170,7 +173,7 @@ def fade_in(x, seconds=0.0015):
 # justement ce qui fait une cloche. On mesure quand même, pour l'afficher,
 # mais on ne refuse pas le fichier là-dessus.
 HARMONIQUES = ['piano', 'guitare', 'orgue',
-               'clavecin', 'xylophone', 'harpe', 'trompette']
+               'clavecin', 'xylophone', 'harpe', 'choeur']
 
 
 def presence_hauteur(x, attendue):

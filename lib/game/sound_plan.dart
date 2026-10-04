@@ -32,7 +32,7 @@ const List<String> kInstruments = [
   'clavecin',
   'xylophone',
   'harpe',
-  'trompette',
+  'choeur',
 ];
 
 /// Les quatre octaves des fichiers de notes.

@@ -64,7 +64,7 @@ void main() {
     'clavecin': 1.70,
     'xylophone': 0.80,
     'harpe': 1.70,
-    'trompette': 0.50,
+    'choeur': 1.00,
   };
 
   /// En dessous, le son serait tronqué plutôt que relâché.
@@ -78,7 +78,7 @@ void main() {
     // courte parce que l'instrument l'est, pas parce qu'on l'a tranchée.
     'xylophone': 0.50,
     'harpe': 1.00,
-    'trompette': 0.30,
+    'choeur': 0.60,
   };
 
   test('chaque instrument a ses 28 notes, et rien d autre', () {
