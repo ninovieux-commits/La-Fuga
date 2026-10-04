@@ -110,6 +110,16 @@ abstract final class FugaEvents {
   static const String defiRefuse = 'defi_refuse';
   static const String defiAnnule = 'defi_annule';
 
+  /// Tout ce qui bouge en correspondance, en direct.
+  ///
+  /// La correspondance n'avait AUCUN événement temps réel : le serveur
+  /// n'envoyait que des notifications push, et l'application ouverte ne
+  /// pouvait que redemander la liste toutes les quatre secondes. Le serveur
+  /// prévient maintenant au même endroit qu'il notifie, avec la même charge
+  /// utile — `{type, game_id, …}`, où `type` vaut `corr_turn`, `corr_fin`,
+  /// `corr_nulle`, `corr_chat`, `corr_maj`, `defi_corr` ou `message`.
+  static const String majDirecte = 'maj_directe';
+
   /// Tous les événements écoutés, dans l'ordre du client Kivy.
   static const List<String> all = [
     authOk,
@@ -136,6 +146,7 @@ abstract final class FugaEvents {
     defiEchec,
     defiRefuse,
     defiAnnule,
+    majDirecte,
   ];
 }
 

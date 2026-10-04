@@ -20,6 +20,8 @@ import '../../game/clock.dart';
 import '../../game/correspondence.dart';
 import '../../game/online_game.dart';
 import '../../i18n/translations.dart';
+import '../../net/corr_hub.dart';
+import '../../net/filet_relecture.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../net/socket_client.dart';
@@ -132,10 +134,18 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// Une demande de liste est en cours.
   bool _corrBusy = false;
 
+  /// Le direct : les aperçus se mettent à jour à l'instant où une partie
+  /// bouge, au lieu d'attendre le prochain battement.
+  StreamSubscription<CorrChange>? _ecouteCorr;
+
+  /// Et le battement devient un filet : espacé tant que le direct répond.
+  final FiletRelecture _filet = FiletRelecture();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _ecouteCorr = _online.corr.changes.listen(_surChangementCorr);
     unawaited(_connectWhenReady());
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
   }
@@ -189,6 +199,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _ecouteCorr?.cancel();
     _corrPoll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
@@ -271,9 +282,28 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     if (!_online.isLoggedIn) return;
     _corrPoll = Timer.periodic(_corrInterval, (_) {
       if (!mounted || !_online.isLoggedIn) return;
+      // Le direct a-t-il déjà fait le travail ? Alors on ne redemande que de
+      // loin en loin, pour rattraper ce qu'il aurait manqué.
+      if (!_filet.fautRelire(
+        directVivant: _online.socket?.isConnected ?? false,
+      )) {
+        return;
+      }
+      _filet.note();
       unawaited(_refreshCorr());
       unawaited(_refreshUnread());
     });
+  }
+
+  /// Une partie en correspondance vient de bouger : on relit tout de suite.
+  ///
+  /// Le serveur dit laquelle, mais la liste se redemande entière de toute
+  /// façon — c'est un seul appel, et il rafraîchit aussi l'ordre des aperçus,
+  /// qui dépend de à qui est le tour.
+  void _surChangementCorr(CorrChange _) {
+    if (!mounted || !_online.isLoggedIn) return;
+    _filet.note();
+    unawaited(_refreshCorr());
   }
 
   Future<void> _refreshCorr() async {

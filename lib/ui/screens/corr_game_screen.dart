@@ -19,6 +19,8 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/avatar_photos.dart';
+import '../../net/corr_hub.dart';
+import '../../net/filet_relecture.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
@@ -88,11 +90,16 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   /// une version plus récente dès que l'adversaire a joué.
   late CorrGame _g = widget.game;
 
-  /// Relecture périodique. La correspondance passe par HTTP : le serveur
-  /// n'émet aucun événement temps réel pour elle, donc rien ne réveillait cet
-  /// écran. Il fallait le quitter et y revenir pour voir le coup adverse.
+  /// Le direct : le coup de l'adversaire arrive ici, à l'instant où il le
+  /// joue. Le serveur n'émettait rien pour la correspondance — rien ne
+  /// réveillait cet écran, et il fallait le quitter et y revenir.
+  StreamSubscription<CorrChange>? _ecouteCorr;
+
+  /// Et la relecture périodique derrière, en filet : espacée tant que le
+  /// direct répond, au rythme rapide dès qu'il se tait.
   Timer? _poll;
   bool _polling = false;
+  final FiletRelecture _filet = FiletRelecture();
 
   /// Même cadence que les aperçus du menu.
   static const Duration _pollInterval = Duration(seconds: 4);
@@ -133,8 +140,28 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _sounds.init();
     // La pastille du bouton Chat suit les messages en direct.
     OnlineService.instance.messages.addListener(_onMessages);
+    _ecouteCorr = OnlineService.instance.corr.changes.listen(_surChangement);
     _restore();
-    _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh()));
+    _poll = Timer.periodic(_pollInterval, (_) {
+      if (!_filet.fautRelire(
+        directVivant: OnlineService.instance.socket?.isConnected ?? false,
+      )) {
+        return;
+      }
+      _filet.note();
+      unawaited(_refresh());
+    });
+  }
+
+  /// Quelque chose a bougé en correspondance : est-ce NOTRE partie ?
+  ///
+  /// On ne relit que pour elle. Un coup joué dans une autre partie ne doit
+  /// pas redessiner ce plateau-ci — et surtout pas rejouer son animation.
+  void _surChangement(CorrChange c) {
+    if (!mounted) return;
+    if (c.gameId.isNotEmpty && c.gameId != _g.id) return;
+    _filet.note();
+    unawaited(_refresh());
   }
 
   /// Redemande la partie au serveur et redessine si elle a bougé.
@@ -183,6 +210,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   @override
   void dispose() {
     _poll?.cancel();
+    _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
     _sounds.dispose();
     super.dispose();

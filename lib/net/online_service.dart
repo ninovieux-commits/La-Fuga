@@ -9,6 +9,7 @@ import 'dart:async';
 
 import '../state/settings.dart';
 import 'api_client.dart';
+import 'corr_hub.dart';
 import 'message_hub.dart';
 import 'push_notifications.dart';
 import 'avatar_photos.dart';
@@ -69,6 +70,10 @@ class OnlineService {
   /// Les messages non lus, en direct — un seul point d'écoute pour tous les
   /// écrans qui en montrent une pastille.
   final MessageHub messages = MessageHub();
+
+  /// Ce qui bouge en correspondance, en direct — même rôle que [messages],
+  /// pour les parties par correspondance et leurs aperçus.
+  final CorrHub corr = CorrHub();
 
   OnlineClient get client => _client;
   OnlineSession? get session => _client.session;
@@ -159,6 +164,7 @@ class OnlineService {
     messages
       ..detach()
       ..clear();
+    corr.detach();
     // Le prochain compte redéclarera son jeton.
     PushNotifications.forgetDeclaredToken();
     _socket?.disconnect();
@@ -199,12 +205,14 @@ class OnlineService {
     // La boîte aux lettres suit la connexion : elle doit écouter avant même
     // qu'un écran s'y intéresse, sinon un message reçu au démarrage se perd.
     messages.attach(_socket);
+    corr.attach(_socket);
     await _socket!.connect(token);
     unawaited(messages.refresh(_client));
   }
 
   void dispose() {
     messages.dispose();
+    corr.dispose();
     _socket?.dispose();
     _socket = null;
     _client.close();

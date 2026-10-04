@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/filet_relecture.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
@@ -258,12 +259,25 @@ class _ConversationScreenState extends State<ConversationScreen> {
   bool _polling = false;
   static const Duration _pollInterval = Duration(seconds: 4);
 
+  /// Tant que le direct répond, cette relecture s'espace : elle n'a plus
+  /// qu'à rattraper ce qu'il aurait manqué. Elle reprend son rythme dès que
+  /// la socket se tait.
+  final FiletRelecture _filet = FiletRelecture();
+
   @override
   void initState() {
     super.initState();
     _load();
     _watch = widget.online.messages.incoming.listen(_onIncoming);
-    _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh()));
+    _poll = Timer.periodic(_pollInterval, (_) {
+      if (!_filet.fautRelire(
+        directVivant: widget.online.socket?.isConnected ?? false,
+      )) {
+        return;
+      }
+      _filet.note();
+      unawaited(_refresh());
+    });
   }
 
   @override
@@ -313,6 +327,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
     // Le message peut arriver alors que la conversation vient d'être quittée.
     if (!mounted) return;
     if (message.from != widget.pseudo) return;
+    // Le direct vient de livrer : la relecture peut attendre.
+    _filet.note();
     setState(
       () => _messages.add(ChatMessage(text: message.text, fromMe: false)),
     );
