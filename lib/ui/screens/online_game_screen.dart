@@ -38,6 +38,7 @@ class OnlineGameScreen extends StatefulWidget {
     required this.game,
     required this.myPseudo,
     this.archive,
+    this.sounds,
   });
 
   final OnlineGame game;
@@ -46,13 +47,17 @@ class OnlineGameScreen extends StatefulWidget {
   /// Où ranger chaque partie une fois finie. Injectable pour les tests.
   final GameArchive? archive;
 
+  /// Le lecteur de sons. Injectable pour les tests : sans quoi « le coup de
+  /// l'adversaire s'entend-il ? » ne se vérifie qu'à l'oreille.
+  final SoundPlayer? sounds;
+
   @override
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
 }
 
 class _OnlineGameScreenState extends State<OnlineGameScreen>
     with SlideAnimation {
-  final SoundPlayer _sounds = SoundPlayer();
+  late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
   LastMove? _lastMove;
 
   /// Position d'avant le coup : la mise en évidence en a besoin (type de la
@@ -125,6 +130,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       );
     }
     setState(() {});
+    // Et il s'entend. Le son partait au doigt et nulle part ailleurs : on
+    // voyait le coup de l'adversaire arriver sans l'entendre, là où celui de
+    // Deep Grey sonnait. Après l'écran, comme pour un coup joué à la main —
+    // le plateau passe d'abord.
+    if (incoming != null && incoming.notation.isNotEmpty) {
+      _sounds.playNotation(incoming.notation);
+    }
 
     if (_g.endReason != null && !_endShown) {
       _endShown = true;

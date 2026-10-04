@@ -129,9 +129,14 @@ class OnlineGame {
   final List<({String author, String text})> chat = [];
 
   /// Verdict de fin de partie, quand il y en a un.
-  /// Coup adverse qui vient d'arriver, que l'écran consomme pour l'encadrer
-  /// et l'animer. `null` quand il n'y a rien de neuf.
-  ({LastMove? lastMove, List<(Piece, Cell, Cell)> slides})? pendingHighlight;
+  /// Coup adverse qui vient d'arriver, que l'écran consomme pour l'encadrer,
+  /// l'animer et le faire SONNER. `null` quand il n'y a rien de neuf.
+  ///
+  /// La notation en fait partie : sans elle l'écran n'avait pas de quoi
+  /// choisir le son, et le coup de l'adversaire arrivait en silence alors que
+  /// celui de Deep Grey, lui, s'entendait.
+  ({LastMove? lastMove, List<(Piece, Cell, Cell)> slides, String notation})?
+  pendingHighlight;
 
   String? endReason;
   Camp? loser;
@@ -203,6 +208,7 @@ class OnlineGame {
       // (`_on_coup_adverse` rappelle `_build_highlight_from_notation`).
       lastMove: lastMoveFromNotation(notation, before, game.board),
       slides: result.slides,
+      notation: notation,
     );
 
     // Le serveur relaie le temps restant de l'adversaire.

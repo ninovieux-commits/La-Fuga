@@ -46,6 +46,7 @@ class CorrGameScreen extends StatefulWidget {
     required this.myPseudo,
     this.archive,
     this.initialBoard,
+    this.sounds,
   });
 
   final CorrGame game;
@@ -54,6 +55,10 @@ class CorrGameScreen extends StatefulWidget {
 
   /// Où ranger la partie une fois finie. Injectable pour les tests.
   final GameArchive? archive;
+
+  /// Le lecteur de sons. Injectable pour les tests : sans quoi « le coup de
+  /// l'adversaire s'entend-il ? » ne se vérifie qu'à l'oreille.
+  final SoundPlayer? sounds;
 
   /// Position de départ imposée. Injectable pour les tests : certaines fins de
   /// partie — pousser l'Héritier adverse dans son ralliement, éjecter le sien —
@@ -66,7 +71,7 @@ class CorrGameScreen extends StatefulWidget {
 }
 
 class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
-  final SoundPlayer _sounds = SoundPlayer();
+  late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
 
   MoveController? _controller;
   LastMove? _lastMove;
@@ -290,6 +295,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     }
     _dejaAnime = dernier;
     _animerCoup(dernier);
+    // Et il s'entend. Le son ne partait qu'au doigt et sur les flèches du
+    // bandeau : le coup de l'adversaire glissait sous les yeux sans un bruit.
+    // `_dejaAnime` garantit qu'il ne sonne qu'une fois, et jamais pour notre
+    // propre coup que le serveur nous renvoie.
+    final notations = _allMoves();
+    if (dernier - 1 < notations.length) {
+      _sounds.playNotation(notations[dernier - 1]);
+    }
   }
 
   /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
