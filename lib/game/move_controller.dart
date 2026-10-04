@@ -369,6 +369,25 @@ class MoveController {
     return ControllerResult(ControllerEffect.boardChanged, slides: slides);
   }
 
+  /// Une fugue de [mover] donne-t-elle la NULLE plutôt que la victoire ?
+  ///
+  /// Les Blancs jouent les premiers. Quand ils fuguent, les Noirs ont joué un
+  /// coup de moins : on leur accorde une dernière chance, et s'ils peuvent
+  /// fuguer à leur tour, la partie est nulle. Quand ce sont les Noirs qui
+  /// fuguent, les deux camps ont joué autant de coups — les Blancs n'ont
+  /// aucune réplique à réclamer, et les Noirs gagnent.
+  ///
+  /// La règle était appliquée dans les deux sens : une fugue des Noirs
+  /// devenait nulle dès que les Blancs pouvaient fuguer, alors que la
+  /// dernière chance ne leur revient pas. C'est la seule compensation du
+  /// trait, et elle n'appartient qu'aux Noirs.
+  ///
+  /// Une fugue obtenue en POUSSANT l'Héritier adverse n'en relève pas : le
+  /// pousseur vient de jouer, donc le camp qui fugue gagne tout de suite.
+  /// C'est traité avant d'arriver ici.
+  bool _fugueFaitNulle(Camp mover) =>
+      mover == Camp.blanc && campCanFugue(board, Camp.noir);
+
   ControllerResult _tryManeuver(int dc, int dr) {
     final from = selected!;
     final all = {from, ...groupSelection};
@@ -652,9 +671,8 @@ class MoveController {
     }
 
     turn = mover.opposite;
-    final opponentCanFugue = campCanFugue(board, mover.opposite);
     _record(notation);
-    final r = opponentCanFugue
+    final r = _fugueFaitNulle(mover)
         ? _finish(notation, hadEjection, 'nulle', null)
         : _finish(notation, hadEjection, 'fugue', mover.opposite);
     return ControllerResult(
@@ -804,9 +822,8 @@ class MoveController {
         );
       }
       turn = mover.opposite;
-      final opponentCanFugue = campCanFugue(board, mover.opposite);
       _record(notation);
-      final r = opponentCanFugue
+      final r = _fugueFaitNulle(mover)
           ? _finish(notation, hadEjection, 'nulle', null)
           : _finish(notation, hadEjection, 'fugue', mover.opposite);
       return ControllerResult(
