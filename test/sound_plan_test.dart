@@ -185,75 +185,112 @@ void main() {
   });
 
   group('Plan sonore d un coup', () {
-    test('déplacement simple : départ puis arrivée', () {
+    test('une seule pièce bouge : une seule note, celle de l arrivée', () {
+      // C'est la case où l'on arrive qu'on entend, pas celle d'où l'on
+      // vient.
       final cues = planForNotation('Fa2-Fa3');
-      expect(cues.length, 2);
-      expect(cues[0].name, noteForCell(3, 1));
-      expect(cues[0].delay, Duration.zero);
-      expect(cues[1].name, noteForCell(3, 2));
-      expect(cues[1].delay, const Duration(milliseconds: 250));
+      expect(cues, hasLength(1));
+      expect(cues.single.name, noteForCell(3, 2));
+      expect(cues.single.delay, Duration.zero);
     });
 
-    test('poussée : deux sons, comme tout coup', () {
-      // Elle déclenchait un glissando de quatre notes, dont trois ne
-      // correspondaient à AUCUNE case. On entendait une fioriture au lieu
-      // d'un déplacement.
-      final cues = planForNotation('Do1-Do2>');
-      expect(cues, hasLength(2));
-      expect(cues.first.name, noteForCell(0, 0));
-      expect(cues.first.delay, Duration.zero, reason: 'note de départ');
-      expect(cues.last.name, noteForCell(0, 1), reason: 'note d arrivée');
+    test('un multisaut ne bouge qu une pièce : une note aussi', () {
+      final cues = planForNotation('Mi2-Mi4');
+      expect(cues, hasLength(1));
+      expect(cues.single.name, noteForCell(2, 3));
     });
 
-    test('manœuvre : la maîtresse, puis l arrivée', () {
-      final cues = planForNotation('(Do1Ré1)-Do2');
-      expect(cues, hasLength(2));
-      expect(cues.first.name, noteForCell(0, 0));
-      expect(cues.last.name, noteForCell(0, 1));
+    test('poussée : trois notes qui DESCENDENT depuis l arrivée', () {
+      // La pièce entraîne la ligne derrière elle : ça descend.
+      final cues = planForNotation('Fa2-Fa3>Mi4Sol4');
+      expect(cues, hasLength(3));
+      expect(cues.first.name, noteForCell(3, 2), reason: 'part de l arrivée');
+      expect(cues.map((c) => c.name), ['fa3', 'mi3', 're3']);
+      expect(
+        cues.map((c) => c.delay.inMilliseconds),
+        [0, 100, 200],
+        reason: 'une note toutes les 100 ms',
+      );
     });
 
-    test('et chaque son désigne une case réelle du plateau', () {
-      // C'est la règle, et c'est ce qui manquait : « les notes doivent
-      // correspondre aux notes des cases ».
-      final cases = {
-        for (var c = 0; c < 7; c++)
-          for (var r = 0; r < 8; r++) noteForCell(c, r),
+    test('et une poussée sans cibles nommées descend pareil', () {
+      final cues = planForNotation('Fa2-Fa3>');
+      expect(cues.map((c) => c.name), ['fa3', 'mi3', 're3']);
+    });
+
+    test('déplacement de groupe : trois notes qui MONTENT', () {
+      // Plusieurs carrés avancent de concert : ça monte.
+      final cues = planForNotation('(Fa3Mi3)-Fa4');
+      expect(cues, hasLength(3));
+      expect(cues.first.name, noteForCell(3, 3), reason: 'part de l arrivée');
+      expect(cues.map((c) => c.name), ['fa3', 'sol3', 'la3']);
+      expect(cues.map((c) => c.delay.inMilliseconds), [0, 100, 200]);
+    });
+
+    test('monter ou descendre dit COMBIEN de pièces ont bougé', () {
+      // Même case d'arrivée, deux sens opposés : l'oreille distingue une
+      // poussée d'un déplacement de groupe sans regarder le plateau.
+      final poussee = planForNotation('Fa2-Fa3>').map((c) => c.name).toList();
+      final groupe = planForNotation(
+        '(Fa2Mi2)-Fa3',
+      ).map((c) => c.name).toList();
+      expect(poussee.first, groupe.first, reason: 'même case d arrivée');
+      expect(poussee[1], isNot(groupe[1]));
+      expect(
+        noteIndexOf(poussee[1])! < noteIndexOf(poussee.first)!,
+        isTrue,
+        reason: 'la poussée descend',
+      );
+      expect(
+        noteIndexOf(groupe[1])! > noteIndexOf(groupe.first)!,
+        isTrue,
+        reason: 'le groupe monte',
+      );
+    });
+
+    test('la PREMIÈRE note est toujours celle de la case d arrivée', () {
+      // C'est la règle, quelle que soit la forme du coup : on entend où la
+      // pièce ARRIVE, pas d'où elle vient.
+      final attendu = {
+        'Fa2-Fa3': noteForCell(3, 2),
+        'Fa2-Fa3>': noteForCell(3, 2),
+        'Fa2-Fa3>Mi4Sol4': noteForCell(3, 2),
+        '(Fa2Mi2)-Fa3': noteForCell(3, 2),
+        'Mi2-Mi4': noteForCell(2, 3),
+        'Si1-La2#': noteForCell(5, 1),
       };
-      for (final notation in [
-        'Do1-Do2',
-        'Do1-Do2>',
-        'Do1-Do2>Ré3Mi4',
-        '(Do1Ré1)-Do2',
-        'Mi2-Mi4',
-        'Fa7-Mi8#',
-      ]) {
+      attendu.forEach((notation, note) {
         final cues = planForNotation(notation);
         expect(cues, isNotEmpty, reason: notation);
-        for (final cue in cues) {
-          expect(
-            cases,
-            contains(cue.name),
-            reason:
-                '« $notation » joue ${cue.name}, '
-                'qui ne désigne aucune case',
-          );
-        }
-      }
+        expect(cues.first.name, note, reason: notation);
+        expect(cues.first.delay, Duration.zero, reason: notation);
+      });
     });
 
-    test('un coup ne fait jamais plus de deux sons', () {
+    test('un coup fait une note, ou trois : jamais autre chose', () {
       for (final notation in [
         'Do1-Do2',
         'Do1-Do2>',
         'Do1-Do2>Ré3Mi4Fa5',
         '(Do1Ré1Mi1Fa1)-Do2',
         'Si8-La7',
+        'Fa7*',
+        'Mi6-Fa7>Mi7Fa8',
       ]) {
         expect(
           planForNotation(notation).length,
-          lessThanOrEqualTo(2),
+          anyOf(1, kGlissandoCount),
           reason: notation,
         );
+      }
+    });
+
+    test('un glissando garde trois notes DIFFÉRENTES, même au bord', () {
+      // Descendre depuis le bas du plateau, monter depuis le haut : les
+      // notes débordent sur l'octave voisine plutôt que de se répéter.
+      for (final notation in ['Do1-Do2>', '(Do8Ré8)-Do7', 'Si7-Si8>']) {
+        final noms = planForNotation(notation).map((c) => c.name).toList();
+        expect(noms.toSet(), hasLength(noms.length), reason: notation);
       }
     });
 

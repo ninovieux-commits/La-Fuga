@@ -156,14 +156,53 @@ List<String> glissandoNotes(
   return notes;
 }
 
-const Duration _arrivalDelay = Duration(milliseconds: 250);
+/// Notes d'un glissando PARTANT de la case d'arrivée.
+///
+/// [direction] vaut `+1` pour monter, `-1` pour descendre. La première note
+/// est toujours celle de la case où la pièce arrive.
+///
+/// À ne pas confondre avec [glissandoNotes], qui ARRIVE sur sa cible et ne
+/// sert plus qu'au son de notification.
+///
+/// Les notes débordent au besoin sur les octaves voisines : descendre de
+/// trois notes depuis le bas du plateau n'a pas d'autre issue, et répéter
+/// trois fois la même note ne serait pas un glissando. Le plateau, lui,
+/// tient bien sur ses deux octaves.
+List<String> glissandoDepuis(
+  int startCol,
+  int startRow,
+  int count,
+  int direction,
+) {
+  if (count < 1) count = 1;
+  final depart = _noteIndex(startCol, octaveForRow(startRow));
+  final notes = <String>[];
+  for (var k = 0; k < count; k++) {
+    final idx = (depart + direction * k).clamp(0, 27);
+    notes.add('${kSoundNotes[idx % 7]}${2 + idx ~/ 7}');
+  }
+  return notes;
+}
+
+/// Trois notes : assez pour s'entendre comme un mouvement, assez peu pour
+/// ne pas déborder sur le coup suivant.
+const int kGlissandoCount = 3;
+
+const Duration _glissandoStep = Duration(milliseconds: 100);
 
 /// Traduit une notation `.nmc` en suite de sons.
 ///
-/// DEUX sons par coup : la case d'où l'on vient, puis celle où l'on arrive.
-/// Chaque son correspond donc à une case réelle du plateau. Une poussée et
-/// une manœuvre déclenchaient auparavant un glissando de quatre notes, dont
-/// trois ne désignaient rien.
+/// On entend la case d'ARRIVÉE, et elle seule — pas celle de départ.
+///
+/// Et le glissando dit combien de pièces ont bougé :
+///
+///   une seule pièce        une note, celle de l'arrivée ;
+///   une poussée            trois notes qui DESCENDENT depuis l'arrivée —
+///                          la pièce entraîne la ligne derrière elle ;
+///   un déplacement de      trois notes qui MONTENT depuis l'arrivée —
+///   groupe                 plusieurs carrés avancent de concert.
+///
+/// Le glissando part donc toujours de la case où la pièce arrive.
 ///
 /// La fugue fait exception, et elle n'a pas le choix : sa case d'arrivée est
 /// hors du plateau et n'a pas de nom. Un seul son, celui du départ.
@@ -179,20 +218,12 @@ List<SoundCue> planForNotation(String? notation) {
   // La marque de mat ne fait pas partie du coup : elle ne s'entend pas.
   if (n.endsWith('#')) n = n.substring(0, n.length - 1);
 
-  // ── Manœuvre : la case de la maîtresse, puis celle d'arrivée ──
+  // ── Manœuvre : plusieurs carrés avancent ensemble, donc ça MONTE ──
   if (n.startsWith('(')) {
     final match = RegExp(r'^\((.*)\)-(.+)$').firstMatch(n);
     if (match != null) {
-      final cells = parseCellsConcat(match.group(1)!);
-      if (cells != null && cells.isNotEmpty) {
-        final note = noteForCell(cells.first.col, cells.first.row);
-        if (note != null) cues.add(SoundCue(note, Duration.zero));
-      }
       final dest = notationToCell(match.group(2)!);
-      if (dest != null) {
-        final note = noteForCell(dest.col, dest.row);
-        if (note != null) cues.add(SoundCue(note, _arrivalDelay));
-      }
+      if (dest != null) _ajouteGlissando(cues, dest, 1);
     }
     return cues;
   }
@@ -218,19 +249,38 @@ List<SoundCue> planForNotation(String? notation) {
   final start = notationToCell(parts.first);
   final end = parts.length > 1 ? notationToCell(parts[1]) : null;
 
-  if (start != null) {
-    final note = noteForCell(start.col, start.row);
+  if (end == null) {
+    // Pas de case d'arrivée nommée : il ne reste que le départ. C'est le cas
+    // d'une notation qu'on ne sait pas lire entièrement — mieux vaut un son
+    // juste qu'un silence.
+    if (start != null) {
+      final note = noteForCell(start.col, start.row);
+      if (note != null) cues.add(SoundCue(note, Duration.zero));
+    }
+    return cues;
+  }
+
+  // Une poussée déplace la pièce ET la ligne qu'elle pousse : ça DESCEND.
+  // Un déplacement ordinaire ne bouge qu'une pièce : une seule note.
+  if (hasPush) {
+    _ajouteGlissando(cues, end, -1);
+  } else {
+    final note = noteForCell(end.col, end.row);
     if (note != null) cues.add(SoundCue(note, Duration.zero));
   }
 
-  // La poussée ne change rien : c'est toujours la case d'arrivée qu'on
-  // entend. Elle déclenchait un glissando de quatre notes, dont trois ne
-  // correspondaient à AUCUNE case — l'oreille entendait une fioriture au
-  // lieu d'un déplacement.
-  if (end != null) {
-    final note = noteForCell(end.col, end.row);
-    if (note != null) cues.add(SoundCue(note, _arrivalDelay));
-  }
-
   return cues;
+}
+
+/// Le glissando d'un coup où PLUSIEURS pièces bougent, depuis l'arrivée.
+void _ajouteGlissando(List<SoundCue> cues, Cell depart, int direction) {
+  final notes = glissandoDepuis(
+    depart.col,
+    depart.row,
+    kGlissandoCount,
+    direction,
+  );
+  for (var i = 0; i < notes.length; i++) {
+    cues.add(SoundCue(notes[i], _glissandoStep * i));
+  }
 }

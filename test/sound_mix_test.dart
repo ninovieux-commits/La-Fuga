@@ -53,16 +53,17 @@ void main() {
     expect(hits(once), hits(twice));
   });
 
-  test('un coup fait deux sons : le départ, puis l arrivée', () {
-    // La poussée déclenchait un glissando de quatre notes à partir de
-    // 250 ms. Trois d'entre elles ne correspondaient à aucune case, et
-    // Nino les a supprimées : « les notes doivent correspondre aux notes
-    // des cases ».
+  test('le glissando d une poussée : trois notes, toutes les 100 ms', () {
     final mixed = mixCues(planForNotation('Do1-Do2>'), impulses(), 1)!;
     final at = hits(mixed);
-    expect(at, hasLength(2));
-    expect(at.first, 0, reason: 'le départ, tout de suite');
-    expect(at.last, 250 * rate ~/ 1000, reason: 'l arrivée, 250 ms après');
+    expect(at, hasLength(3));
+    expect(at.first, 0, reason: 'la case d arrivée, tout de suite');
+    final pas = [for (var i = 1; i < at.length; i++) at[i] - at[i - 1]];
+    expect(pas.toSet(), {100 * rate ~/ 1000}, reason: 'pas régulier');
+  });
+
+  test('un coup ordinaire ne fait qu un son', () {
+    expect(hits(mixCues(planForNotation('Fa2-Fa3'), impulses(), 1)!), [0]);
   });
 
   test('rien à jouer ne fabrique pas de tampon', () {
