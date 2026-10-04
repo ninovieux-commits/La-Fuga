@@ -160,6 +160,13 @@ class OnlineClient {
   void rememberPhoto(String photo) =>
       _session = _session?.copyWith(photo: photo);
 
+  /// Retient le mélo que le serveur vient d'annoncer.
+  ///
+  /// Il n'était lu qu'au login : après une partie classée, la session gardait
+  /// l'ancien classement et le menu l'affichait tel quel.
+  void rememberMelo({int? melo, int? meloRandom}) =>
+      _session = _session?.copyWith(melo: melo, meloRandom: meloRandom);
+
   Future<ApiResult> setPhoto(String photo) async {
     final r = await _api.post('/set_photo', _auth({'photo': photo}));
     if (r.isOk) _session = _session?.copyWith(photo: photo);

@@ -7,6 +7,8 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../state/settings.dart';
 import 'api_client.dart';
 import 'corr_hub.dart';
@@ -74,6 +76,12 @@ class OnlineService {
   /// Ce qui bouge en correspondance, en direct — même rôle que [messages],
   /// pour les parties par correspondance et leurs aperçus.
   final CorrHub corr = CorrHub();
+
+  /// Change à chaque fois que le mélo de la session bouge.
+  ///
+  /// Le menu l'affiche et n'écoute rien d'autre : sans ce signal, il garderait
+  /// l'ancien classement à l'écran jusqu'au prochain redessin fortuit.
+  final ValueNotifier<int> revisionMelo = ValueNotifier<int>(0);
 
   OnlineClient get client => _client;
   OnlineSession? get session => _client.session;
@@ -206,13 +214,87 @@ class OnlineService {
     // qu'un écran s'y intéresse, sinon un message reçu au démarrage se perd.
     messages.attach(_socket);
     corr.attach(_socket);
+    _surveilleMelo(_socket!);
     await _socket!.connect(token);
     unawaited(messages.refresh(_client));
+  }
+
+  // ── Mélo ──────────────────────────────────────────────────────────────────
+
+  /// Le mélo n'était mis à jour nulle part après une partie.
+  ///
+  /// Il était lu au login et plus jamais. L'écran de fin affichait bien le
+  /// nouveau classement — il le tient de `melo_maj` — mais la session gardait
+  /// l'ancien, et le menu avec elle. Il fallait se déconnecter et se
+  /// reconnecter pour voir son vrai mélo. D'où le « parfois » : juste après
+  /// la partie c'était bon, de retour au menu c'était faux.
+  ///
+  /// Deux sources, et les deux comptent :
+  ///
+  ///   — `auth_ok` porte les DEUX classements et arrive à chaque connexion
+  ///     comme à chaque reconnexion. C'est le rattrapage : il répare tout ce
+  ///     qui a pu se perdre — application fermée en fin de partie, socket
+  ///     coupée avant l'annonce, partie finie pendant que le téléphone
+  ///     dormait.
+  ///
+  ///   — `melo_maj` arrive à la seconde où la partie se termine, mais ne dit
+  ///     pas LEQUEL des deux a bougé : le serveur écrit `melo` ou
+  ///     `melo_random` selon le mode, et n'envoie qu'un nombre. On relit donc
+  ///     le profil, qui donne les deux. Un appel, une fois par partie classée.
+  void _surveilleMelo(RealtimeSocket socket) {
+    socket
+      ..off(FugaEvents.authOk, _surAuthOk)
+      ..off(FugaEvents.meloMaj, _surMeloMaj)
+      ..on(FugaEvents.authOk, _surAuthOk)
+      ..on(FugaEvents.meloMaj, _surMeloMaj);
+  }
+
+  void _surAuthOk(Map<String, dynamic> d) => unawaited(
+    noteMelo(
+      melo: (d['melo'] as num?)?.toInt(),
+      meloRandom: (d['melo_random'] as num?)?.toInt(),
+    ),
+  );
+
+  void _surMeloMaj(Map<String, dynamic> _) => unawaited(relitMelo());
+
+  /// Redemande les deux classements au serveur.
+  Future<void> relitMelo() async {
+    if (!isLoggedIn) return;
+    final r = await _client.getProfile();
+    if (!r.isOk) return;
+    await noteMelo(
+      melo: (r.get<num>('melo'))?.toInt(),
+      meloRandom: (r.get<num>('melo_random'))?.toInt(),
+    );
+  }
+
+  /// Retient un mélo annoncé par le serveur, et l'écrit sur le téléphone.
+  ///
+  /// Sans l'écriture, un redémarrage de l'application restaurerait la session
+  /// enregistrée — donc l'ancien classement.
+  Future<void> noteMelo({int? melo, int? meloRandom}) async {
+    final avant = _client.session;
+    if (avant == null) return;
+    if ((melo ?? avant.melo) == avant.melo &&
+        (meloRandom ?? avant.meloRandom) == avant.meloRandom) {
+      return;
+    }
+    _client.rememberMelo(melo: melo, meloRandom: meloRandom);
+    final s = _client.session!;
+    await _settings.saveOnlineSession(
+      token: s.token,
+      pseudo: s.pseudo,
+      melo: s.melo,
+      meloRandom: s.meloRandom,
+    );
+    revisionMelo.value++;
   }
 
   void dispose() {
     messages.dispose();
     corr.dispose();
+    revisionMelo.dispose();
     _socket?.dispose();
     _socket = null;
     _client.close();

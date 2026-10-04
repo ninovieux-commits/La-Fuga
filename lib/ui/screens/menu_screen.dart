@@ -146,6 +146,9 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _ecouteCorr = _online.corr.changes.listen(_surChangementCorr);
+    // Le bouton Compte affiche le mélo : sans cette écoute il garderait
+    // l'ancien à l'écran après une partie classée.
+    _online.revisionMelo.addListener(_surMelo);
     unawaited(_connectWhenReady());
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
   }
@@ -200,6 +203,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _ecouteCorr?.cancel();
+    _online.revisionMelo.removeListener(_surMelo);
     _corrPoll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
@@ -293,6 +297,10 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       unawaited(_refreshCorr());
       unawaited(_refreshUnread());
     });
+  }
+
+  void _surMelo() {
+    if (mounted) setState(() {});
   }
 
   /// Une partie en correspondance vient de bouger : on relit tout de suite.

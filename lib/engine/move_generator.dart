@@ -522,7 +522,69 @@ Move? resolveNotation(Board board, Camp camp, String notation) {
   for (final mv in generateMoves(board, camp)) {
     if (_matches(board, mv, wanted)) return mv;
   }
+  // Une manœuvre PARTIELLE n'est produite par personne : le générateur ne
+  // déplace que des groupes connexes entiers, alors que le joueur compose sa
+  // sélection carré par carré et peut n'en bouger que deux sur trois. Un tel
+  // coup arrivait donc chez l'adversaire sans que rien ne corresponde, et il
+  // était silencieusement ignoré — la partie se figeait, chacun voyant que
+  // c'était à l'autre de jouer.
+  //
+  // Kivy, lui, applique la notation telle quelle (`_apply_maneuver`). On fait
+  // pareil, en vérifiant la géométrie : ce n'est pas une relecture
+  // approximative, c'est le coup exact que l'adversaire a joué.
+  if (wanted is ManeuverNotation) {
+    return maneuverFromCells(board, camp, wanted.cells, wanted.dest);
+  }
   return null;
+}
+
+/// Construit la manœuvre qui déplace EXACTEMENT [cells] vers [dest].
+///
+/// [cells] a sa case maîtresse en tête : c'est elle qui arrive sur [dest], et
+/// tout le reste suit du même écart. Renvoie `null` si le coup est
+/// impossible — case hors plateau, pièce qui n'est pas une carrée du camp,
+/// ou arrivée occupée par une pièce qui ne fait pas partie du voyage.
+///
+/// Les mêmes contrôles que `_tryManeuver` côté interaction : on accepte ce
+/// qu'un joueur pouvait jouer, et rien de plus.
+Move? maneuverFromCells(Board board, Camp camp, List<Cell> cells, Cell dest) {
+  if (cells.isEmpty) return null;
+  final master = cells.first;
+  final ensemble = cells.toSet();
+  if (ensemble.length != cells.length) return null;
+
+  for (final c in cells) {
+    final p = board.atCell(c);
+    if (p == null || !p.isSquare || p.camp != camp) return null;
+  }
+
+  final dc = dest.col - master.col;
+  final dr = dest.row - master.row;
+  // Une manœuvre avance d'UNE case, jamais plus : au-delà, ce serait un
+  // multisaut, qui ne concerne qu'une seule pièce.
+  if (dc == 0 && dr == 0) return null;
+  if (dc.abs() > 1 || dr.abs() > 1) return null;
+
+  for (final c in cells) {
+    final t = Cell(c.col + dc, c.row + dr);
+    if (!t.onBoard) return null;
+    if (board.atCell(t) != null && !ensemble.contains(t)) return null;
+  }
+
+  final nb = board.clone();
+  final pieces = {for (final c in cells) c: board.atCell(c)!};
+  for (final c in cells) {
+    nb.setCell(c, null);
+  }
+  pieces.forEach((c, p) => nb.set(c.col + dc, c.row + dr, p));
+
+  return Move(
+    board: nb,
+    kind: MoveKind.maneuver,
+    from: master,
+    movedCells: [for (final c in cells) Cell(c.col + dc, c.row + dr)],
+    fromCells: List<Cell>.of(cells),
+  );
 }
 
 bool _matches(Board board, Move mv, NotationParts wanted) {
