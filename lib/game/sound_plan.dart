@@ -9,6 +9,8 @@
 /// pareil.
 library;
 
+import 'dart:math' as math;
+
 import '../engine/board.dart';
 import '../engine/notation.dart';
 
@@ -43,20 +45,56 @@ String? noteForCell(int col, int row) {
   return '${kSoundNotes[col]}${octaveForRow(row)}';
 }
 
-/// Atténuation par octave.
+/// Les quatre repères d'atténuation, un par octave : do2, do3, do4, do5.
 ///
-/// Les graves servent de référence et les aigus sont nettement baissés :
-/// sans cela, une note aiguë écrase tout le reste.
+/// Ce sont les valeurs réglées à l'oreille, et elles ne bougent pas. Ce qui
+/// change, c'est ce qui se passe ENTRE elles.
+const List<double> kVolumeOctaves = [1.0, 0.80, 0.55, 0.40];
+
+/// Atténuation d'une note, continue sur toute la gamme.
+///
+/// Les graves servent de référence et les aigus sont baissés : sans cela, une
+/// note aiguë écrase tout le reste.
+///
+/// Elle se lisait sur le seul CHIFFRE de l'octave, donc par marches : les
+/// sept notes de l'octave 3 sortaient toutes à 0,80, puis do4 tombait d'un
+/// coup à 0,55. Un glissando est une course de notes consécutives dans la
+/// gamme ; dès qu'il franchissait une frontière d'octave — `la3 si3 do4 re4` —
+/// le volume décrochait de presque 3 dB en plein milieu, et les quatre notes
+/// n'avaient plus le même son.
+///
+/// L'atténuation suit maintenant le NUMÉRO de la note dans la gamme, par
+/// interpolation en décibels entre les quatre repères. Les do tombent
+/// exactement sur les valeurs d'avant, et il n'y a plus une seule marche.
+/// Au-delà de do5, la dernière pente continue.
 double volumeFactorFor(String name) {
-  if (name.isEmpty) return 1;
-  final last = name.codeUnitAt(name.length - 1);
-  if (last < 0x30 || last > 0x39) return 1;
-  return switch (name[name.length - 1]) {
-    '5' => 0.40,
-    '4' => 0.55,
-    '3' => 0.80,
-    _ => 1.0,
-  };
+  final index = noteIndexOf(name);
+  if (index == null) return 1;
+  // En décibels, pour que la progression s'entende régulière : l'oreille
+  // suit le logarithme, pas l'amplitude.
+  final position = index / 7.0;
+  final i = position.floor().clamp(0, kVolumeOctaves.length - 2);
+  final t = position - i;
+  final a = _db(kVolumeOctaves[i]);
+  final b = _db(kVolumeOctaves[i + 1]);
+  return _amp(a + (b - a) * t);
+}
+
+double _db(double amp) => 20 * (math.log(amp) / math.ln10);
+
+double _amp(double db) => math.pow(10, db / 20).toDouble();
+
+/// Numéro d'une note dans la gamme complète, de `do2` (0) à `si5` (27).
+///
+/// `null` pour tout ce qui n'est pas une note — `ejection`, `fugue`…
+int? noteIndexOf(String name) {
+  if (name.length < 3) return null;
+  final octave = int.tryParse(name.substring(name.length - 1));
+  if (octave == null) return null;
+  final col = kSoundNotes.indexOf(name.substring(0, name.length - 1));
+  if (col < 0) return null;
+  if (!kSoundOctaves.contains(octave)) return null;
+  return _noteIndex(col, octave);
 }
 
 /// Un son à jouer, avec son retard depuis le début du coup.

@@ -2,6 +2,8 @@
 /// fichier audio. Seule la décision musicale est testée ici.
 library;
 
+import 'dart:math' as math;
+
 import 'package:lafuga/game/sound_plan.dart';
 import 'package:test/test.dart';
 
@@ -46,15 +48,105 @@ void main() {
 
   group('Volume par octave', () {
     test('les aigus sont atténués, les graves servent de référence', () {
-      expect(volumeFactorFor('do2'), 1.0);
-      expect(volumeFactorFor('do3'), 0.80);
-      expect(volumeFactorFor('do4'), 0.55);
-      expect(volumeFactorFor('do5'), 0.40);
+      // `closeTo` : l'atténuation est désormais CALCULÉE entre les repères,
+      // et non plus lue dans une table. Le résultat tombe sur les mêmes
+      // valeurs, au bruit de calcul près.
+      expect(volumeFactorFor('do2'), closeTo(1.0, 1e-9));
+      expect(volumeFactorFor('do3'), closeTo(0.80, 1e-9));
+      expect(volumeFactorFor('do4'), closeTo(0.55, 1e-9));
+      expect(volumeFactorFor('do5'), closeTo(0.40, 1e-9));
     });
 
     test('un nom sans octave garde le volume plein', () {
       expect(volumeFactorFor('do'), 1.0);
       expect(volumeFactorFor(''), 1.0);
+      expect(volumeFactorFor('ejection'), 1.0);
+      expect(volumeFactorFor('xx9'), 1.0);
+    });
+  });
+
+  group('Un glissando garde le même son d un bout à l autre', () {
+    // Nino : « pense aux glissandos qui doivent avoir le même son ».
+    //
+    // L'atténuation se lisait sur le seul CHIFFRE de l'octave : les sept
+    // notes de l'octave 3 sortaient toutes à 0,80, puis do4 tombait d'un coup
+    // à 0,55. Un glissando parcourt des notes CONSÉCUTIVES ; dès qu'il
+    // franchissait une frontière d'octave, il décrochait de 3,25 dB en plein
+    // milieu.
+
+    double db(String note) =>
+        20 * (math.log(volumeFactorFor(note)) / math.ln10);
+
+    List<String> toute() => [
+      for (var i = 0; i < 28; i++) '${kSoundNotes[i % 7]}${2 + i ~/ 7}',
+    ];
+
+    test('aucune marche : deux notes voisines ne sautent jamais', () {
+      final notes = toute();
+      var pire = 0.0;
+      var ou = '';
+      for (var i = 1; i < notes.length; i++) {
+        final saut = (db(notes[i]) - db(notes[i - 1])).abs();
+        if (saut > pire) {
+          pire = saut;
+          ou = '${notes[i - 1]} → ${notes[i]}';
+        }
+      }
+      expect(
+        pire,
+        lessThan(0.5),
+        reason: 'marche de ${pire.toStringAsFixed(2)} dB entre $ou',
+      );
+    });
+
+    test('et la course descend sans jamais remonter', () {
+      final notes = toute();
+      for (var i = 1; i < notes.length; i++) {
+        expect(
+          volumeFactorFor(notes[i]),
+          lessThan(volumeFactorFor(notes[i - 1])),
+          reason: '${notes[i]} ne descend pas sous ${notes[i - 1]}',
+        );
+      }
+    });
+
+    test('celui qui franchit une octave est aussi régulier que les autres', () {
+      // la3 si3 do4 re4 : c'est le cas qui décrochait.
+      final atravers = ['la3', 'si3', 'do4', 're4'];
+      final dedans = ['do3', 're3', 'mi3', 'fa3'];
+      double amplitude(List<String> notes) =>
+          (db(notes.last) - db(notes.first)).abs();
+      expect(
+        (amplitude(atravers) - amplitude(dedans)).abs(),
+        lessThan(0.3),
+        reason:
+            'le glissando à cheval sur deux octaves doit sonner comme '
+            'les autres, pas décrocher au passage',
+      );
+    });
+
+    test('les quatre repères réglés à l oreille sont intacts', () {
+      // La continuité ne devait rien changer là où Nino avait réglé.
+      expect(volumeFactorFor('do2'), closeTo(1.0, 1e-9));
+      expect(volumeFactorFor('do3'), closeTo(0.80, 1e-9));
+      expect(volumeFactorFor('do4'), closeTo(0.55, 1e-9));
+      expect(volumeFactorFor('do5'), closeTo(0.40, 1e-9));
+    });
+
+    test('et tout glissando produit tient dans la gamme', () {
+      for (var col = 0; col < 7; col++) {
+        for (var row = 0; row < 8; row++) {
+          for (final sens in [1, -1]) {
+            for (final note in glissandoNotes(col, row, 4, sens)) {
+              expect(
+                noteIndexOf(note),
+                isNotNull,
+                reason: '« $note » n est pas une note de la banque',
+              );
+            }
+          }
+        }
+      }
     });
   });
 

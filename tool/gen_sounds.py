@@ -53,16 +53,28 @@ def silence(n):
     return [0.0] * n
 
 
-def add_partial(buf, freq, amp, decay, start=0, phase=0.0, attack=0.002):
-    """Ajoute une sinusoïde amortie, avec une attaque douce (anti-clic)."""
+def add_partial(buf, freq, amp, decay, start=0, phase=0.0, attack=0.002,
+                decay_lent=None, part_lente=0.0):
+    """Ajoute une sinusoide amortie, avec une attaque douce (anti-clic).
+
+    [decay_lent] et [part_lente] donnent la DOUBLE DECROISSANCE : un partiel
+    de corde reelle tombe vite d'abord, puis traine longtemps en s'eteignant
+    doucement. Les deux polarisations de la corde — verticale et
+    horizontale — ne perdent pas leur energie a la meme vitesse, et c'est ce
+    coude dans l'extinction que l'oreille reconnait comme un piano. Une
+    exponentielle unique sonne, elle, comme un orgue qu'on aurait fait taire.
+    """
     n = len(buf)
     if freq <= 0 or freq >= RATE / 2:
         return
     w = 2 * math.pi * freq / RATE
     a_len = max(1, int(attack * RATE))
+    rapide = 1.0 - part_lente
     for i in range(start, n):
         t = (i - start) / RATE
-        env = math.exp(-t / decay)
+        env = rapide * math.exp(-t / decay)
+        if decay_lent:
+            env += part_lente * math.exp(-t / decay_lent)
         if env < 1e-4:
             break
         k = i - start
@@ -110,6 +122,66 @@ def fade_out(buf, seconds=0.025):
         buf[n - f + i] *= 0.5 + 0.5 * math.cos(math.pi * i / f)
 
 
+def enveloppe_rms(buf, fenetre=441):
+    """Energie par tranche de 10 ms."""
+    out = []
+    for i in range(0, max(0, len(buf) - fenetre), fenetre):
+        bloc = buf[i:i + fenetre]
+        out.append(math.sqrt(sum(v * v for v in bloc) / fenetre))
+    return out
+
+
+def longueur_utile(buf, plancher_db=-62.0):
+    """Jusqu'ou la note VIT, en echantillons.
+
+    Les fichiers avaient tous la meme duree, quelle que soit la note. Une
+    basse etait donc coupee alors qu'elle sonnait encore fort, et un aigu
+    trainait des dixiemes de seconde de silence. La mesure disait : trois
+    notes de piano sur quatre et les quatre cloches etaient encore vivantes
+    quand le fichier s'arretait. On taille maintenant chaque note sur sa
+    propre extinction.
+    """
+    env = enveloppe_rms(buf)
+    if not env:
+        return len(buf)
+    top = max(env)
+    if top <= 0:
+        return len(buf)
+    seuil = top * 10 ** (plancher_db / 20)
+    dernier = 0
+    for i, v in enumerate(env):
+        if v >= seuil:
+            dernier = i
+    return min(len(buf), (dernier + 2) * 441)
+
+
+def etouffoir(buf, seconds, douceur=0.35):
+    """La fin d'une note : l'etouffoir qui retombe, pas un fondu.
+
+    Un fondu en cosinus baisse le volume sans rien changer d'autre : on
+    entend une main sur le bouton. Un vrai etouffoir est un feutre qui se
+    pose — il absorbe l'aigu AVANT le grave, et le son s'assombrit en
+    mourant. C'est cette teinte-la qui fait la difference entre une note
+    relachee et un echantillon tronque.
+
+    [douceur] est la part de passe-bas appliquee a la toute fin.
+    """
+    n = len(buf)
+    f = min(n, int(seconds * RATE))
+    if f < 8:
+        return
+    debut = n - f
+    prev = buf[debut - 1] if debut > 0 else 0.0
+    for i in range(f):
+        k = i / f
+        # Amplitude : decroissance exponentielle, comme un feutre qui serre.
+        buf[debut + i] *= math.exp(-4.0 * k)
+        # Et le feutre mange l'aigu : le filtre se referme a mesure.
+        a = 1.0 - douceur * k
+        prev = prev + a * (buf[debut + i] - prev)
+        buf[debut + i] = prev
+
+
 def normalise(buf, peak):
     top = max((abs(v) for v in buf), default=0.0)
     if top <= 0:
@@ -126,7 +198,7 @@ def piano(freq, n, rng):
     # Raideur de la corde : les partiels s'écartent de l'harmonique pur, et
     # d'autant plus haut qu'on monte. C'est ce qui donne son grain au piano.
     stiffness = 0.00035 * (freq / 262.0) ** 1.2
-    tau0 = 0.38 * (262.0 / freq) ** 0.35     # l'aigu s'éteint plus vite
+    tau0 = 0.34 * (262.0 / freq) ** 0.32     # l'aigu s'eteint plus vite
     strings = [(-0.00022, 0.5), (0.0, 1.0), (0.00025, 0.45)]
     for k in range(1, 26):
         inharm = math.sqrt(1 + stiffness * k * k)
@@ -139,8 +211,31 @@ def piano(freq, n, rng):
         for detune, weight in strings:
             f = freq * k * inharm * (1 + detune)
             add_partial(buf, f, amp * weight, decay,
-                        phase=rng.uniform(0, 2 * math.pi), attack=0.0015)
-    add_noise_burst(buf, 0.22, 0.007, cutoff=0.55, rng=rng)
+                        phase=rng.uniform(0, 2 * math.pi), attack=0.0015,
+                        # Le coude : la corde tombe vite, puis traine. Sans
+                        # lui, l'extinction est une droite parfaite — et une
+                        # droite parfaite, aucune corde n'en fait.
+                        #
+                        # Mais la traine n'appartient qu'aux partiels GRAVES.
+                        # Donnee a tous, elle gardait l'aigu vivant jusqu'au
+                        # bout et la note cessait de s'assombrir en mourant :
+                        # la mesure est passee de 0,43 a 0,75 de chute de
+                        # brillance, c'est-a-dire dans le mauvais sens.
+                        decay_lent=decay * 2.6,
+                        part_lente=0.075 / (1 + 0.8 * (k - 1)))
+    add_noise_burst(buf, 0.20, 0.007, cutoff=0.55, rng=rng)
+    # Table d'harmonie : elle rayonne encore un instant apres la corde, et
+    # c'est elle qui donne au piano son corps. Deux modes bas, discrets.
+    for f_table, q, g in ((118.0, 0.9988, 0.055), (227.0, 0.9982, 0.035)):
+        w = 2 * math.pi * f_table / RATE
+        c1 = 2 * q * math.cos(w)
+        c2 = -q * q
+        gain = g * (1 - q)
+        y1 = y2 = 0.0
+        for i in range(len(buf)):
+            y = buf[i] + c1 * y1 + c2 * y2
+            y2, y1 = y1, y
+            buf[i] += y * gain
     return buf
 
 
@@ -196,7 +291,14 @@ def guitare(freq, n, rng):
         last = cur
         write = (write + 1) % size
 
-    # Caisse : deux résonances basses, à gain unitaire pour ne pas gonfler.
+    # Caisse : deux resonances basses, a gain unitaire pour ne pas gonfler.
+    #
+    # J'ai essaye d'en ponderer la part selon la hauteur, et d'arrondir le
+    # coin du pincement, pour corriger deux chiffres qui me genaient — do3
+    # mesure plus brillante que do4, et un facteur de crete de 15,8. Les
+    # deux retouches ont EMPIRE les deux mesures. Elles sont retirees : une
+    # corde courte a moins d'harmoniques qu'une longue, et une guitare sonne
+    # bel et bien plus mate dans l'aigu. Le chiffre n'etait pas un defaut.
     for f_body, q, amp in ((99.0, 0.996, 0.18), (196.0, 0.994, 0.10)):
         w = 2 * math.pi * f_body / RATE
         c1 = 2 * q * math.cos(w)
@@ -207,7 +309,9 @@ def guitare(freq, n, rng):
             y = buf[i] + c1 * y1 + c2 * y2
             y2, y1 = y1, y
             buf[i] += y * gain
-    block_dc(buf)
+    # Pas de `block_dc` ici : `build_note` le fait pour tout le monde. L'avoir
+    # aux deux endroits appliquait DEUX passe-haut, ce qui rognait le grave de
+    # la fin de note — la guitare cessait de s'assombrir en mourant.
     return buf
 
 
@@ -238,9 +342,18 @@ def orgue(freq, n, rng):
         f *= 1 + rng.uniform(-0.0015, 0.0015)
         w = 2 * math.pi * f / RATE
         ph = rng.uniform(0, 2 * math.pi)
+        # Un tuyau ne s'allume pas d'un bloc. Les rangs aigus PARLENT les
+        # premiers et fort, puis se rangent derriere le fondamental : c'est
+        # l'entree du son, et c'est ce qui manquait le plus. La mesure
+        # disait tout : le spectre ne bougeait pas d'un iota du debut a la
+        # fin (chute = 1,00), ce qu'aucun tuyau ne fait. On entendait une
+        # addition de sinusoides, pas de l'air dans du metal.
+        montee = max(1, int(a_len * (1.0 if ratio <= 1.0 else 0.55)))
+        sursaut = 0.0 if ratio <= 1.0 else min(0.9, 0.30 * math.log(ratio + 1))
+        pose = max(1, int(0.055 * RATE))
         for i in range(n):
-            if i < a_len:
-                env = 0.5 - 0.5 * math.cos(math.pi * i / a_len)
+            if i < montee:
+                env = 0.5 - 0.5 * math.cos(math.pi * i / montee)
             elif i < h_end:
                 env = 1.0
             else:
@@ -248,9 +361,13 @@ def orgue(freq, n, rng):
                 if k >= 1:
                     break
                 env = 0.5 + 0.5 * math.cos(math.pi * k)
+            # Le sursaut d'entree, qui retombe en une cinquantaine de ms.
+            if sursaut and i < h_end:
+                env *= 1.0 + sursaut * math.exp(-i / pose)
             buf[i] += amp * env * math.sin(w * i + ph)
     # Le « chiff » : l'air qui attaque le biseau avant que le tuyau ne parle.
-    add_noise_burst(buf, 0.16, 0.022, cutoff=0.30, rng=rng)
+    # Plus bref et plus clair qu'avant — c'est un sifflement, pas un souffle.
+    add_noise_burst(buf, 0.20, 0.016, cutoff=0.55, rng=rng)
     return buf
 
 
@@ -270,11 +387,14 @@ def cloche(freq, n, rng):
     # d'une cloche accordée ; au-delà de la nominale, ils s'écartent de plus
     # en plus de l'harmonique pur.
     partials = [
-        (0.500, 0.42, 1.60),   # bourdon : il reste après tout le monde
-        (1.000, 0.85, 1.05),   # prime : la note entendue
-        (1.183, 0.62, 0.62),   # tierce mineure
-        (1.506, 0.45, 0.45),   # quinte
-        (2.000, 1.00, 0.38),   # nominale : le coup de marteau
+        # Coupee a une seconde, la cloche faisait « cling ». Ce qui fait
+        # qu'une cloche SONNE, c'est que le bourdon tient bien apres que
+        # tout le reste s'est tu : on l'entend respirer dans la piece.
+        (0.500, 0.46, 0.98),   # bourdon : il reste apres tout le monde
+        (1.000, 0.85, 0.68),   # prime : la note entendue
+        (1.183, 0.62, 0.52),   # tierce mineure
+        (1.506, 0.45, 0.40),   # quinte
+        (2.000, 1.00, 0.33),   # nominale : le coup de marteau
         (2.514, 0.34, 0.24),
         (2.664, 0.30, 0.20),
         (3.011, 0.40, 0.17),
@@ -314,11 +434,17 @@ def stable_seed(instrument, name):
     return zlib.crc32(f'{instrument}/{name}'.encode()) & 0xFFFF
 
 
-# Durée d'une note, en secondes, et niveau crête — par instrument.
+# PLAFOND de duree, en secondes, et niveau crete — par instrument.
 #
-# L'orgue est court exprès : chaque note est un coup joué, pas une touche
+# Ce n'est plus la duree du fichier : chaque note est taillee sur sa propre
+# extinction (voir `build_note`). Une basse de piano tient pres de deux
+# secondes, un aigu moins d'une — comme sur l'instrument.
+#
+# L'orgue reste court expres : chaque note est un coup joue, pas une touche
 # qu'on tient, et un glissando de quatre notes empilerait sinon un accord.
-NOTE_SECONDS = {'piano': 1.00, 'guitare': 1.20, 'orgue': 0.42, 'cloche': 1.00}
+# La cloche, elle, a besoin de temps : coupee a une seconde elle faisait
+# « cling » au lieu de sonner.
+NOTE_SECONDS = {'piano': 1.70, 'guitare': 1.70, 'orgue': 0.42, 'cloche': 2.40}
 PEAK = {'piano': 0.50, 'guitare': 0.82, 'orgue': 0.82, 'cloche': 0.82}
 
 
@@ -336,14 +462,28 @@ def write_wav(path, buf):
 
 # Extinction finale par instrument : pour le piano c'est l'étouffoir qui
 # retombe, pour l'orgue la soupape qui se ferme.
-TAIL = {'piano': 0.12, 'guitare': 0.10, 'orgue': 0.045, 'cloche': 0.18}
+TAIL = {'piano': 0.14, 'guitare': 0.12, 'orgue': 0.050, 'cloche': 0.22}
 
 
 def build_note(instrument, freq, n, seed):
+    """Une note, taillee sur sa propre extinction.
+
+    [n] n'est plus la duree du fichier mais un PLAFOND : on synthetise large,
+    puis on coupe la ou la note est reellement morte, et on pose l'etouffoir
+    sur la fin. Une basse garde donc tout son corps, un aigu ne traine pas de
+    silence, et plus aucune note n'est tranchee alors qu'elle sonne encore.
+    """
     rng = random.Random(seed)
     buf = SYNTHS[instrument](freq, n, rng)
     fade_in(buf)
-    fade_out(buf, TAIL[instrument])
+    queue = TAIL[instrument]
+    utile = longueur_utile(buf)
+    # De la place pour que l'etouffoir ait ou se poser.
+    garde = int(queue * RATE)
+    fin = min(len(buf), max(garde + 1, utile + garde))
+    buf = buf[:fin]
+    etouffoir(buf, queue)
+    block_dc(buf)
     return buf
 
 

@@ -1,4 +1,4 @@
-/// Les fichiers de son : tous là, au bon format, et de la bonne durée.
+/// Les fichiers de son : tous là, au bon format, et dans les bonnes bornes.
 ///
 /// Les quatre instruments sont synthétisés par `tool/gen_sounds.py`. Ce test
 /// est le garde-fou de cette fabrication : une note manquante rendrait un coup
@@ -6,6 +6,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -44,17 +45,30 @@ WavInfo readWav(String path) {
 }
 
 void main() {
-  /// Durée d'une note, en échantillons, par instrument. Elle fait le caractère
-  /// de chacun : l'orgue est court parce qu'il ne meurt pas, la guitare tient
-  /// plus longtemps.
-  const noteFrames = {
-    'piano': 44100, // 1,00 s
-    'guitare': 52920, // 1,20 s
-    // L'orgue est court exprès : chaque note est un coup joué, pas une touche
-    // qu'on tient. Une note qui dure empilerait un accord pendant un
-    // glissando.
-    'orgue': 18522, // 0,42 s
-    'cloche': 44100, // 1,00 s
+  /// PLAFOND de durée, en secondes, par instrument.
+  ///
+  /// Ce n'est plus une durée fixe : chaque note est taillée sur sa propre
+  /// extinction (`tool/gen_sounds.py`). Une note ne doit jamais dépasser le
+  /// plafond de son instrument, et jamais non plus être si courte qu'elle
+  /// aurait été tranchée.
+  ///
+  /// L'orgue est court exprès : chaque note est un coup joué, pas une touche
+  /// qu'on tient. Une note qui dure empilerait un accord pendant un
+  /// glissando. La cloche, à l'inverse, a besoin de temps — coupée à une
+  /// seconde elle faisait « cling » au lieu de sonner.
+  const plafondSecondes = {
+    'piano': 1.70,
+    'guitare': 1.70,
+    'orgue': 0.42,
+    'cloche': 2.40,
+  };
+
+  /// En dessous, le son serait tronqué plutôt que relâché.
+  const plancherSecondes = {
+    'piano': 1.00,
+    'guitare': 1.00,
+    'orgue': 0.25,
+    'cloche': 1.50,
   };
 
   test('chaque instrument a ses 28 notes, et rien d autre', () {
@@ -87,14 +101,77 @@ void main() {
     }
   });
 
-  test('les notes gardent la durée de leur instrument', () {
-    noteFrames.forEach((instrument, frames) {
+  test('chaque note tient dans les bornes de son instrument', () {
+    plafondSecondes.forEach((instrument, plafond) {
+      final plancher = plancherSecondes[instrument]!;
       for (final note in kSoundNotes) {
         for (final octave in kSoundOctaves) {
           final path = 'assets/sounds/$instrument/$note$octave.wav';
-          expect(readWav(path).frames, frames, reason: path);
+          final secondes = readWav(path).frames / 44100;
+          expect(
+            secondes,
+            lessThanOrEqualTo(plafond + 0.01),
+            reason: '$path dépasse le plafond de son instrument',
+          );
+          expect(
+            secondes,
+            greaterThanOrEqualTo(plancher),
+            reason: '$path est trop court : la note serait tranchée',
+          );
         }
       }
     });
   });
+
+  test('aucune note ne s arrête pendant qu elle sonne encore', () {
+    // Le défaut le plus reconnaissable d'un faux instrument : le fichier
+    // s'arrête alors que le son est encore fort, et on entend une porte se
+    // fermer. On regarde l'énergie des dernières 40 ms par rapport au plus
+    // fort de la note : en dessous de -22 dB, c'est une touche relâchée.
+    for (final instrument in kInstruments) {
+      for (final note in kSoundNotes) {
+        for (final octave in kSoundOctaves) {
+          final path = 'assets/sounds/$instrument/$note$octave.wav';
+          final db = niveauDeFin(path);
+          expect(
+            db,
+            lessThan(-22),
+            reason:
+                '$path s arrête à ${db.toStringAsFixed(0)} dB de son '
+                'maximum : ça claque',
+          );
+        }
+      }
+    }
+  });
+}
+
+/// Énergie des dernières 40 ms, en dB sous le maximum de la note.
+double niveauDeFin(String path) {
+  final bytes = File(path).readAsBytesSync();
+  final data = ByteData.sublistView(bytes);
+  // L'en-tête WAV de ces fichiers fait 44 octets : on lit les échantillons
+  // qui suivent, en 16 bits signés.
+  final samples = <double>[];
+  for (var i = 44; i + 1 < bytes.length; i += 2) {
+    samples.add(data.getInt16(i, Endian.little) / 32768.0);
+  }
+  if (samples.length < 4410) return -120;
+  double rms(int debut, int fin) {
+    var somme = 0.0;
+    for (var i = debut; i < fin; i++) {
+      somme += samples[i] * samples[i];
+    }
+    return math.sqrt(somme / (fin - debut));
+  }
+
+  const bloc = 441; // 10 ms
+  var maxi = 0.0;
+  for (var i = 0; i + bloc <= samples.length; i += bloc) {
+    final v = rms(i, i + bloc);
+    if (v > maxi) maxi = v;
+  }
+  final fin = rms(samples.length - 4 * bloc, samples.length);
+  if (maxi <= 0 || fin <= 0) return -120;
+  return 20 * (math.log(fin / maxi) / math.ln10);
 }
