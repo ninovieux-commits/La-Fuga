@@ -9,9 +9,18 @@
 // `volumeFactorFor` pour l'équilibre, et le mixage de `mixCues`. Le son de la
 // notification EST un son du jeu, pas une imitation.
 //
-// Le glissando choisi monte jusqu'au MILIEU de la tessiture : quatre octaves
-// vont de do2 à si5, et il arrive sur do4, la note exactement médiane. Ni
-// trop aigu ni trop grave.
+// Le glissando DESCEND, et il part des trois notes les plus graves du
+// plateau : mi2, ré2, do2. C'est le choix de Nino, fait à l'oreille sur dix
+// concurrents — sept instruments, deux tempos, deux registres.
+//
+// Il montait jusqu'au milieu de la tessiture, du temps où les glissandos du
+// jeu montaient tous. Depuis, le sens dit quelque chose : une poussée
+// descend, un déplacement de groupe monte. Une notification qui monte
+// aurait annoncé un déplacement de groupe.
+//
+// Les notes sont nommées ici, et non tirées d'une case : le plateau ne tient
+// plus que sur deux octaves, et ses rangées ne descendent pas jusqu'à
+// l'octave 2. La notification n'est pas un coup, elle n'a pas de case.
 //
 // PIANO POUR TOUT LE MONDE, quel que soit l'instrument choisi pour les
 // parties. Un son par instrument voulait dire un salon de notification par
@@ -23,14 +32,6 @@ import 'dart:typed_data';
 
 import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
-
-/// Rangée dont l'octave est 4 : celle du milieu de la tessiture.
-int _rangeeOctave4() {
-  for (var row = 0; row < 8; row++) {
-    if (octaveForRow(row) == 4) return row;
-  }
-  throw StateError('aucune rangée ne sonne en octave 4');
-}
 
 Pcm _lireWav(File f) {
   final o = f.readAsBytesSync();
@@ -103,10 +104,8 @@ void _ecrireWav(File f, Int16List samples, int rate) {
 const double _marge = 0.8;
 
 void main() {
-  // Le même glissando que dans une partie : quatre notes, cent millisecondes
-  // d'écart, montant jusqu'à la case visée.
-  final notes = glissandoNotes(0, _rangeeOctave4(), 4, 1);
-  stdout.writeln('glissando : ${notes.join(" → ")}');
+  const notes = kNotesNotification;
+  stdout.writeln('glissando descendant : ${notes.join(" → ")}');
 
   final sortie = Directory('android/app/src/main/res/raw');
   sortie.createSync(recursive: true);
@@ -124,7 +123,7 @@ void main() {
 
     final cues = <SoundCue>[
       for (var i = 0; i < notes.length; i++)
-        SoundCue(notes[i], Duration(milliseconds: 100 * i)),
+        SoundCue(notes[i], Duration(milliseconds: kPasNotification * i)),
     ];
     // Un peu de marge : à plein volume l'orgue touche la butée du 16 bits et
     // se met à grésiller. En partie il ne sature pas, parce que le réglage de

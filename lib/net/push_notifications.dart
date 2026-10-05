@@ -36,6 +36,10 @@ const List<String> kLegacyChannelIds = [
   'lafuga_guitare',
   'lafuga_cloche',
   'lafuga_notif',
+  // Le salon du glissando MONTANT, au milieu de la tessiture. Le son
+  // descend maintenant, et part des notes les plus graves : il a fallu un
+  // salon neuf pour que le changement s'entende.
+  'lafuga_notif_2',
 ];
 
 /// Le salon de notification. Un seul.
@@ -55,12 +59,12 @@ const List<String> kLegacyChannelIds = [
 /// identifiant neuf. Le précédent est dans la liste des salons à effacer.
 ///
 /// À changer de nouveau si le son change un jour.
-const String kChannelId = 'lafuga_notif_2';
+const String kChannelId = 'lafuga_notif_3';
 const String kChannelName = 'La Fuga';
 
 /// Fichier de son embarqué, fabriqué par `tool/gen_notif_sound.dart` à partir
-/// des vraies notes du jeu : le glissando qui arrive au milieu de la
-/// tessiture, au piano.
+/// des vraies notes du jeu : un glissando DESCENDANT sur les trois notes les
+/// plus graves du plateau — mi2, ré2, do2 — au piano.
 const String kChannelSound = 'notif_piano';
 
 /// Titre par défaut, quand le message n'en porte pas — comme en Kivy.

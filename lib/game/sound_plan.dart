@@ -201,6 +201,25 @@ List<String> glissandoDepuis(
 /// ne pas déborder sur le coup suivant.
 const int kGlissandoCount = 3;
 
+/// Les trois notes du son de NOTIFICATION : la descente la plus grave.
+///
+/// Choisies à l'oreille par Nino parmi dix concurrents — sept instruments,
+/// deux tempos, deux registres. Le son montait jusqu'au milieu de la
+/// tessiture, du temps où tous les glissandos du jeu montaient ; depuis, le
+/// sens dit quelque chose — une poussée descend, un groupe monte — et une
+/// notification qui monte aurait annoncé un déplacement de groupe.
+///
+/// Elles ne viennent PAS d'une case, et c'est voulu : le plateau ne tient
+/// que sur deux octaves et aucune de ses rangées ne descend jusqu'à
+/// l'octave 2. Une notification n'est pas un coup, elle n'a pas de case.
+const List<String> kNotesNotification = ['mi2', 're2', 'do2'];
+
+/// L'écart entre deux notes de la notification.
+///
+/// Le jeu en met cent ; vingt de plus ici, parce qu'une notification n'est
+/// pas un coup joué — elle a le droit de respirer.
+const int kPasNotification = 120;
+
 const Duration _glissandoStep = Duration(milliseconds: 100);
 
 /// Traduit une notation `.nmc` en suite de sons.

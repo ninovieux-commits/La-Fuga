@@ -41,31 +41,50 @@ import 'package:lafuga/net/push_notifications.dart';
 
 void main() {
   group('Le glissando choisi', () {
-    test('arrive au MILIEU de la tessiture', () {
-      // Quatre octaves de sept notes : vingt-huit en tout, do2 à si5. Le
-      // milieu est l'indice 14, c'est-à-dire do4.
-      final rangee = List.generate(
-        8,
-        (r) => r,
-      ).firstWhere((r) => octaveForRow(r) == 4);
-      final notes = glissandoNotes(0, rangee, 4, 1);
+    test('il DESCEND, et part des notes les plus graves', () {
+      // Il montait jusqu'au milieu de la tessiture, du temps où tous les
+      // glissandos du jeu montaient. Depuis, le sens dit quelque chose :
+      // une poussée descend, un déplacement de groupe monte. Une
+      // notification qui monte aurait annoncé un déplacement de groupe.
+      expect(kNotesNotification, ['mi2', 're2', 'do2']);
 
-      expect(notes, ['sol3', 'la3', 'si3', 'do4']);
-      expect(
-        notes.last,
-        'do4',
-        reason: 'ni trop aigu ni trop grave : la note médiane des 28',
-      );
-      // Et c'est bien la médiane : 14 notes en dessous, 13 au-dessus.
-      const indiceDo4 = (4 - 2) * 7 + 0;
-      expect(indiceDo4, 14);
-      expect(kSoundOctaves.length * kSoundNotes.length, 28);
+      final indices = [for (final n in kNotesNotification) noteIndexOf(n)];
+      expect(indices, [2, 1, 0], reason: 'les trois plus graves des 28');
+      for (var i = 1; i < indices.length; i++) {
+        expect(
+          indices[i]!,
+          lessThan(indices[i - 1]!),
+          reason: 'ça doit descendre',
+        );
+      }
     });
 
-    test('il monte, et finit sur sa cible', () {
-      final notes = glissandoNotes(0, 3, 4, 1);
-      expect(notes.length, 4);
-      expect(notes.toSet().length, 4, reason: 'quatre notes différentes');
+    test('ses notes ne viennent pas d une case, et c est voulu', () {
+      // Le plateau ne tient plus que sur deux octaves : aucune rangée ne
+      // descend jusqu'à l'octave 2. La notification n'est pas un coup, elle
+      // n'a pas de case — ses notes sont nommées directement.
+      final duPlateau = {
+        for (var c = 0; c < 7; c++)
+          for (var r = 0; r < 8; r++) noteForCell(c, r),
+      };
+      for (final n in kNotesNotification) {
+        expect(
+          duPlateau,
+          isNot(contains(n)),
+          reason: '« $n » est pourtant la note d une case',
+        );
+      }
+    });
+
+    test('et les trois notes sont bien dans la banque', () {
+      for (final n in kNotesNotification) {
+        expect(noteIndexOf(n), isNotNull, reason: n);
+        expect(
+          File('assets/sounds/piano/$n.wav').existsSync(),
+          isTrue,
+          reason: n,
+        );
+      }
     });
   });
 
@@ -176,16 +195,20 @@ void main() {
       // mises à jour. Un salon créé une fois sans le bon son reste muet pour
       // toujours : la seule issue est d'en changer le nom ET d'effacer
       // l'ancien, sinon il traîne dans les réglages du téléphone.
+      // La règle, et non la valeur du jour : TOUT salon abandonné doit être
+      // dans la liste à effacer. Le son a changé deux fois, le salon aussi.
       expect(
         kChannelId,
-        'lafuga_notif_2',
+        'lafuga_notif_3',
         reason: 'le nom du salon a changé sans que l ancien soit listé',
       );
-      expect(
-        kLegacyChannelIds,
-        contains('lafuga_notif'),
-        reason: 'le salon d avant survit, peut-être muet',
-      );
+      for (final abandonne in ['lafuga_notif', 'lafuga_notif_2']) {
+        expect(
+          kLegacyChannelIds,
+          contains(abandonne),
+          reason: '« $abandonne » survit, peut-être muet',
+        );
+      }
     });
 
     test('son nom ne nomme aucun instrument : il n y en a qu un', () {
