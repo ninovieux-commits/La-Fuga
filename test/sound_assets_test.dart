@@ -57,8 +57,8 @@ void main() {
   /// glissando. La cloche, à l'inverse, a besoin de temps — coupée à une
   /// seconde elle faisait « cling » au lieu de sonner.
   const plafondSecondes = {
-    'piano': 1.70,
-    'guitare': 1.70,
+    'piano': 1.00,
+    'guitare': 1.00,
     'orgue': 0.42,
     'cloche': 2.40,
     'xylophone': 0.80,
@@ -68,8 +68,8 @@ void main() {
 
   /// En dessous, le son serait tronqué plutôt que relâché.
   const plancherSecondes = {
-    'piano': 1.00,
-    'guitare': 1.00,
+    'piano': 0.70,
+    'guitare': 0.70,
     'orgue': 0.25,
     'cloche': 1.50,
     // Le xylophone meurt de lui-même en moins d'une seconde : sa note est

@@ -52,8 +52,9 @@ SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 #   la trompette bouchée ne décroît JAMAIS (-0 dB encore à 1,7 s), comme
 #   l'orgue : il lui faut une note courte et une soupape qui se ferme.
 NOTE_SECONDS = {
-    'piano': 1.70,
-    'guitare': 1.70,
+    # Amorties (voir AMORTI), elles n'ont plus besoin de tenir si longtemps.
+    'piano': 1.00,
+    'guitare': 1.00,
     'orgue': 0.42,
     'cloche': 2.40,
     'xylophone': 0.80,
@@ -80,6 +81,15 @@ PEAK = {
 # L'orgue a la plus longue : il ne décroît pas tout seul, on le coupe donc
 # en plein son, et c'est la soupape qui doit se fermer proprement. Avec
 # 60 ms, la mesure disait que ça claquait encore à -10 dB.
+# Amortissement SUPPLÉMENTAIRE, en secondes. Absent : la note garde son
+# extinction naturelle.
+#
+# « J'aimerai que piano et guitare résonnent moins » — quatre doses lui ont
+# été proposées à l'écoute, il a pris la moyenne pour les deux. Un do3 de
+# piano était encore à -6 dB après six dixièmes de seconde ; avec cet
+# amortissement il tombe à -13, et la note est éteinte avant le coup suivant.
+AMORTI = {'piano': 0.70, 'guitare': 0.70}
+
 TAIL = {
     'piano': 0.14,
     'guitare': 0.12,
@@ -128,6 +138,27 @@ def debut_reel(x, seuil_db=-50.0):
         return 0
     # Une milliseconde avant, pour ne pas manger le tout début de l'attaque.
     return max(0, int(au_dessus[0]) - int(0.001 * RATE))
+
+
+def amortit(x, tau):
+    """Fait mourir la note plus vite, sans la trancher.
+
+    Nino : « j'aimerai que piano et guitare résonnent moins ». Un piano
+    enregistré tient longtemps — son do3 est encore à -6 dB après six
+    dixièmes de seconde. Dans un glissando de trois notes suivi du coup
+    d'après, tout s'empile.
+
+    On pose donc une décroissance SUPPLÉMENTAIRE par-dessus la naturelle :
+    c'est le geste d'un feutre qu'on laisse contre la corde. Raccourcir le
+    fichier à la place aurait coupé la note en plein son.
+
+    [tau] est la constante de temps, en secondes. 0 ou None : on ne touche
+    à rien.
+    """
+    if not tau:
+        return x
+    t = np.arange(len(x)) / RATE
+    return x * np.exp(-t / tau)
 
 
 def etouffoir(x, seconds, douceur=0.35):
@@ -254,6 +285,7 @@ def main():
                     x = np.concatenate([x, np.zeros(longueur - len(x))])
                 x = x[:longueur]
                 x = fade_in(x)
+                x = amortit(x, AMORTI.get(instrument))
                 x = etouffoir(x, queue)
 
                 attendue = freq_of(note, octave)
