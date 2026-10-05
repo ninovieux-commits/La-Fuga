@@ -12,6 +12,7 @@ import '../engine/random_fuga.dart';
 import '../game/captures.dart';
 import '../game/last_move.dart';
 import '../game/nmc.dart';
+import '../game/premove.dart';
 import '../net/online_client.dart';
 
 /// Où en est une partie de correspondance.
@@ -58,6 +59,9 @@ final class CorrGame {
     required this.drawOfferedByMe,
     required this.randomCode,
     required this.updatedAt,
+    this.premove,
+    this.premoveAdverse = false,
+    this.premovePar = '',
   });
 
   final String id;
@@ -108,6 +112,17 @@ final class CorrGame {
 
   final String updatedAt;
 
+  /// MON plan de pré-coups pour cette partie, quand j'en ai un. Le serveur ne
+  /// montre jamais celui d'en face.
+  final PremovePlan? premove;
+
+  /// L'adversaire avait préjoué sa réponse à mon coup : elle est partie toute
+  /// seule, et c'est déjà de nouveau à moi. On me le doit en popup.
+  final bool premoveAdverse;
+
+  /// Qui avait préjoué — pour le nommer dans le popup.
+  final String premovePar;
+
   Camp get opponentCamp => myCamp.opposite;
 
   /// Plateau de départ de cette partie.
@@ -140,6 +155,13 @@ final class CorrGame {
     drawOfferedByMe: j['nulle_proposee_par_moi'] == true,
     randomCode: (j['random_code'] ?? '').toString(),
     updatedAt: (j['updated_at'] ?? '').toString(),
+    // Absent chez qui ne préjoue pas : le serveur n'ajoute ces clés que
+    // lorsqu'il a quelque chose à dire.
+    premove: j['premove'] is Map
+        ? PremovePlan.fromJson(Map<String, dynamic>.from(j['premove'] as Map))
+        : null,
+    premoveAdverse: j['premove_adverse'] == true,
+    premovePar: (j['premove_par'] ?? '').toString(),
   );
 }
 
@@ -342,6 +364,19 @@ class CorrespondenceService {
     if (t.isEmpty) return false;
     return (await _client.corrChatSend(gameId, t)).isOk;
   }
+
+  /// Enregistre mon plan de pré-coups. Renvoie `null` si c'est passé, sinon la
+  /// raison du refus telle que le serveur la donne.
+  ///
+  /// Un plan sans variante efface ce qui était préparé.
+  Future<String?> savePremoves(String gameId, PremovePlan plan) async {
+    final r = await _client.corrPremove(gameId, plan.toJson());
+    return r.isOk ? null : (r.serverError ?? r.error ?? 'Échec.');
+  }
+
+  /// Le popup « il avait préjoué » a été vu.
+  Future<bool> premoveSeen(String gameId) async =>
+      (await _client.corrPremoveVu(gameId)).isOk;
 
   Future<List<Map<String, dynamic>>?> chat(String gameId) async {
     final r = await _client.corrChatList(gameId);

@@ -276,6 +276,20 @@ class OnlineClient {
   Future<ApiResult> corrClose(String gameId) =>
       _api.post('/corr_close', _auth({'game_id': gameId}));
 
+  /// Enregistre (ou efface) son plan de pré-coups pour une partie.
+  ///
+  /// Un plan sans variante efface celui qui était en place : c'est ainsi qu'on
+  /// annule ce qu'on avait préparé. `base` n'est PAS envoyé — le serveur le
+  /// pose lui-même sur la position réelle, pour qu'un client en retard d'un
+  /// coup ne rattache pas son plan à la mauvaise position.
+  Future<ApiResult> corrPremove(String gameId, Map<String, dynamic> plan) =>
+      _api.post('/corr_premove', _auth({'game_id': gameId, 'plan': plan}));
+
+  /// Le popup « il avait préjoué son coup » a été vu : on l'éteint, sinon il
+  /// reviendrait à chaque actualisation.
+  Future<ApiResult> corrPremoveVu(String gameId) =>
+      _api.post('/corr_premove_vu', _auth({'game_id': gameId}));
+
   Future<ApiResult> corrProposerNulle(String gameId) =>
       _api.post('/corr_proposer_nulle', _auth({'game_id': gameId}));
 

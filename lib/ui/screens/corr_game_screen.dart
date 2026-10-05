@@ -35,6 +35,9 @@ import '../widgets/pause_dialog.dart';
 import '../widgets/draw_offer_panel.dart';
 import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
+import '../../game/premove.dart';
+import '../scale.dart';
+import 'premove_screen.dart';
 import 'conversations_screen.dart';
 import 'game_screen.dart';
 
@@ -193,7 +196,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
           fraiche.drawOfferedByMe == _g.drawOfferedByMe;
       if (fraiche.movesText == _g.movesText &&
           fraiche.status == _g.status &&
-          memeNulle) {
+          memeNulle &&
+          // Le pré-coup de l'adversaire change toujours les coups, donc ce
+          // test ne devrait jamais être le seul à voir quelque chose. Il est
+          // là pour que le popup ne dépende pas de cette coïncidence.
+          fraiche.premoveAdverse == _g.premoveAdverse) {
         return;
       }
       final memeCoups = fraiche.movesText == _g.movesText;
@@ -250,6 +257,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       _rebuildSteps();
     });
     _animerDernierCoupArrive();
+    _annoncerPremove();
 
     // Close par l'adversaire pendant notre absence : elle a sa place dans
     // l'historique, et nous sommes peut-être les seuls à pouvoir l'y mettre.
@@ -715,11 +723,97 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   // pouvait pas revoir un coup sans quitter la partie.
                   onSelect: _viewMove,
                   randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
+                  // Préparer ses réponses pendant que l'adversaire réfléchit.
+                  onPremove: _peutPrejouer ? _openPremove : null,
+                  premoveCount: _nbVariantes,
                 ),
               ),
       ),
     );
   }
+
+  /// Peut-on préparer ses pré-coups ? Seulement quand c'est à l'ADVERSAIRE de
+  /// jouer : prejouer quand on a soi-même le trait n'attendrait rien.
+  ///
+  /// `_played` compte : juste après notre coup, le serveur ne nous a pas
+  /// encore renvoyé la partie, et `myTurn` dit encore vrai.
+  bool get _peutPrejouer =>
+      _g.status == CorrStatus.enCours &&
+      !_finished &&
+      _controller != null &&
+      (!_g.myTurn || _played);
+
+  /// Le popup déjà montré pour cette arrivée : on ne le montre qu'une fois.
+  bool _premoveAnnonce = false;
+
+  /// « (pseudo) avait préjoué son coup, c'est encore à vous. »
+  ///
+  /// L'adversaire avait préparé sa réponse ; le serveur l'a jouée à l'instant
+  /// où notre coup est arrivé. Sans ce mot, la partie aurait avancé de deux
+  /// coups d'un bloc sans explication.
+  void _annoncerPremove() {
+    if (!_g.premoveAdverse || _premoveAnnonce) return;
+    _premoveAnnonce = true;
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final auMenu = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: palette.fonce,
+          content: Text(
+            '${_g.premovePar} '
+            '${T('avait préjoué son coup, c\'est encore à vous.')}',
+            style: TextStyle(color: Colors.white, fontSize: SF(16)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(T('Ok')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(T('Menu')),
+            ),
+          ],
+        ),
+      );
+      // Vu : le serveur éteint son drapeau, sinon le popup reviendrait à
+      // chaque actualisation et [Ok] ne servirait à rien.
+      await widget.service.premoveSeen(_g.id);
+      if (!mounted) return;
+      if (auMenu == true) Navigator.of(context).pop();
+    });
+  }
+
+  /// Préparer ses pré-coups depuis la position COURANTE.
+  Future<void> _openPremove() async {
+    final c = _controller;
+    if (c == null) return;
+    final plan = await Navigator.of(context).push<PremovePlan>(
+      MaterialPageRoute<PremovePlan>(
+        builder: (_) => PremoveScreen(
+          game: _g,
+          service: widget.service,
+          // La position réelle de la partie, pas celle qu'on regardait : un
+          // pré-coup répond au coup qui va venir.
+          board: _steps.isEmpty ? c.board : _steps.last,
+          flipped: _flipOverride ?? (_g.myCamp == Camp.blanc),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    // Le plan armé revient avec l'écran : le compteur de la touche le montre
+    // sans attendre la prochaine relecture.
+    if (plan != null) setState(() => _plan = plan);
+  }
+
+  /// Le plan tel qu'on vient de l'armer, qui prime sur celui du serveur tant
+  /// que la partie n'a pas été relue.
+  PremovePlan? _plan;
+
+  int get _nbVariantes => (_plan ?? _g.premove)?.variantes.length ?? 0;
 
   /// Analyser LA POSITION AFFICHÉE — pas forcément la dernière.
   ///

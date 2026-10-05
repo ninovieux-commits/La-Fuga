@@ -24,6 +24,8 @@ class MoveStrip extends StatefulWidget {
     this.activeIndex,
     this.randomCode,
     required this.palette,
+    this.onPremove,
+    this.premoveCount = 0,
   });
 
   /// Notations dans l'ordre, Blanc puis Noir, Blanc puis Noir…
@@ -41,6 +43,15 @@ class MoveStrip extends StatefulWidget {
   /// Appelé avec l'indice du DEMI-COUP à montrer, `-1` pour la position de
   /// départ.
   final void Function(int index) onSelect;
+
+  /// Préparer ses pré-coups. `null` : la touche ne s'affiche pas — elle n'a de
+  /// sens qu'en correspondance, et seulement quand c'est à l'adversaire de
+  /// jouer.
+  final VoidCallback? onPremove;
+
+  /// Combien de variantes sont déjà armées. La touche le montre, pour qu'on
+  /// sache sans l'ouvrir qu'une réponse attend.
+  final int premoveCount;
 
   @override
   State<MoveStrip> createState() => _MoveStripState();
@@ -161,6 +172,15 @@ class _MoveStripState extends State<MoveStrip> {
                 ? null
                 : () => widget.onSelect(active + 1),
           ),
+          // La touche des pré-coups, à côté des flèches. Elle porte le nombre
+          // de variantes armées quand il y en a, et un « P » quand il n'y en a
+          // pas encore.
+          if (widget.onPremove != null)
+            _arrow(
+              widget.premoveCount > 0 ? '${widget.premoveCount}' : 'P',
+              widget.onPremove,
+              fond: widget.premoveCount > 0 ? widget.palette.fonce : null,
+            ),
         ],
       ),
     );
@@ -183,12 +203,12 @@ class _MoveStripState extends State<MoveStrip> {
   );
 
   /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
-  Widget _arrow(String label, VoidCallback? onPressed) => Opacity(
+  Widget _arrow(String label, VoidCallback? onPressed, {Color? fond}) => Opacity(
     opacity: onPressed == null ? 0.35 : 1,
     child: AspectRatio(
       aspectRatio: 1,
       child: Material(
-        color: kBarButtonDark,
+        color: fond ?? kBarButtonDark,
         borderRadius: BorderRadius.circular(S(20)),
         child: InkWell(
           borderRadius: BorderRadius.circular(S(20)),
