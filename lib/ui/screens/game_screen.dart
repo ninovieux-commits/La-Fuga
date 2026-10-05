@@ -196,6 +196,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   /// Le plateau montré : la position regardée, ou celle de la partie.
   Board get _shownBoard =>
       _isViewing ? _snapshots[_viewingIndex! + 1] : _game.board;
+  // `_viewingIndex == -1` donne `_snapshots[0]` : la position de départ.
 
   /// Mode profond de Deep Grey, basculable en cours de partie.
   late bool _deepMode = widget.aiDeepMode;
@@ -369,9 +370,22 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     if (!_canPlay) return;
     // On explorait le passé : les coups d'après sont oubliés et la partie
     // reprend ici. C'est tout l'intérêt d'une analyse — essayer autre chose.
-    if (_isViewing) _branchFromViewed();
-    final result = _game.tapCell(cell);
-    if (result.effect == ControllerEffect.none) return;
+    //
+    // Mais la branche ne s'installe QUE si la touche prend : un doigt qui
+    // rate effaçait la suite de la partie sans rien redessiner, et le coup
+    // suivant disparaissait sans qu'on ait joué quoi que ce soit.
+    final ControllerResult result;
+    if (_isViewing) {
+      final branche = _prepareBranch();
+      if (branche == null) return;
+      final essai = branche.game.tapCell(cell);
+      if (essai.effect == ControllerEffect.none) return;
+      _installBranch(branche);
+      result = essai;
+    } else {
+      result = _game.tapCell(cell);
+      if (result.effect == ControllerEffect.none) return;
+    }
 
     // Kivy anime CHAQUE geste au moment où il est fait : le déplacement, le
     // saut, la manœuvre et chaque poussée. Attendre la validation du coup ne
@@ -425,9 +439,10 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   /// Le contrôleur est reconstruit sur la position regardée, avec les coups
   /// gardés pour le bandeau et les prises recomptées depuis les positions
   /// traversées — un contrôleur neuf croirait qu'aucune pièce n'est sortie.
-  void _branchFromViewed() {
+  ({MoveController game, List<Board> boards, LastMove? lastMove})?
+  _prepareBranch() {
     final index = _viewingIndex;
-    if (index == null) return;
+    if (index == null) return null;
 
     final kept = _game.history.sublist(0, index + 1);
     final boards = _snapshots.sublist(0, index + 2);
@@ -450,11 +465,26 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     );
     game.history.addAll(kept);
 
-    _game = game;
+    return (
+      game: game,
+      boards: boards,
+      // Rien à mettre en évidence quand on repart de la position de départ :
+      // aucun coup n'y a mené.
+      lastMove: kept.isEmpty
+          ? null
+          : lastMoveFromNotation(kept.last, boards[index], boards.last),
+    );
+  }
+
+  /// Adopte la branche préparée : la partie reprend à la position regardée.
+  void _installBranch(
+    ({MoveController game, List<Board> boards, LastMove? lastMove}) branche,
+  ) {
+    _game = branche.game;
     _snapshots
       ..clear()
-      ..addAll(boards);
-    _lastMove = lastMoveFromNotation(kept.last, boards[index], boards.last);
+      ..addAll(branche.boards);
+    _lastMove = branche.lastMove;
     _viewingIndex = null;
     // La partie n'est plus finie : on vient d'en rouvrir le cours.
     _verdict = null;
@@ -470,7 +500,9 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
   void _viewMove(int? index) {
     final total = _game.history.length;
     if (total == 0) return;
-    final wanted = (index ?? total - 1).clamp(0, total - 1);
+    // `-1` : la position de départ. Sans elle, le dernier pas en arrière
+    // manquait — on restait coincé après le premier coup.
+    final wanted = (index ?? total - 1).clamp(-1, total - 1);
     final avant = _viewingIndex ?? total - 1;
     setState(() {
       _viewingIndex = wanted == total - 1 ? null : wanted;

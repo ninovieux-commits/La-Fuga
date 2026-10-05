@@ -38,7 +38,8 @@ class MoveStrip extends StatefulWidget {
   /// Code de la position Random Fuga, affiché en tête quand il y en a un.
   final String? randomCode;
 
-  /// Appelé avec l'indice du coup à montrer, `-1` pour la position de départ.
+  /// Appelé avec l'indice du DEMI-COUP à montrer, `-1` pour la position de
+  /// départ.
   final void Function(int index) onSelect;
 
   @override
@@ -76,23 +77,39 @@ class _MoveStripState extends State<MoveStrip> {
     final moves = widget.moves;
     final active = widget.activeIndex ?? moves.length - 1;
 
+    // Un tour, trois morceaux : son numéro, le demi-coup blanc, le demi-coup
+    // noir. Chaque DEMI-COUP a sa propre touche — le bandeau n'en offrait
+    // qu'une par tour, et elle menait toujours au coup noir : on ne pouvait
+    // pas revenir sur le seul coup blanc, il fallait l'enjamber.
     final turns = <Widget>[];
     for (var i = 0; i < moves.length; i += 2) {
-      final blanc = moves[i];
       final noir = i + 1 < moves.length ? moves[i + 1] : null;
-      final isActive = active == i || active == i + 1;
       turns.add(
-        TextButton(
-          onPressed: () => widget.onSelect(noir == null ? i : i + 1),
-          style: TextButton.styleFrom(
-            minimumSize: Size.zero,
-            padding: EdgeInsets.symmetric(horizontal: S(8)),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: isActive ? Colors.black : Colors.white,
-          ),
-          child: Text(
-            '${i ~/ 2 + 1}.$blanc${noir == null ? '' : '/$noir'}',
-            style: TextStyle(fontSize: SF(14), fontWeight: FontWeight.bold),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: S(4)),
+          child: Row(
+            children: [
+              Text(
+                '${i ~/ 2 + 1}.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: SF(14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              _half(i, moves[i], active == i),
+              if (noir != null) ...[
+                Text(
+                  '/',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: SF(14),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                _half(i + 1, noir, active == i + 1),
+              ],
+            ],
           ),
         ),
       );
@@ -105,7 +122,14 @@ class _MoveStripState extends State<MoveStrip> {
       padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(2)),
       child: Row(
         children: [
-          _arrow('<', moves.isEmpty ? null : () => widget.onSelect(active - 1)),
+          // Jusqu'à la position de départ : un demi-coup à la fois, et le
+          // dernier pas ramène avant le premier coup.
+          _arrow(
+            '<',
+            moves.isEmpty || active < 0
+                ? null
+                : () => widget.onSelect(active - 1),
+          ),
           Expanded(
             child: ListView(
               controller: _scroll,
@@ -141,6 +165,22 @@ class _MoveStripState extends State<MoveStrip> {
       ),
     );
   }
+
+  /// Un demi-coup : sa notation, touchable pour revenir dessus. Le demi-coup
+  /// regardé s'écrit en noir, les autres en blanc.
+  Widget _half(int index, String notation, bool actif) => TextButton(
+    onPressed: () => widget.onSelect(index),
+    style: TextButton.styleFrom(
+      minimumSize: Size.zero,
+      padding: EdgeInsets.symmetric(horizontal: S(3)),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      foregroundColor: actif ? Colors.black : Colors.white,
+    ),
+    child: Text(
+      notation,
+      style: TextStyle(fontSize: SF(14), fontWeight: FontWeight.bold),
+    ),
+  );
 
   /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
   Widget _arrow(String label, VoidCallback? onPressed) => Opacity(

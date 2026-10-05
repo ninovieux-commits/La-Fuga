@@ -337,7 +337,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   void _viewMove(int index) {
     final total = _allMoves().length;
     if (total == 0) return;
-    final voulu = index.clamp(0, total - 1);
+    // `-1` : la position de départ, avant le premier coup.
+    final voulu = index.clamp(-1, total - 1);
     final avant = _viewingIndex ?? total - 1;
     setState(() {
       _viewingIndex = voulu == total - 1 ? null : voulu;
@@ -348,13 +349,15 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
         versIndex: voulu + 1,
       );
     });
-    _sounds.playNotation(_allMoves()[voulu]);
+    // La position de départ n'a pas de coup : rien à faire entendre.
+    if (voulu >= 0) _sounds.playNotation(_allMoves()[voulu]);
   }
 
   /// Plateau affiché : celui du coup regardé, ou la position courante.
   Board? get _shownBoard {
     final index = _viewingIndex;
     if (index == null) return _controller?.board;
+    if (index < 0) return _steps.isEmpty ? _controller?.board : _steps.first;
     return index + 1 < _steps.length ? _steps[index + 1] : _controller?.board;
   }
 
@@ -363,6 +366,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     final index = _viewingIndex;
     if (index == null) return _lastMove;
     final notations = _allMoves();
+    // Position de départ : aucun coup n'y a mené.
+    if (index < 0) return null;
     if (index >= notations.length || index + 1 >= _steps.length) return null;
     return lastMoveFromNotation(
       notations[index],
