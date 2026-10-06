@@ -56,6 +56,13 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   TempoLecture _tempo = TempoLecture.defaut;
   Timer? _battement;
 
+  /// Combien de coups la lecture a joués depuis qu'elle est partie.
+  ///
+  /// C'est ce qui dit OÙ L'ON EN EST DANS LA MESURE : les écarts d'une danse ne
+  /// sont pas tous égaux — la sarabande boite — et il faut donc savoir quel
+  /// écart vient ensuite. Remis à zéro dès qu'on repart : une mesure commence.
+  int _coupsJoues = 0;
+
   @override
   void initState() {
     super.initState();
@@ -73,16 +80,18 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
     super.dispose();
   }
 
-  /// Un coup à chaque temps.
+  /// Un coup sur chaque temps JOUÉ — et une pause sur les autres.
   ///
-  /// Le minuteur est REFAIT à chaque battement plutôt que périodique : la
-  /// vitesse peut changer entre deux coups — on tire le curseur, on choisit
-  /// une danse — et un minuteur périodique garderait l'ancienne cadence
-  /// jusqu'à son prochain déclenchement.
+  /// Le minuteur est REFAIT à chaque battement plutôt que périodique, pour deux
+  /// raisons. La vitesse peut changer entre deux coups — on tire le curseur, on
+  /// choisit une danse — et un minuteur périodique garderait l'ancienne cadence
+  /// jusqu'à son prochain déclenchement. Et surtout, dans une danse les écarts
+  /// ne sont pas tous égaux : la sarabande attend un temps, puis deux. Un seul
+  /// intervalle ne saurait pas les dire.
   void _armer() {
     _battement?.cancel();
     if (!_enLecture) return;
-    _battement = Timer(_tempo.parCoup, _battre);
+    _battement = Timer(_tempo.ecartAvant(_coupsJoues), _battre);
   }
 
   void _battre() {
@@ -93,6 +102,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       return;
     }
     _move(_replay.next);
+    _coupsJoues++;
     _armer();
   }
 
@@ -102,19 +112,29 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       // ferait rien, et on ne saurait pas pourquoi.
       if (!_enLecture && _replay.atEnd) _move(_replay.toStart);
       _enLecture = !_enLecture;
+      // On repart au premier temps de la mesure : reprendre au milieu d'un
+      // motif ferait entrer la danse de travers.
+      _coupsJoues = 0;
     });
     _armer();
   }
 
   void _auDebut() {
     _move(_replay.toStart);
+    _coupsJoues = 0;
     _armer();
   }
 
   /// Changer de vitesse : le battement en cours garde sa durée, le suivant
   /// prend la nouvelle. Réarmer ici couperait la note qui sonne.
+  ///
+  /// Changer de danse remet la mesure à son début — le motif de la nouvelle
+  /// n'a rien à voir avec l'endroit où l'ancienne en était.
   void _setTempo(TempoLecture t) {
-    setState(() => _tempo = t);
+    setState(() {
+      if (t.rythmique != _tempo.rythmique) _coupsJoues = 0;
+      _tempo = t;
+    });
   }
 
   /// Avance ou recule, en jouant le son ET le glissement du coup atteint.

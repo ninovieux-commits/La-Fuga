@@ -212,7 +212,7 @@ void main() {
 
     testWidgets('une rythmique impose SA cadence', (tester) async {
       await ouvrirAuto(tester);
-      // Sarabande : 60 à la minute, donc une seconde pile par coup.
+      // Sarabande : 60 à la minute, donc une seconde pile par temps.
       tester
           .widget<AutoPlayBar>(find.byType(AutoPlayBar))
           .onRythmique(Rythmique.sarabande);
@@ -231,6 +231,66 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
       expect(coupRegarde(tester), depart + 1);
+    });
+
+    testWidgets('la VALSE laisse ses deux temps de pause', (tester) async {
+      // « Valse 3/4 doit se jouer comme une vraie valse 3 temps. » Elle joue son
+      // premier temps et se tait sur les deux autres : un coup par MESURE, soit
+      // trois temps à 170 — 1,059 s — et non un coup toutes les 0,353 s.
+      await ouvrirAuto(tester);
+      tester
+          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
+          .onRythmique(Rythmique.valse);
+      await tester.pumpAndSettle();
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      await tester.pumpAndSettle();
+      final depart = coupRegarde(tester);
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      // Deux temps se sont écoulés : sans les pauses, deux coups seraient
+      // partis. Ils doivent être silencieux.
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(
+        coupRegarde(tester),
+        depart,
+        reason: 'la valse a joué sur un temps de pause',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(
+        coupRegarde(tester),
+        depart + 1,
+        reason: 'le premier temps de la mesure suivante doit jouer',
+      );
+    });
+
+    testWidgets('la sarabande BOITE : un temps, puis deux', (tester) async {
+      // Son deuxième temps est appuyé, le troisième se tait. Les écarts ne sont
+      // donc pas tous égaux, et c'est le seul moyen de l'entendre.
+      await ouvrirAuto(tester);
+      tester
+          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
+          .onRythmique(Rythmique.sarabande);
+      await tester.pumpAndSettle();
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      await tester.pumpAndSettle();
+      final depart = coupRegarde(tester);
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      // Premier écart : un temps.
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pumpAndSettle();
+      expect(coupRegarde(tester), depart + 1);
+      // Deuxième écart : DEUX temps. À une seconde, rien ne doit avoir bougé.
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(
+        coupRegarde(tester),
+        depart + 1,
+        reason: 'le troisième temps est une pause : rien ne doit s y jouer',
+      );
+      await tester.pump(const Duration(milliseconds: 1200));
+      await tester.pumpAndSettle();
+      expect(coupRegarde(tester), depart + 2);
     });
 
     testWidgets('arrivé au bout, ça s arrête', (tester) async {

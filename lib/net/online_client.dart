@@ -15,6 +15,7 @@ final class OnlineSession {
     this.meloRandom = 1500,
     this.theme = 'original',
     this.photo = '',
+    this.instrument = '',
   });
 
   final String token;
@@ -32,9 +33,17 @@ final class OnlineSession {
   /// Photo de profil, au format `theme|Pièce`.
   final String photo;
 
+  /// L'instrument enregistré dans le COMPTE, et non sur l'appareil.
+  ///
+  /// Vide quand le compte n'en a pas encore — un compte d'avant, ou tout juste
+  /// créé. C'est ce vide qui dit qu'il faut y poser celui de l'appareil au
+  /// lieu d'en adopter un.
+  final String instrument;
+
   OnlineSession copyWith({
     String? theme,
     String? photo,
+    String? instrument,
     int? melo,
     int? meloRandom,
   }) => OnlineSession(
@@ -44,6 +53,7 @@ final class OnlineSession {
     meloRandom: meloRandom ?? this.meloRandom,
     theme: theme ?? this.theme,
     photo: photo ?? this.photo,
+    instrument: instrument ?? this.instrument,
   );
 }
 
@@ -78,6 +88,7 @@ class OnlineClient {
         meloRandom: (d['melo_random'] as num?)?.toInt() ?? 1500,
         theme: (d['theme'] as String?) ?? 'original',
         photo: (d['photo'] as String?) ?? '',
+        instrument: (d['instrument'] as String?) ?? '',
       );
 
   // ── Compte ────────────────────────────────────────────────────────────────
@@ -143,6 +154,24 @@ class OnlineClient {
   Future<ApiResult> setTheme(String theme) async {
     final r = await _api.post('/set_theme', _auth({'theme': theme}));
     if (r.isOk) _session = _session?.copyWith(theme: theme);
+    return r;
+  }
+
+  /// Enregistre l'instrument dans le COMPTE.
+  ///
+  /// Il suivait l'appareil : changer de téléphone, ou se reconnecter après une
+  /// réinstallation, et l'on retrouvait le piano. Il appartient au joueur, pas
+  /// au téléphone.
+  ///
+  /// Un serveur pas encore corrigé répond 404 ; l'appel échoue sans bruit et le
+  /// réglage local reste le bon — on ne perd rien, on ne gagne simplement pas
+  /// la mémoire du compte.
+  Future<ApiResult> setInstrument(String instrument) async {
+    final r = await _api.post(
+      '/set_instrument',
+      _auth({'instrument': instrument}),
+    );
+    if (r.isOk) _session = _session?.copyWith(instrument: instrument);
     return r;
   }
 

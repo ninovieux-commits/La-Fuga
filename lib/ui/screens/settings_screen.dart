@@ -90,6 +90,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Change d'instrument, et le retient SUR LE COMPTE.
+  ///
+  /// Comme le thème : on le retrouve depuis un autre appareil, et après une
+  /// réinstallation. Le réglage local est posé d'abord — l'aperçu doit sonner
+  /// tout de suite, même hors ligne, et l'envoi au serveur ne doit jamais
+  /// retarder une note.
   Future<void> _setInstrument(int delta) async {
     setState(() {
       _instrumentIndex = (_instrumentIndex + delta) % kInstruments.length;
@@ -101,6 +107,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _preview.setInstrument(name);
     _preview.setVolume(_settings.volume);
     _preview.play(const [SoundCue('do4', Duration.zero)]);
+    final online = OnlineService.instance;
+    if (online.isLoggedIn) unawaited(online.client.setInstrument(name));
   }
 
   /// Applique le thème choisi, et le retient sur le compte : on le retrouve

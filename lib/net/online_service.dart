@@ -201,6 +201,30 @@ class OnlineService {
     // avant de l'appliquer, sinon un composite long reviendrait amputé.
     final theme = reconcileTheme(s.theme, _settings.theme);
     if (theme != _settings.theme) await _settings.setTheme(theme);
+    await _accorderInstrument();
+  }
+
+  /// L'instrument du COMPTE et celui de l'appareil se mettent d'accord.
+  ///
+  /// Le compte gagne : c'est tout l'intérêt de l'y enregistrer. On retrouve son
+  /// instrument sur un autre téléphone, et après une réinstallation.
+  ///
+  /// Sauf quand le compte n'en a pas — un compte d'avant, ou tout juste créé :
+  /// c'est alors l'appareil qui le lui donne. Sans cela, créer un compte
+  /// remettrait le piano à quelqu'un qui avait choisi la harpe.
+  Future<void> _accorderInstrument() async {
+    final s = _client.session;
+    if (s == null) return;
+    final duCompte = s.instrument;
+    if (duCompte.isEmpty) {
+      // Un serveur pas encore corrigé répond 404 : l'appel échoue sans bruit,
+      // et le réglage local reste le bon.
+      await _client.setInstrument(_settings.instrument);
+      return;
+    }
+    if (duCompte != _settings.instrument) {
+      await _settings.setInstrument(duCompte);
+    }
   }
 
   // ── Temps réel ────────────────────────────────────────────────────────────

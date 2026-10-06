@@ -1,8 +1,22 @@
 /// Les rythmiques de la lecture automatique.
 ///
-/// En lecture automatique, un coup se joue — et donc une note sonne — **à
-/// chaque temps**. Choisir une rythmique, c'est donc choisir la durée d'un
-/// temps : la vitesse ne se règle plus à la main, elle vient de la danse.
+/// Un coup se joue — et donc une note sonne — **sur les temps joués**, pas sur
+/// tous les temps. Une danse n'est pas un métronome : une valse à trois temps
+/// appuie le premier et laisse les deux autres en silence. Ce sont ces
+/// silences qui font entendre la mesure ; sans eux, les huit danses sonneraient
+/// toutes pareil, à des vitesses différentes.
+///
+/// ## Le motif
+///
+/// Chaque danse porte son [Rythmique.motif] : un temps par case, `true` quand
+/// un coup s'y joue, `false` quand c'est une pause. La valse donne
+/// `[true, false, false]` — un coup, deux pauses, et le coup suivant tombe
+/// trois temps plus loin.
+///
+/// De là viennent les [Rythmique.ecarts] : la distance, en temps, d'un coup
+/// joué au suivant. Elle n'est pas forcément constante. La sarabande appuie son
+/// DEUXIÈME temps (`[true, true, false]`), donc ses coups boitent : un temps,
+/// puis deux. C'est exactement ce qui la rend reconnaissable.
 ///
 /// ## Le temps, et ce qu'il vaut
 ///
@@ -11,9 +25,8 @@
 /// composée (6/8), le temps est la noire pointée — il y en a **deux** par
 /// mesure, pas six. Une gigue à 120 joue donc deux coups par mesure, pas six.
 ///
-/// Les tempos sont ceux que ces danses portent d'ordinaire. Ils sont écrits
-/// ici en toutes lettres pour qu'on puisse les discuter : ce sont des choix,
-/// pas des constantes de la nature.
+/// Les tempos et les motifs sont écrits ici en toutes lettres pour qu'on puisse
+/// les discuter : ce sont des choix, pas des constantes de la nature.
 ///
 /// Dart pur, sans Flutter.
 library;
@@ -27,55 +40,91 @@ const double kVitessePas = 0.5;
 int get kVitesseCrans =>
     ((kVitesseMax - kVitesseMin) / kVitessePas).round() + 1;
 
-/// Une danse, sa mesure et son tempo.
+/// Une danse : sa mesure, son tempo, et les temps qu'elle joue.
 enum Rythmique {
-  /// Vive, à trois temps, tournée vers le premier.
-  valse('Valse', '3/4', 3, 170),
+  /// Vive, tournée vers le premier temps — les deux autres se taisent.
+  valse('Valse', '3/4', 170, [true, false, false]),
 
-  /// Modéré, le trois temps de cour.
-  menuet('Menuet', '3/4', 3, 120),
+  /// Le trois temps de cour, modéré, appuyé sur le premier.
+  menuet('Menuet', '3/4', 120, [true, false, false]),
 
-  /// Lente et grave, à la blanche.
-  sarabande('Sarabande', '3/2', 3, 60),
+  /// Lente et grave, à la blanche, et elle appuie son DEUXIÈME temps : ses
+  /// coups boitent, un temps puis deux.
+  sarabande('Sarabande', '3/2', 60, [true, true, false]),
 
-  /// Lente, sur une basse obstinée.
-  passacaille('Passacaille', '3/4', 3, 72),
+  /// Lente, sur une basse obstinée qui retombe sur le premier temps.
+  passacaille('Passacaille', '3/4', 72, [true, false, false]),
 
-  /// Deux temps, d'un pas régulier.
-  marche('Marche', '2/4', 2, 110),
+  /// Le pas, gauche-droite : les deux temps sont marqués.
+  marche('Marche', '2/4', 110, [true, true]),
 
-  /// Quatre temps, allant.
-  gavotte('Gavotte', '4/4', 4, 100),
+  /// Quatre temps, marqués un et trois.
+  gavotte('Gavotte', '4/4', 100, [true, false, true, false]),
 
-  /// Mesure composée : le temps est la noire pointée, deux par mesure.
-  gigue('Gigue', '6/8', 2, 120),
+  /// Mesure composée : le temps est la noire pointée, deux par mesure, et les
+  /// deux sont joués.
+  gigue('Gigue', '6/8', 120, [true, true]),
 
   /// La même mesure, balancée et lente.
-  sicilienne('Sicilienne', '6/8', 2, 52);
+  sicilienne('Sicilienne', '6/8', 52, [true, true]);
 
-  const Rythmique(this.nom, this.mesure, this.tempsParMesure, this.tempsParMin);
+  const Rythmique(this.nom, this.mesure, this.tempsParMin, this.motif);
 
   final String nom;
 
   /// Telle qu'elle s'écrit : `3/4`, `6/8`…
   final String mesure;
 
-  /// Combien de temps compte une mesure. Deux en 6/8 : le temps y est la
-  /// noire pointée.
-  final int tempsParMesure;
-
   /// Temps par minute — le tempo.
   final int tempsParMin;
+
+  /// Un temps par case : `true` = un coup s'y joue, `false` = une pause.
+  final List<bool> motif;
+
+  /// Combien de temps compte une mesure. Deux en 6/8 : le temps y est la
+  /// noire pointée.
+  int get tempsParMesure => motif.length;
+
+  /// Combien de coups se jouent dans une mesure.
+  int get coupsParMesure => motif.where((joue) => joue).length;
 
   /// Ce qui s'affiche sur la touche : « Valse 3/4 ».
   String get etiquette => '$nom $mesure';
 
-  /// Durée d'un temps, donc d'un coup.
-  Duration get parCoup =>
+  /// Durée d'un temps.
+  Duration get parTemps =>
       Duration(microseconds: (60000000 / tempsParMin).round());
 
-  /// La même, en secondes, pour l'afficher.
-  double get secondesParCoup => 60 / tempsParMin;
+  /// Durée d'une mesure entière.
+  Duration get parMesure => parTemps * tempsParMesure;
+
+  /// La distance, en temps, d'un coup joué au suivant.
+  ///
+  /// Le motif boucle : le dernier écart ramène au premier temps joué de la
+  /// mesure suivante. `[true, true, false]` donne donc `[1, 2]` — un temps,
+  /// puis deux, indéfiniment.
+  List<int> get ecarts {
+    final joues = <int>[
+      for (var i = 0; i < motif.length; i++)
+        if (motif[i]) i,
+    ];
+    return [
+      for (var k = 0; k < joues.length; k++)
+        k + 1 < joues.length
+            ? joues[k + 1] - joues[k]
+            : motif.length - joues[k] + joues[0],
+    ];
+  }
+
+  /// Le motif écrit : « 1 · · » pour la valse, « 1 2 · » pour la sarabande.
+  String get motifEcrit => [
+    for (var i = 0; i < motif.length; i++) motif[i] ? '${i + 1}' : '·',
+  ].join(' ');
+
+  /// Ce qu'on lit sous le nom, dans le choix des danses.
+  String get detail =>
+      '$tempsParMin/min  ·  $motifEcrit  ·  '
+      '$coupsParMesure coup${coupsParMesure > 1 ? 's' : ''} par mesure';
 
   static Rythmique? fromWire(String? s) {
     for (final r in Rythmique.values) {
@@ -101,16 +150,24 @@ final class TempoLecture {
 
   bool get estLibre => rythmique == null;
 
-  /// Durée entre deux coups, d'où qu'elle vienne.
-  Duration get parCoup =>
-      rythmique?.parCoup ??
-      Duration(microseconds: (secondes * 1000000).round());
+  /// Le temps d'attente AVANT le coup numéro [n] de la lecture (0 = le
+  /// premier).
+  ///
+  /// À la main, c'est toujours la même durée. Dans une danse, c'est l'écart du
+  /// motif, qui boucle avec la mesure : d'où les pauses.
+  Duration ecartAvant(int n) {
+    final r = rythmique;
+    if (r == null) {
+      return Duration(microseconds: (secondes * 1000000).round());
+    }
+    final e = r.ecarts;
+    return r.parTemps * e[n % e.length];
+  }
 
   /// La durée telle qu'on l'écrit sous le curseur.
   String get etiquette => rythmique == null
       ? '${secondes.toStringAsFixed(1)} s'
-      : '${rythmique!.etiquette} · '
-            '${rythmique!.secondesParCoup.toStringAsFixed(2)} s';
+      : rythmique!.etiquette;
 
   /// Le réglage par défaut : une seconde par coup, à la main.
   static const TempoLecture defaut = TempoLecture.libre(1.0);

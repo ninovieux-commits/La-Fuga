@@ -173,12 +173,8 @@ class AutoPlayBar extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FugaButton(
-                      // La vitesse est écrite à côté du nom : « les vitesses
-                      // sont prédéfinies » ne dit pas lesquelles.
-                      text:
-                          '${r.etiquette}  ·  '
-                          '${r.secondesParCoup.toStringAsFixed(2)} s',
-                      fontSize: SF(14),
+                      text: r.etiquette,
+                      fontSize: SF(15),
                       color: tempo.rythmique == r ? palette.clair : kFugaGrey,
                       textColor: tempo.rythmique == r
                           ? Colors.black
@@ -186,7 +182,17 @@ class AutoPlayBar extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(r),
                     ),
                   ),
-                  SizedBox(height: S(6)),
+                  // Le tempo, le motif et le nombre de coups par mesure.
+                  // « Les vitesses sont prédéfinies » ne dit pas lesquelles, et
+                  // « 1 · · » dit d'un coup d'œil où sont les pauses.
+                  Padding(
+                    padding: EdgeInsets.only(top: S(2), bottom: S(8)),
+                    child: Text(
+                      r.detail,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: SF(11)),
+                    ),
+                  ),
                 ],
                 SizedBox(
                   width: double.infinity,
