@@ -126,18 +126,19 @@ void main() {
           premove: {
             'base': 1,
             'variantes': [
-              {'coups': ['Fa6-Sol5', 'Sol2-Fa3']},
-              {'coups': ['Si7-Si6', 'Re2-Re3']},
+              {
+                'coups': ['Fa6-Sol5', 'Sol2-Fa3'],
+              },
+              {
+                'coups': ['Si7-Si6', 'Re2-Re3'],
+              },
             ],
           },
         ),
       );
       expect(tester.widget<MoveStrip>(find.byType(MoveStrip)).premoveCount, 2);
       expect(
-        find.descendant(
-          of: find.byType(MoveStrip),
-          matching: find.text('2'),
-        ),
+        find.descendant(of: find.byType(MoveStrip), matching: find.text('2')),
         findsOneWidget,
         reason: 'on doit voir sans l ouvrir qu une réponse attend',
       );
@@ -260,9 +261,9 @@ void main() {
       // Déjà armé : si les Blancs jouent Mi2-Mi3, on répond Do7-Do6.
       await composer(
         tester,
-        plan: const PremovePlan(base: 1).avec(
-          const PremoveVariante(['Mi2-Mi3', 'Do7-Do6']),
-        ),
+        plan: const PremovePlan(
+          base: 1,
+        ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6'])),
       );
       // On compose la même entrée, avec une AUTRE réponse.
       await jouer(tester, const Cell(2, 1), const Cell(2, 2));
@@ -292,10 +293,10 @@ void main() {
       expect(envoi.length, 1, reason: 'le plan n est pas parti');
       final plan = envoi.single.body['plan'] as Map<String, dynamic>;
       expect((plan['variantes'] as List).length, 1);
-      expect(
-        ((plan['variantes'] as List).first as Map)['coups'],
-        ['Mi2-Mi3', 'Do7-Do6'],
-      );
+      expect(((plan['variantes'] as List).first as Map)['coups'], [
+        'Mi2-Mi3',
+        'Do7-Do6',
+      ]);
       expect(
         plan.containsKey('base'),
         isTrue,
@@ -308,9 +309,9 @@ void main() {
     ) async {
       await composer(
         tester,
-        plan: const PremovePlan(base: 1).avec(
-          const PremoveVariante(['Mi2-Mi3', 'Do7-Do6']),
-        ),
+        plan: const PremovePlan(
+          base: 1,
+        ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6'])),
       );
       await appuyer(tester, find.byIcon(Icons.close));
       expect(find.textContaining('0 / 6'), findsOneWidget);

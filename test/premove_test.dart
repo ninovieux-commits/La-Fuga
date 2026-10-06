@@ -55,9 +55,9 @@ void main() {
   });
 
   group('Aucune variante n en contredit une autre', () {
-    final plan = const PremovePlan(base: 4).avec(
-      v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']),
-    )!;
+    final plan = const PremovePlan(
+      base: 4,
+    ).avec(v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']))!;
 
     test('deux réponses au même coup : refusé', () {
       expect(
@@ -80,7 +80,8 @@ void main() {
       expect(
         deux,
         isNotNull,
-        reason: 'il a deux coups possibles au troisième demi-coup ; chacun '
+        reason:
+            'il a deux coups possibles au troisième demi-coup ; chacun '
             'mérite sa réponse',
       );
       expect(deux!.variantes.length, 2);
@@ -108,7 +109,14 @@ void main() {
     test('et une plus longue qui prolonge : doublon aussi', () {
       expect(
         plan.refusDe(
-          v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3', 'Re7-Re6', 'Re2-Re3']),
+          v([
+            'Fa6-Sol5',
+            'Sol2-Fa3',
+            'Do7-Do6',
+            'Do2-Do3',
+            'Re7-Re6',
+            'Re2-Re3',
+          ]),
         ),
         PremoveRefus.doublon,
         reason: 'on prolonge la variante existante, on n en crée pas une autre',
@@ -120,9 +128,9 @@ void main() {
     // Construit DANS chaque test : un refus au chargement du groupe ferait
     // tomber le fichier entier sans dire quelle règle a cédé.
     PremovePlan plan() {
-      final un = const PremovePlan(base: 4).avec(
-        v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']),
-      );
+      final un = const PremovePlan(
+        base: 4,
+      ).avec(v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']));
       expect(un, isNotNull, reason: 'la première variante est refusée');
       final deux = un!.avec(
         v(['Si7-Si6', 'Re2-Re3', 'La7-La6', 'La2-La3', 'Mi7-Mi6', 'Mi2-Mi3']),
@@ -130,7 +138,8 @@ void main() {
       expect(
         deux,
         isNotNull,
-        reason: 'deux lignes qui se séparent dès son PREMIER coup ne se '
+        reason:
+            'deux lignes qui se séparent dès son PREMIER coup ne se '
             'contredisent pas',
       );
       return deux!;
@@ -181,8 +190,11 @@ void main() {
 
   group('Un coup qui termine la partie', () {
     final plan = const PremovePlan(base: 4).avec(
-      v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3'],
-          methode: 'mat', gagnant: 'Blanc'),
+      v(
+        ['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3'],
+        methode: 'mat',
+        gagnant: 'Blanc',
+      ),
     )!;
 
     test('la méthode accompagne le DERNIER coup', () {
@@ -204,8 +216,9 @@ void main() {
   });
 
   group('Le plan meurt quand l adversaire en sort', () {
-    final plan = const PremovePlan(base: 4)
-        .avec(v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']))!;
+    final plan = const PremovePlan(
+      base: 4,
+    ).avec(v(['Fa6-Sol5', 'Sol2-Fa3', 'Do7-Do6', 'Do2-Do3']))!;
 
     test('tant qu il suit, le plan vit', () {
       expect(plan.suitEncore(['Fa6-Sol5']), isTrue);
@@ -247,16 +260,18 @@ void main() {
       expect(PremovePlan.fromJson(const {'variantes': 3}).variantes, isEmpty);
       expect(PremovePlan.fromJson(const {'base': 'deux'}).base, 0);
       expect(
-        PremovePlan.fromJson(const {'variantes': [{'coups': 'Fa3-Sol4'}]})
-            .variantes
-            .single
-            .estValide,
+        PremovePlan.fromJson(const {
+          'variantes': [
+            {'coups': 'Fa3-Sol4'},
+          ],
+        }).variantes.single.estValide,
         isFalse,
       );
       expect(
-        PremovePlan.fromJson(const {'base': 2, 'variantes': [{}]}).variantes
-            .single
-            .estValide,
+        PremovePlan.fromJson(const {
+          'base': 2,
+          'variantes': [{}],
+        }).variantes.single.estValide,
         isFalse,
       );
     });

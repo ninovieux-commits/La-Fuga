@@ -203,28 +203,29 @@ class _MoveStripState extends State<MoveStrip> {
   );
 
   /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
-  Widget _arrow(String label, VoidCallback? onPressed, {Color? fond}) => Opacity(
-    opacity: onPressed == null ? 0.35 : 1,
-    child: AspectRatio(
-      aspectRatio: 1,
-      child: Material(
-        color: fond ?? kBarButtonDark,
-        borderRadius: BorderRadius.circular(S(20)),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(S(20)),
-          onTap: onPressed,
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: SF(25),
-                fontWeight: FontWeight.bold,
+  Widget _arrow(String label, VoidCallback? onPressed, {Color? fond}) =>
+      Opacity(
+        opacity: onPressed == null ? 0.35 : 1,
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Material(
+            color: fond ?? kBarButtonDark,
+            borderRadius: BorderRadius.circular(S(20)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(S(20)),
+              onTap: onPressed,
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: SF(25),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }

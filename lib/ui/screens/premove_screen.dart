@@ -160,9 +160,7 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
     }
     return MoveController(
       board: board,
-      turn: coups.length.isEven
-          ? widget.game.opponentCamp
-          : widget.game.myCamp,
+      turn: coups.length.isEven ? widget.game.opponentCamp : widget.game.myCamp,
       countRepetitions: false,
       fugued: fugues,
     );
@@ -277,7 +275,8 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
                     ),
                     SizedBox(height: S(8)),
                     _ligneEnCours(palette),
-                    if (_refus != null) _message(_refus!, palette, alerte: true),
+                    if (_refus != null)
+                      _message(_refus!, palette, alerte: true),
                     SizedBox(height: S(8)),
                     _touches(palette),
                     SizedBox(height: S(12)),

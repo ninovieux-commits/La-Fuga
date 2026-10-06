@@ -66,12 +66,16 @@ final class PremoveVariante {
     if (gagnant != null) 'gagnant': gagnant,
   };
 
-  static PremoveVariante fromJson(Map<String, dynamic> j) => PremoveVariante([
-    // Ce qui vient du réseau n'est jamais sûr : un champ d'un autre type ne
-    // doit pas faire tomber l'application, juste donner une variante vide,
-    // que `estValide` refusera.
-    for (final c in _liste(j['coups'])) c.toString().trim(),
-  ], methode: _texteOuNull(j['methode']), gagnant: _texteOuNull(j['gagnant']));
+  static PremoveVariante fromJson(Map<String, dynamic> j) => PremoveVariante(
+    [
+      // Ce qui vient du réseau n'est jamais sûr : un champ d'un autre type ne
+      // doit pas faire tomber l'application, juste donner une variante vide,
+      // que `estValide` refusera.
+      for (final c in _liste(j['coups'])) c.toString().trim(),
+    ],
+    methode: _texteOuNull(j['methode']),
+    gagnant: _texteOuNull(j['gagnant']),
+  );
 
   @override
   String toString() => coups.join(' ');
@@ -157,8 +161,9 @@ final class PremovePlan {
   }
 
   /// Le plan avec [v] en plus, ou `null` si elle est refusée.
-  PremovePlan? avec(PremoveVariante v) =>
-      refusDe(v) != null ? null : PremovePlan(base: base, variantes: [...variantes, v]);
+  PremovePlan? avec(PremoveVariante v) => refusDe(v) != null
+      ? null
+      : PremovePlan(base: base, variantes: [...variantes, v]);
 
   /// Notre réponse quand la partie est arrivée jusqu'à [ligne].
   ///

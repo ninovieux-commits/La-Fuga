@@ -78,12 +78,13 @@ void main() {
       await tester.pumpAndSettle();
       // On appelle le rappel de CHAQUE touche : le défilement cacherait les
       // premières, et un doigt qui rate ne prouverait rien.
-      for (final bouton in find
-          .descendant(
-            of: find.byType(MoveStrip),
-            matching: find.byType(TextButton),
-          )
-          .evaluate()) {
+      for (final bouton
+          in find
+              .descendant(
+                of: find.byType(MoveStrip),
+                matching: find.byType(TextButton),
+              )
+              .evaluate()) {
         (bouton.widget as TextButton).onPressed!();
       }
       return vus;
@@ -93,7 +94,8 @@ void main() {
       expect(
         await indicesAtteignables(tester),
         {0, 1, 2, 3, 4, 5},
-        reason: 'un demi-coup qu on ne peut pas toucher est un demi-coup '
+        reason:
+            'un demi-coup qu on ne peut pas toucher est un demi-coup '
             'qu on ne peut atteindre qu en enjambant son voisin',
       );
     });
