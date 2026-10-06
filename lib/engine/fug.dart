@@ -134,8 +134,9 @@ FugLecture fugLire(String texte) {
     for (final l in texte.replaceAll('\r\n', '\n').split('\n'))
       if (l.trim().isNotEmpty) l.trim(),
   ];
-  if (lignes.isEmpty)
+  if (lignes.isEmpty) {
     return (position: null, erreur: FugErreur.vide, ligne: null);
+  }
 
   final trait = switch (lignes.first.toUpperCase()) {
     'B' => Camp.blanc,
