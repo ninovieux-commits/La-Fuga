@@ -76,6 +76,26 @@ void main() {
       );
     });
 
+    testWidgets('les pièces ont la TAILLE d une case du plateau', (
+      tester,
+    ) async {
+      // Nino : « représentées de la même manière que sur le plateau (même
+      // taille) ». Cinq pièces, la gomme, la bascule : sept éléments, autant
+      // que le plateau a de colonnes. Elles s'alignent donc exactement.
+      await ouvrir(tester);
+      final plateau = tester.getSize(find.byType(GameBoardView));
+      final uneCase = plateau.width / kCols;
+      for (final type in PieceType.values) {
+        expect(
+          tester.getSize(tuile(tester, type).first).width,
+          moreOrLessEquals(uneCase, epsilon: 1),
+          reason:
+              '${type.wire} ne fait pas la taille d une case : on choisit une '
+              'chose et on en pose une autre',
+        );
+      }
+    });
+
     testWidgets('la ligne porte une pièce de chaque', (tester) async {
       await ouvrir(tester);
       for (final type in PieceType.values) {

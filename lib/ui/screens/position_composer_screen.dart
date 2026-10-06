@@ -219,6 +219,10 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
                     SizedBox(height: S(8)),
                     _ligneDesPieces(palette, axes.pieces),
                     SizedBox(height: S(8)),
+                    // « Trait aux Blancs / Noirs », sur fond gris médian pour
+                    // que les deux mots s'y lisent.
+                    SizedBox(height: touchHeight(), child: _toucheDuTrait()),
+                    SizedBox(height: S(8)),
                     _cadreDeCollage(palette),
                     SizedBox(height: S(10)),
                     Row(
@@ -259,10 +263,17 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
     );
   }
 
-  /// La ligne de pièces, la bascule de couleur, et la touche du trait.
+  /// La ligne de pièces et la bascule de couleur.
+  ///
+  /// Cinq pièces, la gomme, la bascule : SEPT éléments, autant que le plateau
+  /// a de colonnes. Chacun occupe donc exactement la largeur d'une case, et
+  /// les pièces qu'on choisit ont la taille de celles qu'on pose — mesuré.
+  ///
+  /// La touche du trait est passée en dessous : à sept éléments la ligne est
+  /// pleine, et la garder là rétrécissait les pièces d'un tiers.
   Widget _ligneDesPieces(ThemePalette palette, String? pieceTheme) => Row(
     children: [
-      for (final type in kOrdreDesPieces) ...[
+      for (final type in kOrdreDesPieces)
         Expanded(
           child: PieceTile(
             piece: Piece.of(type, _campDesPieces),
@@ -272,8 +283,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
             onTap: () => setState(() => _enMain = type),
           ),
         ),
-        SizedBox(width: S(3)),
-      ],
       // La gomme : rien en main, et toucher une case la vide.
       Expanded(
         child: _carre(
@@ -287,7 +296,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
           ),
         ),
       ),
-      SizedBox(width: S(3)),
       // La bascule de couleur de la ligne : des pièces blanches aux noires.
       Expanded(
         child: _carre(
@@ -305,10 +313,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
           ),
         ),
       ),
-      SizedBox(width: S(6)),
-      // « Trait aux Blancs / Noirs », sur fond gris médian pour que les deux
-      // mots s'y lisent.
-      Expanded(flex: 3, child: _toucheDuTrait()),
     ],
   );
 
