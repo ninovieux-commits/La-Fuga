@@ -35,6 +35,15 @@ import '../widgets/piece_tile.dart';
 /// que « Blancs » et « Noirs » s'y lisent tous les deux.
 const Color kGrisMedian = Color.fromRGBO(128, 128, 128, 1);
 
+/// Les pièces qu'on ne peut avoir qu'en UN SEUL exemplaire par camp.
+///
+/// L'Héritier parce qu'une position sans lui — ou avec deux — ne se joue pas ;
+/// le Chevalier parce qu'il n'en existe qu'un par camp. En poser un second ne
+/// doit donc pas ajouter une pièce : cela DÉPLACE celle qui est déjà là. En
+/// mettre est facultatif pour le Chevalier, obligatoire pour l'Héritier — mais
+/// c'est la validation qui le dit, pas la pose.
+const Set<PieceType> kPiecesUniques = {PieceType.heritier, PieceType.chevalier};
+
 /// L'ordre de la ligne de pièces : du plus lourd au plus léger.
 const List<PieceType> kOrdreDesPieces = [
   PieceType.heritier,
@@ -78,11 +87,31 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
     if (!cell.onBoard) return;
     setState(() {
       final enMain = _enMain;
-      _board.setCell(
-        cell,
-        enMain == null ? null : Piece.of(enMain, _campDesPieces),
-      );
+      if (enMain == null) {
+        _board.setCell(cell, null);
+        return;
+      }
+      // Une pièce unique par camp ne se duplique pas : elle se DÉPLACE. On
+      // retire celle qui est déjà là avant de poser la nouvelle, sinon le
+      // plateau finirait avec deux Héritiers blancs et refuserait de partir
+      // sans qu'on comprenne pourquoi.
+      if (kPiecesUniques.contains(enMain)) {
+        final deja = _ou(enMain, _campDesPieces);
+        if (deja != null) _board.setCell(deja, null);
+      }
+      _board.setCell(cell, Piece.of(enMain, _campDesPieces));
     });
+  }
+
+  /// Où se trouve la pièce de ce type et de ce camp, ou `null`.
+  Cell? _ou(PieceType type, Camp camp) {
+    for (var c = 0; c < kCols; c++) {
+      for (var r = 0; r < kRows; r++) {
+        final p = _board.at(c, r);
+        if (p != null && p.type == type && p.camp == camp) return Cell(c, r);
+      }
+    }
+    return null;
   }
 
   /// Coller un code `.fug` crée la position directement ; on peut ensuite la
@@ -145,6 +174,9 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
                 FugRefus.carreesBloquees => T(
                   'Un camp n\'a aucune pièce carrée capable de bouger.',
                 ),
+                FugRefus.casesVides => T(
+                  'Il reste moins de trois cases libres sur le plateau.',
+                ),
               },
               style: TextStyle(
                 color: palette.clair,
@@ -155,11 +187,13 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
             SizedBox(height: S(10)),
             Text(
               T(
-                'Une position jouable demande deux choses :\n\n'
+                'Une position jouable demande trois choses :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
                 '• dans chaque camp, au moins une pièce carrée qui touche une '
                 'autre pièce carrée — une carrée isolée ne peut pas bouger, et '
-                'la partie serait nulle d\'entrée.',
+                'la partie serait nulle d\'entrée ;\n'
+                '• au moins trois cases libres : un plateau plein ne laisse '
+                'nulle part où aller.',
               ),
               style: TextStyle(color: Colors.white, fontSize: SF(14)),
             ),

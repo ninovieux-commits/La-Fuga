@@ -101,7 +101,14 @@ enum FugRefus {
   /// Un camp n'a aucune pièce carrée capable de bouger. La position serait
   /// nulle d'entrée : une carrée ne bouge que si elle touche une autre carrée.
   carreesBloquees,
+
+  /// Moins de [kFugVidesMin] cases libres. Un plateau plein ne laisse nulle
+  /// part où aller.
+  casesVides,
 }
+
+/// Combien de cases doivent rester libres pour qu'une position se joue.
+const int kFugVidesMin = 3;
 
 /// Le résultat d'une lecture : la position, ou la raison du refus.
 typedef FugLecture = ({FugPosition? position, FugErreur? erreur, int? ligne});
@@ -204,12 +211,23 @@ bool fugCarreeMobile(Board board, Camp camp) {
   return false;
 }
 
+/// Combien de cases du plateau sont libres.
+int fugCasesVides(Board board) {
+  var n = 0;
+  for (var c = 0; c < kCols; c++) {
+    for (var r = 0; r < kRows; r++) {
+      if (board.at(c, r) == null) n++;
+    }
+  }
+  return n;
+}
+
 /// Pourquoi cette position ne peut pas servir de départ — ou `null` si elle le
 /// peut.
 ///
-/// Les deux règles de Nino, et elles seules : un Héritier par camp, et des
-/// carrées qui peuvent bouger des deux côtés. Pour le reste on ne juge rien —
-/// dix Gardes d'un côté, c'est permis.
+/// Les trois règles de Nino, et elles seules : un Héritier par camp, des
+/// carrées qui peuvent bouger des deux côtés, et au moins [kFugVidesMin] cases
+/// libres. Pour le reste on ne juge rien — dix Gardes d'un côté, c'est permis.
 FugRefus? fugRefus(Board board) {
   for (final camp in Camp.values) {
     if (fugHeritiers(board, camp) != 1) return FugRefus.heritier;
@@ -217,6 +235,10 @@ FugRefus? fugRefus(Board board) {
   for (final camp in Camp.values) {
     if (!fugCarreeMobile(board, camp)) return FugRefus.carreesBloquees;
   }
+  // Un plateau presque plein ne laisse nulle part où aller : rien ne peut
+  // avancer, et la partie serait nulle d'entrée comme avec des carrées
+  // bloquées.
+  if (fugCasesVides(board) < kFugVidesMin) return FugRefus.casesVides;
   return null;
 }
 
