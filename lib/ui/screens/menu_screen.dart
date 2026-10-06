@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../engine/board.dart';
+import '../../engine/fug.dart';
 import '../../engine/piece.dart';
 import '../../engine/random_fuga.dart';
 import '../../game/challenges.dart';
@@ -32,6 +33,7 @@ import '../scale.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/corr_mode_dialog.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
 import '../widgets/menu_tour.dart';
@@ -44,6 +46,7 @@ import 'game_screen.dart';
 import 'login_screen.dart';
 import 'online_game_screen.dart';
 import 'parties_menu_screen.dart';
+import 'position_composer_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
 
@@ -817,11 +820,40 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     );
     if (choice == null || !mounted) return;
     if (await _handleFavoriteProfile(choice)) return;
+    // Le profil a pu être ouvert et refermé entre-temps : sans ce contrôle, on
+    // ouvrirait une popup sur un écran qui n'existe plus.
+    if (!mounted) return;
+
+    // D'où part la partie ? La correspondance ne dépend PLUS de l'état du
+    // menu : on ne peut plus partir en random sans l'avoir voulu, ni avoir à
+    // basculer tout le menu pour défier quelqu'un en random.
+    final mode = await askCorrMode(context);
+    if (mode == null || !mounted) return;
+
+    // Le mode personnalisé passe par le composeur. Sortir sans valider annule
+    // le défi : on ne lance pas une partie sur une position qu'on n'a pas
+    // confirmée.
+    var position = '';
+    if (mode == CorrMode.personnalise) {
+      final composee = await Navigator.of(context)
+          .push<({Board board, Camp turn})>(
+            MaterialPageRoute<({Board board, Camp turn})>(
+              builder: (_) => const PositionComposerScreen(),
+            ),
+          );
+      if (composee == null || !mounted) return;
+      position = fugEnUneLigne(fugEcrire(composee.board, composee.turn));
+    }
+
+    final couleur = await askCorrCouleur(context);
+    if (couleur == null || !mounted) return;
 
     final error = await _corr.challenge(
       choice.pseudo,
       'partie',
-      random: _random,
+      mode: mode,
+      position: position,
+      couleur: couleur.camp,
     );
     if (!mounted) return;
     if (error != null) _say(error);

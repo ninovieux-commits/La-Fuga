@@ -14,6 +14,7 @@ import '../game/last_move.dart';
 import '../game/nmc.dart';
 import '../game/premove.dart';
 import '../net/online_client.dart';
+import '../ui/widgets/corr_mode_dialog.dart';
 
 /// Où en est une partie de correspondance.
 enum CorrStatus {
@@ -307,12 +308,28 @@ class CorrespondenceService {
   }
 
   /// Défie un joueur par correspondance.
+  /// Défie un joueur par correspondance.
+  ///
+  /// [mode] dit d'où part la partie. [position] est le `.fug` sur une seule
+  /// ligne, pour le mode personnalisé. [couleur] est la couleur demandée par
+  /// le défieur ; nulle pour aléatoire — le tirage a lieu à l'acceptation, et
+  /// personne ne la connaît avant.
   Future<String?> challenge(
     String pseudo,
     String objectif, {
     bool random = false,
+    CorrMode mode = CorrMode.standard,
+    String position = '',
+    Camp? couleur,
   }) async {
-    final r = await _client.corrDefier(pseudo, objectif, random: random);
+    final r = await _client.corrDefier(
+      pseudo,
+      objectif,
+      random: random || mode == CorrMode.random,
+      mode: mode.wire,
+      position: position,
+      couleur: couleur?.wire ?? '',
+    );
     return r.isOk ? null : (r.serverError ?? r.error ?? 'Échec du défi.');
   }
 

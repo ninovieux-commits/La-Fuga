@@ -227,13 +227,32 @@ class OnlineClient {
 
   Future<ApiResult> corrList() => _api.post('/corr_list', _auth());
 
+  /// Défie par correspondance.
+  ///
+  /// [mode] dit d'où part la partie, [position] porte le `.fug` sur une seule
+  /// ligne quand le mode est personnalisé, et [couleur] la couleur demandée
+  /// par le défieur — vide pour aléatoire, auquel cas le tirage n'a lieu qu'à
+  /// l'acceptation.
+  ///
+  /// `random` reste envoyé tel quel : un serveur pas encore corrigé le
+  /// comprend, et ne voit dans le reste que des champs qu'il ignore.
   Future<ApiResult> corrDefier(
     String pseudo,
     String objectif, {
     bool random = false,
+    String mode = 'standard',
+    String position = '',
+    String couleur = '',
   }) => _api.post(
     '/corr_defier',
-    _auth({'pseudo': pseudo, 'objectif': objectif, 'random': random}),
+    _auth({
+      'pseudo': pseudo,
+      'objectif': objectif,
+      'random': random,
+      'mode': mode,
+      if (position.isNotEmpty) 'position': position,
+      if (couleur.isNotEmpty) 'couleur': couleur,
+    }),
   );
 
   Future<ApiResult> corrRepondre(String gameId, bool accepte) => _api.post(

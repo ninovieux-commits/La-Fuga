@@ -534,6 +534,59 @@ void main() {
     );
     await tapVisible(tester, find.text('Défier'));
 
-    expect(bodyOf('/corr_defier')!['pseudo'], 'Bob');
+    // Défier ne part plus tout seul : le mode se choisit ici, et la
+    // correspondance ne dépend plus de l'interrupteur random du menu.
+    // On cherche DANS le popup : le menu porte déjà une étiquette « Random »
+    // derrière, et la confondre avec celle du popup ne prouverait rien.
+    Finder dans(String texte) => find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.text(texte),
+    );
+    expect(dans('Standard'), findsOneWidget);
+    expect(dans('Random'), findsOneWidget);
+    expect(dans('Personnalisé'), findsOneWidget);
+    expect(
+      bodyOf('/corr_defier'),
+      isNull,
+      reason: 'rien ne doit partir avant que le mode soit choisi',
+    );
+    await tapVisible(tester, dans('Standard'));
+
+    // Puis la couleur, comme contre Deep Grey.
+    expect(dans('Aléatoire'), findsOneWidget);
+    expect(bodyOf('/corr_defier'), isNull);
+    await tapVisible(tester, dans('Aléatoire'));
+
+    final defi = bodyOf('/corr_defier')!;
+    expect(defi['pseudo'], 'Bob');
+    expect(defi['mode'], 'standard');
+    expect(
+      defi.containsKey('couleur'),
+      isFalse,
+      reason: 'aléatoire ne nomme aucune couleur : le tirage vient plus tard',
+    );
+  });
+
+  testWidgets('refermer le choix du mode annule le défi', (tester) async {
+    replies['/corr_list'] = {'ok': true, 'games': const []};
+    replies['/list_favorites'] = {
+      'ok': true,
+      'favorites': [
+        {'pseudo': 'Bob', 'melo': 1450, 'online': true},
+      ],
+    };
+    await open(tester);
+    await tapVisible(tester, find.byType(CorrSlot).first);
+    await tapVisible(tester, find.text('Défier'));
+
+    // On sort sans choisir : rien ne doit avoir été lancé.
+    final popup = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.text('Standard'),
+    );
+    Navigator.of(tester.element(popup)).pop();
+    await tester.pumpAndSettle();
+    expect(bodyOf('/corr_defier'), isNull);
+    expect(find.text('Aléatoire'), findsNothing);
   });
 }
