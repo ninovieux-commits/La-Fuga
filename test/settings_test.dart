@@ -22,7 +22,11 @@ void main() {
       expect(s.language, 'fr');
       expect(s.volume, 1.0);
       expect(s.instrument, 'piano');
-      expect(s.slideSpeed, 0.18);
+      // La glissée de Nino, relevée au pixel sur sa capture : pouce à 238,
+      // piste de 84 à 995, curseur jusqu'à 0,6 — soit 0,101 s, arrondi. Elle
+      // était à 0,18 s, presque deux fois plus lente.
+      expect(s.slideSpeed, kGlisseeDefaut);
+      expect(kGlisseeDefaut, 0.10);
       expect(s.serverUrl, 'https://fuga-online.fr');
       expect(s.onlineToken, isNull);
     });

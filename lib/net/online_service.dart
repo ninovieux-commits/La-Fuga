@@ -201,29 +201,35 @@ class OnlineService {
     // avant de l'appliquer, sinon un composite long reviendrait amputé.
     final theme = reconcileTheme(s.theme, _settings.theme);
     if (theme != _settings.theme) await _settings.setTheme(theme);
-    await _accorderInstrument();
+    await _accorderReglages();
   }
 
-  /// L'instrument du COMPTE et celui de l'appareil se mettent d'accord.
+  /// Les réglages du COMPTE et ceux de l'appareil se mettent d'accord.
   ///
-  /// Le compte gagne : c'est tout l'intérêt de l'y enregistrer. On retrouve son
-  /// instrument sur un autre téléphone, et après une réinstallation.
+  /// Le compte gagne : c'est tout l'intérêt de les y enregistrer. On retrouve
+  /// son instrument et sa vitesse de glissée sur un autre téléphone, et après
+  /// une réinstallation.
   ///
-  /// Sauf quand le compte n'en a pas — un compte d'avant, ou tout juste créé :
-  /// c'est alors l'appareil qui le lui donne. Sans cela, créer un compte
+  /// Sauf quand le compte n'a rien — un compte d'avant, ou tout juste créé :
+  /// c'est alors l'appareil qui les lui donne. Sans cela, créer un compte
   /// remettrait le piano à quelqu'un qui avait choisi la harpe.
-  Future<void> _accorderInstrument() async {
+  ///
+  /// Un serveur pas encore corrigé répond 404 : l'appel échoue sans bruit, et
+  /// les réglages locaux restent les bons.
+  Future<void> _accorderReglages() async {
     final s = _client.session;
     if (s == null) return;
-    final duCompte = s.instrument;
-    if (duCompte.isEmpty) {
-      // Un serveur pas encore corrigé répond 404 : l'appel échoue sans bruit,
-      // et le réglage local reste le bon.
+    final instrument = s.instrument;
+    if (instrument.isEmpty) {
       await _client.setInstrument(_settings.instrument);
-      return;
+    } else if (instrument != _settings.instrument) {
+      await _settings.setInstrument(instrument);
     }
-    if (duCompte != _settings.instrument) {
-      await _settings.setInstrument(duCompte);
+    final glissee = s.glissee;
+    if (glissee < 0) {
+      await _client.setGlissee(_settings.slideSpeed);
+    } else if (glissee != _settings.slideSpeed) {
+      await _settings.setSlideSpeed(glissee);
     }
   }
 

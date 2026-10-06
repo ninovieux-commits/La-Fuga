@@ -1,7 +1,9 @@
-/// L'instrument appartient au JOUEUR, pas au téléphone.
+/// Les réglages appartiennent au JOUEUR, pas au téléphone.
 ///
 /// Nino : « le choix de l'instrument doit être enregistré dans le compte du
-/// joueur. »
+/// joueur », puis « je voudrais que la vitesse de glissée par défaut dans l'app
+/// corresponde à ce réglage et que le choix de l'utilisateur à ce propos soit
+/// embarqué avec son compte. »
 ///
 /// Il suivait l'appareil : changer de téléphone, ou se reconnecter après une
 /// réinstallation, et l'on retrouvait le piano. Deux règles, et la seconde est
@@ -68,15 +70,18 @@ void main() {
   late _Serveur serveur;
   late OnlineClient client;
 
-  /// Ouvre une session en se connectant, avec l'instrument que le compte porte.
+  /// Ouvre une session en se connectant, avec les réglages que le compte porte.
   Future<OnlineService> seConnecter({
     required String surLAppareil,
     required String dansLeCompte,
     bool serveurCorrige = true,
+    double glisseeLocale = kGlisseeDefaut,
+    double? glisseeDuCompte,
   }) async {
     SharedPreferences.setMockInitialValues({
       'lang_chosen': true,
       'instrument': surLAppareil,
+      'slide_speed': glisseeLocale,
     });
     await Settings.load();
     serveur = _Serveur();
@@ -88,8 +93,12 @@ void main() {
       'theme': 'original',
       // Un compte d'avant ne porte pas la clé du tout : c'est le cas vide.
       if (dansLeCompte.isNotEmpty) 'instrument': dansLeCompte,
+      if (glisseeDuCompte != null) 'glissee': glisseeDuCompte,
     };
-    if (!serveurCorrige) serveur.absents.add('/set_instrument');
+    if (!serveurCorrige) {
+      serveur.absents.add('/set_instrument');
+      serveur.absents.add('/set_glissee');
+    }
     client = OnlineClient(api: ApiClient(client: serveur.client));
     final service = OnlineService(
       client: client,
@@ -194,6 +203,76 @@ void main() {
         'guitare',
         reason: 'on ne perd rien : on ne gagne pas la mémoire du compte',
       );
+    });
+  });
+
+  group('La vitesse de glissée, même histoire', () {
+    test('le défaut est celui relevé sur la capture de Nino', () async {
+      // Mesuré au pixel : pouce à 238, piste de 84 à 995, curseur jusqu'à 0,6.
+      // L'ancien défaut, 0,18 s, était presque deux fois plus lent.
+      expect(kGlisseeDefaut, 0.10);
+      SharedPreferences.setMockInitialValues({'lang_chosen': true});
+      await Settings.load();
+      expect(Settings.instance.slideSpeed, kGlisseeDefaut);
+    });
+
+    test('la route envoie le bon chemin et la bonne clé', () async {
+      final srv = _Serveur();
+      final cli = OnlineClient(api: ApiClient(client: srv.client));
+      await cli.setGlissee(0.25);
+      expect(srv.appels.last.path, '/set_glissee');
+      expect(srv.appels.last.body['glissee'], 0.25);
+    });
+
+    testWidgets('celle du compte remplace celle de l appareil', (tester) async {
+      await seConnecter(
+        surLAppareil: 'piano',
+        dansLeCompte: 'piano',
+        glisseeLocale: 0.10,
+        glisseeDuCompte: 0.42,
+      );
+      expect(Settings.instance.slideSpeed, 0.42);
+      expect(serveur.aAppele('/set_glissee'), isFalse);
+    });
+
+    testWidgets('un compte qui n a rien dit reçoit celle de l appareil', (
+      tester,
+    ) async {
+      await seConnecter(
+        surLAppareil: 'piano',
+        dansLeCompte: 'piano',
+        glisseeLocale: 0.30,
+      );
+      expect(serveur.aAppele('/set_glissee'), isTrue);
+      expect(serveur.corps('/set_glissee')['glissee'], 0.30);
+      expect(
+        Settings.instance.slideSpeed,
+        0.30,
+        reason: 'le réglage local ne doit pas être écrasé',
+      );
+    });
+
+    testWidgets('zéro est un CHOIX, pas une absence', (tester) async {
+      // Glissée instantanée. Le piège serait de la confondre avec « ce compte
+      // n a rien dit » et de la remplacer par celle de l appareil.
+      await seConnecter(
+        surLAppareil: 'piano',
+        dansLeCompte: 'piano',
+        glisseeLocale: 0.30,
+        glisseeDuCompte: 0,
+      );
+      expect(Settings.instance.slideSpeed, 0);
+      expect(serveur.aAppele('/set_glissee'), isFalse);
+    });
+
+    testWidgets('un serveur pas encore corrigé ne casse rien', (tester) async {
+      await seConnecter(
+        surLAppareil: 'piano',
+        dansLeCompte: 'piano',
+        glisseeLocale: 0.30,
+        serveurCorrige: false,
+      );
+      expect(Settings.instance.slideSpeed, 0.30);
     });
   });
 }

@@ -239,6 +239,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       await _settings.setSlideSpeed(v);
                       if (mounted) setState(() {});
                     },
+                    // Au RELÂCHEMENT seulement : un curseur qu'on traîne émet
+                    // des dizaines de valeurs, et autant d'appels au serveur.
+                    // C'est la valeur où le doigt s'arrête qui compte.
+                    onChangeEnd: (v) {
+                      final online = OnlineService.instance;
+                      if (online.isLoggedIn) {
+                        unawaited(online.client.setGlissee(v));
+                      }
+                    },
                   ),
                   _sub(_speedLabel(_settings.slideSpeed)),
 

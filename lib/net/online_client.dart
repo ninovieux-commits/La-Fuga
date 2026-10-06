@@ -6,6 +6,13 @@ library;
 import '../engine/piece.dart';
 import 'api_client.dart';
 
+/// Ce que vaut `glissee` quand le compte n'a jamais rien dit.
+///
+/// Une durée est toujours positive ou nulle : une valeur négative ne peut donc
+/// être qu'une absence, et il n'y a pas à la confondre avec « ce compte veut
+/// une glissée instantanée ».
+const double kGlisseeJamaisDite = -1;
+
 /// Session du joueur connecté.
 final class OnlineSession {
   const OnlineSession({
@@ -16,6 +23,7 @@ final class OnlineSession {
     this.theme = 'original',
     this.photo = '',
     this.instrument = '',
+    this.glissee = kGlisseeJamaisDite,
   });
 
   final String token;
@@ -40,10 +48,18 @@ final class OnlineSession {
   /// lieu d'en adopter un.
   final String instrument;
 
+  /// Durée de la glissée enregistrée dans le COMPTE, en secondes.
+  ///
+  /// [kGlisseeJamaisDite] quand le compte n'en a pas — un compte d'avant, ou
+  /// tout juste créé. Un nombre ne peut pas être « vide » comme une chaîne :
+  /// c'est une valeur négative, impossible par ailleurs, qui porte ce sens.
+  final double glissee;
+
   OnlineSession copyWith({
     String? theme,
     String? photo,
     String? instrument,
+    double? glissee,
     int? melo,
     int? meloRandom,
   }) => OnlineSession(
@@ -54,6 +70,7 @@ final class OnlineSession {
     theme: theme ?? this.theme,
     photo: photo ?? this.photo,
     instrument: instrument ?? this.instrument,
+    glissee: glissee ?? this.glissee,
   );
 }
 
@@ -89,6 +106,7 @@ class OnlineClient {
         theme: (d['theme'] as String?) ?? 'original',
         photo: (d['photo'] as String?) ?? '',
         instrument: (d['instrument'] as String?) ?? '',
+        glissee: (d['glissee'] as num?)?.toDouble() ?? kGlisseeJamaisDite,
       );
 
   // ── Compte ────────────────────────────────────────────────────────────────
@@ -172,6 +190,17 @@ class OnlineClient {
       _auth({'instrument': instrument}),
     );
     if (r.isOk) _session = _session?.copyWith(instrument: instrument);
+    return r;
+  }
+
+  /// Enregistre la vitesse de glissée dans le COMPTE.
+  ///
+  /// Même histoire que l'instrument : le réglage appartient au joueur, pas au
+  /// téléphone. Un serveur pas encore corrigé répond 404 ; l'appel échoue sans
+  /// bruit et le réglage local reste le bon.
+  Future<ApiResult> setGlissee(double secondes) async {
+    final r = await _api.post('/set_glissee', _auth({'glissee': secondes}));
+    if (r.isOk) _session = _session?.copyWith(glissee: secondes);
     return r;
   }
 

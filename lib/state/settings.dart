@@ -28,6 +28,12 @@ const String kSupportLink = 'https://paypal.me/lafugaonline';
 /// servir. Ce texte s'affiche sous le choix de l'instrument.
 const String kCreditSons = 'Instruments : FluidR3_GM (CC BY 3.0)';
 
+/// Durée par défaut de la glissée d'une pièce, en secondes.
+///
+/// Ce n'est pas un chiffre rond par hasard : c'est le réglage de Nino, relevé
+/// sur sa capture d'écran.
+const double kGlisseeDefaut = 0.10;
+
 abstract final class SettingsKeys {
   static const theme = 'theme';
   static const volume = 'volume';
@@ -109,7 +115,13 @@ class Settings {
   }
 
   /// Durée de l'animation de glissement, en secondes. 0 = instantané.
-  double get slideSpeed => _prefs.getDouble(SettingsKeys.slideSpeed) ?? 0.18;
+  ///
+  /// Le défaut est celui que Nino a réglé sur son téléphone : mesuré à 0,101 s
+  /// au pixel près sur sa capture d'écran — pouce à 238, piste de 84 à 995, sur
+  /// un curseur qui monte à 0,6 — et arrondi à la demi-centième. L'ancien
+  /// défaut, 0,18 s, était presque deux fois plus lent.
+  double get slideSpeed =>
+      _prefs.getDouble(SettingsKeys.slideSpeed) ?? kGlisseeDefaut;
 
   Future<void> setSlideSpeed(double value) =>
       _prefs.setDouble(SettingsKeys.slideSpeed, value.clamp(0.0, 1.0));
