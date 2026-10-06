@@ -92,7 +92,7 @@ void main() {
   }
 
   /// Largeur que [mot] réclame, dans le style de la touche « Pré-coups ».
-  double _reclame(WidgetTester tester, String mot) {
+  double reclame(WidgetTester tester, String mot) {
     final style = tester.widget<Text>(find.text(T('Pré-coups'))).style;
     return (TextPainter(
       text: TextSpan(text: mot, style: style),
@@ -133,8 +133,8 @@ void main() {
         testWidgets('${forme.key} — $langue', (tester) async {
           await bandeau(tester, forme.value);
           final mot = _traduction('Pré-coups', langue);
-          final reference = _reclame(tester, T('Analyser'));
-          final demande = _reclame(tester, mot);
+          final reference = reclame(tester, T('Analyser'));
+          final demande = reclame(tester, mot);
           expect(
             demande / reference,
             lessThanOrEqualTo(_reductionMax),

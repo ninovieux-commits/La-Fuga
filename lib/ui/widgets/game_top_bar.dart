@@ -256,10 +256,11 @@ class GameTopBar extends StatelessWidget {
           // français — « Vorauszüge », « Premovidas » — partait donc amputée
           // sans que rien ne le dise. Elle se réduit maintenant du strict
           // nécessaire, et pas d'un point quand elle tient déjà.
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: S(6)),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: S(6)),
+            // La marge reste en dehors : seules les lettres se réduisent.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 label,
                 textAlign: TextAlign.center,

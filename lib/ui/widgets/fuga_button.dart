@@ -54,14 +54,26 @@ class FugaButton extends StatelessWidget {
         child: Center(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: S(10)),
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              style: TextStyle(
-                color: textColor,
-                fontSize: fontSize ?? SF(16),
-                fontWeight: FontWeight.bold,
+            // Le texte RÉTRÉCIT plutôt que d'être coupé, quoi qu'il arrive.
+            // Une touche a une largeur, le texte en a une autre, et Flutter
+            // tranche l'excédent SANS lever la moindre erreur : un libellé
+            // trop long part en production amputé, et seul l'œil le voit.
+            // Les dix langues ne font pas la même longueur — la garantie est
+            // donc ici, dans la touche, et non dans un test qui espère.
+            //
+            // La marge reste en dehors : seules les lettres se réduisent, le
+            // texte ne vient jamais lécher le bord.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: fontSize ?? SF(16),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
