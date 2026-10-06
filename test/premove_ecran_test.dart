@@ -152,10 +152,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: PremoveScreen(
-            game: partie(
-              monTour: false,
-              premove: plan == null ? null : plan.toJson(),
-            ),
+            game: partie(monTour: false, premove: plan?.toJson()),
             service: CorrespondenceService(client),
             board: board,
           ),

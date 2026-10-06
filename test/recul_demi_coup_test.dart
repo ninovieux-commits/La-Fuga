@@ -180,7 +180,7 @@ void main() {
       // la partie était coupée dans le contrôleur, mais l'écran continuait
       // d'afficher l'ancien bandeau. Lire le widget tel quel ne prouvait
       // rien.
-      tester.widget<GameTopBar>(find.byType(GameTopBar)).onFlip!();
+      tester.widget<GameTopBar>(find.byType(GameTopBar)).onFlip();
       await tester.pumpAndSettle();
 
       final bandeau = tester.widget<MoveStrip>(find.byType(MoveStrip));
