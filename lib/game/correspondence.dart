@@ -259,7 +259,7 @@ List<String> corrMoveLines(String movesText) => [
   Set<Camp> fugued,
 })
 replay(CorrGame game) {
-  final key = '${game.randomCode}|${game.movesText}';
+  final key = '${game.randomCode}|${game.position}|${game.movesText}';
   final hit = _replayCache[key] ?? _replayNow(game);
   if (_replayCache.length >= _replayCacheMax) {
     _replayCache.remove(_replayCache.keys.first);
@@ -279,7 +279,9 @@ replay(CorrGame game) {
 
 ({Board board, LastMove? lastMove, Captures captured, Set<Camp> fugued})
 _replayNow(CorrGame game) {
-  var board = game.initialBoard;
+  // `startBoard`, pas `initialBoard` : une partie à position composée se
+  // rejoue depuis SA position, pas depuis la standard.
+  var board = game.startBoard;
   // Les prises se recomptent en chemin : la position finale seule ne dit pas
   // ce qui est sorti, et les panneaux restaient vides toute la partie.
   final captured = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
@@ -309,7 +311,7 @@ _replayNow(CorrGame game) {
       ? null
       : lastMoveFromNotation(
           lastNotation,
-          beforeLast ?? game.initialBoard,
+          beforeLast ?? game.startBoard,
           board,
         );
   return (board: board, lastMove: last, captured: captured, fugued: fugued);

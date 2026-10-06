@@ -1,7 +1,13 @@
-/// Visite guidée du menu — **fichier généré**, ne pas modifier à la main.
+/// Visite guidée du menu — produit à l'origine par `tool/gen_menu_tour.py`
+/// depuis `MenuTourOverlay._build_stops` (main.py).
 ///
-/// Produit par `tool/gen_menu_tour.py` depuis `MenuTourOverlay._build_stops`
-/// (main.py) : les textes sont ceux de Kivy, mot pour mot.
+/// **Deux étapes ont DIVERGÉ de Kivy, à la main et volontairement** : celles
+/// de la correspondance et du mode Random. La correspondance ne dépend plus de
+/// l'interrupteur du menu — elle choisit sa position de départ au moment du
+/// défi, standard, Random ou composée — et l'ancien texte serait devenu faux.
+///
+/// Relancer le générateur les écraserait. Il n'y a rien à en régénérer : le
+/// portage Kivy n'est plus la référence sur ce point, ce fichier l'est.
 library;
 
 /// Les étapes, au format JSON du client Kivy.
@@ -42,7 +48,7 @@ const String kMenuTourJson = r'''
    "corr"
   ],
   "scroll": "corr",
-  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, puis choisis ton adversaire parmi tes favoris."
+  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même."
  },
  {
   "targets": [
@@ -56,7 +62,7 @@ const String kMenuTourJson = r'''
    "random"
   ],
   "scroll": "obj",
-  "text": "« Random » active la variante Random Fuga : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement."
+  "text": "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi."
  },
  {
   "targets": [

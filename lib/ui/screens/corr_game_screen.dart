@@ -280,7 +280,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   void _rebuildSteps() {
     var board = _g.movesText.trim().isEmpty && widget.initialBoard != null
         ? widget.initialBoard!.clone()
-        : _g.initialBoard;
+        : _g.startBoard;
     final steps = <Board>[board];
     for (final notation in _allMoves()) {
       board = applyNotationLiterally(board, notation).board;

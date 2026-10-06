@@ -897,11 +897,17 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     await _refreshCorr();
   }
 
+  /// Revanche : la même chose, d'où qu'elle soit partie.
+  ///
+  /// Elle ne portait que le drapeau Random : une revanche sur une partie à
+  /// position composée repartait de la position standard, sans rien dire.
+  /// Elle emporte maintenant le mode ET la position.
   Future<void> _corrRematch(CorrGame game) async {
     final error = await _corr.challenge(
       game.opponent,
       'partie',
-      random: game.randomCode.isNotEmpty,
+      mode: game.mode,
+      position: game.position,
     );
     if (!mounted) return;
     if (error != null) _say(error);
