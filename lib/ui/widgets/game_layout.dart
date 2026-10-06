@@ -23,6 +23,7 @@ class GameLayout extends StatelessWidget {
     required this.bottomPanel,
     required this.moveStrip,
     this.notice,
+    this.bottomParts = 12,
   });
 
   final Widget topBar;
@@ -38,6 +39,12 @@ class GameLayout extends StatelessWidget {
 
   final Widget moveStrip;
 
+  /// Parts de hauteur données au panneau du BAS, sur 104. Douze par défaut,
+  /// comme Kivy. La lecture automatique en demande davantage : un curseur et
+  /// trois touches ne tiennent pas dans la bande d'un panneau de joueur, et
+  /// ce qu'elle prend, elle le prend au plateau.
+  final int bottomParts;
+
   /// Bandeau d'avertissement facultatif, sous le bandeau des touches.
   final Widget? notice;
 
@@ -49,7 +56,7 @@ class GameLayout extends StatelessWidget {
       final unit = box.maxHeight / 104;
       final bar = unit * 7;
       final top = topPanel == null ? 0.0 : unit * 12;
-      final bottom = bottomPanel == null ? 0.0 : unit * 12;
+      final bottom = bottomPanel == null ? 0.0 : unit * bottomParts;
       final board = box.maxHeight - 2 * bar - top - bottom;
 
       return Stack(

@@ -1,6 +1,8 @@
 /// Lecteur de parties : on rejoue une partie enregistrée, coup par coup.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
@@ -9,6 +11,7 @@ import '../../game/clock.dart';
 import '../../game/slides.dart';
 import '../../game/nmc.dart';
 import '../../game/replay_controller.dart';
+import '../../game/rythmique.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
@@ -23,6 +26,7 @@ import '../widgets/move_strip.dart';
 import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
+import '../widgets/auto_play_bar.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
 
@@ -43,6 +47,15 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   final SoundPlayer _sounds = SoundPlayer();
   bool _flipped = true;
 
+  /// Lecture automatique : les commandes sont-elles ouvertes ?
+  bool _auto = false;
+
+  /// Et défile-t-elle ?
+  bool _enLecture = false;
+
+  TempoLecture _tempo = TempoLecture.defaut;
+  Timer? _battement;
+
   @override
   void initState() {
     super.initState();
@@ -55,8 +68,53 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
 
   @override
   void dispose() {
+    _battement?.cancel();
     _sounds.dispose();
     super.dispose();
+  }
+
+  /// Un coup à chaque temps.
+  ///
+  /// Le minuteur est REFAIT à chaque battement plutôt que périodique : la
+  /// vitesse peut changer entre deux coups — on tire le curseur, on choisit
+  /// une danse — et un minuteur périodique garderait l'ancienne cadence
+  /// jusqu'à son prochain déclenchement.
+  void _armer() {
+    _battement?.cancel();
+    if (!_enLecture) return;
+    _battement = Timer(_tempo.parCoup, _battre);
+  }
+
+  void _battre() {
+    if (!mounted || !_enLecture) return;
+    if (_replay.atEnd) {
+      // Arrivé au bout, on s'arrête : reboucler sans le dire surprendrait.
+      setState(() => _enLecture = false);
+      return;
+    }
+    _move(_replay.next);
+    _armer();
+  }
+
+  void _playPause() {
+    setState(() {
+      // Au bout, « lire » recommence depuis le début : sans cela la touche ne
+      // ferait rien, et on ne saurait pas pourquoi.
+      if (!_enLecture && _replay.atEnd) _move(_replay.toStart);
+      _enLecture = !_enLecture;
+    });
+    _armer();
+  }
+
+  void _auDebut() {
+    _move(_replay.toStart);
+    _armer();
+  }
+
+  /// Changer de vitesse : le battement en cours garde sa durée, le suivant
+  /// prend la nouvelle. Réarmer ici couperait la note qui sonne.
+  void _setTempo(TempoLecture t) {
+    setState(() => _tempo = t);
   }
 
   /// Avance ou recule, en jouant le son ET le glissement du coup atteint.
@@ -172,6 +230,14 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
             ),
             onAnalyse: () => _playFromHere(false),
             onDeepGrey: _playAgainstDeepGrey,
+            onAutoPlay: () => setState(() {
+              _auto = !_auto;
+              if (!_auto) {
+                _enLecture = false;
+                _battement?.cancel();
+              }
+            }),
+            autoPlayOn: _auto,
           ),
           notice: _replay.isTruncated ? _truncatedNotice() : null,
           topPanel: _panel(palette, topCamp, meta),
@@ -189,7 +255,32 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
           ),
-          bottomPanel: _panel(palette, bottomCamp, meta),
+          // En lecture automatique, les informations du joueur du bas
+          // laissent la place aux commandes — on ne garde que les pièces
+          // capturées. Et la bande s'épaissit : un curseur et trois touches
+          // ne tiennent pas dans les douze parts d'un panneau.
+          bottomParts: _auto ? 30 : 12,
+          bottomPanel: _auto
+              ? AutoPlayBar(
+                  palette: palette,
+                  captures:
+                      _replay.current.captured[bottomCamp.opposite] ?? const [],
+                  tempo: _tempo,
+                  enLecture: _enLecture,
+                  onTempo: (v) => _setTempo(TempoLecture.libre(v)),
+                  onRythmique: (r) => _setTempo(
+                    r == null
+                        ? TempoLecture.libre(
+                            _tempo.secondes == 0
+                                ? kVitesseMin * 2
+                                : _tempo.secondes,
+                          )
+                        : TempoLecture.danse(r),
+                  ),
+                  onDebut: _auDebut,
+                  onPlayPause: _playPause,
+                )
+              : _panel(palette, bottomCamp, meta),
           moveStrip: MoveStrip(
             moves: [
               for (var i = 1; i < _replay.steps.length; i++)

@@ -36,6 +36,8 @@ class GameTopBar extends StatelessWidget {
     this.onCopyFug,
     this.onAnalyse,
     this.onPremove,
+    this.onAutoPlay,
+    this.autoPlayOn = false,
     this.onDeepGrey,
     this.aiDeepMode,
     this.onToggleAiMode,
@@ -77,6 +79,14 @@ class GameTopBar extends StatelessWidget {
   /// En relecture seulement.
   final VoidCallback? onAnalyse;
 
+  /// Relecture : ouvrir (ou refermer) la lecture automatique. Une touche
+  /// RONDE, à gauche : les larges du bandeau sont déjà au bord du débordement
+  /// sur un petit écran, et le côté gauche est libre en relecture.
+  final VoidCallback? onAutoPlay;
+
+  /// Vraie quand la lecture automatique est ouverte : la touche s'allume.
+  final bool autoPlayOn;
+
   /// Correspondance, et seulement quand c'est à l'adversaire de jouer :
   /// préparer ses pré-coups. Même touche qu'« Analyser », juste à droite de
   /// celle qui retourne le plateau.
@@ -105,81 +115,114 @@ class GameTopBar extends StatelessWidget {
           fontSize: SF(21),
           tooltip: T('Retourner le plateau'),
         ),
+        if (onAutoPlay != null) ...[
+          SizedBox(width: S(6)),
+          _button(
+            '▶',
+            onAutoPlay!,
+            width: null,
+            color: autoPlayOn ? palette.clair : kBarButtonDark,
+            radius: S(20),
+            fontSize: SF(19),
+            tooltip: T('Lecture automatique'),
+          ),
+        ],
         if (onPremove != null) ...[
           SizedBox(width: S(6)),
-          _wide(
-            T('Pré-coups'),
-            onPremove!,
-            width: S(118),
-            color: palette.clair,
+          _flex(
+            _wide(
+              T('Pré-coups'),
+              onPremove!,
+              width: S(118),
+              color: palette.clair,
+            ),
           ),
         ],
         if (onMenu != null) ...[
           SizedBox(width: S(6)),
-          _wide(
-            T('Retour au menu'),
-            onMenu!,
-            width: S(178),
-            color: palette.clair,
-            fontSize: SF(13),
+          _flex(
+            _wide(
+              T('Retour au menu'),
+              onMenu!,
+              width: S(178),
+              color: palette.clair,
+              fontSize: SF(13),
+            ),
           ),
         ],
         const Spacer(),
         if (onChat != null) ...[
           // Pastille plutôt que compteur, et elle ne s'allume que pour un
           // message de l'adversaire de cette partie.
-          UnreadDot(
-            show: unreadChat > 0,
-            child: _wide(
-              T('Chat'),
-              onChat!,
-              width: S(104),
-              color: kBarButtonDark,
+          _flex(
+            UnreadDot(
+              show: unreadChat > 0,
+              child: _wide(
+                T('Chat'),
+                onChat!,
+                width: S(104),
+                color: kBarButtonDark,
+              ),
             ),
           ),
           SizedBox(width: S(6)),
         ],
         if (onToggleAiMode != null) ...[
-          _wide(
-            aiDeepMode == true ? T('Profond') : T('Rapide'),
-            onToggleAiMode!,
-            width: S(128),
-            color: kBarButtonDark,
-            fontSize: SF(17),
-            tooltip: T('Deep Grey'),
+          _flex(
+            _wide(
+              aiDeepMode == true ? T('Profond') : T('Rapide'),
+              onToggleAiMode!,
+              width: S(128),
+              color: kBarButtonDark,
+              fontSize: SF(17),
+              tooltip: T('Deep Grey'),
+            ),
           ),
           SizedBox(width: S(6)),
         ],
         if (onCopyNmc != null) ...[
-          _wide(
-            T('Copier'),
-            onCopyNmc!,
-            width: S(104),
-            color: kBarButtonDark,
-            tooltip: T('Contenu .nmc'),
+          _flex(
+            _wide(
+              T('Copier'),
+              onCopyNmc!,
+              width: S(104),
+              color: kBarButtonDark,
+              tooltip: T('Contenu .nmc'),
+            ),
           ),
           SizedBox(width: S(6)),
         ],
         if (onCopyFug != null) ...[
-          _wide(
-            T('Position'),
-            onCopyFug!,
-            width: S(118),
-            color: kBarButtonDark,
-            tooltip: T('Copier au format .fug'),
+          _flex(
+            _wide(
+              T('Position'),
+              onCopyFug!,
+              width: S(118),
+              color: kBarButtonDark,
+              tooltip: T('Copier au format .fug'),
+            ),
           ),
           SizedBox(width: S(6)),
         ],
         if (onAnalyse != null) ...[
-          _wide(T('Analyser'), onAnalyse!, width: S(118), color: palette.clair),
+          _flex(
+            _wide(
+              T('Analyser'),
+              onAnalyse!,
+              width: S(118),
+              color: palette.clair,
+            ),
+          ),
           SizedBox(width: S(6)),
         ],
         if (onDeepGrey != null) ...[
-          _wide(
-            'Deep Grey',
-            onDeepGrey!,
-            width: S(130),
-            color: kBarButtonDeepGrey,
+          _flex(
+            _wide(
+              'Deep Grey',
+              onDeepGrey!,
+              width: S(130),
+              color: kBarButtonDeepGrey,
+            ),
           ),
           SizedBox(width: S(6)),
         ],
@@ -291,11 +334,29 @@ class GameTopBar extends StatelessWidget {
         ),
       ),
     );
-    final button = width == null
-        ? AspectRatio(aspectRatio: 1, child: inner)
-        : SizedBox(width: width, height: double.infinity, child: inner);
-    return tooltip == null ? button : Tooltip(message: tooltip, child: button);
+    if (width == null) {
+      final rond = AspectRatio(aspectRatio: 1, child: inner);
+      return tooltip == null ? rond : Tooltip(message: tooltip, child: rond);
+    }
+    final large = SizedBox(width: width, height: double.infinity, child: inner);
+    return tooltip == null ? large : Tooltip(message: tooltip, child: large);
   }
+
+  /// Une touche large, rendue réductible.
+  ///
+  /// Les touches larges RÉTRÉCISSENT quand la rangée est pleine, au lieu de
+  /// déborder. Leur largeur est fixe et la rangée aussi : il suffit d'un
+  /// bouton de plus, ou d'un écran un peu étroit, pour que la somme passe
+  /// devant — mesuré à 4,3 pixels de trop sur un 21:9 le jour où la lecture
+  /// automatique a ajouté le sien. `Flexible` laisse chacune prendre sa
+  /// largeur tant qu'elle y tient, et la réduit à sa part sinon ; le texte,
+  /// lui, est déjà protégé du rognage.
+  ///
+  /// L'enveloppe est posée ICI, à l'endroit où la rangée reçoit la touche, et
+  /// non dans [_button] : `Flexible` n'a de sens que comme fille directe d'un
+  /// `Flex`. Caché sous la pile de la pastille des messages non lus, il
+  /// faisait tomber tout le bandeau.
+  Widget _flex(Widget touche) => Flexible(child: touche);
 }
 
 /// Les deux barres de la pause, centrées à coup sûr.

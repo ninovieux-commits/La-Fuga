@@ -148,6 +148,65 @@ void main() {
     }
   });
 
+  group('Le bandeau ne déborde jamais, même plein', () {
+    for (final forme in _formes.entries) {
+      testWidgets(forme.key, (tester) async {
+        setScaleSize(forme.value);
+        final debordements = <String>[];
+        final precedent = FlutterError.onError;
+        FlutterError.onError = (d) {
+          if (d.exceptionAsString().contains('overflow')) {
+            debordements.add(d.exceptionAsString());
+          } else {
+            precedent?.call(d);
+          }
+        };
+        addTearDown(() => FlutterError.onError = precedent);
+
+        // TOUTES les touches à la fois : aucun écran ne les montre toutes,
+        // mais c'est la seule façon de savoir où est la limite.
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: forme.value.width,
+                height: forme.value.height * 7 / 104,
+                child: GameTopBar(
+                  palette: paletteOf('foret'),
+                  color: Colors.grey,
+                  onFlip: () {},
+                  onPause: () {},
+                  onMenu: () {},
+                  onChat: () {},
+                  onCopyNmc: () {},
+                  onCopyFug: () {},
+                  onAnalyse: () {},
+                  onPremove: () {},
+                  onDeepGrey: () {},
+                  onAutoPlay: () {},
+                  onToggleAiMode: () {},
+                  aiDeepMode: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        // On rend la main à Flutter AVANT d'affirmer : un `expect` qui tombe
+        // alors que le guetteur est encore en place fait échouer le test sur
+        // une assertion du binding, et on ne lit plus la vraie cause.
+        FlutterError.onError = precedent;
+        expect(
+          debordements,
+          isEmpty,
+          reason:
+              'le bandeau déborde : ses touches ont une largeur fixe et la '
+              'rangée aussi — il suffit d une touche de plus',
+        );
+      });
+    }
+  });
+
   testWidgets('elle a exactement la taille d « Analyser »', (tester) async {
     await bandeau(tester, const Size(393, 851));
     Size taille(String label) => tester.getSize(
