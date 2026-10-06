@@ -259,10 +259,23 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _entete(palette),
+                    _entete(),
                     SizedBox(height: S(8)),
                     AspectRatio(
-                      aspectRatio: 1,
+                      // Un plateau dessine `kExtRows` rangées de haut : les
+                      // huit jouables, plus les deux zones de ralliement de
+                      // l'Héritier. Un CARRÉ les faisait déborder d'un
+                      // huitième de largeur en haut et en bas — peintes
+                      // par-dessus les textes voisins, et hors de la boîte,
+                      // donc hors de portée du doigt : Flutter arrête le test
+                      // de contact aux bords d'un widget, quoi qu'il peigne
+                      // au-delà.
+                      //
+                      // `GameLayout` résout la même chose autrement, en posant
+                      // le plateau dans une pile par-dessus une place
+                      // réservée. Ici l'écran défile : on lui donne simplement
+                      // la place qu'il dessine.
+                      aspectRatio: kCols / kExtRows,
                       child: GameBoardView(
                         board: _jeu.board,
                         palette: palette,
@@ -299,7 +312,7 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
   }
 
   /// À qui le prochain coup, et ce qu'on attend de nous.
-  Widget _entete(ThemePalette palette) {
+  Widget _entete() {
     final String titre;
     if (!_plan.peutEnAjouter) {
       titre = T('Six variantes préparées : c\'est le maximum.');
@@ -312,28 +325,16 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
     } else {
       titre = '${T('Le coup de')} ${widget.game.opponent}';
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          titre,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: SF(17),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: S(4)),
-        Text(
-          T(
-            'Si votre adversaire joue le coup prévu, votre réponse part toute '
-            'seule, même application fermée.',
-          ),
-          textAlign: TextAlign.center,
-          style: TextStyle(color: palette.clairDim, fontSize: SF(12)),
-        ),
-      ],
+    // Rien d'autre que le titre : l'explication tenait sur deux lignes
+    // au-dessus du plateau, et il n'y a pas la place.
+    return Text(
+      titre,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: SF(17),
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
