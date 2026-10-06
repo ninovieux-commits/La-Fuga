@@ -514,6 +514,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
           history: _allMoves(),
           objectif: _g.objectif,
           randomCode: _g.randomCode,
+          // La position composée part dans l'archive : sans elle, la partie
+          // se relirait depuis la standard et chaque coup atterrirait
+          // ailleurs.
+          position: _g.position,
           corrGameId: _g.id,
         ),
       ),

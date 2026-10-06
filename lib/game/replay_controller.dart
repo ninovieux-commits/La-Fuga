@@ -6,6 +6,7 @@
 library;
 
 import '../engine/board.dart';
+import '../engine/fug.dart';
 import '../engine/literal_replay.dart';
 import '../engine/piece.dart';
 import '../engine/random_fuga.dart';
@@ -72,6 +73,25 @@ bool isReadableNmc(String content) {
   return replay.brokenMoveNumber != 1;
 }
 
+/// La position de départ décrite par un en-tête, s'il en décrit une.
+///
+/// `Position` l'emporte sur `Random` : une partie composée n'a pas de code
+/// Random, et une partie Random n'a pas de position écrite — les deux ne se
+/// rencontrent pas.
+({Board board, Camp turn})? _departDecrit(NmcMeta meta) {
+  final fug = meta.position;
+  if (fug != null && fug.trim().isNotEmpty) {
+    final lu = fugLire(fugDepuisUneLigne(fug));
+    if (lu.position != null) return lu.position!;
+  }
+  final code = meta.random;
+  if (code != null && code.trim().isNotEmpty) {
+    final board = buildRandomFugaBoard(code);
+    if (board != null) return (board: board, turn: Camp.blanc);
+  }
+  return null;
+}
+
 /// Navigation dans une partie enregistrée.
 class ReplayController {
   ReplayController._(this.meta, this.steps, this._brokenAt);
@@ -94,25 +114,28 @@ class ReplayController {
   /// position inventée.
   factory ReplayController.fromNmc(String content, {Board? initialBoard}) {
     final game = parseNmc(content);
-    final start =
-        initialBoard ??
-        (game.meta.random == null
-            ? Board.initial()
-            // Un code illisible retombe sur la position standard : mieux vaut
-            // une partie qu'on ne saura pas rejouer qu'un plantage.
-            : buildRandomFugaBoard(game.meta.random!) ?? Board.initial());
+    // Trois départs possibles : une position imposée par l'appelant, celle
+    // qu'un en-tête décrit, ou la standard. Un en-tête illisible retombe sur
+    // la standard : mieux vaut une partie qu'on ne saura pas rejouer qu'un
+    // plantage.
+    final decrite = _departDecrit(game.meta);
+    final start = initialBoard ?? decrite?.board ?? Board.initial();
+    // Une position composée peut mettre les NOIRS au trait : son premier coup
+    // n'est alors pas blanc, et numéroter les coups depuis les Blancs
+    // décalerait tout le bandeau.
+    final startTurn = decrite?.turn ?? Camp.blanc;
 
     final lost = <Camp, List<Piece>>{Camp.blanc: [], Camp.noir: []};
     final steps = <ReplayStep>[
       ReplayStep(
         board: start,
-        turn: Camp.blanc,
+        turn: startTurn,
         captured: {Camp.blanc: const [], Camp.noir: const []},
       ),
     ];
 
     var board = start;
-    var turn = Camp.blanc;
+    var turn = startTurn;
     int? broken;
     final fugued = <Camp>{};
 

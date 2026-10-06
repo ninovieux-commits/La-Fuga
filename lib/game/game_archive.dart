@@ -101,6 +101,7 @@ ArchivedGame buildArchive({
   String objectif = 'partie',
   String cadence = 'zen',
   String? randomCode,
+  String? position,
   String? onlineGameId,
   String? corrGameId,
   DateTime? now,
@@ -121,6 +122,7 @@ ArchivedGame buildArchive({
     method: endMethod,
     points: '${pointsForMethod(endMethod)}',
     random: randomCode,
+    position: (position == null || position.isEmpty) ? null : position,
   );
 
   final content = buildNmc(meta, moves);
@@ -151,6 +153,7 @@ ArchivedGame buildOpponentArchive({
   String objectif = 'partie',
   String cadence = 'zen',
   String? randomCode,
+  String? position,
   String? onlineGameId,
   String? corrGameId,
   DateTime? now,
@@ -171,6 +174,7 @@ ArchivedGame buildOpponentArchive({
     objectif: objectif,
     cadence: cadence,
     randomCode: (randomCode == null || randomCode.isEmpty) ? null : randomCode,
+    position: position,
     onlineGameId: onlineGameId,
     corrGameId: corrGameId,
     now: now,

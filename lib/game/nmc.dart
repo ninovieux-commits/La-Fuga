@@ -19,6 +19,7 @@ final class NmcMeta {
     required this.method,
     required this.points,
     this.random,
+    this.position,
   });
 
   final String date;
@@ -46,6 +47,14 @@ final class NmcMeta {
   /// relecture.
   final String? random;
 
+  /// Position de départ COMPOSÉE, au format `.fug` sur une seule ligne —
+  /// `B/sgshgsg/gnnnnns/…`. Même rôle que [random], pour les positions qu'un
+  /// code de 3 500 possibilités ne sait pas écrire.
+  ///
+  /// Sans elle, une partie composée se relirait depuis la position standard,
+  /// et chacun de ses coups atterrirait ailleurs.
+  final String? position;
+
   Map<String, String> toFields() => {
     'Date': date,
     'Joueur1': player1,
@@ -57,6 +66,7 @@ final class NmcMeta {
     'Methode': method,
     'Points': points,
     if (random != null) 'Random': random!,
+    if (position != null) 'Position': position!,
   };
 
   /// Construit depuis les champs bruts de l'en-tête (clés en minuscules).
@@ -71,6 +81,7 @@ final class NmcMeta {
     method: f['methode'] ?? '',
     points: f['points'] ?? '',
     random: f['random'],
+    position: f['position'],
   );
 }
 
