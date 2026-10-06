@@ -102,9 +102,12 @@ class GameTopBar extends StatelessWidget {
         ),
         if (onPremove != null) ...[
           SizedBox(width: S(6)),
-          // « Deep Grey » s'écrit déjà tel quel dans ce bandeau : « Premove »
-          // est un terme de jeu, pas une phrase, et il ne se traduit pas.
-          _wide('Premove', onPremove!, width: S(118), color: palette.clair),
+          _wide(
+            T('Pré-coups'),
+            onPremove!,
+            width: S(118),
+            color: palette.clair,
+          ),
         ],
         if (onMenu != null) ...[
           SizedBox(width: S(6)),
@@ -247,14 +250,26 @@ class GameTopBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         onTap: onPressed,
         child: Center(
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
+          // Le texte RÉTRÉCIT plutôt que d'être coupé. Les touches ont une
+          // largeur fixe, et un texte trop long n'y lève aucune erreur :
+          // Flutter le tranche en silence. Une traduction plus longue que le
+          // français — « Vorauszüge », « Premovidas » — partait donc amputée
+          // sans que rien ne le dise. Elle se réduit maintenant du strict
+          // nécessaire, et pas d'un point quand elle tient déjà.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: S(6)),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ),

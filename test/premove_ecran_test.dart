@@ -107,7 +107,7 @@ void main() {
     ) async {
       await ouvrir(tester, partie(monTour: false));
       expect(barre(tester).onPremove, isNotNull);
-      expect(find.text('Premove'), findsOneWidget);
+      expect(find.text('Pré-coups'), findsOneWidget);
     });
 
     testWidgets('et pas quand c est à nous : il n y a rien à attendre', (
@@ -119,7 +119,7 @@ void main() {
         isNull,
         reason: 'préjouer quand on a le trait ne prépare rien',
       );
-      expect(find.text('Premove'), findsNothing);
+      expect(find.text('Pré-coups'), findsNothing);
     });
 
     testWidgets('elle suit celle qui retourne le plateau, et pas les flèches', (
@@ -135,7 +135,10 @@ void main() {
       );
       final premove = tester.getRect(
         find
-            .ancestor(of: find.text('Premove'), matching: find.byType(SizedBox))
+            .ancestor(
+              of: find.text('Pré-coups'),
+              matching: find.byType(SizedBox),
+            )
             .first,
       );
       expect(
@@ -158,7 +161,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(MoveStrip),
-          matching: find.text('Premove'),
+          matching: find.text('Pré-coups'),
         ),
         findsNothing,
         reason: 'le bandeau des coups n a plus à la porter',
@@ -197,12 +200,15 @@ void main() {
       );
       final p = tester.getSize(
         find
-            .ancestor(of: find.text('Premove'), matching: find.byType(SizedBox))
+            .ancestor(
+              of: find.text('Pré-coups'),
+              matching: find.byType(SizedBox),
+            )
             .first,
       );
       expect(p, a, reason: 'même taille qu « Analyser »');
       expect(
-        tester.widget<Text>(find.text('Premove')).style?.fontSize,
+        tester.widget<Text>(find.text('Pré-coups')).style?.fontSize,
         tester.widget<Text>(find.text('Analyser')).style?.fontSize,
       );
     });
