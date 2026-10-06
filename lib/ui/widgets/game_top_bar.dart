@@ -34,6 +34,7 @@ class GameTopBar extends StatelessWidget {
     this.unreadChat = 0,
     this.onCopyNmc,
     this.onAnalyse,
+    this.onPremove,
     this.onDeepGrey,
     this.aiDeepMode,
     this.onToggleAiMode,
@@ -71,6 +72,11 @@ class GameTopBar extends StatelessWidget {
   /// En relecture seulement.
   final VoidCallback? onAnalyse;
 
+  /// Correspondance, et seulement quand c'est à l'adversaire de jouer :
+  /// préparer ses pré-coups. Même touche qu'« Analyser », juste à droite de
+  /// celle qui retourne le plateau.
+  final VoidCallback? onPremove;
+
   /// En analyse et en relecture : reprendre la position contre Deep Grey.
   final VoidCallback? onDeepGrey;
 
@@ -94,6 +100,12 @@ class GameTopBar extends StatelessWidget {
           fontSize: SF(21),
           tooltip: T('Retourner le plateau'),
         ),
+        if (onPremove != null) ...[
+          SizedBox(width: S(6)),
+          // « Deep Grey » s'écrit déjà tel quel dans ce bandeau : « Premove »
+          // est un terme de jeu, pas une phrase, et il ne se traduit pas.
+          _wide('Premove', onPremove!, width: S(118), color: palette.clair),
+        ],
         if (onMenu != null) ...[
           SizedBox(width: S(6)),
           _wide(

@@ -38,6 +38,7 @@ class PremoveScreen extends StatefulWidget {
     required this.game,
     required this.service,
     required this.board,
+    this.plan,
     this.flipped = false,
     this.sounds,
   });
@@ -47,6 +48,11 @@ class PremoveScreen extends StatefulWidget {
 
   /// Position actuelle de la partie : l'adversaire y a le trait.
   final Board board;
+
+  /// Le plan à reprendre, quand l'appelant en sait un plus frais que celui de
+  /// la partie. Armer un plan ne change ni les coups ni le statut : la partie
+  /// n'est donc pas relue, et `game.premove` reste celui d'avant.
+  final PremovePlan? plan;
 
   final bool flipped;
 
@@ -83,6 +89,7 @@ class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
     // Le plan déjà armé côté serveur, s'il y en a un : on reprend où on en
     // était plutôt que de repartir de zéro.
     _plan =
+        widget.plan ??
         widget.game.premove ??
         PremovePlan(base: corrMoveLines(widget.game.movesText).length);
     _jeu = _neuf();

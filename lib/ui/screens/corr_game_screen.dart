@@ -723,9 +723,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   // pouvait pas revoir un coup sans quitter la partie.
                   onSelect: _viewMove,
                   randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
-                  // Préparer ses réponses pendant que l'adversaire réfléchit.
-                  onPremove: _peutPrejouer ? _openPremove : null,
-                  premoveCount: _nbVariantes,
                 ),
               ),
       ),
@@ -799,6 +796,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
           // La position réelle de la partie, pas celle qu'on regardait : un
           // pré-coup répond au coup qui va venir.
           board: _steps.isEmpty ? c.board : _steps.last,
+          // Ce qu'on vient d'armer prime sur ce que le serveur nous avait
+          // renvoyé : la partie n'est pas relue pour un plan.
+          plan: _plan ?? _g.premove,
           flipped: _flipOverride ?? (_g.myCamp == Camp.blanc),
         ),
       ),
@@ -809,11 +809,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (plan != null) setState(() => _plan = plan);
   }
 
-  /// Le plan tel qu'on vient de l'armer, qui prime sur celui du serveur tant
-  /// que la partie n'a pas été relue.
+  /// Le plan tel qu'on vient de l'armer. Il prime sur celui du serveur tant
+  /// que la partie n'a pas été relue — et elle ne l'est pas pour un plan,
+  /// puisqu'il ne change ni les coups ni le statut.
   PremovePlan? _plan;
-
-  int get _nbVariantes => (_plan ?? _g.premove)?.variantes.length ?? 0;
 
   /// Analyser LA POSITION AFFICHÉE — pas forcément la dernière.
   ///
@@ -872,6 +871,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     palette: palette,
     color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
     onFlip: _toggleFlip,
+    // Préparer ses réponses pendant que l'adversaire réfléchit. Même touche
+    // qu'« Analyser », juste à droite de celle qui retourne le plateau.
+    onPremove: _peutPrejouer ? _openPremove : null,
     onChat: _openChat,
     // La touche Chat ouvre la conversation privée avec l'adversaire : sa
     // pastille s'allume pour un message de LUI, et pour lui seul. La boîte

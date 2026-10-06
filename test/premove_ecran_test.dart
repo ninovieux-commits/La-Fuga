@@ -25,7 +25,9 @@ import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/premove_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
+import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -96,15 +98,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('La touche, à côté des flèches', () {
+  group('La touche, dans le bandeau du haut', () {
+    GameTopBar barre(WidgetTester tester) =>
+        tester.widget<GameTopBar>(find.byType(GameTopBar));
+
     testWidgets('elle est là quand c est à l adversaire de jouer', (
       tester,
     ) async {
       await ouvrir(tester, partie(monTour: false));
-      expect(
-        tester.widget<MoveStrip>(find.byType(MoveStrip)).onPremove,
-        isNotNull,
-      );
+      expect(barre(tester).onPremove, isNotNull);
+      expect(find.text('Premove'), findsOneWidget);
     });
 
     testWidgets('et pas quand c est à nous : il n y a rien à attendre', (
@@ -112,35 +115,140 @@ void main() {
     ) async {
       await ouvrir(tester, partie(monTour: true, moves: 'Fa3-Sol4\nFa6-Sol5'));
       expect(
-        tester.widget<MoveStrip>(find.byType(MoveStrip)).onPremove,
+        barre(tester).onPremove,
         isNull,
         reason: 'préjouer quand on a le trait ne prépare rien',
       );
+      expect(find.text('Premove'), findsNothing);
     });
 
-    testWidgets('elle montre le nombre de variantes armées', (tester) async {
-      await ouvrir(
-        tester,
-        partie(
-          monTour: false,
-          premove: {
-            'base': 1,
-            'variantes': [
-              {
-                'coups': ['Fa6-Sol5', 'Sol2-Fa3'],
-              },
-              {
-                'coups': ['Si7-Si6', 'Re2-Re3'],
-              },
-            ],
-          },
+    testWidgets('elle suit celle qui retourne le plateau, et pas les flèches', (
+      tester,
+    ) async {
+      await ouvrir(tester, partie(monTour: false));
+      // Les deux touches elles-mêmes, pas leur texte : c'est l'écart entre
+      // leurs bords qui dit « juste à droite ».
+      final retourner = tester.getRect(
+        find
+            .ancestor(of: find.text('< >'), matching: find.byType(AspectRatio))
+            .first,
+      );
+      final premove = tester.getRect(
+        find
+            .ancestor(of: find.text('Premove'), matching: find.byType(SizedBox))
+            .first,
+      );
+      expect(
+        premove.center.dy,
+        retourner.center.dy,
+        reason: 'elle doit être dans le bandeau du haut, pas en bas',
+      );
+      expect(
+        premove.left - retourner.right,
+        lessThan(30),
+        reason:
+            'JUSTE à droite : rien ne doit s intercaler, et elle ne doit '
+            'pas être poussée vers la droite du bandeau',
+      );
+      expect(
+        premove.left,
+        greaterThan(retourner.right),
+        reason: 'à droite, pas à gauche',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(MoveStrip),
+          matching: find.text('Premove'),
+        ),
+        findsNothing,
+        reason: 'le bandeau des coups n a plus à la porter',
+      );
+    });
+
+    testWidgets('elle a la même allure qu « Analyser »', (tester) async {
+      await ouvrir(tester, partie(monTour: false));
+      // « Analyser » n'apparaît qu'en relecture : on compare donc la touche
+      // telle que le bandeau la dessine, en lui donnant les deux rappels.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 56,
+              child: GameTopBar(
+                palette: paletteOf('foret'),
+                color: Colors.grey,
+                onFlip: () {},
+                onPause: () {},
+                onAnalyse: () {},
+                onPremove: () {},
+              ),
+            ),
+          ),
         ),
       );
-      expect(tester.widget<MoveStrip>(find.byType(MoveStrip)).premoveCount, 2);
+      await tester.pumpAndSettle();
+      final a = tester.getSize(
+        find
+            .ancestor(
+              of: find.text('Analyser'),
+              matching: find.byType(SizedBox),
+            )
+            .first,
+      );
+      final p = tester.getSize(
+        find
+            .ancestor(of: find.text('Premove'), matching: find.byType(SizedBox))
+            .first,
+      );
+      expect(p, a, reason: 'même taille qu « Analyser »');
       expect(
-        find.descendant(of: find.byType(MoveStrip), matching: find.text('2')),
+        tester.widget<Text>(find.text('Premove')).style?.fontSize,
+        tester.widget<Text>(find.text('Analyser')).style?.fontSize,
+      );
+    });
+  });
+
+  group('Ce qu on vient d armer ne se perd pas', () {
+    testWidgets('rouvrir la touche retrouve les variantes', (tester) async {
+      // Armer un plan ne change NI les coups NI le statut : la partie n est
+      // donc pas relue, et `game.premove` reste celui d avant. Sans le plan
+      // gardé sur place, l écran de composition repartait vide.
+      await ouvrir(tester, partie(monTour: false));
+      tester.widget<GameTopBar>(find.byType(GameTopBar)).onPremove!();
+      await tester.pumpAndSettle();
+
+      final vue = tester.widget<GameBoardView>(find.byType(GameBoardView));
+      vue.onTapCell(const Cell(2, 1));
+      await tester.pump();
+      vue.onTapCell(const Cell(2, 2));
+      await tester.pump();
+      vue.onTapCell(const Cell(2, 2));
+      await tester.pumpAndSettle();
+      vue.onTapCell(const Cell(0, 6));
+      await tester.pump();
+      vue.onTapCell(const Cell(0, 5));
+      await tester.pump();
+      vue.onTapCell(const Cell(0, 5));
+      await tester.pumpAndSettle();
+
+      Future<void> appuyer(Finder f) async {
+        await tester.ensureVisible(f);
+        await tester.pumpAndSettle();
+        await tester.tap(f);
+        await tester.pumpAndSettle();
+      }
+
+      await appuyer(find.widgetWithText(FugaButton, 'Garder la variante'));
+      await appuyer(find.widgetWithText(FugaButton, 'Armer'));
+      expect(find.byType(PremoveScreen), findsNothing);
+
+      // On rouvre, sans que le serveur ait eu l occasion de nous relire.
+      tester.widget<GameTopBar>(find.byType(GameTopBar)).onPremove!();
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('1 / 6'),
         findsOneWidget,
-        reason: 'on doit voir sans l ouvrir qu une réponse attend',
+        reason: 'la variante armée a disparu en rouvrant la touche',
       );
     });
   });
