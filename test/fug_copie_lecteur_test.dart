@@ -5,6 +5,10 @@
 /// touche "lecteur fug" en dessous de la touche "lecteur nmc" dans la page de
 /// sélection d'historique personnel. Le lecteur doit proposer la même chose
 /// que le lecteur nmc (continuer contre deepgrey etc). »
+///
+/// Puis : « Un code .fug qui contient plusieurs chevaliers ou héritiers du même
+/// camp, ou viole n'importe quelle autre règle du personnalisé, ne doit pas
+/// pouvoir être lu par le lecteur .fug. »
 library;
 
 import 'package:flutter/material.dart';
@@ -240,6 +244,119 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         presse.last,
       );
+    });
+  });
+
+  group('Le lecteur refuse ce qui ne pourrait pas se jouer', () {
+    /// Un `.fug` depuis ses huit rangées, do1 d'abord.
+    String fug(String trait, List<String> rangees) =>
+        '$trait\n${rangees.join('\n')}';
+
+    /// Jouable : un Héritier par camp, des carrées côte à côte, de la place.
+    const bonnes = [
+      'hsg----',
+      '-------',
+      '-------',
+      '-------',
+      '-------',
+      '-------',
+      '-------',
+      'HSG----',
+    ];
+
+    Future<void> lire(WidgetTester tester, String texte) async {
+      await tester.pumpWidget(const MaterialApp(home: FugReaderScreen()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), texte);
+      await appuyer(tester, find.text('Lire'));
+    }
+
+    testWidgets('la position témoin, elle, s ouvre bien', (tester) async {
+      // Sans ce contrôle, tous les refus ci-dessous pourraient venir d autre
+      // chose que de la règle qu ils prétendent mesurer.
+      await lire(tester, fug('B', bonnes));
+      expect(find.byType(GameScreen), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('deux Chevaliers du même camp : refusé', (tester) async {
+      final r = [...bonnes];
+      r[1] = 'c--c---';
+      await lire(tester, fug('B', r));
+      expect(find.byType(GameScreen), findsNothing);
+      expect(find.textContaining('plus d\'un Chevalier'), findsOneWidget);
+    });
+
+    testWidgets('un seul Chevalier passe, et zéro aussi', (tester) async {
+      final r = [...bonnes];
+      r[1] = 'c------';
+      r[6] = 'C------';
+      await lire(tester, fug('B', r));
+      expect(
+        find.byType(GameScreen),
+        findsOneWidget,
+        reason: 'mettre un Chevalier n est pas obligatoire, mais permis',
+      );
+    });
+
+    testWidgets('deux Héritiers du même camp : refusé', (tester) async {
+      final r = [...bonnes];
+      r[1] = 'h------';
+      await lire(tester, fug('B', r));
+      expect(find.byType(GameScreen), findsNothing);
+      expect(find.textContaining('Héritier'), findsWidgets);
+    });
+
+    testWidgets('aucun Héritier noir : refusé', (tester) async {
+      final r = [...bonnes];
+      r[7] = '-SG----';
+      await lire(tester, fug('B', r));
+      expect(find.byType(GameScreen), findsNothing);
+      expect(find.textContaining('Héritier'), findsWidgets);
+    });
+
+    testWidgets('des carrées qui ne peuvent pas bouger : refusé', (
+      tester,
+    ) async {
+      final r = [...bonnes];
+      // Une seule carrée noire, sans voisine.
+      r[7] = 'H--S---';
+      await lire(tester, fug('B', r));
+      expect(find.byType(GameScreen), findsNothing);
+      expect(
+        find.textContaining('aucune pièce carrée capable de bouger'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('moins de trois cases libres : refusé', (tester) async {
+      final plein = [
+        'hgggggg',
+        'ggggggg',
+        'ggggggg',
+        'ggggggg',
+        'GGGGGGG',
+        'GGGGGGG',
+        'GGGGGGG',
+        'GGGGG-H',
+      ];
+      await lire(tester, fug('B', plein));
+      expect(find.byType(GameScreen), findsNothing);
+      expect(
+        find.textContaining('moins de trois cases libres'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('le refus RAPPELLE les règles, il ne dit pas juste non', (
+      tester,
+    ) async {
+      final r = [...bonnes];
+      r[1] = 'c--c---';
+      await lire(tester, fug('B', r));
+      expect(find.textContaining('Chevalier au plus par camp'), findsOneWidget);
+      expect(find.textContaining('trois cases libres'), findsWidgets);
+      expect(find.textContaining('pièce carrée'), findsWidgets);
     });
   });
 }

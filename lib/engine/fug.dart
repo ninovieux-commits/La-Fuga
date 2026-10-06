@@ -98,6 +98,10 @@ enum FugRefus {
   /// Un camp n'a pas d'Héritier, ou en a plusieurs. Il en faut un, et un seul.
   heritier,
 
+  /// Un camp a plus d'un Chevalier. Il n'en existe qu'un par camp — en avoir
+  /// zéro est permis, en avoir deux ne l'est pas.
+  chevalier,
+
   /// Un camp n'a aucune pièce carrée capable de bouger. La position serait
   /// nulle d'entrée : une carrée ne bouge que si elle touche une autre carrée.
   carreesBloquees,
@@ -183,17 +187,21 @@ FugLecture fugLire(String texte) {
   return (position: (board: board, turn: trait), erreur: null, ligne: null);
 }
 
-/// Combien d'Héritiers [camp] a sur le plateau.
-int fugHeritiers(Board board, Camp camp) {
+/// Combien de pièces de ce type et de ce camp sont sur le plateau.
+int fugCompte(Board board, PieceType type, Camp camp) {
   var n = 0;
   for (var c = 0; c < kCols; c++) {
     for (var r = 0; r < kRows; r++) {
       final p = board.at(c, r);
-      if (p != null && p.isHeir && p.camp == camp) n++;
+      if (p != null && p.type == type && p.camp == camp) n++;
     }
   }
   return n;
 }
+
+/// Combien d'Héritiers [camp] a sur le plateau.
+int fugHeritiers(Board board, Camp camp) =>
+    fugCompte(board, PieceType.heritier, camp);
 
 /// Vrai si [camp] possède au moins une pièce carrée capable de bouger.
 ///
@@ -225,12 +233,24 @@ int fugCasesVides(Board board) {
 /// Pourquoi cette position ne peut pas servir de départ — ou `null` si elle le
 /// peut.
 ///
-/// Les trois règles de Nino, et elles seules : un Héritier par camp, des
-/// carrées qui peuvent bouger des deux côtés, et au moins [kFugVidesMin] cases
-/// libres. Pour le reste on ne juge rien — dix Gardes d'un côté, c'est permis.
+/// Les règles de Nino, et elles seules : un Héritier par camp, un Chevalier au
+/// plus par camp, des carrées qui peuvent bouger des deux côtés, et au moins
+/// [kFugVidesMin] cases libres. Pour le reste on ne juge rien — dix Gardes d'un
+/// côté, c'est permis.
+///
+/// Le Chevalier est ici parce que le lecteur `.fug` doit refuser un code qui en
+/// porte deux. Le composeur ne peut pas en poser un second — il déplace celui
+/// qui est là — mais un code collé à la main, lui, peut en contenir autant qu'il
+/// veut. La règle doit donc exister quelque part de vérifiable, et elle vit où
+/// vivent les autres.
 FugRefus? fugRefus(Board board) {
   for (final camp in Camp.values) {
     if (fugHeritiers(board, camp) != 1) return FugRefus.heritier;
+  }
+  for (final camp in Camp.values) {
+    if (fugCompte(board, PieceType.chevalier, camp) > 1) {
+      return FugRefus.chevalier;
+    }
   }
   for (final camp in Camp.values) {
     if (!fugCarreeMobile(board, camp)) return FugRefus.carreesBloquees;

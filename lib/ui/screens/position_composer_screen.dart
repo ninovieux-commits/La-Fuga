@@ -171,6 +171,10 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
                 FugRefus.heritier => T(
                   'Il manque un Héritier, ou il y en a plusieurs.',
                 ),
+                // Le composeur ne sait pas poser deux Chevaliers du même camp
+                // — il déplace celui qui est là. Un code COLLÉ, lui, peut en
+                // contenir deux.
+                FugRefus.chevalier => T('Un camp a plus d\'un Chevalier.'),
                 FugRefus.carreesBloquees => T(
                   'Un camp n\'a aucune pièce carrée capable de bouger.',
                 ),
@@ -187,8 +191,9 @@ class _PositionComposerScreenState extends State<PositionComposerScreen> {
             SizedBox(height: S(10)),
             Text(
               T(
-                'Une position jouable demande trois choses :\n\n'
+                'Une position jouable demande :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
+                '• un Chevalier au plus par camp — zéro est permis ;\n'
                 '• dans chaque camp, au moins une pièce carrée qui touche une '
                 'autre pièce carrée — une carrée isolée ne peut pas bouger, et '
                 'la partie serait nulle d\'entrée ;\n'
