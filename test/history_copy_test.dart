@@ -302,6 +302,20 @@ void main() {
       await tester.tap(find.text('Copier'));
       await tester.pumpAndSettle();
 
+      // « Copier » propose maintenant deux choses : la partie, et la position
+      // qu'on regarde. Une quatrième touche large dans le bandeau déborderait
+      // sur un écran de 320 points — mesuré.
+      expect(find.text('La partie (.nmc)'), findsOneWidget);
+      expect(find.text('La position (.fug)'), findsOneWidget);
+      expect(
+        copie,
+        isNull,
+        reason: 'rien ne doit être copié avant d avoir choisi quoi',
+      );
+
+      await tester.tap(find.text('La partie (.nmc)'));
+      await tester.pumpAndSettle();
+
       expect(
         copie,
         nmc,

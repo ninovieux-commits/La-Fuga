@@ -33,6 +33,7 @@ class GameTopBar extends StatelessWidget {
     this.onChat,
     this.unreadChat = 0,
     this.onCopyNmc,
+    this.onCopyFug,
     this.onAnalyse,
     this.onPremove,
     this.onDeepGrey,
@@ -68,6 +69,10 @@ class GameTopBar extends StatelessWidget {
   /// En relecture : copier le `.nmc` de la partie qu'on est en train de
   /// relire, sans avoir à ressortir jusqu'à l'historique pour le faire.
   final VoidCallback? onCopyNmc;
+
+  /// Copier la POSITION affichée, au format `.fug`. En analyse, où il y a la
+  /// place ; en relecture, la touche « Copier » propose les deux.
+  final VoidCallback? onCopyFug;
 
   /// En relecture seulement.
   final VoidCallback? onAnalyse;
@@ -152,6 +157,16 @@ class GameTopBar extends StatelessWidget {
             width: S(104),
             color: kBarButtonDark,
             tooltip: T('Contenu .nmc'),
+          ),
+          SizedBox(width: S(6)),
+        ],
+        if (onCopyFug != null) ...[
+          _wide(
+            T('Position'),
+            onCopyFug!,
+            width: S(118),
+            color: kBarButtonDark,
+            tooltip: T('Copier au format .fug'),
           ),
           SizedBox(width: S(6)),
         ],

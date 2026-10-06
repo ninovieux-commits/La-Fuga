@@ -36,7 +36,9 @@ import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
+import '../../engine/fug.dart';
 import '../widgets/end_dialogs.dart';
+import '../widgets/nmc_dialog.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
@@ -922,6 +924,11 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     pauseLabel: widget.analysis ? '<<' : '| |',
     onPause: widget.analysis ? () => Navigator.of(context).pop() : _openPause,
     onMenu: _game.gameOver ? () => Navigator.of(context).pop() : null,
+    // En analyse, la position qu'on regarde se copie : c'est elle qu'on
+    // emporte pour la rejouer ailleurs, ou pour en faire un défi.
+    onCopyFug: widget.analysis
+        ? () => showFugDialog(context, fugEcrire(_shownBoard, _game.turn))
+        : null,
     // Reprendre la position affichée contre Deep Grey : Kivy l'offre en
     // analyse comme en relecture.
     onDeepGrey: widget.analysis && !widget.analysisFromCorr

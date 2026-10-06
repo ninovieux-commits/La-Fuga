@@ -20,6 +20,7 @@ import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
+import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/player_panel.dart';
@@ -161,7 +162,14 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
             onFlip: () => setState(() => _flipped = !_flipped),
             pauseLabel: '<<',
             onPause: () => Navigator.of(context).pop(),
-            onCopyNmc: () => showNmcDialog(context, widget.nmc),
+            // Deux choses à copier, une seule touche : mesuré, une
+            // quatrième touche large déborde du bandeau sur un écran de
+            // 320 points.
+            onCopyNmc: () => showCopyChoice(
+              context,
+              nmc: widget.nmc,
+              fug: fugEcrire(step.board, step.turn),
+            ),
             onAnalyse: () => _playFromHere(false),
             onDeepGrey: _playAgainstDeepGrey,
           ),

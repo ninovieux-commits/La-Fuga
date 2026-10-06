@@ -15,6 +15,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'history_screen.dart';
+import 'fug_reader_screen.dart';
 import 'reader_screen.dart';
 
 class PartiesMenuScreen extends StatelessWidget {
@@ -100,6 +101,14 @@ class PartiesMenuScreen extends StatelessWidget {
                             T('Lecteur nmc'),
                             kFugaGrey,
                             () => _push(context, const ReaderScreen()),
+                          ),
+                          // Sous le lecteur de parties, celui des positions :
+                          // le `.nmc` décrit une partie, le `.fug` un plateau.
+                          (
+                            0.40,
+                            T('Lecteur fug'),
+                            kFugaGrey,
+                            () => _push(context, const FugReaderScreen()),
                           ),
                         ])
                       Positioned(
