@@ -131,18 +131,40 @@ void main() {
     expect(find.text('À vous de jouer'), findsOneWidget);
   });
 
-  testWidgets('un défi reçu propose Accepter et Refuser', (tester) async {
+  testWidgets('un défi reçu s affiche AVANT d être accepté', (tester) async {
     replies['/corr_list'] = {
       'ok': true,
       'games': [game(statut: 'defi', myTurn: false)],
     };
     await open(tester);
 
-    expect(find.textContaining('vous défie'), findsOneWidget);
-    await tapVisible(tester, find.text('Accepter'));
+    // L'aperçu annonce, il n'engage plus : on ne dit pas oui à une partie
+    // sans avoir vu d'où elle part.
+    expect(find.textContaining('Défi de'), findsOneWidget);
+    expect(find.text('Accepter'), findsNothing);
+    expect(find.text('Refuser'), findsNothing);
 
+    await tapVisible(tester, find.text('Afficher le défi'));
+    expect(
+      bodyOf('/corr_repondre'),
+      isNull,
+      reason: 'rien ne doit être répondu en ouvrant le défi',
+    );
+
+    await tapVisible(tester, find.text('Accepter le défi'));
     expect(bodyOf('/corr_repondre')!['game_id'], 'g1');
     expect(bodyOf('/corr_repondre')!['accepte'], isTrue);
+  });
+
+  testWidgets('et on peut le refuser depuis le même écran', (tester) async {
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(statut: 'defi', myTurn: false)],
+    };
+    await open(tester);
+    await tapVisible(tester, find.text('Afficher le défi'));
+    await tapVisible(tester, find.text('Refuser le défi'));
+    expect(bodyOf('/corr_repondre')!['accepte'], isFalse);
   });
 
   testWidgets('une partie terminée se referme', (tester) async {

@@ -46,6 +46,7 @@ import 'game_screen.dart';
 import 'login_screen.dart';
 import 'online_game_screen.dart';
 import 'parties_menu_screen.dart';
+import 'challenge_screen.dart';
 import 'position_composer_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
@@ -860,6 +861,21 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     await _refreshCorr();
   }
 
+  /// Ouvrir un défi reçu en grand : la position proposée, le mode, la couleur
+  /// et le score, puis accepter ou refuser devant le plateau.
+  ///
+  /// L'aperçu ne porte plus ces deux touches : on ne dit plus oui à une partie
+  /// sans avoir vu d'où elle part.
+  Future<void> _corrShowChallenge(CorrGame game) async {
+    final reponse = await Navigator.of(context).push<ChallengeAnswer>(
+      MaterialPageRoute<ChallengeAnswer>(
+        builder: (_) => ChallengeScreen(game: game),
+      ),
+    );
+    if (reponse == null || !mounted) return;
+    await _corrAnswer(game, reponse == ChallengeAnswer.accepte);
+  }
+
   Future<void> _corrAnswer(CorrGame game, bool accept) async {
     await _corr.answerChallenge(game.id, accept);
     await _refreshCorr();
@@ -1417,6 +1433,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
           onRematch: _corrRematch,
           onClose: _corrClose,
           onShow: _corrShow,
+          onShowChallenge: _corrShowChallenge,
         );
       },
     );

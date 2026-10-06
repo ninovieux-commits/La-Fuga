@@ -11,6 +11,7 @@ import '../engine/literal_replay.dart';
 import '../engine/random_fuga.dart';
 import '../game/captures.dart';
 import '../game/last_move.dart';
+import '../engine/fug.dart';
 import '../game/nmc.dart';
 import '../game/premove.dart';
 import '../net/online_client.dart';
@@ -63,6 +64,9 @@ final class CorrGame {
     this.premove,
     this.premoveAdverse = false,
     this.premovePar = '',
+    this.mode = CorrMode.standard,
+    this.position = '',
+    this.couleurAnnoncee,
   });
 
   final String id;
@@ -124,6 +128,33 @@ final class CorrGame {
   /// Qui avait préjoué — pour le nommer dans le popup.
   final String premovePar;
 
+  /// D'où part la partie : standard, Random Fuga, ou une position composée.
+  final CorrMode mode;
+
+  /// La position composée, au format `.fug` sur une seule ligne. Vide hors du
+  /// mode personnalisé.
+  final String position;
+
+  /// La couleur annoncée au moment du défi. `null` = aléatoire, et personne
+  /// ne la connaît tant que la partie n'a pas démarré.
+  final Camp? couleurAnnoncee;
+
+  /// Position de DÉPART de la partie, quel que soit le mode.
+  ///
+  /// Une position composée illisible retombe sur la standard : mieux vaut une
+  /// partie qu'on ne saura pas relire qu'un écran vide.
+  Board get startBoard {
+    if (mode != CorrMode.personnalise || position.isEmpty) return initialBoard;
+    return fugLire(fugDepuisUneLigne(position)).position?.board ?? initialBoard;
+  }
+
+  /// Camp au trait au DÉPART. Les Blancs, sauf si une position composée en
+  /// décide autrement.
+  Camp get startTurn {
+    if (mode != CorrMode.personnalise || position.isEmpty) return Camp.blanc;
+    return fugLire(fugDepuisUneLigne(position)).position?.turn ?? Camp.blanc;
+  }
+
   Camp get opponentCamp => myCamp.opposite;
 
   /// Plateau de départ de cette partie.
@@ -163,6 +194,19 @@ final class CorrGame {
         : null,
     premoveAdverse: j['premove_adverse'] == true,
     premovePar: (j['premove_par'] ?? '').toString(),
+    // Sans `mode`, on le déduit du code Random : un serveur pas encore
+    // corrigé continue donc d'afficher « Random » là où il le faut.
+    mode: j['mode'] == null
+        ? ((j['random_code'] ?? '').toString().isEmpty
+              ? CorrMode.standard
+              : CorrMode.random)
+        : CorrMode.fromWire(j['mode'].toString()),
+    position: (j['position'] ?? '').toString(),
+    couleurAnnoncee: switch ((j['couleur'] ?? '').toString()) {
+      'Blanc' => Camp.blanc,
+      'Noir' => Camp.noir,
+      _ => null,
+    },
   );
 }
 

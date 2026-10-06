@@ -129,6 +129,7 @@ void main() {
       onRematch: (_) {},
       onClose: (_) {},
       onShow: (_) {},
+      onShowChallenge: (_) {},
     );
 
     final avecOriginal = await _peintre(tester, slot('original'));

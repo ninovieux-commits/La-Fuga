@@ -35,6 +35,7 @@ class CorrSlot extends StatelessWidget {
     required this.onRematch,
     required this.onClose,
     required this.onShow,
+    required this.onShowChallenge,
   });
 
   /// La partie affichée, ou `null` pour une case vide.
@@ -56,6 +57,9 @@ class CorrSlot extends StatelessWidget {
   final void Function(CorrGame) onCancel;
   final void Function(CorrGame) onRematch;
   final void Function(CorrGame) onClose;
+
+  /// Ouvrir un défi reçu en grand, pour le regarder avant de répondre.
+  final void Function(CorrGame) onShowChallenge;
 
   /// Revoir une partie finie : la position finale, avec le dernier coup
   /// encadré et l'Héritier dans son ralliement s'il a fugué. Sans cette
@@ -111,7 +115,7 @@ class CorrSlot extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: _plate(
         '${g.opponent}\n'
-        '${g.randomCode.isEmpty ? T('Standard') : 'Random'} · '
+        '${g.mode.label} · '
         '${g.myScore} - ${g.opponentScore}',
         bold: true,
       ),
@@ -133,7 +137,14 @@ class CorrSlot extends StatelessWidget {
     },
   ];
 
-  /// Un défi : reçu, on accepte ou refuse ; envoyé, on attend ou on annule.
+  /// Un défi : reçu, on l'ouvre pour le regarder ; envoyé, on attend ou on
+  /// annule.
+  ///
+  /// L'aperçu ne porte plus « Accepter » et « Refuser ». On ne dit plus oui à
+  /// une partie sans avoir vu d'où elle part — et depuis qu'un défi peut
+  /// arriver avec une position composée de toutes pièces, la question n'est
+  /// plus rhétorique. L'aperçu annonce le mode et la couleur ; le reste se
+  /// décide devant le plateau.
   List<Widget> _challenge(CorrGame g) => g.isChallenger
       ? [
           Align(alignment: Alignment.center, child: _plate(T('En attente…'))),
@@ -148,23 +159,31 @@ class CorrSlot extends StatelessWidget {
         ]
       : [
           Align(
-            alignment: const Alignment(0, -0.1),
+            alignment: const Alignment(0, -0.05),
             child: _plate(
-              '${T('vous défie !')}\n'
-              '${T('Mélo : %d').replaceAll('%d', '${g.opponentMelo}')}'
-              '${g.randomCode.isEmpty ? '' : '\nRandom Fuga'}',
+              '${T('Défi de')} ${g.opponent}\n'
+              '${T('Mode')} : ${g.mode.label}\n'
+              '${T('Couleur')} : ${_couleurDite(g)}',
               bold: true,
             ),
           ),
-          _slotButton(T('Accepter'), palette.fonce, () => onAccept(g), y: 0.24),
           _slotButton(
-            T('Refuser'),
-            const Color(0xFF8C1A1A),
-            () => onRefuse(g),
+            T('Afficher le défi'),
+            palette.fonce,
+            () => onShowChallenge(g),
             y: 0.06,
           ),
         ];
 
+  /// La couleur annoncée, DE MON point de vue : celle que je jouerai.
+  String _couleurDite(CorrGame g) {
+    final sienne = g.couleurAnnoncee;
+    if (sienne == null) return T('Aléatoire');
+    final mienne = g.isChallenger ? sienne : sienne.opposite;
+    return mienne == Camp.blanc ? T('Blancs') : T('Noirs');
+  }
+
+  /// Une partie finie : le résultat, et trois choses à en faire.
   List<Widget> _finished(CorrGame g) {
     final (text, color) = switch (g.won) {
       true => (T('Gagné !'), const Color(0xFF80E680)),
@@ -172,8 +191,8 @@ class CorrSlot extends StatelessWidget {
       null => (T('Nulle'), const Color(0xFFE6E699)),
     };
     return [
-      // Trois touches maintenant, au lieu de deux : le résultat remonte pour
-      // leur laisser la place.
+      // Trois touches, au lieu de deux : le résultat remonte pour leur
+      // laisser la place.
       Align(
         alignment: const Alignment(0, -0.42),
         child: _plate(text, bold: true, color: color),
@@ -184,7 +203,6 @@ class CorrSlot extends StatelessWidget {
     ];
   }
 
-  /// Texte sur fond sombre : sans lui, rien ne se lit par-dessus le plateau.
   Widget _plate(String text, {bool bold = false, Color color = Colors.white}) =>
       Container(
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
