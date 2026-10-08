@@ -97,24 +97,26 @@ void main() {
   });
 
   group('Les notes : une durée ET une force', () {
-    test('la VALSE joue TROIS notes, la première tenue et appuyée', () {
-      // « Fais les deux : trois notes, la première plus forte et tenue. »
-      // Un temps et quart, puis trois quarts, puis un — et la mesure se
-      // referme juste sur trois temps.
+    test('la VALSE pose ses trois notes SUR LES TROIS TEMPS', () {
+      // « Oui fais ça, trois notes sur les trois temps. » Le oum-pa-pa : le
+      // « taaam » vient de l'ACCENT, pas d'un écart plus long. Une tenue faite
+      // d'un écart déplacerait les deux autres notes hors des temps.
       final v = Rythmique.valse;
       expect(v.coupsParMesure, 3, reason: 'trois notes, pas deux');
-      expect(v.ecarts, [
-        6,
-        3,
-        3,
-      ], reason: 'en double croches : 1,5 / 0,75 / 0,75');
-      expect(
-        v.ecarts[1],
-        v.ecarts[2],
-        reason:
-            'LES DEUX COURTES SONT ÉGALES : « taaam tam tam », et non '
-            '« taaam tam taam »',
-      );
+      expect(v.ecarts, [1, 1, 1], reason: 'un temps chacune');
+      expect(v.pulsationsParTemps, 1, reason: 'la pulsation EST le temps');
+      // Le vrai contrôle : chaque note tombe SUR un temps. Avec 1,5 / 0,75 /
+      // 0,75, les deuxième et troisième tombaient à 1,5 et 2,25 quand les
+      // temps sont à 1 et 2 — une syncope, et aucune valse n en fait.
+      var t = 0;
+      for (final e in v.ecarts) {
+        expect(
+          t % v.pulsationsParTemps,
+          0,
+          reason: 'une note hors des temps : la valse serait syncopée',
+        );
+        t += e;
+      }
       expect(v.forces.first, 1.0, reason: 'la première à pleine voix');
       expect(
         v.forces.sublist(1),
@@ -123,23 +125,18 @@ void main() {
       );
       expect(
         v.ecarts.first,
-        greaterThan(v.ecarts[1]),
-        reason: 'la première est TENUE, plus longue que la deuxième',
+        v.ecarts[1],
+        reason:
+            'la tenue vient de l ACCENT, pas d un écart : allonger le premier '
+            'écart chasserait les deux autres notes hors des temps',
       );
     });
 
     test('et la mesure de valse ne laisse AUCUN trou au bout', () {
       final v = Rythmique.valse;
-      expect(v.pulsationsParMesure, 12, reason: 'trois temps de quatre');
+      expect(v.pulsationsParMesure, 3, reason: 'trois temps, un par note');
       expect(v.tempsParMesure, 3);
-      // À la microseconde près : douze pulsations arrondies ne font pas
-      // exactement trois temps arrondis (1 058 820 µs contre 1 058 823). Trois
-      // microsecondes sur une seconde, personne ne les entend — mais mieux
-      // vaut l'écrire que de faire semblant que le compte tombe rond.
-      expect(
-        (v.parMesure - v.parTemps * 3).inMicroseconds.abs(),
-        lessThan(1000),
-      );
+      expect(v.parMesure, v.parTemps * 3);
     });
 
     test('aucune danse ne laisse de trou, et chacune a sa pleine voix', () {
@@ -194,6 +191,23 @@ void main() {
       }
     });
 
+    test('valse et menuet : même dessin, autre tempo et autre appui', () {
+      // Tous deux sont à 3/4 avec l accent sur un : ils ne diffèrent que par
+      // la vitesse et par la profondeur du creux. C est musicalement exact, et
+      // mieux vaut l écrire que de les distinguer par une fausse syncope.
+      expect(Rythmique.valse.ecarts, Rythmique.menuet.ecarts);
+      expect(
+        Rythmique.valse.tempsParMin,
+        greaterThan(Rythmique.menuet.tempsParMin),
+        reason: 'une valse tourne plus vite qu un menuet',
+      );
+      expect(
+        Rythmique.valse.forces[1],
+        lessThan(Rythmique.menuet.forces[1]),
+        reason: 'et creuse davantage ses temps faibles',
+      );
+    });
+
     test('la sarabande appuie et allonge son DEUXIÈME temps', () {
       // L'inverse de la valse : court et doux, puis long et fort.
       final s = Rythmique.sarabande;
@@ -211,9 +225,14 @@ void main() {
     });
 
     test('les danses égales le sont en DURÉE, pas en force', () {
-      // Le menuet, la marche et la gavotte avancent d un pas régulier : c est
-      // l accent, et lui seul, qui les fait danser.
-      for (final r in [Rythmique.menuet, Rythmique.marche, Rythmique.gavotte]) {
+      // La valse, le menuet, la marche et la gavotte avancent d un pas
+      // régulier : c est l accent, et lui seul, qui les fait danser.
+      for (final r in [
+        Rythmique.valse,
+        Rythmique.menuet,
+        Rythmique.marche,
+        Rythmique.gavotte,
+      ]) {
         expect(r.ecarts.toSet(), {1}, reason: '${r.nom} : des notes égales');
         expect(
           r.forces.toSet().length,
@@ -232,7 +251,7 @@ void main() {
 
     test('le dessin se lit comme une partition', () {
       // `>` est le signe de l accent, et les durées sont en temps.
-      expect(Rythmique.valse.motifEcrit, '>1,5  0,75  0,75');
+      expect(Rythmique.valse.motifEcrit, '>1  1  1');
       // Les chiffres sont des DURÉES en temps, pas des volumes : la première
       // note de la sarabande dure un temps, et c'est la seconde qui porte le
       // `>`.
@@ -245,7 +264,7 @@ void main() {
 
     test('le détail dit le tempo et le dessin', () {
       expect(Rythmique.valse.detail, contains('170/min'));
-      expect(Rythmique.valse.detail, contains('>1,5'));
+      expect(Rythmique.valse.detail, contains('>1  1  1'));
     });
   });
 
@@ -259,7 +278,7 @@ void main() {
       expect(t.etiquette, '2.5 s');
     });
 
-    test('la valse tient sa première note, puis presse les deux autres', () {
+    test('la valse espace ses trois notes également', () {
       const t = TempoLecture.danse(Rythmique.valse);
       expect(
         t.estLibre,
@@ -267,10 +286,13 @@ void main() {
         reason: 'on ne règle plus la vitesse quand une rythmique est choisie',
       );
       final pul = Rythmique.valse.parPulsation;
-      expect(t.ecartAvant(0), pul * 6, reason: 'la note tenue : 1,5 temps');
-      expect(t.ecartAvant(1), pul * 3, reason: '0,75 temps');
-      expect(t.ecartAvant(2), pul * 3, reason: 'et la même : 0,75 temps');
-      expect(t.ecartAvant(3), pul * 6, reason: 'la mesure suivante enchaîne');
+      for (var n = 0; n < 6; n++) {
+        expect(
+          t.ecartAvant(n),
+          pul,
+          reason: 'coup $n : les trois notes sont sur les trois temps',
+        );
+      }
       // Trois coups par mesure, et pas de trou.
       expect(
         t.ecartAvant(0) + t.ecartAvant(1) + t.ecartAvant(2),

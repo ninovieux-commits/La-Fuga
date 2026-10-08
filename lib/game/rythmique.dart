@@ -61,25 +61,30 @@ int get kVitesseCrans =>
 
 /// Une danse : sa mesure, son tempo, et le dessin de ses notes.
 enum Rythmique {
-  /// « Taaam tam tam taaam tam tam » — Nino.
+  /// Le *oum-pa-pa* : trois notes SUR LES TROIS TEMPS, la première à pleine
+  /// voix, les deux autres légères.
   ///
-  /// Trois notes : la première TENUE et appuyée, les deux autres brèves, plus
-  /// douces, et ÉGALES entre elles. Un temps et demi, puis trois quarts, puis
-  /// trois quarts : la mesure fait ses trois temps et la suivante enchaîne.
+  /// Le « taaam » ne vient pas d'un écart plus long mais de l'ACCENT, et du
+  /// fait que la note continue de sonner pendant les deux suivantes — ce qui
+  /// se produit tout seul : rien ne coupe une note, l'échantillon va au bout.
   ///
-  /// Les deux courtes doivent être de même durée. Avec trois quarts puis un
-  /// temps entier, on entend « taaam tam taam » — ce qui n'est pas une valse.
-  valse('Valse', '3/4', 170, 4, [
-    (duree: 6, force: 1.0),
-    (duree: 3, force: 0.70),
-    (duree: 3, force: 0.70),
+  /// Une tenue faite d'un écart plus long déplacerait les deux autres notes
+  /// HORS DES TEMPS : avec 1,5 puis 0,75 et 0,75, elles tombaient à 1,5 et
+  /// 2,25 quand les temps sont à 1 et 2. C'est une syncope, et aucune valse
+  /// n'en fait.
+  valse('Valse', '3/4', 170, 1, [
+    (duree: 1, force: 1.0),
+    (duree: 1, force: 0.65),
+    (duree: 1, force: 0.65),
   ]),
 
-  /// Le trois temps de cour : trois notes égales, le premier temps appuyé.
+  /// Le trois temps de cour. Même dessin que la valse — tous deux sont à 3/4,
+  /// accent sur le premier temps — mais plus lent, et l'appui moins creusé :
+  /// un menuet se danse, une valse se tourne.
   menuet('Menuet', '3/4', 120, 1, [
     (duree: 1, force: 1.0),
-    (duree: 1, force: 0.75),
-    (duree: 1, force: 0.75),
+    (duree: 1, force: 0.82),
+    (duree: 1, force: 0.82),
   ]),
 
   /// Elle appuie et ALLONGE son deuxième temps : l'inverse de la valse, et sa
