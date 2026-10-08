@@ -104,10 +104,17 @@ void main() {
       final v = Rythmique.valse;
       expect(v.coupsParMesure, 3, reason: 'trois notes, pas deux');
       expect(v.ecarts, [
-        5,
+        6,
         3,
-        4,
-      ], reason: 'en double croches : 1,25 / 0,75 / 1');
+        3,
+      ], reason: 'en double croches : 1,5 / 0,75 / 0,75');
+      expect(
+        v.ecarts[1],
+        v.ecarts[2],
+        reason:
+            'LES DEUX COURTES SONT ÉGALES : « taaam tam tam », et non '
+            '« taaam tam taam »',
+      );
       expect(v.forces.first, 1.0, reason: 'la première à pleine voix');
       expect(
         v.forces.sublist(1),
@@ -225,7 +232,7 @@ void main() {
 
     test('le dessin se lit comme une partition', () {
       // `>` est le signe de l accent, et les durées sont en temps.
-      expect(Rythmique.valse.motifEcrit, '>1,25  0,75  1');
+      expect(Rythmique.valse.motifEcrit, '>1,5  0,75  0,75');
       // Les chiffres sont des DURÉES en temps, pas des volumes : la première
       // note de la sarabande dure un temps, et c'est la seconde qui porte le
       // `>`.
@@ -238,7 +245,7 @@ void main() {
 
     test('le détail dit le tempo et le dessin', () {
       expect(Rythmique.valse.detail, contains('170/min'));
-      expect(Rythmique.valse.detail, contains('>1,25'));
+      expect(Rythmique.valse.detail, contains('>1,5'));
     });
   });
 
@@ -260,10 +267,10 @@ void main() {
         reason: 'on ne règle plus la vitesse quand une rythmique est choisie',
       );
       final pul = Rythmique.valse.parPulsation;
-      expect(t.ecartAvant(0), pul * 5, reason: 'la note tenue : 1,25 temps');
+      expect(t.ecartAvant(0), pul * 6, reason: 'la note tenue : 1,5 temps');
       expect(t.ecartAvant(1), pul * 3, reason: '0,75 temps');
-      expect(t.ecartAvant(2), pul * 4, reason: 'un temps');
-      expect(t.ecartAvant(3), pul * 5, reason: 'la mesure suivante enchaîne');
+      expect(t.ecartAvant(2), pul * 3, reason: 'et la même : 0,75 temps');
+      expect(t.ecartAvant(3), pul * 6, reason: 'la mesure suivante enchaîne');
       // Trois coups par mesure, et pas de trou.
       expect(
         t.ecartAvant(0) + t.ecartAvant(1) + t.ecartAvant(2),

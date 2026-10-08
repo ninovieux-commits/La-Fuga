@@ -235,16 +235,14 @@ void main() {
       expect(coupRegarde(tester), depart + 1);
     });
 
-    testWidgets('la VALSE : trois notes, la première tenue', (tester) async {
-      // « Fais les deux : trois notes, la première plus forte et tenue. »
-      // À 170, la double croche vaut 88 ms. La première note en occupe cinq
-      // (441 ms), la deuxième trois (265 ms), la troisième quatre (353 ms) —
-      // et la mesure suivante ENCHAÎNE. Les coups tombent donc à 441, 706,
-      // 1059, 1500 ms.
+    testWidgets('la VALSE fait « taaam tam tam »', (tester) async {
+      // Nino : « Pour une valse ça doit faire Taaam tam tam taaam tam tam. »
+      // LES DEUX COURTES SONT ÉGALES. À 170, la double croche vaut 88 ms : la
+      // tenue dure six doubles croches (529 ms), les deux brèves trois chacune
+      // (265 ms). Les coups tombent donc à 529, 794, 1059, puis 1588 ms.
       //
       // Que des `pump` exacts, jamais `pumpAndSettle` en cours de route :
-      // celui-ci avance l'horloge de toute la durée des animations, et le
-      // compte des millisecondes ne voudrait plus rien dire.
+      // celui-ci avance l'horloge de toute la durée des animations.
       await ouvrirAuto(tester);
       tester
           .widget<AutoPlayBar>(find.byType(AutoPlayBar))
@@ -255,29 +253,31 @@ void main() {
       final depart = coupRegarde(tester);
 
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      await tester.pump(const Duration(milliseconds: 350));
-      expect(coupRegarde(tester), depart, reason: 'avant la première note');
-      await tester.pump(const Duration(milliseconds: 150)); // 500 ms
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(coupRegarde(tester), depart, reason: 'avant le « taaam »');
+      await tester.pump(const Duration(milliseconds: 150)); // 600 ms
       expect(coupRegarde(tester), depart + 1);
 
-      // La deuxième arrive PLUS VITE que la première : c'est ça, la tenue.
-      await tester.pump(const Duration(milliseconds: 150)); // 650 ms
-      expect(
-        coupRegarde(tester),
-        depart + 1,
-        reason: 'la première note est tenue : 441 ms, pas 265',
-      );
-      await tester.pump(const Duration(milliseconds: 100)); // 750 ms
+      // Premier « tam » : 265 ms après, deux fois moins que la tenue.
+      await tester.pump(const Duration(milliseconds: 150)); // 750 ms
+      expect(coupRegarde(tester), depart + 1, reason: 'la tenue dure encore');
+      await tester.pump(const Duration(milliseconds: 100)); // 850 ms
       expect(coupRegarde(tester), depart + 2);
 
-      // La troisième, puis la mesure suivante qui enchaîne sans trou.
-      await tester.pump(const Duration(milliseconds: 250)); // 1000 ms
+      // Second « tam » : LE MÊME écart que le premier.
+      await tester.pump(const Duration(milliseconds: 150)); // 1000 ms
       expect(coupRegarde(tester), depart + 2);
       await tester.pump(const Duration(milliseconds: 100)); // 1100 ms
-      expect(coupRegarde(tester), depart + 3, reason: 'le troisième temps');
-      await tester.pump(const Duration(milliseconds: 350)); // 1450 ms
+      expect(
+        coupRegarde(tester),
+        depart + 3,
+        reason: 'les deux brèves sont de même durée',
+      );
+
+      // Et la mesure suivante enchaîne sur un « taaam ».
+      await tester.pump(const Duration(milliseconds: 400)); // 1500 ms
       expect(coupRegarde(tester), depart + 3);
-      await tester.pump(const Duration(milliseconds: 100)); // 1550 ms
+      await tester.pump(const Duration(milliseconds: 150)); // 1650 ms
       expect(
         coupRegarde(tester),
         depart + 4,
@@ -415,12 +415,12 @@ void main() {
 
       final cues = sons.envois.single;
       expect(cues.length, 3, reason: 'les trois notes de la mesure');
-      // Les retards : 0, puis 3 doubles croches (265 ms), puis 4 de plus
-      // (618 ms). À 170, la double croche vaut 88 ms.
+      // Les retards : 0, puis 3 doubles croches (265 ms), puis 3 de plus
+      // (529 ms). À 170, la double croche vaut 88 ms.
       final pul = Rythmique.valse.parPulsation;
       expect(cues[0].delay, Duration.zero);
-      expect(cues[1].delay, pul * 3);
-      expect(cues[2].delay, pul * 3 + pul * 4);
+      expect(cues[1].delay, pul * 3, reason: 'après le « taaam »');
+      expect(cues[2].delay, pul * 6, reason: 'le même écart pour le second');
       await tester.pumpAndSettle();
     });
 
@@ -439,7 +439,7 @@ void main() {
       tester,
     ) async {
       final sons = await jouer(tester, Rythmique.valse);
-      await tester.pump(const Duration(milliseconds: 1600));
+      await tester.pump(const Duration(milliseconds: 1700));
 
       expect(sons.envois.length, 2, reason: 'une mesure, puis la suivante');
       expect(sons.envois[1].first.gain, 1.0);

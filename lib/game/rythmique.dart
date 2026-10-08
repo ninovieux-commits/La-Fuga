@@ -61,12 +61,18 @@ int get kVitesseCrans =>
 
 /// Une danse : sa mesure, son tempo, et le dessin de ses notes.
 enum Rythmique {
-  /// Trois notes, la première TENUE et appuyée : un temps et quart, puis trois
-  /// quarts, puis un. C'est le ONE—— deux-trois, et la mesure se referme juste.
+  /// « Taaam tam tam taaam tam tam » — Nino.
+  ///
+  /// Trois notes : la première TENUE et appuyée, les deux autres brèves, plus
+  /// douces, et ÉGALES entre elles. Un temps et demi, puis trois quarts, puis
+  /// trois quarts : la mesure fait ses trois temps et la suivante enchaîne.
+  ///
+  /// Les deux courtes doivent être de même durée. Avec trois quarts puis un
+  /// temps entier, on entend « taaam tam taam » — ce qui n'est pas une valse.
   valse('Valse', '3/4', 170, 4, [
-    (duree: 5, force: 1.0),
+    (duree: 6, force: 1.0),
     (duree: 3, force: 0.70),
-    (duree: 4, force: 0.70),
+    (duree: 3, force: 0.70),
   ]),
 
   /// Le trois temps de cour : trois notes égales, le premier temps appuyé.
