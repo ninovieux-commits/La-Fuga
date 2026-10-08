@@ -113,7 +113,7 @@ int? noteIndexOf(String name) {
 
 /// Un son à jouer, avec son retard depuis le début du coup.
 final class SoundCue {
-  const SoundCue(this.name, this.delay);
+  const SoundCue(this.name, this.delay, {this.gain = 1});
 
   /// Nom du fichier sans extension : `fa5`, `ejection`, `fugue`…
   final String name;
@@ -124,12 +124,25 @@ final class SoundCue {
   /// Volume relatif, avant application du volume général.
   double get volumeFactor => volumeFactorFor(name);
 
-  @override
-  bool operator ==(Object other) =>
-      other is SoundCue && other.name == name && other.delay == delay;
+  /// Volume voulu par l'APPELANT, en plus de celui du son lui-même.
+  ///
+  /// C'est par là que passe l'accent d'une danse : dans une mesure mixée d'un
+  /// seul tenant, chaque note porte le sien. Vaut 1 partout ailleurs.
+  final double gain;
+
+  /// Le même son, à un autre instant et à un autre volume.
+  SoundCue decale(Duration de, {double? gain}) =>
+      SoundCue(name, delay + de, gain: gain ?? this.gain);
 
   @override
-  int get hashCode => Object.hash(name, delay);
+  bool operator ==(Object other) =>
+      other is SoundCue &&
+      other.name == name &&
+      other.delay == delay &&
+      other.gain == gain;
+
+  @override
+  int get hashCode => Object.hash(name, delay, gain);
 
   @override
   String toString() => '$name@${delay.inMilliseconds}ms';

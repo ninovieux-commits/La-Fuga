@@ -360,7 +360,7 @@ void main() {
     });
   });
 
-  group('L accent arrive jusqu au SON', () {
+  group('Une mesure part en UN SEUL son', () {
     /// Ouvre la lecture automatique avec un lecteur de sons espion.
     Future<FauxSons> ouvrirAvecSons(WidgetTester tester) async {
       final sons = FauxSons();
@@ -378,79 +378,109 @@ void main() {
       return sons;
     }
 
-    testWidgets('la valse frappe fort, puis retient deux fois', (tester) async {
-      // Sans ce test, les forces ne seraient qu'une table de chiffres : rien
-      // ne dirait qu'elles atteignent le haut-parleur.
+    Future<FauxSons> jouer(WidgetTester tester, Rythmique? danse) async {
       final sons = await ouvrirAvecSons(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.valse);
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onRythmique(danse);
       await tester.pumpAndSettle();
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
       await tester.pumpAndSettle();
-      sons.gains.clear();
-
+      sons.envois.clear();
+      sons.joues.clear();
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      for (var i = 0; i < 12; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-      }
-      await tester.pumpAndSettle();
+      return sons;
+    }
+
+    testWidgets('trois coups de valse, UN envoi : la cadence est gravée', (
+      tester,
+    ) async {
+      // Le défaut que Nino a entendu : « les coups joués finissent par aller
+      // plus vite que les sons et les distancent. » Un envoi par coup coûte un
+      // démarrage de lecteur audio, et à trois coups par seconde le retard
+      // s'accumule. Une mesure entière part donc d'un bloc, chaque note à son
+      // retard en échantillons : elle ne peut plus dériver.
+      final sons = await jouer(tester, Rythmique.valse);
+      // La mesure dure 1,06 s ; on s'arrête avant la suivante.
+      await tester.pump(const Duration(milliseconds: 1000));
 
       expect(
-        sons.gains.length,
-        greaterThanOrEqualTo(4),
-        reason: 'il faut au moins une mesure et le début de la suivante',
+        sons.envois.length,
+        1,
+        reason: 'UN envoi pour les trois coups de la mesure',
       );
-      expect(sons.gains[0], 1.0, reason: 'le premier temps, à pleine voix');
-      expect(sons.gains[1], lessThan(1.0), reason: 'le deuxième, retenu');
-      expect(sons.gains[2], lessThan(1.0), reason: 'le troisième, retenu');
       expect(
-        sons.gains[3],
-        1.0,
-        reason: 'et la mesure suivante réaccentue son premier temps',
+        sons.joues,
+        isEmpty,
+        reason: 'aucun coup ne doit envoyer son son tout seul',
       );
+
+      final cues = sons.envois.single;
+      expect(cues.length, 3, reason: 'les trois notes de la mesure');
+      // Les retards : 0, puis 3 doubles croches (265 ms), puis 4 de plus
+      // (618 ms). À 170, la double croche vaut 88 ms.
+      final pul = Rythmique.valse.parPulsation;
+      expect(cues[0].delay, Duration.zero);
+      expect(cues[1].delay, pul * 3);
+      expect(cues[2].delay, pul * 3 + pul * 4);
+      await tester.pumpAndSettle();
     });
 
-    testWidgets('à la main, tous les coups ont la même voix', (tester) async {
-      // Hors d'une danse, accentuer un coup sur trois n'aurait aucun sens.
+    testWidgets('et chaque note de la mesure porte son accent', (tester) async {
+      final sons = await jouer(tester, Rythmique.valse);
+      await tester.pump(const Duration(milliseconds: 1000));
+
+      final cues = sons.envois.single;
+      expect(cues[0].gain, 1.0, reason: 'le premier temps, à pleine voix');
+      expect(cues[1].gain, lessThan(1.0), reason: 'le deuxième, retenu');
+      expect(cues[2].gain, lessThan(1.0), reason: 'le troisième, retenu');
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('la mesure suivante part à son tour, et réaccentue', (
+      tester,
+    ) async {
+      final sons = await jouer(tester, Rythmique.valse);
+      await tester.pump(const Duration(milliseconds: 1600));
+
+      expect(sons.envois.length, 2, reason: 'une mesure, puis la suivante');
+      expect(sons.envois[1].first.gain, 1.0);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('la sarabande appuie son DEUXIÈME temps', (tester) async {
+      final sons = await jouer(tester, Rythmique.sarabande);
+      await tester.pump(const Duration(milliseconds: 1500));
+
+      final cues = sons.envois.first;
+      expect(cues.length, 2);
+      expect(
+        cues[0].gain,
+        lessThan(cues[1].gain),
+        reason: 'c est le deuxième temps qui porte l accent',
+      );
+      expect(cues[1].gain, 1.0);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('à la main, un coup = un envoi, et pas d accent', (
+      tester,
+    ) async {
+      // Hors d'une danse les écarts font une demi-seconde au moins : rien ne
+      // presse, et le comportement d'avant ne bouge pas d'un octet.
       final sons = await ouvrirAvecSons(tester);
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
       await tester.pumpAndSettle();
-      sons.gains.clear();
-
+      sons.envois.clear();
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      for (var i = 0; i < 8; i++) {
-        await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 1600));
+
+      expect(sons.envois.length, 3, reason: 'un envoi par coup');
+      for (final envoi in sons.envois) {
+        for (final cue in envoi) {
+          expect(cue.gain, 1.0, reason: 'aucun coup plus fort qu un autre');
+          expect(cue.delay, Duration.zero);
+        }
       }
       await tester.pumpAndSettle();
-
-      expect(sons.gains, isNotEmpty);
-      expect(sons.gains.toSet(), {1.0});
-    });
-
-    testWidgets('la sarabande appuie son DEUXIÈME coup', (tester) async {
-      final sons = await ouvrirAvecSons(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.sarabande);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      sons.gains.clear();
-
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      for (var i = 0; i < 10; i++) {
-        await tester.pump(const Duration(seconds: 1));
-      }
-      await tester.pumpAndSettle();
-
-      expect(sons.gains.length, greaterThanOrEqualTo(2));
-      expect(
-        sons.gains[0],
-        lessThan(sons.gains[1]),
-        reason: 'c est le deuxième temps qui porte l accent',
-      );
-      expect(sons.gains[1], 1.0);
     });
   });
 }

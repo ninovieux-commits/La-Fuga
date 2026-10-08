@@ -144,7 +144,8 @@ Int16List? mixCues(List<SoundCue> cues, SoundBank bank, double volume) {
   for (final cue in cues) {
     final note = bank.notes[cue.name];
     if (note == null) continue;
-    final gain = ((volume * cue.volumeFactor).clamp(0.0, 1.0) * 1024).round();
+    final gain = ((volume * cue.volumeFactor * cue.gain).clamp(0.0, 1.0) * 1024)
+        .round();
     if (gain <= 0) continue;
     final start = offsetOf(cue);
     final samples = note.samples;

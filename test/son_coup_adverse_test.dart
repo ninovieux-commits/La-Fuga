@@ -22,6 +22,7 @@ import 'package:http/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/game/clock.dart';
+import 'package:lafuga/game/sound_plan.dart';
 import 'package:lafuga/game/sound_player.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/game/correspondence.dart';
@@ -40,14 +41,23 @@ import 'online_game_test.dart' show FakeSocket, makeGame;
 final class FauxSons implements SoundPlayer {
   final List<String> joues = [];
 
-  /// Le volume de chaque coup joué — l'accent des danses passe par là.
+  /// Le volume de chaque coup joué à la notation.
   final List<double> gains = [];
+
+  /// Les envois de sons déjà mixés — une mesure entière de danse en est un.
+  final List<List<SoundCue>> envois = [];
 
   @override
   void playNotation(String? notation, {double gain = 1}) {
     joues.add(notation ?? '');
     gains.add(gain);
   }
+
+  @override
+  void play(List<SoundCue> cues, {double gain = 1}) => envois.add(cues);
+
+  @override
+  void stopAll() {}
 
   // `init` et `dispose` rendent un Future : les laisser à `noSuchMethod`
   // renvoie null, et l'écran plante avant d'avoir joué quoi que ce soit.
