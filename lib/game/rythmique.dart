@@ -1,32 +1,42 @@
 /// Les rythmiques de la lecture automatique.
 ///
-/// Un coup se joue — et donc une note sonne — **sur les temps joués**, pas sur
-/// tous les temps. Une danse n'est pas un métronome : une valse à trois temps
-/// appuie le premier et laisse les deux autres en silence. Ce sont ces
-/// silences qui font entendre la mesure ; sans eux, les huit danses sonneraient
-/// toutes pareil, à des vitesses différentes.
+/// Une danse ne se reconnaît pas à des silences entre ses mesures : elle se
+/// reconnaît à la LONGUEUR INÉGALE de ses notes. Une valse ne joue pas trois
+/// notes puis attend — trois notes et une attente, cela fait quatre temps,
+/// c'est-à-dire une mesure à 4/4 avec un silence au bout. La mesure de valse
+/// fait trois temps, et la suivante enchaîne sans aucun trou.
+///
+/// Ce qui fait entendre une valse, c'est son premier temps LONG : une note
+/// tenue deux temps, puis une note sur le troisième. Long, court, long,
+/// court — et la mesure se referme toute seule sur le retour du long.
 ///
 /// ## Le motif
 ///
-/// Chaque danse porte son [Rythmique.motif] : un temps par case, `true` quand
-/// un coup s'y joue, `false` quand c'est une pause. La valse donne
-/// `[true, false, false]` — un coup, deux pauses, et le coup suivant tombe
-/// trois temps plus loin.
+/// Chaque danse porte son [Rythmique.motif] : une case par **pulsation**,
+/// `true` quand une note y est frappée, `false` quand la précédente se
+/// prolonge. La valse donne `[true, false, true]` — une note tenue deux
+/// pulsations, puis une.
 ///
-/// De là viennent les [Rythmique.ecarts] : la distance, en temps, d'un coup
-/// joué au suivant. Elle n'est pas forcément constante. La sarabande appuie son
-/// DEUXIÈME temps (`[true, true, false]`), donc ses coups boitent : un temps,
-/// puis deux. C'est exactement ce qui la rend reconnaissable.
+/// Un `false` n'est donc PAS un silence : c'est la note d'avant qui dure. Avec
+/// une note par coup, cela revient au même pour l'oreille — l'écart entre deux
+/// coups est la durée de la note.
 ///
-/// ## Le temps, et ce qu'il vaut
+/// De là viennent les [Rythmique.ecarts] : la distance, en pulsations, d'un
+/// coup au suivant. C'est leur inégalité qui fait la danse.
 ///
-/// Dans une mesure simple (3/4, 2/4, 4/4, 3/2), le temps est l'unité du
-/// dénominateur : la noire en 3/4, la blanche en 3/2. Dans une mesure
-/// composée (6/8), le temps est la noire pointée — il y en a **deux** par
-/// mesure, pas six. Une gigue à 120 joue donc deux coups par mesure, pas six.
+/// ## La pulsation, le temps, et la mesure
 ///
-/// Les tempos et les motifs sont écrits ici en toutes lettres pour qu'on puisse
-/// les discuter : ce sont des choix, pas des constantes de la nature.
+/// Le **temps** est l'unité du tempo : la noire en 3/4, la blanche en 3/2, la
+/// noire POINTÉE en 6/8 — il y en a deux par mesure, pas six.
+///
+/// La **pulsation** est la plus petite valeur que la danse écrit. Elle vaut le
+/// temps dans une mesure simple, et le tiers du temps en 6/8, où le temps se
+/// divise en trois croches. C'est ce qui permet à la gigue de galoper :
+/// `1 · 3 | 4 · 6` sur ses six croches, soit long-court long-court, sa marque
+/// de fabrique. Sans cette division, une gigue ne serait qu'un pouls à deux.
+///
+/// Les tempos et les motifs sont écrits ici en toutes lettres pour qu'on
+/// puisse les discuter : ce sont des choix, pas des constantes de la nature.
 ///
 /// Dart pur, sans Flutter.
 library;
@@ -40,53 +50,73 @@ const double kVitessePas = 0.5;
 int get kVitesseCrans =>
     ((kVitesseMax - kVitesseMin) / kVitessePas).round() + 1;
 
-/// Une danse : sa mesure, son tempo, et les temps qu'elle joue.
+/// Une danse : sa mesure, son tempo, et le dessin de ses notes.
 enum Rythmique {
-  /// Vive, tournée vers le premier temps — les deux autres se taisent.
-  valse('Valse', '3/4', 170, [true, false, false]),
+  /// Le premier temps long, le troisième court. ONE—— deux-trois.
+  valse('Valse', '3/4', 170, 1, [true, false, true]),
 
-  /// Le trois temps de cour, modéré, appuyé sur le premier.
-  menuet('Menuet', '3/4', 120, [true, false, false]),
+  /// Le trois temps de cour : trois notes égales, sans boiterie.
+  menuet('Menuet', '3/4', 120, 1, [true, true, true]),
 
-  /// Lente et grave, à la blanche, et elle appuie son DEUXIÈME temps : ses
-  /// coups boitent, un temps puis deux.
-  sarabande('Sarabande', '3/2', 60, [true, true, false]),
+  /// Elle appuie son DEUXIÈME temps, qu'elle allonge : court, puis long.
+  /// C'est l'inverse de la valse, et c'est ce qui la rend reconnaissable.
+  sarabande('Sarabande', '3/2', 60, 1, [true, true, false]),
 
-  /// Lente, sur une basse obstinée qui retombe sur le premier temps.
-  passacaille('Passacaille', '3/4', 72, [true, false, false]),
+  /// Lente et obstinée, le premier temps long comme la valse mais au pas d'un
+  /// autre siècle.
+  passacaille('Passacaille', '3/4', 72, 1, [true, false, true]),
 
-  /// Le pas, gauche-droite : les deux temps sont marqués.
-  marche('Marche', '2/4', 110, [true, true]),
+  /// Le pas, gauche-droite : deux notes égales.
+  marche('Marche', '2/4', 110, 1, [true, true]),
 
-  /// Quatre temps, marqués un et trois.
-  gavotte('Gavotte', '4/4', 100, [true, false, true, false]),
+  /// Quatre temps carrés, égaux.
+  gavotte('Gavotte', '4/4', 100, 1, [true, true, true, true]),
 
-  /// Mesure composée : le temps est la noire pointée, deux par mesure, et les
-  /// deux sont joués.
-  gigue('Gigue', '6/8', 120, [true, true]),
+  /// Mesure composée : deux temps de trois croches. Elle galope — une note de
+  /// deux croches, une d'une, et ainsi de suite.
+  gigue('Gigue', '6/8', 80, 3, [true, false, true, true, false, true]),
 
-  /// La même mesure, balancée et lente.
-  sicilienne('Sicilienne', '6/8', 52, [true, true]);
+  /// Le même galop, balancé et lent.
+  sicilienne('Sicilienne', '6/8', 52, 3, [
+    true,
+    false,
+    true,
+    true,
+    false,
+    true,
+  ]);
 
-  const Rythmique(this.nom, this.mesure, this.tempsParMin, this.motif);
+  const Rythmique(
+    this.nom,
+    this.mesure,
+    this.tempsParMin,
+    this.pulsationsParTemps,
+    this.motif,
+  );
 
   final String nom;
 
   /// Telle qu'elle s'écrit : `3/4`, `6/8`…
   final String mesure;
 
-  /// Temps par minute — le tempo.
+  /// Temps par minute — le tempo, sur le TEMPS (noire pointée en 6/8).
   final int tempsParMin;
 
-  /// Un temps par case : `true` = un coup s'y joue, `false` = une pause.
+  /// Combien de pulsations compte un temps. 1 partout, 3 en 6/8.
+  final int pulsationsParTemps;
+
+  /// Une case par pulsation : `true` = une note y est frappée, `false` = la
+  /// précédente se prolonge.
   final List<bool> motif;
 
-  /// Combien de temps compte une mesure. Deux en 6/8 : le temps y est la
-  /// noire pointée.
-  int get tempsParMesure => motif.length;
+  /// Combien de pulsations compte une mesure.
+  int get pulsationsParMesure => motif.length;
 
-  /// Combien de coups se jouent dans une mesure.
-  int get coupsParMesure => motif.where((joue) => joue).length;
+  /// Combien de temps compte une mesure. Deux en 6/8, trois en 3/4.
+  int get tempsParMesure => motif.length ~/ pulsationsParTemps;
+
+  /// Combien de notes se frappent dans une mesure.
+  int get coupsParMesure => motif.where((frappe) => frappe).length;
 
   /// Ce qui s'affiche sur la touche : « Valse 3/4 ».
   String get etiquette => '$nom $mesure';
@@ -95,36 +125,39 @@ enum Rythmique {
   Duration get parTemps =>
       Duration(microseconds: (60000000 / tempsParMin).round());
 
-  /// Durée d'une mesure entière.
-  Duration get parMesure => parTemps * tempsParMesure;
+  /// Durée d'une pulsation — la plus petite valeur que la danse écrit.
+  Duration get parPulsation => Duration(
+    microseconds: (60000000 / (tempsParMin * pulsationsParTemps)).round(),
+  );
 
-  /// La distance, en temps, d'un coup joué au suivant.
+  /// Durée d'une mesure entière.
+  Duration get parMesure => parPulsation * pulsationsParMesure;
+
+  /// La distance, en pulsations, d'une note frappée à la suivante.
   ///
-  /// Le motif boucle : le dernier écart ramène au premier temps joué de la
-  /// mesure suivante. `[true, true, false]` donne donc `[1, 2]` — un temps,
-  /// puis deux, indéfiniment.
+  /// Le motif boucle : le dernier écart ramène à la première note de la mesure
+  /// suivante. `[true, false, true]` donne donc `[2, 1]` — long, court,
+  /// indéfiniment. C'est cette inégalité qui fait la danse.
   List<int> get ecarts {
-    final joues = <int>[
+    final frappes = <int>[
       for (var i = 0; i < motif.length; i++)
         if (motif[i]) i,
     ];
     return [
-      for (var k = 0; k < joues.length; k++)
-        k + 1 < joues.length
-            ? joues[k + 1] - joues[k]
-            : motif.length - joues[k] + joues[0],
+      for (var k = 0; k < frappes.length; k++)
+        k + 1 < frappes.length
+            ? frappes[k + 1] - frappes[k]
+            : motif.length - frappes[k] + frappes[0],
     ];
   }
 
-  /// Le motif écrit : « 1 · · » pour la valse, « 1 2 · » pour la sarabande.
+  /// Le motif écrit : « 1 · 3 » pour la valse, « 1 2 · » pour la sarabande.
   String get motifEcrit => [
     for (var i = 0; i < motif.length; i++) motif[i] ? '${i + 1}' : '·',
   ].join(' ');
 
   /// Ce qu'on lit sous le nom, dans le choix des danses.
-  String get detail =>
-      '$tempsParMin/min  ·  $motifEcrit  ·  '
-      '$coupsParMesure coup${coupsParMesure > 1 ? 's' : ''} par mesure';
+  String get detail => '$tempsParMin/min  ·  $motifEcrit';
 
   static Rythmique? fromWire(String? s) {
     for (final r in Rythmique.values) {
@@ -154,14 +187,14 @@ final class TempoLecture {
   /// premier).
   ///
   /// À la main, c'est toujours la même durée. Dans une danse, c'est l'écart du
-  /// motif, qui boucle avec la mesure : d'où les pauses.
+  /// motif, qui boucle avec la mesure : d'où les notes longues et les courtes.
   Duration ecartAvant(int n) {
     final r = rythmique;
     if (r == null) {
       return Duration(microseconds: (secondes * 1000000).round());
     }
     final e = r.ecarts;
-    return r.parTemps * e[n % e.length];
+    return r.parPulsation * e[n % e.length];
   }
 
   /// La durée telle qu'on l'écrit sous le curseur.

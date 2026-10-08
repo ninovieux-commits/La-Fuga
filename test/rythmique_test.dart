@@ -1,11 +1,15 @@
 /// Les rythmiques de la lecture automatique.
 ///
-/// Nino : « quand on choisit une rythmique, ça ne doit jouer un coup que
-/// lorsque le temps est joué. Il doit donc y avoir les pauses. Valse 3/4 doit
-/// se jouer comme une vraie valse 3 temps. »
+/// Nino : « quand on joue une valse en trois temps, on ne joue des notes que
+/// sur les trois premiers temps puis on attend sur un temps […] C'est bien ça
+/// ou c'est plutôt une note longue qui dure deux temps ? J'aimerai que la
+/// lecture imite la valse simplement. »
 ///
-/// Tout est là : une danse n'est pas un métronome. Ce qui la fait entendre, ce
-/// sont les temps qu'elle NE joue pas.
+/// C'est la note longue. Trois notes puis une attente feraient QUATRE temps —
+/// une mesure à 4/4 avec un silence au bout, pas une valse. Ce qui fait
+/// entendre une danse, c'est la longueur INÉGALE de ses notes : long, court,
+/// long, court pour la valse ; court, long pour la sarabande ; le galop de la
+/// gigue sur ses croches.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -29,9 +33,8 @@ void main() {
       );
     });
 
-    test('le motif compte autant de temps que la mesure en annonce', () {
+    test('la mesure compte le bon nombre de temps', () {
       // Six croches, mais DEUX temps en 6/8 : le temps y est la noire pointée.
-      // Une gigue qui jouerait six coups par mesure ne serait pas une gigue.
       for (final r in [Rythmique.gigue, Rythmique.sicilienne]) {
         expect(r.tempsParMesure, 2, reason: r.nom);
       }
@@ -39,7 +42,11 @@ void main() {
       expect(Rythmique.marche.tempsParMesure, 2);
       expect(Rythmique.gavotte.tempsParMesure, 4);
       for (final r in Rythmique.values) {
-        expect(r.motif.length, r.tempsParMesure, reason: r.nom);
+        expect(
+          r.motif.length,
+          r.tempsParMesure * r.pulsationsParTemps,
+          reason: r.nom,
+        );
       }
     });
 
@@ -70,8 +77,10 @@ void main() {
       // 60 à la minute : une seconde pile.
       expect(Rythmique.sarabande.tempsParMin, 60);
       expect(Rythmique.sarabande.parTemps, const Duration(seconds: 1));
-      // 120 : une demi-seconde.
-      expect(Rythmique.gigue.parTemps, const Duration(milliseconds: 500));
+      // La gigue : 80 noires pointées à la minute, donc 0,75 s par temps, et
+      // le tiers par croche.
+      expect(Rythmique.gigue.parTemps, const Duration(milliseconds: 750));
+      expect(Rythmique.gigue.parPulsation, const Duration(milliseconds: 250));
     });
 
     test('l étiquette porte le nom et la mesure', () {
@@ -87,81 +96,103 @@ void main() {
     });
   });
 
-  group('Les pauses : une danse n est pas un métronome', () {
-    test('la valse joue SON PREMIER temps, et se tait sur les deux autres', () {
-      expect(Rythmique.valse.motif, [true, false, false]);
-      expect(
-        Rythmique.valse.coupsParMesure,
-        1,
-        reason: 'une valse qui jouerait ses trois temps serait un métronome',
-      );
-      // Et le coup suivant tombe une MESURE plus loin, pas un temps.
-      expect(Rythmique.valse.ecarts, [3]);
+  group('Les notes longues et les courtes : la danse', () {
+    test('la VALSE tient son premier temps deux temps durant', () {
+      // La réponse à la question de Nino. Une note tenue deux temps, puis une
+      // sur le troisième : ONE—— deux-trois. Pas trois notes puis une attente,
+      // qui ferait quatre temps.
+      expect(Rythmique.valse.motif, [true, false, true]);
+      expect(Rythmique.valse.ecarts, [2, 1], reason: 'long, court');
+      expect(Rythmique.valse.coupsParMesure, 2);
     });
 
-    test('toutes partent du premier temps, et aucune ne reste muette', () {
-      final avecPause = Rythmique.values.where(
-        (r) => r.motif.any((joue) => !joue),
+    test('et la mesure de valse ne laisse AUCUN trou au bout', () {
+      // Le piège : un écart de plus que la mesure ne contient de temps, c est
+      // le silence qui ferait d elle une mesure à quatre temps.
+      final r = Rythmique.valse;
+      expect(
+        r.ecarts.fold<int>(0, (a, b) => a + b),
+        r.pulsationsParMesure,
+        reason: 'la mesure suivante enchaîne sans attendre',
       );
-      expect(avecPause, isNotEmpty, reason: 'sans pause, pas de danse');
+      expect(r.parMesure, r.parTemps * 3);
+    });
+
+    test('aucune danse ne laisse de trou au bout de sa mesure', () {
       for (final r in Rythmique.values) {
         expect(
+          r.ecarts.fold<int>(0, (a, b) => a + b),
+          r.pulsationsParMesure,
+          reason: '${r.nom} : les écarts d une mesure font la mesure',
+        );
+        expect(
+          r.ecarts.length,
           r.coupsParMesure,
-          greaterThan(0),
-          reason: '${r.nom} ne joue aucun coup : la lecture n avancerait pas',
+          reason: '${r.nom} : un écart par note frappée',
         );
         expect(
           r.motif.first,
           isTrue,
-          reason: '${r.nom} doit jouer son premier temps',
+          reason: '${r.nom} doit frapper son premier temps',
         );
       }
     });
 
-    test('la sarabande BOITE : un temps, puis deux', () {
-      // Elle appuie son deuxième temps. C'est ce qui la rend reconnaissable, et
-      // c'est le seul endroit où les écarts ne sont pas tous égaux.
+    test('la sarabande est l INVERSE de la valse : court, puis long', () {
+      // Elle appuie et allonge son DEUXIÈME temps.
       expect(Rythmique.sarabande.motif, [true, true, false]);
       expect(Rythmique.sarabande.ecarts, [1, 2]);
     });
 
-    test('les écarts bouclent avec la mesure', () {
+    test('la GIGUE galope sur ses croches', () {
+      // En 6/8 le temps est la noire pointée — deux par mesure — mais la gigue
+      // s écrit en croches : une note de deux croches, une d une. Sans cette
+      // division, elle ne serait qu un pouls à deux.
+      expect(Rythmique.gigue.pulsationsParTemps, 3);
+      expect(Rythmique.gigue.tempsParMesure, 2);
+      expect(Rythmique.gigue.pulsationsParMesure, 6);
+      expect(Rythmique.gigue.motif, [true, false, true, true, false, true]);
+      expect(Rythmique.gigue.ecarts, [2, 1, 2, 1], reason: 'le galop');
+      expect(Rythmique.sicilienne.ecarts, [2, 1, 2, 1]);
+    });
+
+    test('les danses égales le sont vraiment', () {
+      // Toutes ne boitent pas : le menuet, la marche et la gavotte avancent
+      // d un pas régulier, et c est leur caractère.
+      expect(Rythmique.menuet.ecarts, [1, 1, 1]);
+      expect(Rythmique.marche.ecarts, [1, 1]);
+      expect(Rythmique.gavotte.ecarts, [1, 1, 1, 1]);
+    });
+
+    test('mais la moitié des danses boitent, sinon ce serait un métronome', () {
+      final boiteuses = Rythmique.values.where(
+        (r) => r.ecarts.toSet().length > 1,
+      );
+      expect(
+        boiteuses.length,
+        greaterThanOrEqualTo(4),
+        reason: 'valse, sarabande, passacaille, gigue, sicilienne',
+      );
+    });
+
+    test('en mesure simple, la pulsation EST le temps', () {
       for (final r in Rythmique.values) {
-        expect(
-          r.ecarts.length,
-          r.coupsParMesure,
-          reason: '${r.nom} : un écart par coup joué',
-        );
-        expect(
-          r.ecarts.fold<int>(0, (a, b) => a + b),
-          r.tempsParMesure,
-          reason: '${r.nom} : les écarts d une mesure font la mesure',
-        );
+        if (r.mesure.endsWith('/8')) continue;
+        expect(r.pulsationsParTemps, 1, reason: r.nom);
+        expect(r.parPulsation, r.parTemps, reason: r.nom);
       }
     });
 
-    test('la gavotte marque un et trois', () {
-      expect(Rythmique.gavotte.motif, [true, false, true, false]);
-      expect(Rythmique.gavotte.ecarts, [2, 2]);
-    });
-
-    test('la marche marque ses deux temps : le pas gauche-droite', () {
-      expect(Rythmique.marche.motif, [true, true]);
-      expect(Rythmique.marche.ecarts, [1, 1]);
-    });
-
-    test('le motif s écrit avec ses pauses', () {
-      expect(Rythmique.valse.motifEcrit, '1 · ·');
+    test('le motif s écrit avec ses prolongements', () {
+      expect(Rythmique.valse.motifEcrit, '1 · 3');
       expect(Rythmique.sarabande.motifEcrit, '1 2 ·');
-      expect(Rythmique.gavotte.motifEcrit, '1 · 3 ·');
-      expect(Rythmique.marche.motifEcrit, '1 2');
+      expect(Rythmique.menuet.motifEcrit, '1 2 3');
+      expect(Rythmique.gigue.motifEcrit, '1 · 3 4 · 6');
     });
 
-    test('le détail dit le tempo, le motif et les coups par mesure', () {
+    test('le détail dit le tempo et le motif', () {
       expect(Rythmique.valse.detail, contains('170/min'));
-      expect(Rythmique.valse.detail, contains('1 · ·'));
-      expect(Rythmique.valse.detail, contains('1 coup par mesure'));
-      expect(Rythmique.marche.detail, contains('2 coups par mesure'));
+      expect(Rythmique.valse.detail, contains('1 · 3'));
     });
   });
 
@@ -175,20 +206,29 @@ void main() {
       expect(t.etiquette, '2.5 s');
     });
 
-    test('une valse attend une MESURE entière entre deux coups', () {
+    test('la valse alterne un temps long et un court, indéfiniment', () {
       const t = TempoLecture.danse(Rythmique.valse);
       expect(
         t.estLibre,
         isFalse,
         reason: 'on ne règle plus la vitesse quand une rythmique est choisie',
       );
-      for (var n = 0; n < 4; n++) {
-        expect(
-          t.ecartAvant(n),
-          Rythmique.valse.parMesure,
-          reason: 'coup $n : trois temps, dont deux de pause',
-        );
-      }
+      final temps = Rythmique.valse.parTemps;
+      expect(t.ecartAvant(0), temps * 2, reason: 'la note tenue');
+      expect(t.ecartAvant(1), temps, reason: 'le troisième temps');
+      expect(t.ecartAvant(2), temps * 2, reason: 'la mesure suivante enchaîne');
+      expect(t.ecartAvant(3), temps);
+      // Deux coups par mesure, et pas de trou : deux écarts font la mesure.
+      expect(t.ecartAvant(0) + t.ecartAvant(1), Rythmique.valse.parMesure);
+    });
+
+    test('la gigue galope : deux croches, une croche', () {
+      const t = TempoLecture.danse(Rythmique.gigue);
+      final croche = Rythmique.gigue.parPulsation;
+      expect(t.ecartAvant(0), croche * 2);
+      expect(t.ecartAvant(1), croche);
+      expect(t.ecartAvant(2), croche * 2);
+      expect(t.ecartAvant(3), croche);
     });
 
     test('la sarabande alterne un temps et deux, indéfiniment', () {

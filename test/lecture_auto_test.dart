@@ -233,10 +233,17 @@ void main() {
       expect(coupRegarde(tester), depart + 1);
     });
 
-    testWidgets('la VALSE laisse ses deux temps de pause', (tester) async {
-      // « Valse 3/4 doit se jouer comme une vraie valse 3 temps. » Elle joue son
-      // premier temps et se tait sur les deux autres : un coup par MESURE, soit
-      // trois temps à 170 — 1,059 s — et non un coup toutes les 0,353 s.
+    testWidgets('la VALSE tient son premier temps, puis enchaîne', (
+      tester,
+    ) async {
+      // « J'aimerai que la lecture imite la valse simplement. » Une note tenue
+      // deux temps, puis une sur le troisième — et la mesure suivante enchaîne
+      // SANS ATTENDRE. À 170, le temps vaut 353 ms : les coups tombent à
+      // 706 ms, 1059 ms, 1765 ms…
+      //
+      // Que des `pump` exacts, jamais `pumpAndSettle` en cours de route :
+      // celui-ci avance l'horloge de toute la durée des animations, et le
+      // compte des millisecondes ne voudrait plus rien dire.
       await ouvrirAuto(tester);
       tester
           .widget<AutoPlayBar>(find.byType(AutoPlayBar))
@@ -247,26 +254,48 @@ void main() {
       final depart = coupRegarde(tester);
 
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      // Deux temps se sont écoulés : sans les pauses, deux coups seraient
-      // partis. Ils doivent être silencieux.
-      await tester.pump(const Duration(milliseconds: 800));
+      // La note tenue : rien avant deux temps.
+      await tester.pump(const Duration(milliseconds: 600));
       expect(
         coupRegarde(tester),
         depart,
-        reason: 'la valse a joué sur un temps de pause',
+        reason: 'le premier temps dure DEUX temps',
       );
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 150)); // 750 ms
+      expect(coupRegarde(tester), depart + 1);
+
+      // Le troisième temps, court : un seul temps plus loin.
+      await tester.pump(const Duration(milliseconds: 250)); // 1000 ms
       expect(
         coupRegarde(tester),
         depart + 1,
-        reason: 'le premier temps de la mesure suivante doit jouer',
+        reason: 'le troisième temps n est pas encore là',
       );
+      await tester.pump(const Duration(milliseconds: 150)); // 1150 ms
+      expect(coupRegarde(tester), depart + 2);
+
+      // Et la mesure suivante ENCHAÎNE : deux temps après, pas davantage. Un
+      // silence au bout de la mesure en ferait une mesure à quatre temps.
+      await tester.pump(const Duration(milliseconds: 580)); // 1730 ms
+      expect(
+        coupRegarde(tester),
+        depart + 2,
+        reason: 'la note tenue de la mesure suivante',
+      );
+      await tester.pump(const Duration(milliseconds: 100)); // 1830 ms
+      expect(
+        coupRegarde(tester),
+        depart + 3,
+        reason: 'la mesure suivante doit enchaîner sans trou',
+      );
+      await tester.pumpAndSettle();
     });
 
-    testWidgets('la sarabande BOITE : un temps, puis deux', (tester) async {
-      // Son deuxième temps est appuyé, le troisième se tait. Les écarts ne sont
-      // donc pas tous égaux, et c'est le seul moyen de l'entendre.
+    testWidgets('la sarabande BOITE dans l AUTRE sens : court, puis long', (
+      tester,
+    ) async {
+      // Elle appuie et ALLONGE son deuxième temps — l'inverse de la valse. À
+      // 60 à la blanche, le temps vaut une seconde : coups à 1 s, 3 s, 4 s…
       await ouvrirAuto(tester);
       tester
           .widget<AutoPlayBar>(find.byType(AutoPlayBar))
@@ -277,20 +306,45 @@ void main() {
       final depart = coupRegarde(tester);
 
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      // Premier écart : un temps.
-      await tester.pump(const Duration(milliseconds: 1100));
-      await tester.pumpAndSettle();
-      expect(coupRegarde(tester), depart + 1);
-      // Deuxième écart : DEUX temps. À une seconde, rien ne doit avoir bougé.
       await tester.pump(const Duration(milliseconds: 900));
+      expect(coupRegarde(tester), depart);
+      await tester.pump(const Duration(milliseconds: 200)); // 1100 ms
+      expect(coupRegarde(tester), depart + 1);
+      // Deuxième écart : DEUX temps. Une seconde de plus ne suffit pas.
+      await tester.pump(const Duration(milliseconds: 800)); // 1900 ms
       expect(
         coupRegarde(tester),
         depart + 1,
-        reason: 'le troisième temps est une pause : rien ne doit s y jouer',
+        reason: 'le deuxième temps est tenu : deux secondes, pas une',
       );
-      await tester.pump(const Duration(milliseconds: 1200));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 1200)); // 3100 ms
       expect(coupRegarde(tester), depart + 2);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('la gigue galope sur ses croches', (tester) async {
+      // Deux croches, une croche. À 80 noires pointées, la croche vaut 250 ms :
+      // les coups tombent à 500 ms, 750 ms, 1250 ms…
+      await ouvrirAuto(tester);
+      tester
+          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
+          .onRythmique(Rythmique.gigue);
+      await tester.pumpAndSettle();
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      await tester.pumpAndSettle();
+      final depart = coupRegarde(tester);
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(coupRegarde(tester), depart, reason: 'la note de deux croches');
+      await tester.pump(const Duration(milliseconds: 150)); // 550 ms
+      expect(coupRegarde(tester), depart + 1);
+      // La croche seule : moitié moins d'attente.
+      await tester.pump(const Duration(milliseconds: 150)); // 700 ms
+      expect(coupRegarde(tester), depart + 1);
+      await tester.pump(const Duration(milliseconds: 100)); // 800 ms
+      expect(coupRegarde(tester), depart + 2);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('arrivé au bout, ça s arrête', (tester) async {
