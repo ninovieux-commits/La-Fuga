@@ -40,8 +40,14 @@ import 'online_game_test.dart' show FakeSocket, makeGame;
 final class FauxSons implements SoundPlayer {
   final List<String> joues = [];
 
+  /// Le volume de chaque coup joué — l'accent des danses passe par là.
+  final List<double> gains = [];
+
   @override
-  void playNotation(String? notation) => joues.add(notation ?? '');
+  void playNotation(String? notation, {double gain = 1}) {
+    joues.add(notation ?? '');
+    gains.add(gain);
+  }
 
   // `init` et `dispose` rendent un Future : les laisser à `noSuchMethod`
   // renvoie null, et l'écran plante avant d'avoir joué quoi que ce soit.

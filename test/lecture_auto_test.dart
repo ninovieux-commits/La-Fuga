@@ -21,6 +21,8 @@ import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'son_coup_adverse_test.dart' show FauxSons;
+
 /// Six coups, assez pour voir défiler.
 const String _nmc =
     '[Date "2026-10-06"]\n'
@@ -233,13 +235,12 @@ void main() {
       expect(coupRegarde(tester), depart + 1);
     });
 
-    testWidgets('la VALSE tient son premier temps, puis enchaîne', (
-      tester,
-    ) async {
-      // « J'aimerai que la lecture imite la valse simplement. » Une note tenue
-      // deux temps, puis une sur le troisième — et la mesure suivante enchaîne
-      // SANS ATTENDRE. À 170, le temps vaut 353 ms : les coups tombent à
-      // 706 ms, 1059 ms, 1765 ms…
+    testWidgets('la VALSE : trois notes, la première tenue', (tester) async {
+      // « Fais les deux : trois notes, la première plus forte et tenue. »
+      // À 170, la double croche vaut 88 ms. La première note en occupe cinq
+      // (441 ms), la deuxième trois (265 ms), la troisième quatre (353 ms) —
+      // et la mesure suivante ENCHAÎNE. Les coups tombent donc à 441, 706,
+      // 1059, 1500 ms.
       //
       // Que des `pump` exacts, jamais `pumpAndSettle` en cours de route :
       // celui-ci avance l'horloge de toute la durée des animations, et le
@@ -254,38 +255,32 @@ void main() {
       final depart = coupRegarde(tester);
 
       tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      // La note tenue : rien avant deux temps.
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(
-        coupRegarde(tester),
-        depart,
-        reason: 'le premier temps dure DEUX temps',
-      );
-      await tester.pump(const Duration(milliseconds: 150)); // 750 ms
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(coupRegarde(tester), depart, reason: 'avant la première note');
+      await tester.pump(const Duration(milliseconds: 150)); // 500 ms
       expect(coupRegarde(tester), depart + 1);
 
-      // Le troisième temps, court : un seul temps plus loin.
-      await tester.pump(const Duration(milliseconds: 250)); // 1000 ms
+      // La deuxième arrive PLUS VITE que la première : c'est ça, la tenue.
+      await tester.pump(const Duration(milliseconds: 150)); // 650 ms
       expect(
         coupRegarde(tester),
         depart + 1,
-        reason: 'le troisième temps n est pas encore là',
+        reason: 'la première note est tenue : 441 ms, pas 265',
       );
-      await tester.pump(const Duration(milliseconds: 150)); // 1150 ms
+      await tester.pump(const Duration(milliseconds: 100)); // 750 ms
       expect(coupRegarde(tester), depart + 2);
 
-      // Et la mesure suivante ENCHAÎNE : deux temps après, pas davantage. Un
-      // silence au bout de la mesure en ferait une mesure à quatre temps.
-      await tester.pump(const Duration(milliseconds: 580)); // 1730 ms
+      // La troisième, puis la mesure suivante qui enchaîne sans trou.
+      await tester.pump(const Duration(milliseconds: 250)); // 1000 ms
+      expect(coupRegarde(tester), depart + 2);
+      await tester.pump(const Duration(milliseconds: 100)); // 1100 ms
+      expect(coupRegarde(tester), depart + 3, reason: 'le troisième temps');
+      await tester.pump(const Duration(milliseconds: 350)); // 1450 ms
+      expect(coupRegarde(tester), depart + 3);
+      await tester.pump(const Duration(milliseconds: 100)); // 1550 ms
       expect(
         coupRegarde(tester),
-        depart + 2,
-        reason: 'la note tenue de la mesure suivante',
-      );
-      await tester.pump(const Duration(milliseconds: 100)); // 1830 ms
-      expect(
-        coupRegarde(tester),
-        depart + 3,
+        depart + 4,
         reason: 'la mesure suivante doit enchaîner sans trou',
       );
       await tester.pumpAndSettle();
@@ -362,6 +357,100 @@ void main() {
         isFalse,
         reason: 'le lecteur doit s arrêter au dernier coup, pas reboucler',
       );
+    });
+  });
+
+  group('L accent arrive jusqu au SON', () {
+    /// Ouvre la lecture automatique avec un lecteur de sons espion.
+    Future<FauxSons> ouvrirAvecSons(WidgetTester tester) async {
+      final sons = FauxSons();
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ReplayScreen(nmc: _nmc, sounds: sons),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
+      await tester.pumpAndSettle();
+      return sons;
+    }
+
+    testWidgets('la valse frappe fort, puis retient deux fois', (tester) async {
+      // Sans ce test, les forces ne seraient qu'une table de chiffres : rien
+      // ne dirait qu'elles atteignent le haut-parleur.
+      final sons = await ouvrirAvecSons(tester);
+      tester
+          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
+          .onRythmique(Rythmique.valse);
+      await tester.pumpAndSettle();
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      await tester.pumpAndSettle();
+      sons.gains.clear();
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.pumpAndSettle();
+
+      expect(
+        sons.gains.length,
+        greaterThanOrEqualTo(4),
+        reason: 'il faut au moins une mesure et le début de la suivante',
+      );
+      expect(sons.gains[0], 1.0, reason: 'le premier temps, à pleine voix');
+      expect(sons.gains[1], lessThan(1.0), reason: 'le deuxième, retenu');
+      expect(sons.gains[2], lessThan(1.0), reason: 'le troisième, retenu');
+      expect(
+        sons.gains[3],
+        1.0,
+        reason: 'et la mesure suivante réaccentue son premier temps',
+      );
+    });
+
+    testWidgets('à la main, tous les coups ont la même voix', (tester) async {
+      // Hors d'une danse, accentuer un coup sur trois n'aurait aucun sens.
+      final sons = await ouvrirAvecSons(tester);
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
+      await tester.pumpAndSettle();
+      sons.gains.clear();
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      await tester.pumpAndSettle();
+
+      expect(sons.gains, isNotEmpty);
+      expect(sons.gains.toSet(), {1.0});
+    });
+
+    testWidgets('la sarabande appuie son DEUXIÈME coup', (tester) async {
+      final sons = await ouvrirAvecSons(tester);
+      tester
+          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
+          .onRythmique(Rythmique.sarabande);
+      await tester.pumpAndSettle();
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      await tester.pumpAndSettle();
+      sons.gains.clear();
+
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      await tester.pumpAndSettle();
+
+      expect(sons.gains.length, greaterThanOrEqualTo(2));
+      expect(
+        sons.gains[0],
+        lessThan(sons.gains[1]),
+        reason: 'c est le deuxième temps qui porte l accent',
+      );
+      expect(sons.gains[1], 1.0);
     });
   });
 }

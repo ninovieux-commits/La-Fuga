@@ -31,12 +31,16 @@ import '../widgets/player_panel.dart';
 import 'game_screen.dart';
 
 class ReplayScreen extends StatefulWidget {
-  const ReplayScreen({super.key, required this.nmc, this.title});
+  const ReplayScreen({super.key, required this.nmc, this.title, this.sounds});
 
   /// Contenu du fichier `.nmc`.
   final String nmc;
 
   final String? title;
+
+  /// Le lecteur de sons. Injectable pour les tests : sans quoi « la première
+  /// note de la valse sonne-t-elle plus fort ? » ne se vérifie qu'à l'oreille.
+  final SoundPlayer? sounds;
 
   @override
   State<ReplayScreen> createState() => _ReplayScreenState();
@@ -44,7 +48,7 @@ class ReplayScreen extends StatefulWidget {
 
 class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   late final ReplayController _replay;
-  final SoundPlayer _sounds = SoundPlayer();
+  late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
   bool _flipped = true;
 
   /// Lecture automatique : les commandes sont-elles ouvertes ?
@@ -101,7 +105,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       setState(() => _enLecture = false);
       return;
     }
-    _move(_replay.next);
+    // L'accent de la danse : le temps fort garde sa pleine voix, les faibles
+    // sont retenus. Hors d'une danse, tous les coups valent 1.
+    _move(_replay.next, force: _tempo.forceDe(_coupsJoues));
     _coupsJoues++;
     _armer();
   }
@@ -143,11 +149,11 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   /// reculant on entend celui auquel on revient. Les pièces suivent de même —
   /// elles ne le faisaient pas, et parcourir une partie enregistrée faisait
   /// sauter le plateau d'une position à l'autre sans qu'on voie rien bouger.
-  void _move(bool Function() action) {
+  void _move(bool Function() action, {double force = 1}) {
     final avant = _replay.index;
     if (!action()) return;
     _animerVers(avant, _replay.index);
-    _sounds.playNotation(_replay.current.notation);
+    _sounds.playNotation(_replay.current.notation, gain: force);
     setState(() {});
   }
 
