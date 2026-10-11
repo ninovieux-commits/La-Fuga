@@ -11,8 +11,7 @@ import '../../game/clock.dart';
 import '../../game/slides.dart';
 import '../../game/nmc.dart';
 import '../../game/replay_controller.dart';
-import '../../game/rythmique.dart';
-import '../../game/sound_plan.dart';
+import '../../game/vitesse_lecture.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
@@ -58,19 +57,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   /// Et défile-t-elle ?
   bool _enLecture = false;
 
-  TempoLecture _tempo = TempoLecture.defaut;
+  /// Temps entre deux coups, en secondes.
+  double _vitesse = kVitesseDefaut;
   Timer? _battement;
-
-  /// Combien de coups la lecture a joués depuis qu'elle est partie.
-  ///
-  /// C'est ce qui dit OÙ L'ON EN EST DANS LA MESURE : les écarts d'une danse ne
-  /// sont pas tous égaux — la sarabande boite — et il faut donc savoir quel
-  /// écart vient ensuite. Remis à zéro dès qu'on repart : une mesure commence.
-  int _coupsJoues = 0;
-
-  /// Combien de coups de la mesure en cours n'ont pas encore été joués sur le
-  /// plateau. Leur son, lui, est déjà parti.
-  int _restantDansLaMesure = 0;
 
   @override
   void initState() {
@@ -89,18 +78,16 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
     super.dispose();
   }
 
-  /// Un coup sur chaque temps JOUÉ — et une pause sur les autres.
+  /// Un coup, puis l'attente, puis le suivant.
   ///
-  /// Le minuteur est REFAIT à chaque battement plutôt que périodique, pour deux
-  /// raisons. La vitesse peut changer entre deux coups — on tire le curseur, on
-  /// choisit une danse — et un minuteur périodique garderait l'ancienne cadence
-  /// jusqu'à son prochain déclenchement. Et surtout, dans une danse les écarts
-  /// ne sont pas tous égaux : la sarabande attend un temps, puis deux. Un seul
-  /// intervalle ne saurait pas les dire.
+  /// Le minuteur est REFAIT à chaque battement plutôt que périodique : la
+  /// vitesse peut changer entre deux coups — on tire le curseur — et un
+  /// minuteur périodique garderait l'ancienne cadence jusqu'à son prochain
+  /// déclenchement.
   void _armer() {
     _battement?.cancel();
     if (!_enLecture) return;
-    _battement = Timer(_tempo.ecartAvant(_coupsJoues), _battre);
+    _battement = Timer(vitesseEnDuree(_vitesse), _battre);
   }
 
   void _battre() {
@@ -110,61 +97,9 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       setState(() => _enLecture = false);
       return;
     }
-    // Au premier coup d'une mesure, TOUTE la mesure part en un seul son.
-    if (_restantDansLaMesure <= 0) _lancerLaMesure();
-    _move(_replay.next, silencieux: true);
-    _restantDansLaMesure--;
-    _coupsJoues++;
+    _move(_replay.next);
     _armer();
   }
-
-  /// Envoie d'un seul coup le son de la mesure qui commence.
-  ///
-  /// UN SON PAR COUP NE TIENT PAS LA CADENCE D'UNE DANSE. Chaque envoi coûte
-  /// un démarrage de lecteur audio côté plateforme — mixage, écriture d'un
-  /// WAV, décodage. Tant que les danses jouaient un coup par mesure, soit
-  /// environ un par seconde, les trois voix en rotation suffisaient. À trois
-  /// coups par seconde, chacune est rappelée avant d'avoir fini de démarrer :
-  /// le retard ne se rattrape jamais, il s'accumule, et le plateau distance la
-  /// musique. C'est ce que Nino a entendu : « les coups joués finissent par
-  /// aller plus vite que les sons et les distancent. »
-  ///
-  /// Le mélangeur sait déjà poser plusieurs notes dans un seul son, chacune à
-  /// son retard converti en ÉCHANTILLONS (`pcm.dart`). Une mesure part donc
-  /// d'un bloc : la cadence est gravée dedans, elle ne peut plus dériver, et
-  /// la plateforme n'a plus qu'un démarrage par mesure.
-  ///
-  /// Hors d'une danse, une « mesure » vaut un coup : le comportement d'avant,
-  /// à l'octet près.
-  void _lancerLaMesure() {
-    final combien = _coupsParMesure();
-    final cues = <SoundCue>[];
-    var decalage = Duration.zero;
-    var inclus = 0;
-    for (var j = 0; j < combien; j++) {
-      // Le coup j de la mesure est `steps[index + 1 + j]` : on lit DEVANT le
-      // curseur, car aucun de ces coups n'est encore joué.
-      final suivant = _replay.index + 1 + j;
-      if (suivant >= _replay.steps.length) break;
-      if (j > 0) decalage += _tempo.ecartAvant(_coupsJoues + j);
-      final force = _tempo.forceDe(_coupsJoues + j);
-      for (final cue in planForNotation(_replay.steps[suivant].notation)) {
-        cues.add(cue.decale(decalage, gain: force));
-      }
-      inclus++;
-    }
-    // Ce qu'on a VRAIMENT mis dedans : la partie peut finir au milieu d'une
-    // mesure, et décompter des coups qui n'existent pas ferait repartir la
-    // mesure suivante de travers.
-    _restantDansLaMesure = inclus;
-    if (cues.isNotEmpty) _sounds.play(cues);
-  }
-
-  /// Combien de coups groupe-t-on dans un seul son.
-  ///
-  /// Une mesure de la danse choisie ; un seul coup quand on règle à la main,
-  /// où les écarts sont d'une demi-seconde au moins et où rien ne presse.
-  int _coupsParMesure() => _tempo.rythmique?.coupsParMesure ?? 1;
 
   void _playPause() {
     setState(() {
@@ -172,38 +107,19 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       // ferait rien, et on ne saurait pas pourquoi.
       if (!_enLecture && _replay.atEnd) _move(_replay.toStart);
       _enLecture = !_enLecture;
-      // On repart au premier temps de la mesure : reprendre au milieu d'un
-      // motif ferait entrer la danse de travers.
-      _coupsJoues = 0;
-      _restantDansLaMesure = 0;
     });
-    // En pause, le son de la mesure en cours continuerait sans le plateau :
-    // il faut le couper, sinon on entend des coups qui ne se jouent pas.
-    _sounds.stopAll();
     _armer();
   }
 
   void _auDebut() {
-    _move(_replay.toStart, silencieux: true);
-    _coupsJoues = 0;
-    _restantDansLaMesure = 0;
-    _sounds.stopAll();
+    _move(_replay.toStart);
     _armer();
   }
 
   /// Changer de vitesse : le battement en cours garde sa durée, le suivant
   /// prend la nouvelle. Réarmer ici couperait la note qui sonne.
-  ///
-  /// Changer de danse remet la mesure à son début — le motif de la nouvelle
-  /// n'a rien à voir avec l'endroit où l'ancienne en était.
-  void _setTempo(TempoLecture t) {
-    setState(() {
-      if (t.rythmique != _tempo.rythmique) {
-        _coupsJoues = 0;
-        _restantDansLaMesure = 0;
-      }
-      _tempo = t;
-    });
+  void _setVitesse(double secondes) {
+    setState(() => _vitesse = secondes);
   }
 
   /// Avance ou recule, en jouant le son ET le glissement du coup atteint.
@@ -212,12 +128,11 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   /// reculant on entend celui auquel on revient. Les pièces suivent de même —
   /// elles ne le faisaient pas, et parcourir une partie enregistrée faisait
   /// sauter le plateau d'une position à l'autre sans qu'on voie rien bouger.
-  /// [silencieux] : le son de ce coup est déjà parti, avec toute sa mesure.
-  void _move(bool Function() action, {bool silencieux = false}) {
+  void _move(bool Function() action) {
     final avant = _replay.index;
     if (!action()) return;
     _animerVers(avant, _replay.index);
-    if (!silencieux) _sounds.playNotation(_replay.current.notation);
+    _sounds.playNotation(_replay.current.notation);
     setState(() {});
   }
 
@@ -347,26 +262,17 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
           ),
           // En lecture automatique, les informations du joueur du bas
           // laissent la place aux commandes — on ne garde que les pièces
-          // capturées. Et la bande s'épaissit : un curseur et trois touches
-          // ne tiennent pas dans les douze parts d'un panneau.
-          bottomParts: _auto ? 30 : 12,
+          // capturées. Et la bande s'épaissit : un curseur et deux touches ne
+          // tiennent pas dans les douze parts d'un panneau.
+          bottomParts: _auto ? 24 : 12,
           bottomPanel: _auto
               ? AutoPlayBar(
                   palette: palette,
                   captures:
                       _replay.current.captured[bottomCamp.opposite] ?? const [],
-                  tempo: _tempo,
+                  secondes: _vitesse,
                   enLecture: _enLecture,
-                  onTempo: (v) => _setTempo(TempoLecture.libre(v)),
-                  onRythmique: (r) => _setTempo(
-                    r == null
-                        ? TempoLecture.libre(
-                            _tempo.secondes == 0
-                                ? kVitesseMin * 2
-                                : _tempo.secondes,
-                          )
-                        : TempoLecture.danse(r),
-                  ),
+                  onTempo: _setVitesse,
                   onDebut: _auDebut,
                   onPlayPause: _playPause,
                 )

@@ -41,20 +41,14 @@ import 'online_game_test.dart' show FakeSocket, makeGame;
 final class FauxSons implements SoundPlayer {
   final List<String> joues = [];
 
-  /// Le volume de chaque coup joué à la notation.
-  final List<double> gains = [];
-
-  /// Les envois de sons déjà mixés — une mesure entière de danse en est un.
+  /// Les envois de sons déjà mixés.
   final List<List<SoundCue>> envois = [];
 
   @override
-  void playNotation(String? notation, {double gain = 1}) {
-    joues.add(notation ?? '');
-    gains.add(gain);
-  }
+  void playNotation(String? notation) => joues.add(notation ?? '');
 
   @override
-  void play(List<SoundCue> cues, {double gain = 1}) => envois.add(cues);
+  void play(List<SoundCue> cues) => envois.add(cues);
 
   @override
   void stopAll() {}

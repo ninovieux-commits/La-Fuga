@@ -135,19 +135,13 @@ class SoundPlayer {
   }
 
   /// Joue les sons d'un coup.
-  void playNotation(String? notation, {double gain = 1}) =>
-      play(planForNotation(notation), gain: gain);
+  void playNotation(String? notation) => play(planForNotation(notation));
 
   /// Joue un plan de sons déjà calculé.
   ///
   /// Rien n'est attendu : le mixage prend quelques dixièmes de milliseconde et
   /// l'envoi vers la plateforme part sans bloquer le doigt du joueur.
-  ///
-  /// [gain] multiplie le volume du joueur, le temps de ce coup-ci : c'est par
-  /// là que passe l'accent d'une danse, en lecture automatique. Il vaut 1
-  /// partout ailleurs, et ne MONTE jamais au-dessus — le mélangeur plafonne à
-  /// 1, un accent se fait donc en retenant les temps faibles.
-  void play(List<SoundCue> cues, {double gain = 1}) {
+  void play(List<SoundCue> cues) {
     if (!enabled || cues.isEmpty || _voices.isEmpty) return;
     final bank = _bank;
     if (bank == null || bank.isEmpty) {
@@ -156,7 +150,7 @@ class SoundPlayer {
       unawaited(_ensureBank());
       return;
     }
-    final mixed = mixCues(cues, bank, _volume * gain.clamp(0.0, 1.0));
+    final mixed = mixCues(cues, bank, _volume);
     if (mixed == null) return;
     _send(mixed, bank.rate);
   }

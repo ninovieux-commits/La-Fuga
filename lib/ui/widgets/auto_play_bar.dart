@@ -1,34 +1,32 @@
 /// Les commandes de la lecture automatique, sous le plateau.
 ///
 /// À la place des informations du joueur du bas, dont on ne garde que les
-/// pièces capturées : un curseur de vitesse, le retour au début et le
-/// play/pause, puis le choix d'une rythmique.
+/// pièces capturées : un curseur de vitesse, puis le retour au début et le
+/// play/pause.
 ///
-/// Le curseur et la rythmique ne coexistent pas. Choisir une danse fige la
-/// vitesse — c'est elle qui la donne — et le curseur s'éteint ; le reprendre
-/// abandonne la danse.
+/// Il y a eu ici un troisième réglage, « choisir une rythmique », qui imposait
+/// la cadence d'une valse, d'une gigue ou d'une sarabande. Essayé sur un vrai
+/// téléphone, il ne tenait pas à l'oreille : une partie n'est pas une mélodie.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
-import '../../game/rythmique.dart';
+import '../../game/vitesse_lecture.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'player_panel.dart';
 import 'fuga_button.dart';
-import 'game_top_bar.dart';
 
 class AutoPlayBar extends StatelessWidget {
   const AutoPlayBar({
     super.key,
     required this.palette,
     required this.captures,
-    required this.tempo,
+    required this.secondes,
     required this.enLecture,
     required this.onTempo,
-    required this.onRythmique,
     required this.onDebut,
     required this.onPlayPause,
   });
@@ -38,16 +36,14 @@ class AutoPlayBar extends StatelessWidget {
   /// Les pièces sorties : la seule information qu'on garde du panneau.
   final List<Piece> captures;
 
-  final TempoLecture tempo;
+  /// Temps entre deux coups, en secondes.
+  final double secondes;
 
   /// Vrai quand ça défile : la touche montre alors la pause.
   final bool enLecture;
 
-  /// Nouvelle durée entre deux coups, en secondes. Abandonne la rythmique.
+  /// Nouvelle durée entre deux coups, en secondes.
   final void Function(double) onTempo;
-
-  /// Choisir une danse, ou `null` pour revenir au curseur.
-  final void Function(Rythmique?) onRythmique;
 
   final VoidCallback onDebut;
   final VoidCallback onPlayPause;
@@ -55,15 +51,15 @@ class AutoPlayBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(2)),
-    // La hauteur vient de la pile, qui donne trente parts à cette bande : la
-    // colonne la remplit, et les pièces capturées prennent ce qui reste.
+    // La hauteur vient de la pile : la colonne la remplit, et les pièces
+    // capturées prennent ce qui reste.
     child: Column(
       children: [
         Expanded(
           child: CapturesStrip(pieces: captures, palette: palette),
         ),
         _curseur(),
-        SizedBox(height: S(2)),
+        SizedBox(height: S(4)),
         SizedBox(
           height: touchHeight() * 0.8,
           child: Row(
@@ -92,28 +88,11 @@ class AutoPlayBar extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: S(4)),
-        SizedBox(
-          width: double.infinity,
-          height: touchHeight() * 0.8,
-          child: FugaButton(
-            text: tempo.estLibre
-                ? T('Choisir une rythmique')
-                : tempo.rythmique!.etiquette,
-            color: tempo.estLibre ? kBarButtonDark : palette.fonce,
-            height: double.infinity,
-            fontSize: SF(14),
-            onPressed: () => _choisir(context),
-          ),
-        ),
       ],
     ),
   );
 
   /// Le curseur de vitesse, et ce qu'il vaut.
-  ///
-  /// Éteint quand une rythmique est choisie : la vitesse vient alors de la
-  /// danse, et laisser le curseur actif laisserait croire le contraire.
   Widget _curseur() => Row(
     children: [
       Expanded(
@@ -124,9 +103,7 @@ class AutoPlayBar extends StatelessWidget {
             overlayShape: SliderComponentShape.noOverlay,
           ),
           child: Slider(
-            value: tempo.estLibre
-                ? tempo.secondes.clamp(kVitesseMin, kVitesseMax)
-                : kVitesseMin,
+            value: secondes.clamp(kVitesseMin, kVitesseMax),
             min: kVitesseMin,
             max: kVitesseMax,
             // Un cran toutes les demi-secondes : le curseur ne s'arrête
@@ -134,18 +111,18 @@ class AutoPlayBar extends StatelessWidget {
             divisions: kVitesseCrans - 1,
             activeColor: palette.clair,
             inactiveColor: Colors.white24,
-            onChanged: tempo.estLibre ? onTempo : null,
+            onChanged: onTempo,
           ),
         ),
       ),
       SizedBox(
         width: S(96),
         child: Text(
-          tempo.etiquette,
+          '${secondes.toStringAsFixed(1)} s',
           textAlign: TextAlign.center,
           maxLines: 1,
           style: TextStyle(
-            color: tempo.estLibre ? Colors.white : palette.clair,
+            color: Colors.white,
             fontSize: SF(12),
             fontWeight: FontWeight.bold,
           ),
@@ -153,63 +130,4 @@ class AutoPlayBar extends StatelessWidget {
       ),
     ],
   );
-
-  Future<void> _choisir(BuildContext context) async {
-    final choix = await showDialog<Object>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: palette.fonce,
-        title: Text(
-          T('Choisir une rythmique'),
-          style: TextStyle(color: Colors.white, fontSize: SF(16)),
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final r in Rythmique.values) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: FugaButton(
-                      text: r.etiquette,
-                      fontSize: SF(15),
-                      color: tempo.rythmique == r ? palette.clair : kFugaGrey,
-                      textColor: tempo.rythmique == r
-                          ? Colors.black
-                          : Colors.white,
-                      onPressed: () => Navigator.of(context).pop(r),
-                    ),
-                  ),
-                  // Le tempo, le motif et le nombre de coups par mesure.
-                  // « Les vitesses sont prédéfinies » ne dit pas lesquelles, et
-                  // « 1 · · » dit d'un coup d'œil où sont les pauses.
-                  Padding(
-                    padding: EdgeInsets.only(top: S(2), bottom: S(8)),
-                    child: Text(
-                      r.detail,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: SF(11)),
-                    ),
-                  ),
-                ],
-                SizedBox(
-                  width: double.infinity,
-                  child: FugaButton(
-                    text: T('Aucune (régler à la main)'),
-                    fontSize: SF(14),
-                    color: kBarButtonDark,
-                    onPressed: () => Navigator.of(context).pop('aucune'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (choix == null) return;
-    onRythmique(choix is Rythmique ? choix : null);
-  }
 }

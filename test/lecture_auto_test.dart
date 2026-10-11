@@ -3,14 +3,18 @@
 /// Nino : « un bouton (lecture automatique). Là en bas du plateau au lieu des
 /// infos habituelles (on garde que les pièces capturées) on met un curseur
 /// […] de 0.5 à 5 sec, avec un cran toutes les 0.5 sec. Juste en dessous de ce
-/// curseur un bouton revenir au début et un bouton play/pause. Encore en
-/// dessous, un bouton (choisir une rythmique) […] On ne peut plus régler la
-/// vitesse si l'on a choisi une rythmique. »
+/// curseur un bouton revenir au début et un bouton play/pause. »
+///
+/// Il y a eu ici un troisième réglage, « choisir une rythmique » : huit danses
+/// avec leurs tempos, leurs accents et leurs notes inégales. Essayé sur un vrai
+/// téléphone, cela ne tenait pas à l'oreille — une partie n'est pas une
+/// mélodie. « Enlève les rythmiques finalement, laisse juste le curseur de
+/// temps. »
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lafuga/game/rythmique.dart';
+import 'package:lafuga/game/vitesse_lecture.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
@@ -48,19 +52,26 @@ void main() {
   });
   tearDown(resetScale);
 
-  Future<void> ouvrir(WidgetTester tester) async {
+  Future<void> ouvrir(WidgetTester tester, {FauxSons? sons}) async {
     tester.view.physicalSize = const Size(393, 851);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: _nmc)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReplayScreen(nmc: _nmc, sounds: sons),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
-  Future<void> ouvrirAuto(WidgetTester tester) async {
-    await ouvrir(tester);
+  Future<void> ouvrirAuto(WidgetTester tester, {FauxSons? sons}) async {
+    await ouvrir(tester, sons: sons);
     tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
     await tester.pumpAndSettle();
   }
+
+  AutoPlayBar barre(WidgetTester tester) =>
+      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar));
 
   /// Le coup regardé, lu dans le bandeau.
   int coupRegarde(WidgetTester tester) =>
@@ -90,13 +101,16 @@ void main() {
       );
     });
 
-    testWidgets('les trois commandes sont là, dans cet ordre', (tester) async {
+    testWidgets('le curseur, puis les deux touches en dessous', (tester) async {
       await ouvrirAuto(tester);
       final curseur = tester.getCenter(find.byType(Slider));
       final debut = tester.getCenter(find.textContaining('Début'));
-      final rythme = tester.getCenter(find.text('Choisir une rythmique'));
       expect(debut.dy, greaterThan(curseur.dy), reason: 'sous le curseur');
-      expect(rythme.dy, greaterThan(debut.dy), reason: 'encore en dessous');
+      expect(
+        find.textContaining('rythmique'),
+        findsNothing,
+        reason: 'les danses ont été retirées',
+      );
     });
 
     testWidgets('et on peut les refermer', (tester) async {
@@ -109,60 +123,52 @@ void main() {
   });
 
   group('Le curseur', () {
-    testWidgets('il va de 0,5 à 5 par demi-secondes', (tester) async {
+    testWidgets('il va de 0,5 à 5 par demi-secondes, et il est actif', (
+      tester,
+    ) async {
       await ouvrirAuto(tester);
       final s = tester.widget<Slider>(find.byType(Slider));
-      expect(s.min, 0.5);
-      expect(s.max, 5.0);
+      expect(s.min, kVitesseMin);
+      expect(s.max, kVitesseMax);
       expect(
         s.divisions,
-        9,
+        kVitesseCrans - 1,
         reason: 'dix crans de 0,5 à 5,0 font neuf intervalles',
       );
-      expect(s.onChanged, isNotNull);
-    });
-
-    testWidgets('une rythmique choisie l éteint', (tester) async {
-      await ouvrirAuto(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.sarabande);
-      await tester.pumpAndSettle();
-
       expect(
-        tester.widget<Slider>(find.byType(Slider)).onChanged,
-        isNull,
-        reason: 'on ne règle plus la vitesse quand une rythmique est choisie',
+        s.onChanged,
+        isNotNull,
+        reason: 'plus rien ne peut l éteindre : c est le seul réglage',
       );
-      expect(find.textContaining('Sarabande 3/2'), findsWidgets);
     });
 
-    testWidgets('revenir à la main le rallume', (tester) async {
+    testWidgets('il part à une seconde, et affiche ce qu il vaut', (
+      tester,
+    ) async {
       await ouvrirAuto(tester);
-      final barre = tester.widget<AutoPlayBar>(find.byType(AutoPlayBar));
-      barre.onRythmique(Rythmique.gigue);
+      expect(tester.widget<Slider>(find.byType(Slider)).value, kVitesseDefaut);
+      expect(find.text('1.0 s'), findsOneWidget);
+
+      barre(tester).onTempo(2.5);
       await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onRythmique(null);
-      await tester.pumpAndSettle();
-      expect(tester.widget<Slider>(find.byType(Slider)).onChanged, isNotNull);
-      expect(find.text('Choisir une rythmique'), findsOneWidget);
+      expect(tester.widget<Slider>(find.byType(Slider)).value, 2.5);
+      expect(find.text('2.5 s'), findsOneWidget);
     });
   });
 
-  group('Ça défile, à la bonne cadence', () {
-    testWidgets('un coup par temps, et pas avant', (tester) async {
+  group('Ça défile, à la cadence du curseur', () {
+    testWidgets('un coup par intervalle, et pas avant', (tester) async {
       await ouvrirAuto(tester);
-      final barre = tester.widget<AutoPlayBar>(find.byType(AutoPlayBar));
-      barre.onTempo(2.0);
+      barre(tester).onTempo(2.0);
       await tester.pumpAndSettle();
-      barre.onDebut();
+      barre(tester).onDebut();
       await tester.pumpAndSettle();
       final depart = coupRegarde(tester);
 
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      barre(tester).onPlayPause();
       await tester.pump();
 
-      // Juste avant le temps : rien n'a bougé.
+      // Juste avant l'échéance : rien n'a bougé.
       await tester.pump(const Duration(milliseconds: 1900));
       expect(
         coupRegarde(tester),
@@ -175,16 +181,52 @@ void main() {
       expect(coupRegarde(tester), depart + 1);
     });
 
+    testWidgets('les intervalles sont ÉGAUX, du premier au dernier', (
+      tester,
+    ) async {
+      // Un seul réglage, une seule cadence : rien ne doit boiter. Que des
+      // `pump` exacts, jamais `pumpAndSettle` en cours de route — celui-ci
+      // avance l'horloge de toute la durée des animations.
+      await ouvrirAuto(tester);
+      barre(tester).onTempo(1.0);
+      await tester.pumpAndSettle();
+      barre(tester).onDebut();
+      await tester.pumpAndSettle();
+      final depart = coupRegarde(tester);
+
+      // On compte en temps ABSOLU depuis le départ. Pomper « 900 puis 150 »
+      // à chaque tour ferait avancer l'horloge de 1 050 ms pour un intervalle
+      // de 1 000 : le décalage s'accumule et finit par dépasser l'échéance.
+      var ecoule = 0;
+      Future<void> jusqua(int ms) async {
+        await tester.pump(Duration(milliseconds: ms - ecoule));
+        ecoule = ms;
+      }
+
+      barre(tester).onPlayPause();
+      for (var n = 1; n <= 4; n++) {
+        await jusqua(n * 1000 - 100);
+        expect(
+          coupRegarde(tester),
+          depart + n - 1,
+          reason: 'le coup $n n est pas encore dû',
+        );
+        await jusqua(n * 1000 + 100);
+        expect(coupRegarde(tester), depart + n, reason: 'le coup $n est dû');
+      }
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('la pause arrête tout', (tester) async {
       await ouvrirAuto(tester);
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
+      barre(tester).onTempo(0.5);
       await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      barre(tester).onPlayPause();
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
       final apres = coupRegarde(tester);
 
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      barre(tester).onPlayPause();
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
       expect(
@@ -196,14 +238,14 @@ void main() {
 
     testWidgets('« Début » ramène au premier coup', (tester) async {
       await ouvrirAuto(tester);
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
+      barre(tester).onTempo(0.5);
       await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      barre(tester).onPlayPause();
       await tester.pump(const Duration(milliseconds: 1200));
       await tester.pumpAndSettle();
       expect(coupRegarde(tester), greaterThan(0));
 
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
+      barre(tester).onDebut();
       await tester.pumpAndSettle();
       expect(
         coupRegarde(tester),
@@ -212,262 +254,47 @@ void main() {
       );
     });
 
-    testWidgets('une rythmique impose SA cadence', (tester) async {
-      await ouvrirAuto(tester);
-      // Sarabande : 60 à la minute, donc une seconde pile par temps.
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.sarabande);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      final depart = coupRegarde(tester);
-
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      await tester.pump(const Duration(milliseconds: 900));
-      expect(
-        coupRegarde(tester),
-        depart,
-        reason: 'la sarabande a joué avant sa seconde',
-      );
-      await tester.pump(const Duration(milliseconds: 200));
-      await tester.pumpAndSettle();
-      expect(coupRegarde(tester), depart + 1);
-    });
-
-    testWidgets('la VALSE pose ses trois notes SUR LES TROIS TEMPS', (
-      tester,
-    ) async {
-      // « Oui fais ça, trois notes sur les trois temps. » Le oum-pa-pa : les
-      // écarts sont ÉGAUX, et c'est l'accent qui fait le « taaam ». À 170, le
-      // temps vaut 353 ms : les coups tombent à 353, 706, 1059, 1412 ms.
-      //
-      // Que des `pump` exacts, jamais `pumpAndSettle` en cours de route :
-      // celui-ci avance l'horloge de toute la durée des animations.
-      await ouvrirAuto(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.valse);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      final depart = coupRegarde(tester);
-
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      // Quatre coups, quatre fois le MÊME écart : trois notes par mesure, et
-      // la mesure suivante enchaîne sur le même pas.
-      for (var n = 1; n <= 4; n++) {
-        await tester.pump(const Duration(milliseconds: 250));
-        expect(
-          coupRegarde(tester),
-          depart + n - 1,
-          reason: 'le coup $n n est pas encore dû',
-        );
-        await tester.pump(const Duration(milliseconds: 103));
-        expect(
-          coupRegarde(tester),
-          depart + n,
-          reason: 'le coup $n tombe sur son temps',
-        );
-      }
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('la sarabande BOITE dans l AUTRE sens : court, puis long', (
-      tester,
-    ) async {
-      // Elle appuie et ALLONGE son deuxième temps — l'inverse de la valse. À
-      // 60 à la blanche, le temps vaut une seconde : coups à 1 s, 3 s, 4 s…
-      await ouvrirAuto(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.sarabande);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      final depart = coupRegarde(tester);
-
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      await tester.pump(const Duration(milliseconds: 900));
-      expect(coupRegarde(tester), depart);
-      await tester.pump(const Duration(milliseconds: 200)); // 1100 ms
-      expect(coupRegarde(tester), depart + 1);
-      // Deuxième écart : DEUX temps. Une seconde de plus ne suffit pas.
-      await tester.pump(const Duration(milliseconds: 800)); // 1900 ms
-      expect(
-        coupRegarde(tester),
-        depart + 1,
-        reason: 'le deuxième temps est tenu : deux secondes, pas une',
-      );
-      await tester.pump(const Duration(milliseconds: 1200)); // 3100 ms
-      expect(coupRegarde(tester), depart + 2);
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('la gigue galope sur ses croches', (tester) async {
-      // Deux croches, une croche. À 80 noires pointées, la croche vaut 250 ms :
-      // les coups tombent à 500 ms, 750 ms, 1250 ms…
-      await ouvrirAuto(tester);
-      tester
-          .widget<AutoPlayBar>(find.byType(AutoPlayBar))
-          .onRythmique(Rythmique.gigue);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      final depart = coupRegarde(tester);
-
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(coupRegarde(tester), depart, reason: 'la note de deux croches');
-      await tester.pump(const Duration(milliseconds: 150)); // 550 ms
-      expect(coupRegarde(tester), depart + 1);
-      // La croche seule : moitié moins d'attente.
-      await tester.pump(const Duration(milliseconds: 150)); // 700 ms
-      expect(coupRegarde(tester), depart + 1);
-      await tester.pump(const Duration(milliseconds: 100)); // 800 ms
-      expect(coupRegarde(tester), depart + 2);
-      await tester.pumpAndSettle();
-    });
-
     testWidgets('arrivé au bout, ça s arrête', (tester) async {
       await ouvrirAuto(tester);
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
+      barre(tester).onTempo(0.5);
       await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
+      barre(tester).onPlayPause();
       // Largement de quoi dépasser les six coups.
       for (var i = 0; i < 20; i++) {
         await tester.pump(const Duration(milliseconds: 500));
       }
       await tester.pumpAndSettle();
       expect(
-        tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).enLecture,
+        barre(tester).enLecture,
         isFalse,
         reason: 'le lecteur doit s arrêter au dernier coup, pas reboucler',
       );
     });
   });
 
-  group('Une mesure part en UN SEUL son', () {
-    /// Ouvre la lecture automatique avec un lecteur de sons espion.
-    Future<FauxSons> ouvrirAvecSons(WidgetTester tester) async {
+  group('Chaque coup joue son son', () {
+    testWidgets('un coup, un envoi, et rien de plus', (tester) async {
+      // Le son part coup par coup, comme partout ailleurs dans l'application.
+      // Le groupement par mesure n'existait que pour tenir la cadence serrée
+      // d'une danse ; sans elles, les écarts font une demi-seconde au moins.
       final sons = FauxSons();
-      tester.view.physicalSize = const Size(393, 851);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ReplayScreen(nmc: _nmc, sounds: sons),
-        ),
-      );
+      await ouvrirAuto(tester, sons: sons);
+      barre(tester).onTempo(0.5);
       await tester.pumpAndSettle();
-      tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
-      await tester.pumpAndSettle();
-      return sons;
-    }
-
-    Future<FauxSons> jouer(WidgetTester tester, Rythmique? danse) async {
-      final sons = await ouvrirAvecSons(tester);
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onRythmique(danse);
-      await tester.pumpAndSettle();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onDebut();
-      await tester.pumpAndSettle();
-      sons.envois.clear();
       sons.joues.clear();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      return sons;
-    }
 
-    testWidgets('trois coups de valse, UN envoi : la cadence est gravée', (
-      tester,
-    ) async {
-      // Le défaut que Nino a entendu : « les coups joués finissent par aller
-      // plus vite que les sons et les distancent. » Un envoi par coup coûte un
-      // démarrage de lecteur audio, et à trois coups par seconde le retard
-      // s'accumule. Une mesure entière part donc d'un bloc, chaque note à son
-      // retard en échantillons : elle ne peut plus dériver.
-      final sons = await jouer(tester, Rythmique.valse);
-      // La mesure dure 1,06 s ; on s'arrête avant la suivante.
-      await tester.pump(const Duration(milliseconds: 1000));
-
-      expect(
-        sons.envois.length,
-        1,
-        reason: 'UN envoi pour les trois coups de la mesure',
-      );
-      expect(
-        sons.joues,
-        isEmpty,
-        reason: 'aucun coup ne doit envoyer son son tout seul',
-      );
-
-      final cues = sons.envois.single;
-      expect(cues.length, 3, reason: 'les trois notes de la mesure');
-      // Les retards : un temps d'écart entre chaque. À 170, le temps vaut
-      // 353 ms.
-      final temps = Rythmique.valse.parTemps;
-      expect(cues[0].delay, Duration.zero);
-      expect(cues[1].delay, temps, reason: 'sur le deuxième temps');
-      expect(cues[2].delay, temps * 2, reason: 'sur le troisième');
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('et chaque note de la mesure porte son accent', (tester) async {
-      final sons = await jouer(tester, Rythmique.valse);
-      await tester.pump(const Duration(milliseconds: 1000));
-
-      final cues = sons.envois.single;
-      expect(cues[0].gain, 1.0, reason: 'le premier temps, à pleine voix');
-      expect(cues[1].gain, lessThan(1.0), reason: 'le deuxième, retenu');
-      expect(cues[2].gain, lessThan(1.0), reason: 'le troisième, retenu');
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('la mesure suivante part à son tour, et réaccentue', (
-      tester,
-    ) async {
-      final sons = await jouer(tester, Rythmique.valse);
-      await tester.pump(const Duration(milliseconds: 1700));
-
-      expect(sons.envois.length, 2, reason: 'une mesure, puis la suivante');
-      expect(sons.envois[1].first.gain, 1.0);
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('la sarabande appuie son DEUXIÈME temps', (tester) async {
-      final sons = await jouer(tester, Rythmique.sarabande);
-      await tester.pump(const Duration(milliseconds: 1500));
-
-      final cues = sons.envois.first;
-      expect(cues.length, 2);
-      expect(
-        cues[0].gain,
-        lessThan(cues[1].gain),
-        reason: 'c est le deuxième temps qui porte l accent',
-      );
-      expect(cues[1].gain, 1.0);
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('à la main, un coup = un envoi, et pas d accent', (
-      tester,
-    ) async {
-      // Hors d'une danse les écarts font une demi-seconde au moins : rien ne
-      // presse, et le comportement d'avant ne bouge pas d'un octet.
-      final sons = await ouvrirAvecSons(tester);
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onTempo(0.5);
-      await tester.pumpAndSettle();
-      sons.envois.clear();
-      tester.widget<AutoPlayBar>(find.byType(AutoPlayBar)).onPlayPause();
-      await tester.pump(const Duration(milliseconds: 1600));
-
-      expect(sons.envois.length, 3, reason: 'un envoi par coup');
-      for (final envoi in sons.envois) {
-        for (final cue in envoi) {
-          expect(cue.gain, 1.0, reason: 'aucun coup plus fort qu un autre');
-          expect(cue.delay, Duration.zero);
-        }
+      barre(tester).onPlayPause();
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(milliseconds: 550));
       }
       await tester.pumpAndSettle();
+
+      expect(sons.joues.length, 3, reason: 'un son par coup joué');
+      expect(
+        sons.joues,
+        everyElement(isNotEmpty),
+        reason: 'chaque coup a bien une notation à jouer',
+      );
     });
   });
 }
