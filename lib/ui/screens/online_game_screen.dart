@@ -24,6 +24,7 @@ import 'conversations_screen.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/bulles_en_jeu.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/name_menu.dart';
@@ -262,6 +263,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       body: SafeArea(
         top: false,
         child: GameLayout(
+          // Les messages de l'adversaire passent dans SON bandeau, rognés à
+          // lui : ni le plateau ni les touches n'en voient rien.
+          topOverlay: BullesEnJeu(
+            flux: OnlineService.instance.messages.incoming
+                .where((m) => m.from == _g.info.opponent)
+                .map((m) => m.text),
+            palette: palette,
+          ),
           topBar: GameTopBar(
             palette: palette,
             color: _campColor(palette, topCamp),

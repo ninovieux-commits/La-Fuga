@@ -24,6 +24,7 @@ class GameLayout extends StatelessWidget {
     required this.moveStrip,
     this.notice,
     this.bottomParts = 12,
+    this.topOverlay,
   });
 
   final Widget topBar;
@@ -48,6 +49,15 @@ class GameLayout extends StatelessWidget {
   /// Bandeau d'avertissement facultatif, sous le bandeau des touches.
   final Widget? notice;
 
+  /// Posé PAR-DESSUS le bandeau de l'adversaire, et rogné à sa boîte.
+  ///
+  /// C'est là que passent les messages reçus en cours de partie. En le plaçant
+  /// dans la boîte du bandeau plutôt qu'en surimpression de l'écran, on obtient
+  /// gratuitement ce que Nino demande : « il ne faut pas que ça déborde sur le
+  /// plateau ni sur les touches du haut. » Aucun message, si long soit-il, ne
+  /// peut en sortir.
+  final Widget? topOverlay;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -66,7 +76,20 @@ class GameLayout extends StatelessWidget {
             children: [
               SizedBox(height: bar, child: topBar),
               if (notice != null) notice!,
-              if (topPanel != null) SizedBox(height: top, child: topPanel),
+              if (topPanel != null)
+                SizedBox(
+                  height: top,
+                  child: topOverlay == null
+                      ? topPanel
+                      : ClipRect(
+                          child: Stack(
+                            children: [
+                              Positioned.fill(child: topPanel!),
+                              Positioned.fill(child: topOverlay!),
+                            ],
+                          ),
+                        ),
+                ),
               SizedBox(height: board),
               if (bottomPanel != null)
                 SizedBox(height: bottom, child: bottomPanel),

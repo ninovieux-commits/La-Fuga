@@ -26,6 +26,7 @@ import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/bulles_en_jeu.dart';
 import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
@@ -687,6 +688,15 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                 ],
               )
             : GameLayout(
+                // Les messages de l'adversaire passent dans SON bandeau,
+                // rognés à lui : ni le plateau ni les touches n'en voient
+                // rien.
+                topOverlay: BullesEnJeu(
+                  flux: OnlineService.instance.messages.incoming
+                      .where((m) => m.from == widget.game.opponent)
+                      .map((m) => m.text),
+                  palette: palette,
+                ),
                 topBar: _bar(palette, flipped),
                 topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
                 board: GameBoardView(

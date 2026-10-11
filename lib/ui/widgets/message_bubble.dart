@@ -42,6 +42,7 @@ class MessageBubble extends StatelessWidget {
     required this.deMoi,
     required this.palette,
     this.echoue = false,
+    this.selectionnable = true,
   });
 
   final String texte;
@@ -54,6 +55,14 @@ class MessageBubble extends StatelessWidget {
 
   /// L'envoi a échoué : la bulle le dit.
   final bool echoue;
+
+  /// Un appui long ouvre les poignées de sélection.
+  ///
+  /// Faux pour la bulle qui passe pendant une partie : elle s'efface au bout
+  /// de cinq secondes, et une sélection qu'on perd en la commençant vaudrait
+  /// mieux ne pas être offerte. Le texte reste copiable dans la boîte de
+  /// messages, où il demeure.
+  final bool selectionnable;
 
   @override
   Widget build(BuildContext context) {
@@ -92,11 +101,17 @@ class MessageBubble extends StatelessWidget {
         // SelectableText, et non Text : un appui long ouvre les poignées de
         // sélection et le menu « Copier ». C'est ce que Nino demande, et cela
         // vaut pour les messages reçus COMME pour les siens.
-        child: SelectableText(
-          echoue ? '$texte  ${T("(non envoyé)")}' : texte,
-          textAlign: TextAlign.left,
-          style: TextStyle(color: encre, fontSize: SF(16)),
-        ),
+        child: selectionnable
+            ? SelectableText(
+                echoue ? '$texte  ${T("(non envoyé)")}' : texte,
+                textAlign: TextAlign.left,
+                style: TextStyle(color: encre, fontSize: SF(16)),
+              )
+            : Text(
+                echoue ? '$texte  ${T("(non envoyé)")}' : texte,
+                textAlign: TextAlign.left,
+                style: TextStyle(color: encre, fontSize: SF(16)),
+              ),
       ),
     );
   }

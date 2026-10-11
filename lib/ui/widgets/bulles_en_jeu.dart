@@ -1,0 +1,183 @@
+/// Les messages de l'adversaire, pendant la partie.
+///
+/// Nino : « quand on reçoit un message pendant qu'on est sur la partie
+/// concernant l'adversaire en question, le message s'affiche dans une bulle
+/// […] Le message doit rester afficher pendant 5 secondes et si un deuxième
+/// message est envoyé alors que le [premier] est toujours afficher, ça défile.
+/// Il ne faut pas que ça déborde sur le plateau ni sur les touches du haut. »
+///
+/// ## Où ça tient
+///
+/// Dans le bandeau de l'adversaire, et nulle part ailleurs : c'est le dessin
+/// de Nino, et c'est la seule bande libre de l'écran de jeu. Le plateau et les
+/// touches n'en voient rien, parce que la bulle est posée DANS la boîte du
+/// bandeau — pas en surimpression de l'écran — et que ce qu'on y peint est
+/// rogné à cette boîte. Un message long ne peut donc pas déborder : il
+/// enroule, et si la place manque, il défile.
+///
+/// La photo reste visible à gauche : les bulles commencent après elle, comme
+/// sur le dessin.
+///
+/// ## Ce qui défile
+///
+/// Chaque message vit cinq secondes, à partir de SON arrivée — son propre
+/// minuteur, et rien d'autre. Deux messages rapprochés se retrouvent donc
+/// affichés ensemble, et le premier s'efface à son heure sans emporter l'autre.
+///
+/// À chaque arrivée, la vue glisse pour amener le DÉBUT du dernier message en
+/// haut du bandeau. Glisser jusqu'en bas serait plus simple, mais un message
+/// plus haut que le bandeau s'ouvrirait alors sur sa fin, ses premiers mots
+/// déjà sortis par le haut. Quand le dernier message est court, l'ajustement
+/// bute de lui-même sur le bas de la liste.
+library;
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../theme/themes.dart';
+import '../scale.dart';
+import 'message_bubble.dart';
+
+/// Combien de temps un message reste à l'écran.
+const Duration kBulleEnJeuDuree = Duration(seconds: 5);
+
+/// Le temps que met la vue à glisser jusqu'au dernier message.
+const Duration kBulleEnJeuGlissee = Duration(milliseconds: 220);
+
+class BullesEnJeu extends StatefulWidget {
+  const BullesEnJeu({
+    super.key,
+    required this.flux,
+    required this.palette,
+    this.duree = kBulleEnJeuDuree,
+  });
+
+  /// Les textes reçus de l'adversaire de CETTE partie.
+  final Stream<String> flux;
+
+  /// Les couleurs de MON thème : la bulle doit ressembler à celles de la
+  /// boîte de messages, et celles-là sont les miennes.
+  final ThemePalette palette;
+
+  final Duration duree;
+
+  @override
+  State<BullesEnJeu> createState() => _BullesEnJeuState();
+}
+
+/// Un message affiché, avec le minuteur qui l'effacera.
+final class _Affiche {
+  _Affiche(this.texte);
+
+  final String texte;
+
+  /// Pour amener le début de cette bulle en haut du bandeau à son arrivée.
+  final GlobalKey cle = GlobalKey();
+
+  /// Son échéance à lui. Pas d'horloge murale ici : un minuteur par message,
+  /// annulé en quittant l'écran. Lire `DateTime.now()` mêlerait deux horloges
+  /// — celle du minuteur et celle du calendrier — et la durée cesserait d'être
+  /// vérifiable.
+  Timer? mort;
+}
+
+class _BullesEnJeuState extends State<BullesEnJeu> {
+  final List<_Affiche> _bulles = [];
+  final ScrollController _scroll = ScrollController();
+  StreamSubscription<String>? _ecoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _ecoute = widget.flux.listen(_arrive);
+  }
+
+  @override
+  void dispose() {
+    for (final b in _bulles) {
+      b.mort?.cancel();
+    }
+    _ecoute?.cancel();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _arrive(String texte) {
+    if (!mounted || texte.trim().isEmpty) return;
+    final venue = _Affiche(texte);
+    venue.mort = Timer(widget.duree, () => _retire(venue));
+    setState(() => _bulles.add(venue));
+    // Le dernier arrivé se montre, par son début.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _montre(venue));
+  }
+
+  void _retire(_Affiche b) {
+    if (!mounted) return;
+    b.mort?.cancel();
+    setState(() => _bulles.remove(b));
+  }
+
+  void _montre(_Affiche b) {
+    final ou = b.cle.currentContext;
+    if (ou == null || !_scroll.hasClients) return;
+    Scrollable.ensureVisible(
+      ou,
+      // 0 : le haut de la bulle contre le haut du bandeau.
+      alignment: 0,
+      duration: kBulleEnJeuGlissee,
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_bulles.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, box) {
+        // La photo occupe un carré de la hauteur du bandeau, moins ses marges
+        // — même calcul que `PlayerPanel`. Les bulles commencent après elle.
+        final photo = box.maxHeight - 2 * S(4);
+        return Padding(
+          padding: EdgeInsets.only(
+            left: photo + S(14),
+            right: S(8),
+            top: S(4),
+            bottom: S(4),
+          ),
+          // Rogné au bandeau : rien ne sort vers le plateau ni vers les
+          // touches. C'est la contrainte de Nino, et elle est tenue ici plutôt
+          // que par la bonne volonté de chaque message. Un `ClipRect` autour
+          // ferait le même découpage au même pixel — mesuré — donc on s'en
+          // passe et on écrit le découpage là où il a lieu.
+          child: SingleChildScrollView(
+            controller: _scroll,
+            clipBehavior: Clip.hardEdge,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final b in _bulles)
+                  Padding(
+                    key: b.cle,
+                    padding: EdgeInsets.only(bottom: S(4)),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: MessageBubble(
+                        texte: b.texte,
+                        // Reçu : la couleur et l'écriture d'un message reçu
+                        // dans la boîte de messages.
+                        deMoi: false,
+                        palette: widget.palette,
+                        selectionnable: false,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
