@@ -6,7 +6,10 @@
 ///     sélectionneur pour pouvoir copier coller » ;
 ///   — « on voit en fond de la conversation l'image de fond de menu choisit
 ///     par notre interlocuteur. Le texte doit apparaître dans des bulles par
-///     dessus. Les bulles doivent être aux couleurs du thème » ;
+///     dessus. Les bulles doivent être aux couleurs du thème […] du thème de
+///     l'utilisateur, pas de l'interlocuteur comme le fond » ;
+///   — « j'aimerai aussi que les images de profil soient plus grosses dans les
+///     conversations » ;
 ///   — « quand on envoie un smiley seul il apparaît en plus gros ».
 library;
 
@@ -26,6 +29,7 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_background.dart';
 import 'package:lafuga/ui/widgets/message_bubble.dart';
+import 'package:lafuga/ui/widgets/profile_photo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -312,7 +316,16 @@ void main() {
       );
     });
 
-    testWidgets('le décor est celui de L INTERLOCUTEUR', (tester) async {
+    testWidgets('le FOND est à lui, les BULLES sont à moi', (tester) async {
+      // Les deux ne vont pas ensemble, et c'est voulu : on entre chez lui, on
+      // voit son décor, mais les bulles restent celles de mon application —
+      // je dois m'y retrouver d'une conversation à l'autre.
+      server.replies['/login'] = {
+        'ok': true,
+        'token': 't',
+        'pseudo': 'Nino',
+        'theme': 'foret',
+      };
       await ouvrir(
         tester,
         messages: [
@@ -321,20 +334,44 @@ void main() {
         sonTheme: 'volcan',
       );
 
-      final fond = tester.widget<FugaBackground>(find.byType(FugaBackground));
       expect(
-        fond.theme,
+        tester.widget<FugaBackground>(find.byType(FugaBackground)).theme,
         'volcan',
-        reason: 'on entre chez lui, on voit son décor',
+        reason: 'le fond est le SIEN',
       );
       expect(
         bulleDe(tester, 'Salut').palette,
-        paletteOf('volcan'),
-        reason: 'les bulles suivent le même thème que le fond',
+        paletteOf('foret'),
+        reason: 'les bulles sont les MIENNES',
+      );
+      expect(
+        paletteOf('foret'),
+        isNot(paletteOf('volcan')),
+        reason: 'sans quoi ce test ne mesurerait rien',
       );
     });
 
-    testWidgets('sans son thème, la page garde le nôtre', (tester) async {
+    testWidgets('les photos de profil sont GROSSES', (tester) async {
+      // À trente-quatre, un portrait de pièce ne se reconnaissait pas.
+      await ouvrir(
+        tester,
+        messages: [
+          {'texte': 'Salut', 'de_moi': false},
+        ],
+      );
+
+      final photo = tester.widget<ProfilePhoto>(
+        find.byType(ProfilePhoto).first,
+      );
+      expect(photo.size, kAvatarConversation);
+      expect(
+        photo.size,
+        greaterThan(40),
+        reason: 'plus grosses qu avant, où elles faisaient trente-quatre',
+      );
+    });
+
+    testWidgets('sans son thème, le fond garde le nôtre', (tester) async {
       // Un serveur pas encore corrigé ne renvoie pas `theme` dans le profil :
       // la conversation doit s'afficher quand même, avec notre décor.
       //

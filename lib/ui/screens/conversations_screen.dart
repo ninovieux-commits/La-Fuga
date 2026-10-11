@@ -223,6 +223,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 }
 
 /// Une conversation : les messages, et de quoi répondre.
+/// Taille de la photo de profil, à côté d'une bulle.
+///
+/// Plus grosse que les trente-quatre d'avant : à cette taille, un portrait de
+/// pièce ne se reconnaissait pas. Les messageries tiennent entre trente-deux
+/// et quarante ; on prend le haut de la fourchette, les pièces de La Fuga
+/// étant des dessins et non des visages.
+double get kAvatarConversation => S(48);
+
 class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
     super.key,
@@ -409,18 +417,23 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Le décor est CELUI DE L'INTERLOCUTEUR : son fond de menu, ses couleurs.
+    // LE DÉCOR EST À LUI, LES BULLES SONT À MOI.
+    //
+    // Son fond de menu habille la page — on entre chez lui, on voit son
+    // décor — mais les bulles gardent les couleurs de MON thème : c'est mon
+    // application, et je dois m'y retrouver d'une conversation à l'autre.
+    //
     // Tant qu'on ne connaît pas son thème — profil pas encore lu, ou serveur
-    // qui ne le renvoie pas — c'est le nôtre, comme avant.
-    final axes = _theirTheme.isEmpty
+    // qui ne le renvoie pas — le fond est le mien aussi, comme avant.
+    final decor = _theirTheme.isEmpty
         ? Settings.instance.themeAxes
         : ThemeAxes.parse(_theirTheme);
-    final palette = paletteOf(axes.general);
+    final palette = paletteOf(Settings.instance.themeAxes.general);
 
     return Scaffold(
-      backgroundColor: paletteOf(axes.menu).menu,
+      backgroundColor: paletteOf(decor.menu).menu,
       body: FugaBackground(
-        theme: axes.menu,
+        theme: decor.menu,
         child: SafeArea(
           child: Column(
             children: [
@@ -463,7 +476,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               widget.online.session?.photo ?? '',
             )
           : avatarPhotoFor(widget.pseudo, _theirPhoto),
-      size: S(34),
+      size: kAvatarConversation,
     );
     final bulle = Flexible(
       child: MessageBubble(
