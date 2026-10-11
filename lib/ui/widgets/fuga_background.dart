@@ -15,16 +15,22 @@ import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 
 class FugaBackground extends StatelessWidget {
-  const FugaBackground({super.key, required this.child});
+  const FugaBackground({super.key, required this.child, this.theme});
 
   final Widget child;
+
+  /// Le thème dont on prend le fond. Le sien par défaut.
+  ///
+  /// La boîte de messages passe celui de l'INTERLOCUTEUR : on entre chez lui,
+  /// on voit son décor.
+  final String? theme;
 
   /// Thèmes dont le fond est trop clair pour qu'on écrive dessus sans voile.
   static const Set<String> _veiled = {'fleur', 'dragon'};
 
   @override
   Widget build(BuildContext context) {
-    final theme = Settings.instance.themeAxes.menu;
+    final theme = this.theme ?? Settings.instance.themeAxes.menu;
     final background = imagesFor(theme)?.background;
     if (background == null) return child;
 

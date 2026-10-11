@@ -1,4 +1,13 @@
 /// Messagerie : la liste des conversations, et une conversation.
+///
+/// Nino, sur la boîte de messages :
+///
+///   — « un appui long sur un mot d'un message reçu ou envoyé ouvre un
+///     sélectionneur pour pouvoir copier coller » ;
+///   — « on voit en fond de la conversation l'image de fond de menu choisit
+///     par notre interlocuteur. Le texte doit apparaître dans des bulles par
+///     dessus. Les bulles doivent être aux couleurs du thème » ;
+///   — « quand on envoie un smiley seul il apparaît en plus gros ».
 library;
 
 import 'dart:convert';
@@ -13,7 +22,10 @@ import 'package:lafuga/net/messages.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
+import 'package:lafuga/ui/widgets/fuga_background.dart';
+import 'package:lafuga/ui/widgets/message_bubble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -219,6 +231,220 @@ void main() {
       await open(tester);
 
       expect(find.text('Conversation indisponible.'), findsOneWidget);
+    });
+  });
+
+  group('Les bulles', () {
+    Future<void> ouvrir(
+      WidgetTester tester, {
+      List<Map<String, dynamic>> messages = const [],
+      String? sonTheme,
+    }) async {
+      server.replies['/login'] ??= {'ok': true, 'token': 't', 'pseudo': 'Nino'};
+      await online.login('Nino', 'mdp');
+      server.replies['/list_conversation'] = {'ok': true, 'messages': messages};
+      server.replies['/get_profile'] = {
+        'ok': true,
+        'pseudo': 'Ana',
+        'photo': '',
+        if (sonTheme != null) 'theme': sonTheme,
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ConversationScreen(online: online, pseudo: 'Ana'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    MessageBubble bulleDe(WidgetTester tester, String texte) =>
+        tester.widget<MessageBubble>(
+          find.byWidgetPredicate((w) => w is MessageBubble && w.texte == texte),
+        );
+
+    testWidgets('un appui long ouvre le sélectionneur, des DEUX côtés', (
+      tester,
+    ) async {
+      // `SelectableText` et non `Text` : c'est lui qui pose les poignées et le
+      // menu « Copier » sur un appui long. Reçu comme envoyé.
+      await ouvrir(
+        tester,
+        messages: [
+          {'texte': 'Salut', 'de_moi': false},
+          {'texte': 'Salut à toi', 'de_moi': true},
+        ],
+      );
+
+      for (final texte in ['Salut', 'Salut à toi']) {
+        final champ = find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w is MessageBubble && w.texte == texte,
+          ),
+          matching: find.byType(SelectableText),
+        );
+        expect(champ, findsOneWidget, reason: '« $texte » doit être copiable');
+        expect(
+          tester.widget<SelectableText>(champ).enableInteractiveSelection,
+          isTrue,
+        );
+      }
+    });
+
+    testWidgets('mes bulles et les siennes n ont pas la même couleur', (
+      tester,
+    ) async {
+      await ouvrir(
+        tester,
+        messages: [
+          {'texte': 'Salut', 'de_moi': false},
+          {'texte': 'Salut à toi', 'de_moi': true},
+        ],
+      );
+
+      final mienne = bulleDe(tester, 'Salut à toi');
+      final sienne = bulleDe(tester, 'Salut');
+      expect(mienne.deMoi, isTrue);
+      expect(sienne.deMoi, isFalse);
+      expect(
+        mienne.palette.clair,
+        isNot(mienne.palette.fonce),
+        reason: 'sans quoi on ne distinguerait pas qui parle',
+      );
+    });
+
+    testWidgets('le décor est celui de L INTERLOCUTEUR', (tester) async {
+      await ouvrir(
+        tester,
+        messages: [
+          {'texte': 'Salut', 'de_moi': false},
+        ],
+        sonTheme: 'volcan',
+      );
+
+      final fond = tester.widget<FugaBackground>(find.byType(FugaBackground));
+      expect(
+        fond.theme,
+        'volcan',
+        reason: 'on entre chez lui, on voit son décor',
+      );
+      expect(
+        bulleDe(tester, 'Salut').palette,
+        paletteOf('volcan'),
+        reason: 'les bulles suivent le même thème que le fond',
+      );
+    });
+
+    testWidgets('sans son thème, la page garde le nôtre', (tester) async {
+      // Un serveur pas encore corrigé ne renvoie pas `theme` dans le profil :
+      // la conversation doit s'afficher quand même, avec notre décor.
+      //
+      // Le nôtre se pose à la CONNEXION et non dans les réglages locaux : le
+      // compte gagne sur l'appareil, et une connexion sans thème ramènerait
+      // « original » par-dessus ce qu'on aurait réglé ici.
+      server.replies['/login'] = {
+        'ok': true,
+        'token': 't',
+        'pseudo': 'Nino',
+        'theme': 'foret',
+      };
+      await ouvrir(
+        tester,
+        messages: [
+          {'texte': 'Salut', 'de_moi': false},
+        ],
+      );
+
+      expect(
+        tester.widget<FugaBackground>(find.byType(FugaBackground)).theme,
+        'foret',
+      );
+      expect(bulleDe(tester, 'Salut').palette, paletteOf('foret'));
+    });
+
+    testWidgets('une bulle ne prend pas toute la largeur', (tester) async {
+      // 75 % : au-delà, l'œil ne distingue plus qui parle.
+      await ouvrir(
+        tester,
+        messages: [
+          {
+            'texte':
+                'Un message très long qui doit revenir à la ligne plutôt que '
+                'de traverser tout l écran de part en part sans s arrêter.',
+            'de_moi': false,
+          },
+        ],
+      );
+
+      final largeur = tester.getSize(find.byType(MessageBubble).first).width;
+      final ecran =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      expect(largeur, lessThanOrEqualTo(ecran * kBulleLargeurMax + 1));
+    });
+  });
+
+  group('Un émoji seul', () {
+    Future<void> ouvrir(WidgetTester tester, List<String> textes) async {
+      server.replies['/login'] = {'ok': true, 'token': 't', 'pseudo': 'Nino'};
+      await online.login('Nino', 'mdp');
+      server.replies['/list_conversation'] = {
+        'ok': true,
+        'messages': [
+          for (final t in textes) {'texte': t, 'de_moi': true},
+        ],
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ConversationScreen(online: online, pseudo: 'Ana'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('il s affiche en GROS, et sans bulle', (tester) async {
+      // Les deux messages dans la MÊME conversation : les tailles se
+      // comparent alors sans dépendre de deux montages successifs.
+      await ouvrir(tester, ['coucou', '😀']);
+
+      final grosse = tester.widget<Text>(find.text('😀')).style!.fontSize!;
+      final normale = tester
+          .widget<SelectableText>(
+            find.descendant(
+              of: find.byWidgetPredicate(
+                (w) => w is MessageBubble && w.texte == 'coucou',
+              ),
+              matching: find.byType(SelectableText),
+            ),
+          )
+          .style!
+          .fontSize!;
+
+      expect(
+        grosse,
+        greaterThan(normale * 2),
+        reason: 'un smiley seul doit sauter aux yeux',
+      );
+      expect(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (w) => w is MessageBubble && w.texte == '😀',
+          ),
+          matching: find.byType(SelectableText),
+        ),
+        findsNothing,
+        reason: 'hors de sa bulle : il n y a rien à encadrer',
+      );
+    });
+
+    testWidgets('mais un émoji DANS une phrase reste normal', (tester) async {
+      await ouvrir(tester, ['bravo 😀']);
+      expect(
+        find.descendant(
+          of: find.byType(MessageBubble),
+          matching: find.byType(SelectableText),
+        ),
+        findsOneWidget,
+        reason: 'c est un message ordinaire, il garde sa bulle',
+      );
     });
   });
 }

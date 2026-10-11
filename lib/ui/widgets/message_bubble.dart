@@ -1,0 +1,103 @@
+/// Une bulle de conversation.
+///
+/// Nino : « Le texte doit apparaître dans des bulles par dessus. Les bulles
+/// doivent être aux couleurs du thème. Pour les proportions des bulles
+/// utilisez les proportions moyennes sur les apps de messages. »
+///
+/// ## Les proportions
+///
+/// Ce sont celles qu'on retrouve partout, et elles ne sont pas arbitraires :
+///
+///   — **largeur maximale : 75 %** de la place disponible. Au-delà, l'œil ne
+///     distingue plus qui parle ; en deçà, les longs messages se hachent en
+///     colonnes étroites.
+///   — **marges intérieures : 14 horizontales, 10 verticales.** Le texte ne
+///     doit pas toucher le bord, et l'écart horizontal est le plus grand
+///     parce qu'une ligne se lit en largeur.
+///   — **rayon : 18, sauf le coin du locuteur, à 4.** C'est ce coin presque
+///     droit qui fait la « pointe » et dit d'où vient le message, sans
+///     dessiner de queue.
+///   — **écart entre deux bulles : 4**, et le double entre deux locuteurs.
+///
+/// ## Un émoji seul
+///
+/// Il sort de sa bulle et s'affiche en grand, comme dans toutes les
+/// messageries : une bulle autour d'un seul dessin ne sert à rien.
+library;
+
+import 'package:flutter/material.dart';
+
+import '../../i18n/translations.dart';
+import '../../theme/themes.dart';
+import '../scale.dart';
+import '../texte_emoji.dart';
+
+/// Part de la largeur qu'une bulle peut occuper au plus.
+const double kBulleLargeurMax = 0.75;
+
+class MessageBubble extends StatelessWidget {
+  const MessageBubble({
+    super.key,
+    required this.texte,
+    required this.deMoi,
+    required this.palette,
+    this.echoue = false,
+  });
+
+  final String texte;
+
+  /// Vrai pour mes messages : ils vont à droite et portent l'autre couleur.
+  final bool deMoi;
+
+  /// Les couleurs du thème qui habille la conversation.
+  final ThemePalette palette;
+
+  /// L'envoi a échoué : la bulle le dit.
+  final bool echoue;
+
+  @override
+  Widget build(BuildContext context) {
+    final grossi = grossissementEmoji(texte);
+    // Un émoji seul se passe de bulle : rien à encadrer.
+    if (grossi != null && !echoue) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
+        child: Text(texte, style: TextStyle(fontSize: SF(16) * grossi)),
+      );
+    }
+
+    final fond = echoue
+        ? const Color.fromRGBO(120, 40, 40, 1)
+        : (deMoi ? palette.clair : palette.fonce);
+    final encre = echoue ? Colors.white : (deMoi ? Colors.black : Colors.white);
+    final rayon = Radius.circular(S(18));
+    final pointe = Radius.circular(S(4));
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: S(14), vertical: S(10)),
+        decoration: BoxDecoration(
+          color: fond,
+          borderRadius: BorderRadius.only(
+            topLeft: rayon,
+            topRight: rayon,
+            // Le coin presque droit du côté du locuteur : c'est la pointe.
+            bottomLeft: deMoi ? rayon : pointe,
+            bottomRight: deMoi ? pointe : rayon,
+          ),
+        ),
+        // SelectableText, et non Text : un appui long ouvre les poignées de
+        // sélection et le menu « Copier ». C'est ce que Nino demande, et cela
+        // vaut pour les messages reçus COMME pour les siens.
+        child: SelectableText(
+          echoue ? '$texte  ${T("(non envoyé)")}' : texte,
+          textAlign: TextAlign.left,
+          style: TextStyle(color: encre, fontSize: SF(16)),
+        ),
+      ),
+    );
+  }
+}

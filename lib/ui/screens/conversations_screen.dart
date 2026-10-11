@@ -16,6 +16,8 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
+import '../widgets/fuga_background.dart';
+import '../widgets/message_bubble.dart';
 import '../widgets/profile_photo.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
@@ -243,6 +245,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   final List<ChatMessage> _messages = [];
   String _theirPhoto = '';
+
+  /// Le thème de l'INTERLOCUTEUR : son fond de menu habille la conversation,
+  /// et ses couleurs les bulles. On entre chez lui, on voit son décor.
+  ///
+  /// Vide tant que son profil n'est pas lu, et vide aussi face à un serveur
+  /// qui ne le renvoie pas encore : on retombe alors sur le sien, et la page
+  /// ressemble à ce qu'elle était.
+  String _theirTheme = '';
   bool _loading = true;
   String? _error;
 
@@ -361,7 +371,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
     final profile = await widget.online.client.getProfile(widget.pseudo);
     if (!mounted || !profile.isOk) return;
-    setState(() => _theirPhoto = profile.get<String>('photo') ?? '');
+    setState(() {
+      _theirPhoto = profile.get<String>('photo') ?? '';
+      _theirTheme = profile.get<String>('theme') ?? '';
+    });
   }
 
   Future<void> _send() async {
@@ -396,39 +409,47 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final axes = Settings.instance.themeAxes;
+    // Le décor est CELUI DE L'INTERLOCUTEUR : son fond de menu, ses couleurs.
+    // Tant qu'on ne connaît pas son thème — profil pas encore lu, ou serveur
+    // qui ne le renvoie pas — c'est le nôtre, comme avant.
+    final axes = _theirTheme.isEmpty
+        ? Settings.instance.themeAxes
+        : ThemeAxes.parse(_theirTheme);
     final palette = paletteOf(axes.general);
 
     return Scaffold(
       backgroundColor: paletteOf(axes.menu).menu,
-      body: SafeArea(
-        child: Column(
-          children: [
-            FugaHeader(
-              back: T('< Retour'),
-              title: widget.pseudo,
-              titleSize: 18,
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(child: Text(_error!))
-                  : _messages.isEmpty
-                  ? Center(
-                      child: Text(T('Aucun message. Écrivez le premier !')),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      padding: EdgeInsets.all(S(10)),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, i) =>
-                          _bubble(_messages[i], palette),
-                    ),
-            ),
-            _composer(palette),
-          ],
+      body: FugaBackground(
+        theme: axes.menu,
+        child: SafeArea(
+          child: Column(
+            children: [
+              FugaHeader(
+                back: T('< Retour'),
+                title: widget.pseudo,
+                titleSize: 18,
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                    ? Center(child: Text(_error!))
+                    : _messages.isEmpty
+                    ? Center(
+                        child: Text(T('Aucun message. Écrivez le premier !')),
+                      )
+                    : ListView.builder(
+                        controller: _scroll,
+                        padding: EdgeInsets.all(S(10)),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, i) =>
+                            _bubble(_messages[i], palette),
+                      ),
+              ),
+              _composer(palette),
+            ],
+          ),
         ),
       ),
     );
@@ -444,20 +465,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
           : avatarPhotoFor(widget.pseudo, _theirPhoto),
       size: S(34),
     );
-    final text = Flexible(
-      child: Text(
-        m.pending == false ? '${m.text}  ${T("(non envoyé)")}' : m.text,
-        textAlign: m.fromMe ? TextAlign.right : TextAlign.left,
-        style: TextStyle(
-          // Le doré de Kivy pour mes messages, le blanc cassé pour les
-          // siens : `(1, 0.82, 0.4)` et `(0.95, 0.95, 0.95)`.
-          color: m.pending == false
-              ? Colors.redAccent
-              : m.fromMe
-              ? const Color.fromRGBO(255, 209, 102, 1)
-              : const Color.fromRGBO(242, 242, 242, 1),
-          fontSize: SF(16),
-        ),
+    final bulle = Flexible(
+      child: MessageBubble(
+        texte: m.text,
+        deMoi: m.fromMe,
+        palette: palette,
+        echoue: m.pending == false,
       ),
     );
 
@@ -467,10 +480,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
         mainAxisAlignment: m.fromMe
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: m.fromMe
-            ? [text, SizedBox(width: S(6)), avatar]
-            : [avatar, SizedBox(width: S(6)), text],
+            ? [bulle, SizedBox(width: S(6)), avatar]
+            : [avatar, SizedBox(width: S(6)), bulle],
       ),
     );
   }
