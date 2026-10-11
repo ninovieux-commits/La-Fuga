@@ -200,6 +200,28 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       _isViewing ? _snapshots[_viewingIndex! + 1] : _game.board;
   // `_viewingIndex == -1` donne `_snapshots[0]` : la position de départ.
 
+  /// Mise en évidence du coup affiché.
+  ///
+  /// En revoyant un coup passé, c'est CE coup qu'on encadre — sans quoi on
+  /// voit une position sans savoir ce qui vient de s'y jouer, ce qui est
+  /// pourtant tout ce qu'on venait chercher. La correspondance et la partie
+  /// en ligne le font ; cet écran n'affichait rien.
+  LastMove? get _shownLastMove {
+    final index = _viewingIndex;
+    if (index == null) return _lastMove;
+    // Position de départ : aucun coup n'y a mené.
+    if (index < 0) return null;
+    final notations = _game.history;
+    if (index >= notations.length || index + 1 >= _snapshots.length) {
+      return null;
+    }
+    return lastMoveFromNotation(
+      notations[index],
+      _snapshots[index],
+      _snapshots[index + 1],
+    );
+  }
+
   /// Mode profond de Deep Grey, basculable en cours de partie.
   late bool _deepMode = widget.aiDeepMode;
 
@@ -878,7 +900,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
             highlighted: _isViewing
                 ? const {}
                 : _game.availablePushCells.toSet(),
-            lastMove: _isViewing ? null : _lastMove,
+            lastMove: _shownLastMove,
             // En revoyant un coup passé, l'Héritier n'a pas encore fugué : la
             // fugue clôt la partie, elle est donc toujours au dernier coup.
             fuguedHeirs: _isViewing ? const {} : _game.fuguedHeirs,

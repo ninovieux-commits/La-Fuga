@@ -4,6 +4,11 @@
 /// `_record_move`, et le fait donc aussi bien pour son propre coup que pour
 /// celui de l'adversaire ou de Deep Grey. Ces tests fixent ce contrat : le
 /// cadre a longtemps manqué pour les coups joués au doigt.
+///
+/// Et il manquait aussi en REVOYANT un coup passé : on retrouvait la position
+/// sans voir ce qui venait de s'y jouer, alors que c'est tout ce qu'on venait
+/// chercher. La correspondance et la partie en ligne l'encadraient ; l'écran
+/// local, non. Nino : « Oui aligne le local aussi ».
 library;
 
 import 'package:flutter/material.dart';
@@ -91,6 +96,89 @@ void main() {
       reason: 'le déplacement glisse dès le geste, sans attendre la validation',
     );
     await tester.pumpAndSettle();
+  });
+
+  group('En revoyant un coup passé', () {
+    /// Joue un coup au doigt et rend ses deux cases.
+    Future<(Cell, Cell)> joue(WidgetTester tester, Camp camp) async {
+      final view = viewOf(tester);
+      final move = generateMoves(view.board, camp).firstWhere(
+        (m) => m.movedCells.length == 1 && m.movedCells.first.onBoard,
+      );
+      final to = move.movedCells.first;
+      for (final cell in [move.from, to, to]) {
+        viewOf(tester).onTapCell(cell);
+        await tester.pumpAndSettle();
+      }
+      return (move.from, to);
+    }
+
+    testWidgets('c est CE coup qui est encadré, pas le dernier joué', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: GameScreen(aiCamp: null)),
+      );
+      await tester.pumpAndSettle();
+
+      final (premierDe, premierVers) = await joue(tester, Camp.blanc);
+      final (secondDe, secondVers) = await joue(tester, Camp.noir);
+      expect(viewOf(tester).lastMove!.framedCells, contains(secondVers));
+
+      // Un pas en arrière : on regarde le PREMIER coup.
+      await tester.tap(find.text('<'));
+      await tester.pumpAndSettle();
+
+      final vu = viewOf(tester).lastMove;
+      expect(
+        vu,
+        isNotNull,
+        reason: 'l écran local n encadrait rien pendant la revue',
+      );
+      expect(vu!.framedCells, contains(premierDe));
+      expect(vu.framedCells, contains(premierVers));
+      expect(
+        vu.framedCells,
+        isNot(contains(secondVers)),
+        reason: 'ce n est pas le coup qu on regarde',
+      );
+      expect(vu.camp, Camp.blanc, reason: 'le premier coup est blanc');
+    });
+
+    testWidgets('la position de départ n encadre rien : aucun coup n y mène', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: GameScreen(aiCamp: null)),
+      );
+      await tester.pumpAndSettle();
+      await joue(tester, Camp.blanc);
+
+      await tester.tap(find.text('<'));
+      await tester.pumpAndSettle();
+      expect(viewOf(tester).lastMove, isNull);
+    });
+
+    testWidgets('revenu au présent, c est le dernier coup qui est encadré', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: GameScreen(aiCamp: null)),
+      );
+      await tester.pumpAndSettle();
+      await joue(tester, Camp.blanc);
+      final (_, secondVers) = await joue(tester, Camp.noir);
+
+      await tester.tap(find.text('<'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('>'));
+      await tester.pumpAndSettle();
+
+      final vu = viewOf(tester).lastMove;
+      expect(vu, isNotNull);
+      expect(vu!.framedCells, contains(secondVers));
+      expect(vu.camp, Camp.noir);
+    });
   });
 
   testWidgets('le cadre se dessine au-dessus des pièces', (tester) async {
