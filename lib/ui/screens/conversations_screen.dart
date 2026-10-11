@@ -328,19 +328,32 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ..addAll(frais);
       });
       // Un message vient d'arriver : la conversation est ouverte, donc lue.
-      widget.online.messages.markRead(widget.pseudo);
-      unawaited(widget.online.client.markRead(widget.pseudo));
+      _declareLu();
       _scrollToEnd();
     } finally {
       _polling = false;
     }
   }
 
-  /// Message reçu en direct : on ne l'ajoute que s'il vient d'ici.
+  /// La conversation est ouverte, donc ce qui vient d'ici est lu : on
+  /// l'annonce au serveur et à la boîte aux lettres, sinon la pastille du
+  /// menu s'allumerait pour un message qu'on est en train de lire.
   ///
-  /// La conversation est ouverte, donc lue : on l'annonce au serveur et à la
-  /// boîte aux lettres, sinon la pastille du menu s'allumerait pour un
-  /// message qu'on est en train de lire.
+  /// Le compte local part à la FIN de la frame, pas sur-le-champ. `initState`
+  /// tourne au milieu de la construction de l'arbre : prévenir la boîte aux
+  /// lettres tout de suite faisait appeler `setState` à l'écran de partie
+  /// resté dessous, en pleine construction, et Flutter le refuse — la
+  /// pastille gardait alors l'état d'avant. L'avis au serveur, lui, part
+  /// tout de suite : il ne réveille personne.
+  void _declareLu() {
+    unawaited(widget.online.client.markRead(widget.pseudo));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.online.messages.markRead(widget.pseudo);
+    });
+  }
+
+  /// Message reçu en direct : on ne l'ajoute que s'il vient d'ici.
   void _onIncoming(IncomingMessage message) {
     // Le message peut arriver alors que la conversation vient d'être quittée.
     if (!mounted) return;
@@ -350,15 +363,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
     setState(
       () => _messages.add(ChatMessage(text: message.text, fromMe: false)),
     );
-    widget.online.messages.markRead(widget.pseudo);
-    unawaited(widget.online.client.markRead(widget.pseudo));
+    _declareLu();
     _scrollToEnd();
   }
 
   Future<void> _load() async {
     // Ouvrir la conversation vaut lecture.
-    widget.online.messages.markRead(widget.pseudo);
-    await widget.online.client.markRead(widget.pseudo);
+    _declareLu();
     final r = await widget.online.client.listConversation(widget.pseudo);
     if (!mounted) return;
 
