@@ -9,10 +9,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
+import '../../engine/literal_replay.dart';
 import '../../engine/piece.dart';
 import '../../game/move_controller.dart';
 import '../../game/game_archive.dart';
 import '../../game/online_game.dart';
+import '../../game/slides.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
@@ -65,6 +67,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// pièce qui pousse, chemin d'un saut).
   Board? _boardBefore;
 
+  /// Toutes les positions traversées : `_steps[0]` est la position de départ,
+  /// `_steps[k]` celle d'après le k-ième coup.
+  ///
+  /// C'est ce qui permet de revoir un coup passé. En partie de matchmaking,
+  /// les flèches du bandeau n'étaient câblées sur rien — `onSelect: (_) {}` —
+  /// là où la correspondance et le jeu local les câblaient depuis le début.
+  List<Board> _steps = const [];
+
+  /// La partie dont `_steps` a été tiré. Un match enchaîne plusieurs parties,
+  /// et chacune remplace `game` : il faut rejouer depuis SA position.
+  MoveController? _stepsDe;
+
+  /// Coup regardé. `null` = le présent, c'est-à-dire le dernier.
+  int? _viewingIndex;
+
+  bool get _isViewing => _viewingIndex != null;
+
   OnlineGame get _g => widget.game;
 
   /// La photo de l'adversaire : le serveur ne l'envoie pas avec la partie, on
@@ -85,6 +104,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _photoAdverse = AvatarPhotos.known(_g.info.opponent);
     _chargerPhotoAdverse();
     _sounds.init();
+    _rebuildSteps();
     _g.onChanged = _handleEvent;
     // La pastille du bouton Chat suit les messages en direct.
     OnlineService.instance.messages.addListener(_onMessages);
@@ -118,6 +138,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (event == OnlineEvent.nextGameStarted) {
       _endShown = false;
       _lastMove = null;
+      _viewingIndex = null;
     }
 
     // Coup de l'adversaire : on reprend sa mise en évidence et son glissement.
@@ -125,11 +146,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (incoming != null) {
       _g.pendingHighlight = null;
       _lastMove = incoming.lastMove;
+      // Et on revient au présent. La pendule tourne : laisser le joueur sur
+      // une position passée, c'est le laisser perdre au temps en regardant
+      // ailleurs. Son coup glisse donc sur le plateau d'aujourd'hui, et pas
+      // sur celui qu'on était en train de revoir.
+      _viewingIndex = null;
       rememberSlides(
         incoming.slides,
         jumpPath: incoming.lastMove?.jumpPath ?? const [],
       );
     }
+    // Les coups ont peut-être bougé : les positions retenues suivent.
+    _ajusterSteps();
     setState(() {});
     // Et il s'entend. Le son partait au doigt et nulle part ailleurs : on
     // voyait le coup de l'adversaire arriver sans l'entendre, là où celui de
@@ -148,7 +176,109 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     }
   }
 
+  /// Rejoue les coups depuis le départ pour retenir chaque position.
+  ///
+  /// À la lettre, comme en correspondance : c'est ce qui garantit que les deux
+  /// téléphones reconstruisent la même partie à partir du même texte.
+  void _rebuildSteps() {
+    var board = _g.startBoard.clone();
+    final steps = <Board>[board];
+    for (final notation in _g.game.history) {
+      board = applyNotationLiterally(board, notation).board;
+      steps.add(board);
+    }
+    _steps = steps;
+    _stepsDe = _g.game;
+  }
+
+  /// Rejoue si, et seulement si, les coups ont bougé.
+  ///
+  /// L'écran se reconstruit une fois par seconde à cause du chrono : rejouer
+  /// la partie entière à chaque fois serait du gaspillage pur.
+  void _ajusterSteps() {
+    if (identical(_stepsDe, _g.game) &&
+        _steps.length == _g.game.history.length + 1) {
+      return;
+    }
+    _rebuildSteps();
+  }
+
+  /// Revoir un coup passé, en le montrant se jouer. Le dernier, c'est le
+  /// présent : on y revient et la partie redevient jouable.
+  void _viewMove(int index) {
+    final total = _g.game.history.length;
+    if (total == 0) return;
+    // `-1` : la position de départ, avant le premier coup.
+    final voulu = index.clamp(-1, total - 1);
+    final avant = _viewingIndex ?? total - 1;
+    setState(() {
+      _viewingIndex = voulu == total - 1 ? null : voulu;
+      // En reculant, le coup à défaire est celui qu'on QUITTE.
+      _animerCoup(
+        voulu < avant ? avant + 1 : voulu + 1,
+        recule: voulu < avant,
+        versIndex: voulu + 1,
+      );
+    });
+    // La position de départ n'a pas de coup : rien à faire entendre.
+    if (voulu >= 0) _sounds.playNotation(_g.game.history[voulu]);
+  }
+
+  /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
+  void _animerCoup(int index, {bool recule = false, int? versIndex}) {
+    if (index <= 0 || index >= _steps.length) return;
+    final avant = _steps[index - 1];
+    final apres = _steps[index];
+    final notations = _g.game.history;
+    final notation = index - 1 < notations.length ? notations[index - 1] : '';
+    final chemin =
+        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
+        const <Cell>[];
+    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
+    // position affichée, pas sur celle d'un coup intermédiaire.
+    final cible = recule ? (versIndex ?? index - 1) : index;
+    final saut = recule && cible != index - 1;
+    rememberSlides(
+      glisseesDuCoup(
+        avant: avant,
+        apres: saut ? _steps[cible] : apres,
+        notation: saut ? '' : notation,
+        recule: recule,
+      ),
+      jumpPath: saut
+          ? const <Cell>[]
+          : (recule ? chemin.reversed.toList() : chemin),
+    );
+  }
+
+  /// Plateau affiché : celui du coup regardé, ou la position courante.
+  Board get _shownBoard {
+    final index = _viewingIndex;
+    if (index == null) return _g.game.board;
+    if (index < 0) return _steps.isEmpty ? _g.game.board : _steps.first;
+    return index + 1 < _steps.length ? _steps[index + 1] : _g.game.board;
+  }
+
+  /// Mise en évidence du coup affiché.
+  LastMove? get _shownLastMove {
+    final index = _viewingIndex;
+    if (index == null) return _lastMove;
+    final notations = _g.game.history;
+    // Position de départ : aucun coup n'y a mené.
+    if (index < 0) return null;
+    if (index >= notations.length || index + 1 >= _steps.length) return null;
+    return lastMoveFromNotation(
+      notations[index],
+      _steps[index],
+      _steps[index + 1],
+    );
+  }
+
   void _onTapCell(Cell cell) {
+    // En train de revoir un coup : le doigt ne joue pas. Une partie en ligne
+    // ne se rebranche pas comme une analyse locale — le serveur tient le
+    // cours de la partie, et il n'y a qu'un cours.
+    if (_isViewing) return;
     // La position d'avant le coup est prise au premier geste du tour.
     if (!_g.game.moved) _boardBefore = _g.game.board.clone();
     final result = _g.tapCell(cell);
@@ -164,6 +294,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         _g.game.board,
       );
     }
+    if (notation != null) _ajusterSteps();
     setState(() {});
     // Le son part après l'écran : le plateau doit répondre au doigt.
     if (notation != null) _sounds.playNotation(notation);
@@ -288,15 +419,19 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           ),
           topPanel: _banner(palette, topCamp),
           board: GameBoardView(
-            board: _g.game.board,
+            board: _shownBoard,
             palette: palette,
             flipped: flipped,
             onTapCell: _onTapCell,
-            selected: _g.game.selected,
-            groupSelection: _g.game.groupSelection,
-            highlighted: _g.game.availablePushCells.toSet(),
-            lastMove: _lastMove,
-            fuguedHeirs: _g.game.fuguedHeirs,
+            selected: _isViewing ? null : _g.game.selected,
+            groupSelection: _isViewing ? const {} : _g.game.groupSelection,
+            highlighted: _isViewing
+                ? const {}
+                : _g.game.availablePushCells.toSet(),
+            lastMove: _shownLastMove,
+            // La fugue clôt la partie : en revoyant un coup passé, l'Héritier
+            // n'a pas encore rejoint son ralliement.
+            fuguedHeirs: _isViewing ? const {} : _g.game.fuguedHeirs,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,
@@ -307,9 +442,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           bottomPanel: _banner(palette, bottomCamp),
           moveStrip: MoveStrip(
             moves: _g.game.history,
+            activeIndex: _viewingIndex,
             color: _campColor(palette, bottomCamp),
             palette: palette,
-            onSelect: (_) {},
+            randomCode: _g.info.randomCode,
+            // Les flèches et le bandeau ne faisaient RIEN : on ne pouvait pas
+            // revoir un coup sans quitter la partie.
+            onSelect: _viewMove,
           ),
         ),
       ),

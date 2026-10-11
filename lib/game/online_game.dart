@@ -97,17 +97,27 @@ class OnlineGame {
     this.onChanged,
   }) : _cadence = cadence,
        clock = GameClock(cadence),
-       game = _controllerFor(info) {
+       startBoard = _boardFor(info),
+       game = MoveController(board: _boardFor(info)) {
     _bind();
     _startTicking();
   }
 
   /// Plateau de départ d'une partie : standard, ou la position tirée au sort.
-  static MoveController _controllerFor(OnlineGameInfo info) => MoveController(
-    board: info.randomCode == null
-        ? Board.initial()
-        : (buildRandomFugaBoard(info.randomCode!) ?? Board.initial()),
-  );
+  ///
+  /// Appelé deux fois, et c'est voulu : le contrôleur fait avancer SON plateau
+  /// au fil des coups, donc [startBoard] doit en être un autre, sans quoi la
+  /// position de départ se mettrait à jour toute seule et on ne pourrait plus
+  /// revenir dessus.
+  static Board _boardFor(OnlineGameInfo info) => info.randomCode == null
+      ? Board.initial()
+      : (buildRandomFugaBoard(info.randomCode!) ?? Board.initial());
+
+  /// La position d'où part la partie en cours.
+  ///
+  /// `game.board` avance avec les coups ; revoir un coup passé demande de
+  /// rejouer depuis le début, et donc de savoir où est le début.
+  Board startBoard;
 
   final GameSocket socket;
 
@@ -375,7 +385,8 @@ class OnlineGame {
   void startNextGame(OnlineGameInfo next) {
     _ticker?.cancel();
     info = next;
-    game = _controllerFor(next);
+    startBoard = _boardFor(next);
+    game = MoveController(board: _boardFor(next));
     clock = GameClock(_cadence);
     endReason = null;
     loser = null;
