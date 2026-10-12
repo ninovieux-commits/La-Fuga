@@ -1,0 +1,54 @@
+# Filet de sécurité, PAS le correctif : les causes sont corrigées dans
+# server.py. Ce fichier sert à ce qu'une panne imprévue ne t'oblige plus jamais
+# à ouvrir Termius, et à ce que tu SACHES qu'il y a eu une panne.
+#
+# Installation :
+#   sudo cp lafuga.service /etc/systemd/system/lafuga.service
+#   sudo mkdir -p /var/log/lafuga && sudo chown lafuga:lafuga /var/log/lafuga
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now lafuga
+#   systemctl status lafuga
+#
+# Adapte User=, WorkingDirectory= et PORT= à ton serveur.
+
+[Unit]
+Description=Serveur La Fuga (HTTP + Socket.IO)
+After=network-online.target
+Wants=network-online.target
+# 0 = ne jamais renoncer à redémarrer, même après plusieurs échecs rapides.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=lafuga
+Group=lafuga
+WorkingDirectory=/opt/lafuga
+Environment=PORT=5000
+Environment=PYTHONUNBUFFERED=1
+Environment=LAFUGA_LOG=/var/log/lafuga/lafuga.log
+ExecStart=/usr/bin/python3 /opt/lafuga/server.py
+
+Restart=always
+RestartSec=2
+# server.py intercepte SIGTERM : les requêtes en cours se terminent et la base
+# est fermée sans laisser de verrou.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Descripteurs de fichiers : chaque requête en vol ouvre sa connexion SQLite.
+# La limite par défaut (1024) est le premier mur qu'on touche en montant en
+# charge ; « Too many open files » ressemble alors à un serveur mort.
+LimitNOFILE=65535
+
+# Plafond mémoire. S'il est atteint, systemd redémarre le service et l'écrit
+# dans le journal — au lieu que le noyau tue le processus en silence.
+# Mets ~70 % de la RAM de la machine.
+MemoryAccounting=yes
+MemoryMax=700M
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lafuga
+
+[Install]
+WantedBy=multi-user.target

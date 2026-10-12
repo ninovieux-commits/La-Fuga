@@ -1,0 +1,14 @@
+# Surveillance : interroge /health. systemd redémarre un processus MORT, mais
+# pas un processus VIVANT qui ne répond plus. Ceci comble ce trou.
+# Installation (avec le .timer du même nom) :
+#   sudo cp lafuga-sante.service lafuga-sante.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now lafuga-sante.timer
+
+[Unit]
+Description=Verifie que le serveur La Fuga repond encore
+
+[Service]
+Type=oneshot
+# Deux essais espacés de 5 s avant de conclure : on ne redémarre pas pour un
+# hoquet passager.
+ExecStart=/bin/sh -c 'curl -fsS --max-time 8 http://127.0.0.1:5000/health >/dev/null || (sleep 5; curl -fsS --max-time 8 http://127.0.0.1:5000/health >/dev/null) || (logger -t lafuga-sante "/health muet : redemarrage" && systemctl restart lafuga)'
