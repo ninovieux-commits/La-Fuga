@@ -231,6 +231,13 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 /// étant des dessins et non des visages.
 double get kAvatarConversation => S(48);
 
+/// Combien de fois au plus on ressaute vers le bas en ouvrant une conversation.
+///
+/// Chaque passe avance d'environ une hauteur d'écran de bulles construites.
+/// Vingt passes couvrent plusieurs centaines de messages ; au-delà, mieux vaut
+/// s'arrêter près du bas que faire tourner l'écran sans fin.
+const int kDefilementPassesMax = 20;
+
 class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
     super.key,
@@ -419,11 +426,41 @@ class _ConversationScreenState extends State<ConversationScreen> {
     });
   }
 
+  /// Amène la conversation à SA FIN, et pas à peu près.
+  ///
+  /// `ListView.builder` est paresseux : il ne construit que ce qu'il faut
+  /// afficher, donc `maxScrollExtent` n'est qu'une ESTIMATION tant que le
+  /// reste ne l'est pas. Un seul saut atterrit court — mesuré : 86 pixels,
+  /// une bulle, sur une conversation de douze messages ; 2 150 pixels,
+  /// vingt-cinq bulles, sur soixante. C'est ce qui ouvrait la conversation
+  /// loin de son dernier message.
+  ///
+  /// Sauter rapproche du bas, ce qui construit de nouvelles bulles, ce qui
+  /// allonge l'estimation : on recommence tant qu'elle bouge. Sur soixante
+  /// messages, mesuré : saut à 6 326, l'estimation passe à 8 476, saut à
+  /// 8 476, elle ne bouge plus. Deux sauts, et 6 326 est exactement où
+  /// l'ancien code s'arrêtait.
+  ///
+  /// Le compte de passes est borné pour qu'un contenu qui n'arrêterait jamais
+  /// de grandir — des images qui arrivent une à une — ne fasse pas tourner
+  /// l'écran indéfiniment.
   void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.jumpTo(_scroll.position.maxScrollExtent);
-    });
+    var precedent = -1.0;
+    var passes = 0;
+    void encore() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final cible = _scroll.position.maxScrollExtent;
+        // L'estimation s'est stabilisée : on est vraiment en bas.
+        if (cible == precedent || passes >= kDefilementPassesMax) return;
+        precedent = cible;
+        passes++;
+        _scroll.jumpTo(cible);
+        encore();
+      });
+    }
+
+    encore();
   }
 
   @override
