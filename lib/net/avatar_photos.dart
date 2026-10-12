@@ -8,6 +8,7 @@
 /// exactement ce qui manquait au portage.
 library;
 
+import 'decors_connus.dart';
 import 'online_service.dart';
 import 'profile.dart';
 
@@ -62,9 +63,15 @@ class AvatarPhotos {
     if (!service.isLoggedIn) return '';
 
     final r = await service.client.getProfile(pseudo);
-    final photo = r.isOk && r.data != null
-        ? Profile.fromJson(r.data!).photo
-        : '';
+    var photo = '';
+    if (r.isOk && r.data != null) {
+      final profil = Profile.fromJson(r.data!);
+      photo = profil.photo;
+      // La même réponse porte son thème : la boîte de messages en a besoin et
+      // ce serait une seconde requête pour rien. C'est elle qui faisait
+      // s'afficher MON fond avant le sien.
+      DecorsConnus.remember(pseudo, profil.theme);
+    }
     // On retient même une photo vide : inutile de redemander à chaque coup.
     _cache[cle] = photo;
     return photo;

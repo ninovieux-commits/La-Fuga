@@ -31,6 +31,7 @@ final class Profile {
     this.meloRandom = 1500,
     this.email = '',
     this.photo = '',
+    this.theme = '',
     this.description = '',
     this.followers = const [],
     this.following = const [],
@@ -51,6 +52,11 @@ final class Profile {
   final int meloRandom;
   final String email;
   final String photo;
+
+  /// Le nom de son thème : la boîte de messages s'en habille. Vide quand le
+  /// serveur ne le renvoie pas encore.
+  final String theme;
+
   final String description;
 
   /// Ceux qui me suivent, ceux que je suis, ceux que j'ai bloqués.
@@ -73,6 +79,7 @@ final class Profile {
     meloRandom: _int(j['melo_random'], 1500),
     email: '${j['email'] ?? ''}',
     photo: '${j['photo'] ?? ''}',
+    theme: '${j['theme'] ?? ''}',
     description: '${j['description'] ?? ''}',
     followers: _people(j['followers']),
     following: _people(j['following']),

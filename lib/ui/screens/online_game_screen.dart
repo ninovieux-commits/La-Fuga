@@ -19,6 +19,7 @@ import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
+import '../../net/decors_connus.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -92,10 +93,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
   Future<void> _chargerPhotoAdverse() async {
+    // Le décor, et pas seulement la photo : c'est son thème qui donne leurs
+    // couleurs aux bulles de messages qui passent dans son bandeau. Et c'est
+    // `DecorsConnus` qui décide de demander — une photo déjà connue ne doit
+    // pas faire sauter la question du thème.
+    await DecorsConnus.resolve(_g.info.opponent);
     final photo = await AvatarPhotos.resolve(_g.info.opponent);
-    if (mounted && photo != _photoAdverse) {
-      setState(() => _photoAdverse = photo);
-    }
+    if (!mounted) return;
+    setState(() => _photoAdverse = photo);
   }
 
   @override
@@ -400,7 +405,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             flux: OnlineService.instance.messages.incoming
                 .where((m) => m.from == _g.info.opponent)
                 .map((m) => m.text),
-            palette: palette,
+            palette: _paletteDeLAdversaire,
           ),
           topBar: GameTopBar(
             palette: palette,
@@ -452,6 +457,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           ),
         ),
       ),
+    );
+  }
+
+  /// Les couleurs de SON thème, pour la bulle qui passe dans son bandeau.
+  ///
+  /// Nino : « j'aimerai aussi que les bulles dépendent de la partie "général"
+  /// du thème de l'adversaire. Y compris les bulles qui apparaissent durant
+  /// les parties corresp et direct. » Le nom de son thème est déjà connu : le
+  /// même appel qui va chercher sa photo le retient au passage, et cet écran
+  /// la demande dès l'ouverture. Sans réponse encore, les miennes — la bulle
+  /// ne dure que cinq secondes, elle ne vaut pas qu'on l'attende.
+  ThemePalette get _paletteDeLAdversaire {
+    final sien = DecorsConnus.known(_g.info.opponent);
+    return paletteOf(
+      (sien.isEmpty ? Settings.instance.themeAxes : ThemeAxes.parse(sien))
+          .general,
     );
   }
 

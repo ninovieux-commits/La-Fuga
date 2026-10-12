@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/filet_relecture.dart';
+import '../../net/avatar_photos.dart';
+import '../../net/decors_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
@@ -231,6 +233,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 /// étant des dessins et non des visages.
 double get kAvatarConversation => S(48);
 
+/// Les deux grandes photos du bas : la sienne à gauche, la mienne à droite.
+///
+/// Nino : « au lieu de faire apparaître plein de fois en petit les images de
+/// profil des utilisateurs, je voudrais qu'elles soient une seule fois en plus
+/// gros en bas ». Une par personne, posées aux deux coins, comme sur son
+/// dessin — et les bulles n'en portent plus aucune.
+double get kAvatarBasConversation => S(84);
+
 /// Combien de fois au plus on ressaute vers le bas en ouvrant une conversation.
 ///
 /// Chaque passe avance d'environ une hauteur d'écran de bulles construites.
@@ -259,15 +269,26 @@ class _ConversationScreenState extends State<ConversationScreen> {
   final ScrollController _scroll = ScrollController();
 
   final List<ChatMessage> _messages = [];
-  String _theirPhoto = '';
 
-  /// Le thème de l'INTERLOCUTEUR : son fond de menu habille la conversation,
-  /// et ses couleurs les bulles. On entre chez lui, on voit son décor.
+  /// Ce qu'on sait de lui AVANT la première image : le cache répond sans
+  /// réseau, donc une conversation déjà ouverte une fois s'ouvre d'emblée
+  /// avec sa photo et son décor.
+  late String _theirPhoto = AvatarPhotos.known(widget.pseudo);
+
+  /// Le thème de l'INTERLOCUTEUR : son fond de menu habille la conversation.
+  /// On entre chez lui, on voit son décor.
   ///
-  /// Vide tant que son profil n'est pas lu, et vide aussi face à un serveur
-  /// qui ne le renvoie pas encore : on retombe alors sur le sien, et la page
-  /// ressemble à ce qu'elle était.
-  String _theirTheme = '';
+  /// Nino : « Mon fond ne doit pas être remplacé par celui de mon
+  /// adversaire. » La boîte est donc CONSTRUITE avec le bon nom de fond, pas
+  /// rhabillée après coup : tant qu'on ne le connaît pas, on n'affiche aucun
+  /// décor plutôt que le mien — voir [_decorConnu].
+  late String _theirTheme = DecorsConnus.known(widget.pseudo);
+
+  /// Faux tant que les messages OU le nom du fond manquent.
+  ///
+  /// Les deux partent ensemble et on attend les deux : afficher la
+  /// conversation dès les messages, c'était l'afficher avec mon fond, puis la
+  /// rhabiller quand le profil arrivait. C'est ce clignotement que Nino a vu.
   bool _loading = true;
   String? _error;
 
@@ -377,11 +398,28 @@ class _ConversationScreenState extends State<ConversationScreen> {
   Future<void> _load() async {
     // Ouvrir la conversation vaut lecture.
     _declareLu();
-    final r = await widget.online.client.listConversation(widget.pseudo);
+
+    // Les deux ensemble, et on attend les deux. En série, l'écran s'affichait
+    // dès les messages — donc avec MON fond — et changeait de décor quand le
+    // profil arrivait. Ensemble, la boîte n'est construite qu'une fois, avec
+    // le nom du fond déjà en main, et l'attente ne dure pas plus longtemps
+    // que la plus lente des deux requêtes.
+    //
+    // `DecorsConnus.resolve` fait la requête de profil et retient au passage
+    // la photo ET le nom du fond ; il ne demande rien quand il sait déjà.
+    // C'est lui, et non le cache des photos, qui décide de demander : une
+    // photo déjà connue par un écran de partie ne doit pas empêcher d'aller
+    // chercher le fond.
+    final (r, _) = await (
+      widget.online.client.listConversation(widget.pseudo),
+      DecorsConnus.resolve(widget.pseudo, online: widget.online),
+    ).wait;
     if (!mounted) return;
 
     setState(() {
       _loading = false;
+      _theirPhoto = AvatarPhotos.known(widget.pseudo, online: widget.online);
+      _theirTheme = DecorsConnus.known(widget.pseudo);
       if (!r.isOk) {
         _error = T('Conversation indisponible.');
         return;
@@ -394,13 +432,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
         ]);
     });
     _scrollToEnd();
-
-    final profile = await widget.online.client.getProfile(widget.pseudo);
-    if (!mounted || !profile.isOk) return;
-    setState(() {
-      _theirPhoto = profile.get<String>('photo') ?? '';
-      _theirTheme = profile.get<String>('theme') ?? '';
-    });
   }
 
   Future<void> _send() async {
@@ -463,6 +494,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
     encore();
   }
 
+  /// Son décor, ou `null` tant qu'on ne sait pas lequel c'est.
+  ///
+  /// `null` et non « le mien » : c'est toute la différence entre construire la
+  /// boîte avec le bon fond et la rhabiller après coup.
+  ThemeAxes? get _decorConnu =>
+      _theirTheme.isEmpty ? null : ThemeAxes.parse(_theirTheme);
+
   @override
   Widget build(BuildContext context) {
     // LE DÉCOR EST À LUI, LES BULLES SONT À MOI.
@@ -471,17 +509,30 @@ class _ConversationScreenState extends State<ConversationScreen> {
     // décor — mais les bulles gardent les couleurs de MON thème : c'est mon
     // application, et je dois m'y retrouver d'une conversation à l'autre.
     //
-    // Tant qu'on ne connaît pas son thème — profil pas encore lu, ou serveur
-    // qui ne le renvoie pas — le fond est le mien aussi, comme avant.
-    final decor = _theirTheme.isEmpty
-        ? Settings.instance.themeAxes
-        : ThemeAxes.parse(_theirTheme);
-    final palette = paletteOf(Settings.instance.themeAxes.general);
+    // Son décor, quand on le connaît. Sinon AUCUN : mon fond ne doit pas
+    // apparaître pour être remplacé une seconde plus tard.
+    //
+    // Le cas « serveur qui ne renvoie pas le thème » existe encore — une
+    // version antérieure du serveur, ou un compte introuvable : la boîte
+    // s'ouvre alors sur la couleur unie du thème, sans image, et elle y
+    // reste. Rien ne clignote.
+    final decor = _decorConnu;
+    // LES BULLES AUSSI SONT À LUI.
+    //
+    // Nino : « j'aimerais que les bulles dépendent de la partie "général" du
+    // thème de l'adversaire ». C'est l'inverse de ce qu'il demandait d'abord
+    // — les bulles à MOI, le fond à lui — et c'est son dernier mot : on entre
+    // chez lui, tout l'écran est chez lui.
+    //
+    // Sans son thème, les miennes : il faut bien des couleurs, et l'écran ne
+    // s'affiche de toute façon qu'une fois la question tranchée, donc rien ne
+    // change sous les yeux.
+    final palette = paletteOf((decor ?? Settings.instance.themeAxes).general);
 
     return Scaffold(
-      backgroundColor: paletteOf(decor.menu).menu,
+      backgroundColor: paletteOf(decor?.menu ?? kDefaultTheme).menu,
       body: FugaBackground(
-        theme: decor.menu,
+        theme: decor?.menu ?? kSansFond,
         child: SafeArea(
           child: Column(
             children: [
@@ -508,6 +559,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             _bubble(_messages[i], palette),
                       ),
               ),
+              _visages(),
               _composer(palette),
             ],
           ),
@@ -516,38 +568,53 @@ class _ConversationScreenState extends State<ConversationScreen> {
     );
   }
 
-  Widget _bubble(ChatMessage m, ThemePalette palette) {
-    final avatar = ProfilePhoto(
-      photo: m.fromMe
-          ? avatarPhotoFor(
-              widget.online.pseudo,
-              widget.online.session?.photo ?? '',
-            )
-          : avatarPhotoFor(widget.pseudo, _theirPhoto),
-      size: kAvatarConversation,
-    );
-    final bulle = Flexible(
-      child: MessageBubble(
-        texte: m.text,
-        deMoi: m.fromMe,
-        palette: palette,
-        echoue: m.pending == false,
-      ),
-    );
+  /// Une bulle, et rien qu'une bulle.
+  ///
+  /// Elle portait une petite photo à côté d'elle, répétée à chaque message.
+  /// Les photos sont maintenant en bas, une seule fois et en grand : la
+  /// conversation respire, et le texte gagne la place qu'elles prenaient.
+  Widget _bubble(ChatMessage m, ThemePalette palette) => Padding(
+    padding: EdgeInsets.symmetric(vertical: S(4)),
+    child: Row(
+      mainAxisAlignment: m.fromMe
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      children: [
+        Flexible(
+          child: MessageBubble(
+            texte: m.text,
+            deMoi: m.fromMe,
+            palette: palette,
+            echoue: m.pending == false,
+          ),
+        ),
+      ],
+    ),
+  );
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: S(4)),
-      child: Row(
-        mainAxisAlignment: m.fromMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: m.fromMe
-            ? [bulle, SizedBox(width: S(6)), avatar]
-            : [avatar, SizedBox(width: S(6)), bulle],
-      ),
-    );
-  }
+  /// Les deux visages, en bas : le sien à gauche, le mien à droite.
+  ///
+  /// Chacun du côté d'où viennent ses bulles — on sait d'un coup d'œil qui
+  /// parle de quel côté, et une seule fois suffit à le dire.
+  Widget _visages() => Padding(
+    padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(6)),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        ProfilePhoto(
+          photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
+          size: kAvatarBasConversation,
+        ),
+        ProfilePhoto(
+          photo: avatarPhotoFor(
+            widget.online.pseudo,
+            widget.online.session?.photo ?? '',
+          ),
+          size: kAvatarBasConversation,
+        ),
+      ],
+    ),
+  );
 
   Widget _composer(ThemePalette palette) => Container(
     padding: EdgeInsets.all(S(8)),

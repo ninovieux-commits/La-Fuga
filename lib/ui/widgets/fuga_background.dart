@@ -14,6 +14,15 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 
+/// À passer en `theme` pour n'afficher AUCUNE image de fond.
+///
+/// Trois états, et il en faut bien trois : `null` prend le mien, un nom prend
+/// le sien, et celui-ci n'en prend aucun. La boîte de messages s'en sert tant
+/// qu'elle ne connaît pas le fond de l'interlocuteur : afficher le mien en
+/// attendant, c'est le faire remplacer une seconde plus tard, et Nino l'a vu
+/// clignoter.
+const String kSansFond = '';
+
 class FugaBackground extends StatelessWidget {
   const FugaBackground({super.key, required this.child, this.theme});
 
@@ -22,7 +31,7 @@ class FugaBackground extends StatelessWidget {
   /// Le thème dont on prend le fond. Le sien par défaut.
   ///
   /// La boîte de messages passe celui de l'INTERLOCUTEUR : on entre chez lui,
-  /// on voit son décor.
+  /// on voit son décor. [kSansFond] n'affiche aucune image.
   final String? theme;
 
   /// Thèmes dont le fond est trop clair pour qu'on écrive dessus sans voile.

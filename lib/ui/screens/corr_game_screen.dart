@@ -21,6 +21,7 @@ import '../../theme/themes.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/corr_hub.dart';
 import '../../net/filet_relecture.dart';
+import '../../net/decors_connus.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
@@ -135,10 +136,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
   Future<void> _chargerPhotoAdverse() async {
+    // Le décor, et pas seulement la photo : c'est son thème qui donne leurs
+    // couleurs aux bulles de messages qui passent dans son bandeau. Et c'est
+    // `DecorsConnus` qui décide de demander — une photo déjà connue ne doit
+    // pas faire sauter la question du thème.
+    await DecorsConnus.resolve(_g.opponent);
     final photo = await AvatarPhotos.resolve(_g.opponent);
-    if (mounted && photo != _photoAdverse) {
-      setState(() => _photoAdverse = photo);
-    }
+    if (!mounted) return;
+    setState(() => _photoAdverse = photo);
   }
 
   @override
@@ -695,7 +700,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   flux: OnlineService.instance.messages.incoming
                       .where((m) => m.from == widget.game.opponent)
                       .map((m) => m.text),
-                  palette: palette,
+                  palette: _paletteDeLAdversaire,
                 ),
                 topBar: _bar(palette, flipped),
                 topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
@@ -873,6 +878,22 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   }
 
   /// Couleur d'un camp, vive quand il a le trait.
+  /// Les couleurs de SON thème, pour la bulle qui passe dans son bandeau.
+  ///
+  /// Nino : « j'aimerai aussi que les bulles dépendent de la partie "général"
+  /// du thème de l'adversaire. Y compris les bulles qui apparaissent durant
+  /// les parties corresp et direct. » Le nom de son thème est déjà connu : le
+  /// même appel qui va chercher sa photo le retient au passage, et cet écran
+  /// la demande dès l'ouverture. Sans réponse encore, les miennes — la bulle
+  /// ne dure que cinq secondes, elle ne vaut pas qu'on l'attende.
+  ThemePalette get _paletteDeLAdversaire {
+    final sien = DecorsConnus.known(widget.game.opponent);
+    return paletteOf(
+      (sien.isEmpty ? Settings.instance.themeAxes : ThemeAxes.parse(sien))
+          .general,
+    );
+  }
+
   Color _campColor(ThemePalette palette, Camp camp) {
     final atTrait =
         _controller?.turn == camp && _g.status == CorrStatus.enCours;

@@ -21,9 +21,11 @@ import 'package:http/testing.dart';
 import 'package:lafuga/game/correspondence.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
+import 'package:lafuga/net/decors_connus.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/online_game_screen.dart';
@@ -198,6 +200,37 @@ void main() {
       await tester.pumpAndSettle();
       expect(pastilleAllumee(tester), isFalse);
       expect(OnlineService.instance.messages.unreadFrom('Ana'), 0);
+    });
+  });
+
+  group('La bulle en jeu porte SES couleurs', () {
+    testWidgets('en correspondance', (tester) async {
+      // Nino : « j'aimerai aussi que les bulles dépendent de la partie
+      // "général" du thème de l'adversaire. Y compris les bulles qui
+      // apparaissent durant les parties corresp et direct. »
+      await ouvrePartie(tester);
+      DecorsConnus.remember('Ana', 'volcan|foret|foret|foret|foret');
+      OnlineService.instance.messages.receive({'de': 'Ana', 'texte': 'coucou'});
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<BullesEnJeu>(find.byType(BullesEnJeu)).palette,
+        paletteOf('volcan'),
+        reason: 'l axe général de SON thème, pas le mien',
+      );
+    });
+
+    testWidgets('sans son thème, les miennes', (tester) async {
+      await ouvrePartie(tester);
+      DecorsConnus.clear();
+      OnlineService.instance.messages.receive({'de': 'Ana', 'texte': 'coucou'});
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<BullesEnJeu>(find.byType(BullesEnJeu)).palette,
+        paletteOf(Settings.instance.themeAxes.general),
+        reason: 'il faut bien des couleurs en attendant',
+      );
     });
   });
 
