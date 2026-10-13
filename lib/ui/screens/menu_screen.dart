@@ -182,6 +182,29 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// secondes pour un écran que personne ne regarde coûte de la batterie et
   /// des données. En y revenant, on remet la liste à jour tout de suite — le
   /// téléphone a pu rester des heures dans une poche.
+  /// Le clavier vient-il d'être baissé ? On le sait à la marge du bas.
+  ///
+  /// Nino : « quand on a fait une recherche le clavier revient sans cesse à
+  /// chaque retour sur le menu. Descendre le clavier doit désélectionner la
+  /// barre de recherche. »
+  ///
+  /// Baisser le clavier avec la flèche du système ne retire PAS le focus au
+  /// champ : Flutter le garde sélectionné, et tout ce qui redonne la main au
+  /// menu — fermer un popup, revenir d'un écran — le fait remonter. On coupe
+  /// donc le focus nous-mêmes dès que le clavier a fini de descendre.
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!_searchFocus.hasFocus) return;
+    // La marge se mesure APRÈS la frame : pendant l'animation de descente,
+    // elle n'est pas encore nulle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_searchFocus.hasFocus) return;
+      final clavier = MediaQuery.viewInsetsOf(context).bottom;
+      if (clavier == 0) _searchFocus.unfocus();
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {

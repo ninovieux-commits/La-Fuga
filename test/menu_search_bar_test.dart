@@ -56,6 +56,7 @@ int _bandeGrise(ByteData image, int largeur, int x, int y0, int y1) {
 }
 
 void main() {
+  _clavier();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
@@ -139,4 +140,74 @@ void main() {
       );
     });
   }
+}
+
+/// Le clavier qu'on baisse ne doit pas remonter tout seul.
+///
+/// Nino : « quand on a fait une recherche le clavier revient sans cesse à
+/// chaque retour sur le menu. Descendre le clavier doit désélectionner la
+/// barre de recherche. »
+///
+/// Baisser le clavier avec la flèche du système ne retire pas le focus au
+/// champ : Flutter le garde sélectionné, et tout ce qui redonne la main au
+/// menu le fait remonter.
+void _clavier() {
+  group('Le clavier ne remonte pas tout seul', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({
+        'lang_chosen': true,
+        'tuto_seen': true,
+      });
+      await Settings.load();
+      await Translations.load('fr');
+    });
+
+    /// Monte le menu et donne le focus au champ de recherche.
+    Future<void> selectionne(WidgetTester tester) async {
+      await tester.pumpWidget(const FugaApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kBarreRechercheKey));
+      await tester.pumpAndSettle();
+      expect(
+        FocusManager.instance.primaryFocus?.hasFocus,
+        isTrue,
+        reason: 'le champ doit être sélectionné pour que le test ait un sens',
+      );
+    }
+
+    /// Le clavier monte, puis redescend : c'est la marge du bas qui le dit.
+    Future<void> baisseLeClavier(WidgetTester tester) async {
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('baisser le clavier désélectionne la barre', (tester) async {
+      addTearDown(tester.view.reset);
+      await selectionne(tester);
+      await baisseLeClavier(tester);
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isFalse,
+        reason: 'le champ reste sélectionné, donc le clavier remontera',
+      );
+    });
+
+    testWidgets('le clavier qui monte ne désélectionne rien', (tester) async {
+      // Sans ce contrôle, couper le focus à chaque changement de marge
+      // empêcherait tout simplement d'écrire.
+      addTearDown(tester.view.reset);
+      await selectionne(tester);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isTrue,
+        reason: 'on doit pouvoir taper son texte',
+      );
+    });
+  });
 }
