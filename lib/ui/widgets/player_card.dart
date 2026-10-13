@@ -11,8 +11,12 @@ import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import '../screens/account_screen.dart';
 import '../screens/history_screen.dart';
+
+/// Rouge du blocage — le même que dans le menu du nom.
+const Color kRougeBloquer = Color(0xFFB84343);
 
 /// Affiche la fiche et renvoie le pseudo à défier, ou `null`.
 Future<String?> showPlayerCard(
@@ -118,22 +122,37 @@ class _PlayerCardState extends State<_PlayerCard> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             // Les scores ouvrent l'historique des parties jouées entre nous.
+            // Les scores mènent à l'historique des parties jouées entre
+            // nous. Ils restent du texte touchable — ce ne sont pas des
+            // actions — mais plus en violet d'usine.
             TextButton(
               onPressed: () => _openHistory('direct'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: Text(
                 '${T("En direct")} : ${p.direct.mine} - ${p.direct.theirs}',
               ),
             ),
             TextButton(
               onPressed: () => _openHistory('corr'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: Text(
                 '${T("Correspondance")} : '
                 '${p.correspondence.mine} - ${p.correspondence.theirs}',
               ),
             ),
           ],
-          SizedBox(height: S(8)),
-          TextButton.icon(
+          SizedBox(height: S(12)),
+          // LES TOUCHES SONT DES TOUCHES, CENTRÉES ET LARGES.
+          //
+          // Nino : « j'aimerai que les boutons bloquer retirer et fermer
+          // soient centrés et élargis ». Elles étaient des touches plates de
+          // Material, alignées à droite et VIOLETTES — la graine d'usine de
+          // Material 3, que `ThemeData` laisse par défaut faute de jeu de
+          // couleurs. Elles descendent donc du bandeau d'actions dans le
+          // corps, dont le `Column` est en `stretch` : c'est lui qui les
+          // élargit, et le centrage vient de là aussi.
+          _touche(
+            texte: T('Profil'),
             onPressed: () {
               Navigator.of(context).pop();
               Navigator.of(context).push(
@@ -143,38 +162,54 @@ class _PlayerCardState extends State<_PlayerCard> {
                 ),
               );
             },
-            icon: Icon(Icons.person_outline, size: S(18)),
-            label: Text(T('Profil')),
+          ),
+          if (!p.isSelf && !_blocked)
+            _touche(
+              texte: T('Défier'),
+              couleur: widget.palette.clair,
+              encre: Colors.black,
+              onPressed: () => Navigator.of(context).pop(p.pseudo),
+            ),
+          if (!p.isSelf)
+            _touche(
+              texte: _favorite ? T('Retirer') : T('Enregistrer'),
+              couleur: widget.palette.fonce,
+              onPressed: _busy ? null : _toggleFavorite,
+            ),
+          if (!p.isSelf)
+            _touche(
+              texte: _blocked ? T('Débloquer') : T('Bloquer'),
+              couleur: kRougeBloquer,
+              onPressed: _busy ? null : _toggleBlock,
+            ),
+          _touche(
+            texte: T('Fermer'),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
-      actions: [
-        if (!p.isSelf)
-          TextButton(
-            onPressed: _busy ? null : _toggleBlock,
-            child: Text(
-              _blocked ? T('Débloquer') : T('Bloquer'),
-              style: const TextStyle(color: Color(0xFFB84343)),
-            ),
-          ),
-        if (!p.isSelf)
-          TextButton(
-            onPressed: _busy ? null : _toggleFavorite,
-            child: Text(_favorite ? T('Retirer') : T('Enregistrer')),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('Fermer')),
-        ),
-        if (!p.isSelf && !_blocked)
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: widget.palette.clair,
-            ),
-            onPressed: () => Navigator.of(context).pop(p.pseudo),
-            child: Text(T('Défier')),
-          ),
-      ],
     );
   }
+
+  /// Une touche de la fiche : pleine largeur, centrée, sous les autres.
+  ///
+  /// Sa largeur lui vient du `Column` du corps, en `CrossAxisAlignment
+  /// .stretch` : il impose la largeur à ses enfants. Un `SizedBox` autour ne
+  /// servirait à rien — vérifié en lui donnant une largeur étroite, les
+  /// touches ne bougent pas d'un pixel.
+  Widget _touche({
+    required String texte,
+    required VoidCallback? onPressed,
+    Color couleur = kFugaGrey,
+    Color encre = Colors.white,
+  }) => Padding(
+    padding: EdgeInsets.only(bottom: S(8)),
+    child: FugaButton(
+      text: texte,
+      color: couleur,
+      textColor: encre,
+      fontSize: SF(15),
+      onPressed: onPressed,
+    ),
+  );
 }

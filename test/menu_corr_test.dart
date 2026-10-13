@@ -549,9 +549,12 @@ void main() {
     await tapVisible(tester, find.byType(CorrSlot).first);
 
     expect(find.textContaining('Défier un favori'), findsOneWidget);
-    // Le nom est un bouton à part : il mène au profil, il ne défie pas.
+    // Le nom est une touche à part : elle mène au profil, elle ne défie pas.
+    // Elle a maintenant l'allure d'une touche — Nino : « je veux que le
+    // bouton avec les infos joueurs ressemble à des boutons » — d'où un
+    // `InkWell` sur un `Material` coloré, et non plus une touche plate.
     expect(
-      find.ancestor(of: find.text('Bob'), matching: find.byType(TextButton)),
+      find.ancestor(of: find.text('Bob'), matching: find.byType(InkWell)),
       findsOneWidget,
     );
     await tapVisible(tester, find.text('Défier'));

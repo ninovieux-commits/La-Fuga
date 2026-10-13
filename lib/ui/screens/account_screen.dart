@@ -269,6 +269,15 @@ class _AccountScreenState extends State<AccountScreen> {
               padding: EdgeInsets.all(S(16)),
               children: [
                 _identity(profile, palette),
+                // Nino : « quand on est sur le profil d'une personne il doit
+                // aussi y avoir ce bouton favori/retirer ». Elle dit son
+                // état : « Favori » pour l'ajouter, « Retirer » quand il
+                // l'est déjà.
+                if (!profile.isSelf)
+                  _action(
+                    _favori ? T('Retirer') : T('Favori'),
+                    _basculerFavori,
+                  ),
                 if (!profile.isSelf) ..._headToHead(profile),
                 if (profile.isSelf) _action(T('Changer la photo'), _pickPhoto),
                 _title(T('Description')),
@@ -508,6 +517,35 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
     ),
   );
+
+  /// Est-il dans mes favoris ? Suit l'état du profil chargé, puis mes
+  /// propres bascules.
+  bool get _favori => _favoriLocal ?? (_profile?.isFavorite ?? false);
+  bool? _favoriLocal;
+
+  /// Ajoute ou retire des favoris, et le dit.
+  Future<void> _basculerFavori() async {
+    final profile = _profile;
+    if (profile == null || profile.isSelf) return;
+    final etait = _favori;
+    final r = etait
+        ? await widget.online.client.removeFavorite(profile.pseudo)
+        : await widget.online.client.addFavorite(profile.pseudo);
+    if (!mounted) return;
+    if (r.isOk) setState(() => _favoriLocal = !etait);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          r.isOk
+              ? (etait
+                        ? T('%s retiré des favoris.')
+                        : T('%s ajouté aux favoris.'))
+                    .replaceFirst('%s', profile.pseudo)
+              : T('Erreur : %s').replaceFirst('%s', r.error ?? ''),
+        ),
+      ),
+    );
+  }
 
   /// Les boutons du profil, tels que Kivy les dessine : pleins, gris, sans
   /// icône.

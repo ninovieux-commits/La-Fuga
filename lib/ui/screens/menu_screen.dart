@@ -56,7 +56,26 @@ import 'tuto_screen.dart';
 const Color kMenuInk = Color.fromRGBO(38, 38, 38, 1);
 
 /// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
-typedef FavoriteChoice = ({String pseudo, bool challenge});
+/// Ce qu'on veut faire d'un favori qu'on vient de toucher.
+enum FavoriteAction {
+  /// Son profil — c'est la touche qui porte son nom.
+  profil,
+
+  /// Le défier.
+  defier,
+
+  /// Lui écrire.
+  chat,
+}
+
+typedef FavoriteChoice = ({String pseudo, FavoriteAction action});
+
+/// Largeur des touches « Défier » et « Chat » dans la liste des favoris.
+///
+/// Deux touches au lieu d'une : elles se partagent la place qu'une seule
+/// prenait, et le nom garde la sienne. Mesuré sur un écran de 393 points,
+/// le plus étroit qu'on vise.
+double get kLargeurActionFavori => S(76);
 
 /// La barre de recherche du menu, repérée pour `menu_search_bar_test.dart` :
 /// c'est sa hauteur PEINTE qui compte, pas celle de la boîte du `TextField`.
@@ -665,8 +684,15 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     await _challenge(choice.pseudo);
   }
 
-  /// Volet de choix d'un favori : le nom mène à son profil, « Défier » le
-  /// défie. Deux gestes distincts, comme on s'y attend d'une liste de gens.
+  /// Volet de choix d'un favori : son nom mène à son profil, « Défier » le
+  /// défie, « Chat » lui écrit. Trois gestes distincts, comme on s'y attend
+  /// d'une liste de gens.
+  ///
+  /// Tout y a l'allure d'une touche, y compris la fiche du joueur et le
+  /// « Fermer » du bas. Ce dernier était une touche plate de Material, donc
+  /// VIOLETTE : rien ne lui disait quelle couleur prendre, et `ThemeData`
+  /// n'ayant pas de jeu de couleurs, elle prenait la graine d'usine de
+  /// Material 3. Elle ne venait d'aucun thème de La Fuga.
   Future<FavoriteChoice?> _pickFavorite(
     List<Person> favorites,
     String title,
@@ -674,6 +700,9 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     context: context,
     builder: (context) {
       final palette = paletteOf(_axes.general);
+      void choisir(String pseudo, FavoriteAction action) =>
+          Navigator.of(context).pop((pseudo: pseudo, action: action));
+
       return AlertDialog(
         title: Text(title),
         contentPadding: EdgeInsets.fromLTRB(S(12), S(12), S(12), 0),
@@ -686,7 +715,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
                   children: [
                     for (final f in favorites)
                       Padding(
-                        padding: EdgeInsets.only(bottom: S(6)),
+                        padding: EdgeInsets.only(bottom: S(8)),
                         child: Row(
                           children: [
                             Icon(
@@ -694,56 +723,37 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
                               size: S(12),
                               color: f.online ? Colors.green : Colors.grey,
                             ),
-                            SizedBox(width: S(8)),
-                            // Le nom est un bouton : il mène au profil.
+                            SizedBox(width: S(6)),
+                            // La fiche du joueur EST une touche : elle mène à
+                            // son profil, et elle en a maintenant l'allure.
                             Expanded(
-                              child: TextButton(
-                                style: TextButton.styleFrom(
-                                  alignment: Alignment.centerLeft,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: S(6),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.of(
-                                  context,
-                                ).pop((pseudo: f.pseudo, challenge: false)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      f.pseudo,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: SF(15),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      T(
-                                        'Mélo : %d',
-                                      ).replaceAll('%d', '${f.melo}'),
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: SF(12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              child: _ficheFavori(
+                                f,
+                                onPressed: () =>
+                                    choisir(f.pseudo, FavoriteAction.profil),
                               ),
                             ),
-                            SizedBox(width: S(8)),
+                            SizedBox(width: S(6)),
                             SizedBox(
-                              width: S(110),
+                              width: kLargeurActionFavori,
                               child: FugaButton(
                                 text: T('Défier'),
                                 color: palette.fonce,
-                                fontSize: SF(15),
-                                onPressed: () => Navigator.of(
-                                  context,
-                                ).pop((pseudo: f.pseudo, challenge: true)),
+                                fontSize: SF(13),
+                                onPressed: () =>
+                                    choisir(f.pseudo, FavoriteAction.defier),
+                              ),
+                            ),
+                            SizedBox(width: S(6)),
+                            SizedBox(
+                              width: kLargeurActionFavori,
+                              child: FugaButton(
+                                text: T('Chat'),
+                                color: palette.clair,
+                                textColor: Colors.black,
+                                fontSize: SF(13),
+                                onPressed: () =>
+                                    choisir(f.pseudo, FavoriteAction.chat),
                               ),
                             ),
                           ],
@@ -753,20 +763,68 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
                 ),
               ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Fermer')),
+          SizedBox(
+            width: S(140),
+            child: FugaButton(
+              text: T('Fermer'),
+              onPressed: () => Navigator.of(context).pop(),
+              fontSize: SF(15),
+            ),
           ),
         ],
       );
     },
   );
 
-  /// Suite d'un choix de favori : le profil, ou rien.
+  /// La fiche d'un favori : son nom, son Mélo, et le relief d'une touche.
+  Widget _ficheFavori(Person f, {required VoidCallback onPressed}) => Material(
+    color: kFugaGrey,
+    borderRadius: BorderRadius.circular(S(12)),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onPressed,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(8)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              f.pseudo,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: SF(15),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              T('Mélo : %d').replaceAll('%d', '${f.melo}'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.white70, fontSize: SF(12)),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  /// Suite d'un choix de favori : le profil, la conversation, ou rien.
+  ///
+  /// Rend vrai quand tout est joué — il ne reste alors plus rien à défier.
   Future<bool> _handleFavoriteProfile(FavoriteChoice choice) async {
-    if (choice.challenge) return false;
-    await _push(AccountScreen(online: _online, pseudo: choice.pseudo));
-    return true;
+    switch (choice.action) {
+      case FavoriteAction.defier:
+        return false;
+      case FavoriteAction.profil:
+        await _push(AccountScreen(online: _online, pseudo: choice.pseudo));
+        return true;
+      case FavoriteAction.chat:
+        await _push(ConversationScreen(online: _online, pseudo: choice.pseudo));
+        return true;
+    }
   }
 
   // ── Correspondance ────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 /// Menu déroulant sur le nom d'un joueur, en partie — portage de
-/// `_show_name_menu`, `_name_profile`, `_name_favorite`, `_name_block` et
-/// `_name_message` (main.py).
+/// `_show_name_menu`, `_name_profile`, `_name_favorite` et `_name_block`
+/// (main.py).
 ///
 /// Il ne s'ouvre que sur un VRAI joueur (ni « Joueur 1 », ni Deep Grey) et
 /// seulement si l'on est connecté : sans compte, rien de tout cela n'existe.
@@ -10,10 +10,13 @@ import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
+import '../../net/profile.dart';
 import '../scale.dart';
 import '../screens/account_screen.dart';
-import '../screens/conversations_screen.dart';
 import 'fuga_button.dart';
+
+/// Fond du menu : plus sombre que les touches, sans quoi on ne les voit pas.
+const Color kFondMenuNom = Color.fromRGBO(38, 38, 38, 1);
 
 /// Les noms qui ne désignent personne — `_is_real_player`.
 bool isRealPlayer(String? pseudo) {
@@ -40,10 +43,29 @@ Future<void> showNameMenu(
   if (!online.isLoggedIn || !isRealPlayer(pseudo)) return;
   final isMe = pseudo == (online.pseudo ?? '');
 
+  // Est-il DÉJÀ dans mes favoris ? On le demande avant d'ouvrir le menu, pas
+  // après : la touche doit dire la vérité dès la première image, sans quoi
+  // elle changerait de nom sous le doigt. Nino : « le bouton favori doit se
+  // transformer en retirer quand on a déjà la personne en favori et vice et
+  // versa. » Sans réponse, on propose « Favori » — ajouter deux fois ne casse
+  // rien, retirer ce qu'on n'a pas serait plus déroutant.
+  var estFavori = false;
+  if (!isMe) {
+    final r = await online.client.getProfile(pseudo);
+    if (!context.mounted) return;
+    estFavori = r.isOk && r.data != null
+        ? Profile.fromJson(r.data!).isFavorite
+        : false;
+  }
+
   final choice = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: kFugaGrey,
+      // PAS `kFugaGrey` : c'est la couleur des touches elles-mêmes, et le
+      // menu était donc gris sur gris — on ne voyait que « Bloquer », qui est
+      // rouge. Les touches étaient bien là, elles se confondaient avec le
+      // fond. Un panneau sombre les détache.
+      backgroundColor: kFondMenuNom,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -59,8 +81,10 @@ Future<void> showNameMenu(
           for (final (label, value, color) in <(String, String, Color)>[
             (T('Profil'), 'profil', kFugaGrey),
             if (!isMe) ...[
-              (T('Favori'), 'favori', kFugaGrey),
-              (T('Message'), 'message', kFugaGrey),
+              (estFavori ? T('Retirer') : T('Favori'), 'favori', kFugaGrey),
+              // Pas de « Message » ici : la touche Chat du bandeau du haut
+              // ouvre déjà la conversation, et elle porte la pastille des
+              // non-lus. Deux chemins pour la même chose encombraient.
               (T('Bloquer'), 'bloquer', const Color.fromRGBO(184, 66, 66, 1)),
             ],
           ])
@@ -93,19 +117,20 @@ Future<void> showNameMenu(
               AccountScreen(online: online, pseudo: isMe ? null : pseudo),
         ),
       );
-    case 'message':
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ConversationScreen(online: online, pseudo: pseudo),
-        ),
-      );
     case 'favori':
-      final r = await online.client.addFavorite(pseudo);
+      // La même touche fait les deux sens : elle portait le nom de ce
+      // qu'elle allait faire, elle fait maintenant ce qu'elle annonçait.
+      final r = estFavori
+          ? await online.client.removeFavorite(pseudo)
+          : await online.client.addFavorite(pseudo);
       if (!context.mounted) return;
       _say(
         context,
         r.isOk
-            ? T('%s ajouté aux favoris.').replaceFirst('%s', pseudo)
+            ? (estFavori
+                      ? T('%s retiré des favoris.')
+                      : T('%s ajouté aux favoris.'))
+                  .replaceFirst('%s', pseudo)
             : T('Erreur : %s').replaceFirst('%s', r.error ?? ''),
       );
     case 'bloquer':
