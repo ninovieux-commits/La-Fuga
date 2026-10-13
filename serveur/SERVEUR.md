@@ -731,21 +731,77 @@ Récupère le `server.py` de production avant de préparer un correctif : sans
 lui, les tableaux « serveur actuel / avec le patch » portent sur une réplique
 et il faut le dire.
 
-## 13. Les fichiers
+## 13. Le plafond d'une boîte — `patch_plafond_messages.py`
 
-**Ce dossier vit dans un dépôt PUBLIC.** Les copies complètes de `server.py`
-(`server_original.py`, `server_patched.py`, `server_avant_corresp.py`) et le
-diff intégral `serveur.diff` en sont donc volontairement ABSENTS : ils ne
-contiennent aucun secret — la clé Firebase est un fichier à part, les mots de
-passe sont hachés en pbkdf2-sha256, 100 000 tours, sel par compte — mais publier
-le serveur entier laisserait n'importe qui l'étudier à loisir, et le vrai
-fichier vit de toute façon sur le VPS. Les correctifs ci-dessous citent en
-revanche les lignes qu'ils remplacent : des fragments du serveur y apparaissent,
-c'est inhérent à un patch par motif.
+Nino : « une fois qu'une boîte contient 200 messages, les plus anciens doivent
+être effacés. »
+
+C'est une suppression, pas un affichage : elle se fait donc sur le serveur, là
+où les messages vivent. Les effacer côté application ne ferait que les cacher —
+ils reviendraient à la lecture suivante — et la base continuerait de grossir
+sans fin. **Rien à changer dans l'application** : elle demande la conversation
+entière et en reçoit au plus 200.
+
+**La boîte, c'est la PAIRE.** Les deux sens comptent : une boîte contient ce que
+chacun a écrit, et c'est ce qu'on lit à l'écran. Le plafond ne s'applique donc
+pas par expéditeur.
+
+Le ménage se fait dans la MÊME transaction que l'écriture : le message de trop
+chasse un ancien, et il n'existe aucun instant où la boîte dépasse son plafond.
+
+| | |
+|---|---|
+| `PLAFOND_MESSAGES` | 200 |
+| `_plafonner_boite(conn, a, b)` | efface au-delà, les deux sens confondus |
+| `/send_message` | l'appelle après l'insertion, avant le `commit` |
+
+`LIMIT -1 OFFSET 200` est la façon SQLite de dire « tout sauf les 200
+premiers » : la sous-requête rend exactement les messages de trop.
+
+Le compte des non-lus suit : un message effacé n'est plus à lire, et la pastille
+retombe d'autant. On ne peut pas réclamer la lecture d'un message qui n'existe
+plus.
+
+### La preuve
+
+```bash
+python3 tests/test_plafond.py <port>
+```
+
+| | serveur actuel | avec le patch |
+|---|---|---|
+| sous le plafond, rien ne disparaît | OK | **OK** |
+| à 200 pile, rien ne disparaît non plus | OK | **OK** |
+| le 201ᵉ chasse le premier | ECHEC | **OK** |
+| la boîte reste à 200 | ECHEC | **OK** |
+| les deux sens partagent le plafond | ECHEC | **OK** |
+| l'autre voit la même boîte | OK | **OK** |
+| une boîte avec un tiers n'est pas touchée | OK | **OK** |
+| total | **11/17** | **17/17** |
+
+Non-régression : 32 événements Socket.IO **identiques**, et 81 appels HTTP dont
+3 diffèrent — les trois `/get_profile`, c'est-à-dire la seule clé `theme` de la
+correction précédente ; en la neutralisant des deux côtés, **81 identiques, 0
+différents**. Le plafond ne change donc rien en dehors de `/send_message`. Les
+autres bancs sur le serveur corrigé : **45/45**, **17/17**, **16/16**,
+**40/40**, **20/20**, inchangés.
+
+Mêmes réserves qu'à la section 12 : ces chiffres viennent d'une **réplique**,
+mon exemplaire local de `server.py` étant un instantané ancien.
+
+**Un piège du protocole, rencontré ici.** Lancer le scénario HTTP deux fois sur
+la même paire de bases donne des chiffres différents de la première passe : les
+comptes créés au premier tour changent l'état. Une passe par paire neuve, comme
+le dit `tests/README.md`, et pas deux.
+
+## 14. Les fichiers
 
 | Fichier | Rôle |
 |---|---|
 | `patch_serveur.py` | applique les 23 corrections à ton `server.py` ; s'arrête sans rien écrire si un motif manque |
+| `server_original.py` | ton `server.py` tel que tu me l'as envoyé (référence) |
+| `server_patched.py` | le résultat, corrections déjà appliquées |
+| `serveur.diff` | le diff complet, ligne par ligne |
 | `lafuga.service` | unité systemd complète |
 | `lafuga-sante.service` + `.timer` | surveillance de `/health` |
 | `patch_direct.py` | la correspondance prévient en direct (`maj_directe`) |
@@ -755,8 +811,5 @@ c'est inhérent à un patch par motif.
 | `patch_regles.py` | deux règles de plus : trois cases libres, un Chevalier au plus par camp |
 | `patch_glissee.py` | la vitesse de glissée dans le compte ; zéro est un choix, pas une absence |
 | `patch_profil_theme.py` | `/get_profile` rend `theme` : la conversation s'habille du décor de l'interlocuteur |
+| `patch_plafond_messages.py` | une boîte garde ses 200 derniers messages ; les plus anciens sont effacés |
 | `tests/` | tous les tests de cette page (`tests/README.md`) |
-
-Les bancs d'essai écrivent des comptes de sonde dans la base du serveur qu'ils
-interrogent : ils tournent sur un serveur de test, **jamais sur la
-production**.
