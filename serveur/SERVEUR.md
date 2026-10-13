@@ -758,6 +758,22 @@ chasse un ancien, et il n'existe aucun instant où la boîte dépasse son plafon
 `LIMIT -1 OFFSET 200` est la façon SQLite de dire « tout sauf les 200
 premiers » : la sous-requête rend exactement les messages de trop.
 
+**Déployé le 13 octobre 2026 à 14 h 11.** `server.py` est passé de
+`8a3f3e592894…` à `5641b5197d3b…`, 4 149 → 4 181 lignes. Sauvegardes posées
+avant : `server.py.avant-plafond-20261013-141117` et, pour la base,
+`lafuga.db.avant-plafond`.
+
+**Le déploiement n'efface rien.** Le plafond n'agit qu'à l'ENVOI d'un message :
+au redémarrage, la base comptait toujours ses 409 messages, dont une boîte de
+341. Celle-là se coupera à 200 au prochain message qui y sera écrit — 142
+disparaîtront alors d'un coup. C'est vérifié sur la production : total et
+boîtes inchangés après le redémarrage.
+
+Ce qui est vérifié SUR LA PRODUCTION se limite à cela : le motif unique, le
+diff, la syntaxe, le service en bonne santé et la base intacte. Le
+comportement du plafond, lui, est prouvé sur la réplique — le banc d'essai
+écrit des comptes de sonde et ne tourne jamais en production.
+
 Le compte des non-lus suit : un message effacé n'est plus à lire, et la pastille
 retombe d'autant. On ne peut pas réclamer la lecture d'un message qui n'existe
 plus.
