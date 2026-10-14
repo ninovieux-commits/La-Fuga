@@ -21,6 +21,7 @@ import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/message_bubble.dart';
+import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
 
@@ -255,12 +256,20 @@ class ConversationScreen extends StatefulWidget {
     super.key,
     required this.online,
     required this.pseudo,
+    this.defiPossible = true,
   });
 
   final OnlineService online;
 
   /// L'interlocuteur.
   final String pseudo;
+
+  /// Peut-on défier depuis sa fiche ?
+  ///
+  /// Oui depuis le menu et depuis une partie de correspondance. Non depuis
+  /// une partie EN DIRECT : on n'en lance pas une seconde pendant la
+  /// première, et la touche y paraît hachurée.
+  final bool defiPossible;
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
@@ -548,7 +557,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 // elle paraîtra au `setState` de l'arrivée.
                 favori: FavorisConnus.instance.connu(widget.pseudo) ?? false,
                 // Son nom ouvre SA fiche — la même qu'en partie.
-                onTitleTap: () => _fiche(widget.pseudo, palette),
+                onTitleTap: () => unawaited(_fiche(widget.pseudo, palette)),
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
@@ -577,19 +586,23 @@ class _ConversationScreenState extends State<ConversationScreen> {
     );
   }
 
-  /// LA fiche du joueur, la même que partout ailleurs.
+  /// LA fiche du joueur, la même que partout ailleurs — et le défi qu'elle
+  /// peut lancer.
   ///
-  /// D'ici on ne peut pas lancer de défi — l'écran qui sait le faire est le
-  /// menu —, donc la touche « Défier » paraît hachurée.
-  void _fiche(String pseudo, ThemePalette palette) => unawaited(
-    showPlayerCard(
+  /// Nino : « câble le défi depuis la correspondance et la boîte de
+  /// dialogue ». C'est le menu qui le mène, par le relais : son dialogue
+  /// d'attente paraît par-dessus la conversation, et la partie par-dessus
+  /// lui. On revient ici en la quittant.
+  Future<void> _fiche(String pseudo, ThemePalette palette) async {
+    final cible = await showPlayerCard(
       context,
       online: widget.online,
       palette: palette,
       pseudo: pseudo,
-      defiPossible: false,
-    ),
-  );
+      defiPossible: widget.defiPossible && DefiRelais.pret,
+    );
+    if (cible != null) await DefiRelais.defier(cible);
+  }
 
   /// Une bulle, et rien qu'une bulle.
   ///
@@ -628,14 +641,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
         // la mienne — qui n'offre que « Profil », puisqu'on ne se défie pas,
         // ne se met pas en favori et ne se bloque pas soi-même.
         GestureDetector(
-          onTap: () => _fiche(widget.pseudo, palette),
+          onTap: () => unawaited(_fiche(widget.pseudo, palette)),
           child: ProfilePhoto(
             photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
             size: kAvatarBasConversation,
           ),
         ),
         GestureDetector(
-          onTap: () => _fiche(widget.online.pseudo ?? '', palette),
+          onTap: () => unawaited(_fiche(widget.online.pseudo ?? '', palette)),
           child: ProfilePhoto(
             photo: avatarPhotoFor(
               widget.online.pseudo,

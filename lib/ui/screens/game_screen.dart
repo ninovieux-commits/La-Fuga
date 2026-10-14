@@ -43,6 +43,7 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/slide_animation.dart';
+import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 
@@ -996,6 +997,18 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     if (left) Navigator.of(context).pop();
   }
 
+  /// LA fiche du joueur, et le défi qu'elle peut lancer.
+  Future<void> _fiche(String pseudo, ThemePalette palette) async {
+    final cible = await showPlayerCard(
+      context,
+      online: OnlineService.instance,
+      palette: palette,
+      pseudo: pseudo,
+      defiPossible: DefiRelais.pret,
+    );
+    if (cible != null) await DefiRelais.defier(cible);
+  }
+
   /// Panneau d'un joueur. Les trois gestes (↶ ½ X) ne s'affichent que du
   /// côté qui peut s'en servir, comme en Kivy : pas de nulle contre Deep
   /// Grey, et rien de tout cela en analyse ni en regardant le passé.
@@ -1039,13 +1052,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
           !isAi &&
               OnlineService.instance.isLoggedIn &&
               isRealPlayer(_playerOf(camp))
-          ? () => showPlayerCard(
-              context,
-              online: OnlineService.instance,
-              palette: palette,
-              pseudo: _playerOf(camp),
-              defiPossible: false,
-            )
+          ? () => _fiche(_playerOf(camp), palette)
           : null,
       onUndo: canAct && _game.canValidate ? _cancelMove : null,
       onDraw: canAct && _aiCamp == null ? () => _toggleDrawOffer(camp) : null,

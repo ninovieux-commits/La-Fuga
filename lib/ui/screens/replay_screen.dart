@@ -30,6 +30,7 @@ import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/auto_play_bar.dart';
+import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
@@ -361,15 +362,22 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       // un toucher qui n'ouvre rien ne vaut pas mieux qu'aucun toucher.
       // Nino : « ça doit aussi marcher depuis les parties dans l'historique. »
       onNameTap: _online.isLoggedIn && isRealPlayer(name)
-          ? () => showPlayerCard(
-              context,
-              online: _online,
-              palette: palette,
-              pseudo: name,
-              defiPossible: false,
-            )
+          ? () => _fiche(name, palette)
           : null,
     );
+  }
+
+  /// LA fiche du joueur, et le défi qu'elle peut lancer : le menu est resté
+  /// à l'écoute sous cet écran, c'est lui qui le mène.
+  Future<void> _fiche(String pseudo, ThemePalette palette) async {
+    final cible = await showPlayerCard(
+      context,
+      online: _online,
+      palette: palette,
+      pseudo: pseudo,
+      defiPossible: DefiRelais.pret,
+    );
+    if (cible != null) await DefiRelais.defier(cible);
   }
 
   /// Chrono affiché en relecture : Kivy y remet la pendule de la cadence

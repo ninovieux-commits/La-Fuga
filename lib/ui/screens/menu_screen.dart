@@ -17,6 +17,7 @@ import '../../engine/fug.dart';
 import '../../engine/piece.dart';
 import '../../engine/random_fuga.dart';
 import '../../game/challenges.dart';
+import '../../game/defi_relais.dart';
 import '../../game/clock.dart';
 import '../../game/correspondence.dart';
 import '../../game/online_game.dart';
@@ -282,6 +283,10 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
     final socket = _online.socket;
     if (socket == null) return;
 
+    // Tant que le menu écoute, la fiche d'un joueur peut défier depuis
+    // n'importe quel écran : c'est ici que le défi se mène.
+    DefiRelais.pose(_challenge);
+
     final challenges = ChallengeService(socket);
     _challenges = challenges;
     challenges.bind(
@@ -318,6 +323,7 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
       _say(T('Essayez une autre cadence'));
 
   void _unbind() {
+    DefiRelais.oublie();
     _challenges?.unbind();
     _online.socket
       ?..off(FugaEvents.partieTrouvee, _onGameFound)

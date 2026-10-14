@@ -393,6 +393,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         builder: (_) => ConversationScreen(
           online: OnlineService.instance,
           pseudo: _g.info.opponent,
+          // On est EN PARTIE : pas de second défi depuis le chat non plus.
+          defiPossible: false,
         ),
       ),
     );

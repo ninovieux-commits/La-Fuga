@@ -33,6 +33,7 @@ import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
+import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/draw_offer_panel.dart';
@@ -677,6 +678,22 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (mounted) setState(() {});
   }
 
+  /// LA fiche du joueur, et le défi qu'elle peut lancer.
+  ///
+  /// Nino : « câble le défi depuis la correspondance et la boîte de
+  /// dialogue ». C'est le menu qui le mène, par le relais : il reste branché
+  /// au serveur sous cet écran.
+  Future<void> _fiche(String pseudo, ThemePalette palette) async {
+    final cible = await showPlayerCard(
+      context,
+      online: OnlineService.instance,
+      palette: palette,
+      pseudo: pseudo,
+      defiPossible: DefiRelais.pret,
+    );
+    if (cible != null) await DefiRelais.defier(cible);
+  }
+
   @override
   Widget build(BuildContext context) {
     final axes = Settings.instance.themeAxes;
@@ -993,14 +1010,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       score: '${isMine ? _g.myScore : _g.opponentScore}',
       mirrored: isMine,
       // LA FICHE, la même partout : plus de menu déroulant propre à la
-      // partie. Le défi y est hachuré — d'ici, on ne peut pas en lancer un.
-      onNameTap: () => showPlayerCard(
-        context,
-        online: OnlineService.instance,
-        palette: palette,
-        pseudo: isMine ? widget.myPseudo : _g.opponent,
-        defiPossible: false,
-      ),
+      // partie. On peut y défier — une partie de correspondance n'attend pas
+      // devant l'écran, et la partie en direct s'ouvrira par-dessus.
+      onNameTap: () => _fiche(isMine ? widget.myPseudo : _g.opponent, palette),
       // L'étoile ne vaut que pour l'ADVERSAIRE : se mettre soi-même en
       // favori n'a pas de sens, et la touche n'est pas proposée non plus.
       favori: !isMine && (FavorisConnus.instance.connu(_g.opponent) ?? false),
