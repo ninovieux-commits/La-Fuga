@@ -14,6 +14,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
 import 'package:lafuga/net/push_notifications.dart';
 
@@ -104,10 +105,13 @@ void main() {
       );
 
       final wav = _lireWav(fichier);
-      expect(wav.rate, 44100, reason: 'fréquence inattendue');
+      // La MÊME fréquence que les notes du jeu : ce fichier est fabriqué à
+      // partir d'elles, par `dart run tool/gen_notif_sound.dart`. Un fichier
+      // resté en 44,1 kHz voudrait dire qu'il n'a pas été refait depuis.
+      expect(wav.rate, kSoundRate, reason: 'fréquence inattendue');
       expect(
         wav.samples.length,
-        greaterThan(44100 ~/ 2),
+        greaterThan(wav.rate ~/ 2),
         reason: 'moins d une demi-seconde',
       );
 
@@ -123,10 +127,13 @@ void main() {
     test('quatre attaques espacées de cent millisecondes', () {
       // C est ce qui fait un glissando plutôt qu un accord.
       final wav = _lireWav(fichier);
+      // La fenêtre se compte en millisecondes : en échantillons elle dirait
+      // autre chose à chaque fréquence d'échantillonnage.
+      final fenetre = (wav.rate * 0.027).round();
       int creteAutourDe(double seconde) {
         final debut = (wav.rate * seconde).round();
         var c = 0;
-        for (var i = debut; i < debut + 1200 && i < wav.samples.length; i++) {
+        for (var i = debut; i < debut + fenetre && i < wav.samples.length; i++) {
           final a = wav.samples[i].abs();
           if (a > c) c = a;
         }

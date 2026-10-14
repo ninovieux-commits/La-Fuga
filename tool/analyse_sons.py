@@ -25,7 +25,7 @@ import os
 import sys
 import wave
 
-RATE = 44100
+RATE = 22050
 INSTRUMENTS = ['piano', 'guitare', 'orgue', 'cloche']
 
 

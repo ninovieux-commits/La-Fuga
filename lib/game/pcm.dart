@@ -9,6 +9,18 @@ import 'dart:typed_data';
 
 import 'sound_plan.dart';
 
+/// Fréquence d'échantillonnage des sons du jeu, en hertz.
+///
+/// 22 050 Hz, moitié du 44 100 d'un disque : la mesure dit que les sept
+/// instruments n'ont rien au-dessus de 11 kHz — le chœur, le plus riche, y
+/// met 0,0013 % de son énergie. On ne jette donc que du vide, et le mixage
+/// d'un coup, qui se fait ici en Dart au moment où le doigt se lève, a deux
+/// fois moins d'échantillons à écrire.
+///
+/// Ce n'est qu'un recours : la fréquence VRAIE est toujours celle lue dans
+/// le fichier. Une note dans un autre format jouerait juste quand même.
+const int kSoundRate = 22050;
+
 /// Échantillons d'un son : PCM 16 bits, mono, et sa fréquence.
 final class Pcm {
   const Pcm(this.samples, this.rate);
@@ -18,7 +30,7 @@ final class Pcm {
 
   int get length => samples.length;
 
-  static final Pcm empty = Pcm(Int16List(0), 44100);
+  static final Pcm empty = Pcm(Int16List(0), kSoundRate);
 }
 
 /// Lit un WAV PCM 16 bits. `null` si ce n'en est pas un.
@@ -32,7 +44,7 @@ Pcm? readWav(ByteData data) {
 
     var offset = 12;
     var channels = 1;
-    var rate = 44100;
+    var rate = kSoundRate;
     var bits = 16;
     while (offset + 8 <= data.lengthInBytes) {
       final id = _tag(data, offset);

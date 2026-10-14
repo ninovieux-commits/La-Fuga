@@ -14,7 +14,9 @@ import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
 
 void main() {
-  const rate = 44100;
+  // La vraie fréquence du jeu : le tempo se compte en échantillons, et
+  // c'est à cette fréquence-là qu'il doit tomber juste.
+  const rate = kSoundRate;
 
   /// Une banque dont chaque note est une impulsion unique : on retrouve donc
   /// exactement où chaque note a été posée.

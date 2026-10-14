@@ -32,7 +32,17 @@ import wave
 import numpy as np
 import soundfile as sf
 
-RATE = 44100
+# Fréquence d'échantillonnage du jeu.
+#
+# 22,05 kHz, et non 44,1 : la mesure dit que ces sept instruments n'ont
+# RIEN au-dessus de 11 kHz — le chœur, le plus riche, y met 0,0013 % de son
+# énergie, soit -49 dB. On jette donc une moitié de spectre vide, et on
+# gagne tout le reste : les assets passent de 21 à 10 Mo, le décodage des
+# 28 notes au lancement d'une partie est deux fois plus court, et surtout le
+# MIXAGE d'un coup — qui se fait en Dart, échantillon par échantillon, au
+# moment où le doigt se lève — a deux fois moins d'échantillons à écrire.
+# C'est la fluidité qui était demandée, pas la place.
+RATE = 22050
 NOTES = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si']
 SEMITONES = {'do': 0, 're': 2, 'mi': 4, 'fa': 5, 'sol': 7, 'la': 9, 'si': 11}
 OCTAVES = [2, 3, 4, 5]
@@ -109,11 +119,39 @@ def freq_of(note, octave):
     return 440.0 * 2 ** ((midi - 69) / 12)
 
 
+def passe_bas(x, rate, coupure, attenuation=80.0, largeur=900.0):
+    """Coupe l'aigu AVANT de réduire la fréquence d'échantillonnage.
+
+    Descendre de 44,1 à 22,05 kHz revient à jeter un échantillon sur deux.
+    Ce qui vivait au-dessus de 11 kHz ne disparaît pas pour autant : il se
+    REPLIE dans l'aigu audible, à l'envers — un souffle de cymbale
+    deviendrait un sifflement, et on l'entendrait d'autant mieux qu'il n'a
+    rien à voir avec la note. Le filtre passe donc avant, jamais après.
+
+    Fenêtre de Kaiser : c'est elle qui donne l'atténuation demandée avec le
+    moins de coefficients, et un nombre impair de coefficients donne un
+    retard entier, qu'on annule exactement.
+    """
+    if coupure >= rate / 2:
+        return x
+    beta = 0.1102 * (attenuation - 8.7)
+    n = int(np.ceil((attenuation - 8) * rate / (2.285 * 2 * np.pi * largeur)))
+    n += 1 - n % 2
+    k = np.arange(n) - (n - 1) / 2
+    h = np.sinc(2 * coupure * k / rate) * np.kaiser(n, beta)
+    h /= h.sum()
+    # « same » recentre le résultat : le retard du filtre est annulé, et
+    # l'attaque de la note reste là où elle était, à l'échantillon près.
+    return np.convolve(x, h, 'same')
+
+
 def lire_mono(path):
     """Enregistrement en mono, à notre fréquence d'échantillonnage."""
     data, rate = sf.read(path, always_2d=True, dtype='float64')
     mono = data.mean(axis=1)
     if rate != RATE:
+        if RATE < rate:
+            mono = passe_bas(mono, rate, 0.45 * RATE)
         n = int(round(len(mono) * RATE / rate))
         mono = np.interp(np.linspace(0, len(mono) - 1, n),
                          np.arange(len(mono)), mono)
@@ -203,6 +241,21 @@ def fade_in(x, seconds=0.0015):
 HARMONIQUES = ['piano', 'guitare', 'orgue',
                'xylophone', 'harpe', 'choeur']
 
+# Durée du morceau de note sur lequel on mesure la hauteur, en secondes.
+#
+# C'était un nombre d'ÉCHANTILLONS — donc une durée qui dépendait de la
+# fréquence d'échantillonnage. En passant à 22,05 kHz la fenêtre a doublé en
+# temps, et le `do2` du chœur est tombé de 12,6 % à 4,1 % : la mesure
+# refusait une note que le fichier n'avait pas changée. Le chœur enfle, puis
+# sa fondamentale faiblit ; écouter deux fois plus longtemps, c'est écouter
+# autre chose. Une durée, elle, veut dire la même chose à n'importe quelle
+# fréquence.
+FENETRE = 0.37
+
+# En dessous, le fichier est trop court pour qu'une mesure de hauteur veuille
+# dire quelque chose.
+FENETRE_MINI = 0.18
+
 
 def presence_hauteur(x, attendue):
     """La note contient-elle bien la hauteur qu'annonce son nom ?
@@ -220,8 +273,8 @@ def presence_hauteur(x, attendue):
     Renvoie cette énergie en pourcentage du pic le plus fort.
     """
     debut = int(0.08 * RATE)
-    seg = x[debut:debut + 16384]
-    if len(seg) < 4096:
+    seg = x[debut:debut + int(FENETRE * RATE)]
+    if len(seg) < int(FENETRE_MINI * RATE):
         return 0.0
     X = np.abs(np.fft.rfft(seg * np.hanning(len(seg))))
     f = np.fft.rfftfreq(len(seg), 1.0 / RATE)
@@ -243,8 +296,8 @@ def rapport_du_pic(x, attendue):
     donnerait 4,26, et se verrait.
     """
     debut = int(0.08 * RATE)
-    seg = x[debut:debut + 16384]
-    if len(seg) < 4096:
+    seg = x[debut:debut + int(FENETRE * RATE)]
+    if len(seg) < int(FENETRE_MINI * RATE):
         return 0.0
     X = np.abs(np.fft.rfft(seg * np.hanning(len(seg))))
     f = np.fft.rfftfreq(len(seg), 1.0 / RATE)

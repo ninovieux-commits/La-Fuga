@@ -24,3 +24,7 @@ ios/.symlinks/
 
 # Système
 .DS_Store
+
+# Python : les .pyc des outils de `tool/` sont recompilés à chaque lancement.
+__pycache__/
+*.pyc

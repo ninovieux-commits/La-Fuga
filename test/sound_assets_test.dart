@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
 
 /// En-tête lu dans un fichier WAV.
@@ -96,12 +97,22 @@ void main() {
     }
   });
 
-  test('tout est en 44,1 kHz, mono, 16 bits', () {
+  test('tout est en 22,05 kHz, mono, 16 bits', () {
+    // 22 050 Hz, et non 44 100 : mesure faite, ces sept instruments n'ont
+    // rien au-dessus de 11 kHz — le chœur, le plus riche, y met 0,0013 % de
+    // son énergie. La moitié jetée était du vide, et ce qu'on gagne se sent
+    // sur chaque coup : le mixage, qui se fait en Dart au moment où le doigt
+    // se lève, est passé de 450 à 243 µs.
+    //
+    // Un fichier resté en 44,1 kHz sonnerait JUSTE quand même — le jeu lit
+    // la fréquence dans l'en-tête — mais il coûterait le double pour rien,
+    // et il mélangerait deux fréquences dans une même banque.
+    expect(kSoundRate, 22050, reason: 'la fréquence du jeu a changé');
     for (final instrument in kInstruments) {
       for (final file in Directory('assets/sounds/$instrument').listSync()) {
         if (!file.path.endsWith('.wav')) continue;
         final info = readWav(file.path);
-        expect(info.rate, 44100, reason: file.path);
+        expect(info.rate, kSoundRate, reason: file.path);
         expect(info.channels, 1, reason: file.path);
         expect(info.bits, 16, reason: file.path);
         expect(info.frames, greaterThan(1000), reason: file.path);
@@ -115,7 +126,8 @@ void main() {
       for (final note in kSoundNotes) {
         for (final octave in kSoundOctaves) {
           final path = 'assets/sounds/$instrument/$note$octave.wav';
-          final secondes = readWav(path).frames / 44100;
+          final info = readWav(path);
+          final secondes = info.frames / info.rate;
           expect(
             secondes,
             lessThanOrEqualTo(plafond + 0.01),
@@ -158,13 +170,17 @@ void main() {
 double niveauDeFin(String path) {
   final bytes = File(path).readAsBytesSync();
   final data = ByteData.sublistView(bytes);
+  // Les blocs se comptent en MILLISECONDES, pas en échantillons : une mesure
+  // en échantillons voudrait dire autre chose à chaque fréquence, et c'est
+  // exactement ce qui a mordu le générateur en passant à 22,05 kHz.
+  final rate = readWav(path).rate;
   // L'en-tête WAV de ces fichiers fait 44 octets : on lit les échantillons
   // qui suivent, en 16 bits signés.
   final samples = <double>[];
   for (var i = 44; i + 1 < bytes.length; i += 2) {
     samples.add(data.getInt16(i, Endian.little) / 32768.0);
   }
-  if (samples.length < 4410) return -120;
+  if (samples.length < rate ~/ 10) return -120;
   double rms(int debut, int fin) {
     var somme = 0.0;
     for (var i = debut; i < fin; i++) {
@@ -173,7 +189,7 @@ double niveauDeFin(String path) {
     return math.sqrt(somme / (fin - debut));
   }
 
-  const bloc = 441; // 10 ms
+  final bloc = rate ~/ 100; // 10 ms
   var maxi = 0.0;
   for (var i = 0; i + bloc <= samples.length; i += bloc) {
     final v = rms(i, i + bloc);

@@ -38,7 +38,7 @@ Pcm _lireWav(File f) {
   final d = ByteData.sublistView(o);
   // En-tête RIFF minimal : on cherche « fmt » puis « data ».
   var i = 12;
-  var rate = 44100;
+  var rate = kSoundRate;
   var bits = 16;
   var canaux = 1;
   Int16List? samples;
@@ -112,7 +112,7 @@ void main() {
 
   for (final instrument in const ['piano']) {
     final banque = <String, Pcm>{};
-    var rate = 44100;
+    var rate = kSoundRate;
     for (final note in notes) {
       final f = File('assets/sounds/$instrument/$note.wav');
       if (!f.existsSync()) throw StateError('manquant : ${f.path}');

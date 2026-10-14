@@ -48,7 +48,7 @@ Future<SoundBank> loadSoundBank(String instrument) async {
   final loaded = await Future.wait(names.map(read));
 
   final notes = <String, Pcm>{};
-  var rate = 44100;
+  var rate = kSoundRate;
   for (var i = 0; i < names.length; i++) {
     final pcm = loaded[i];
     if (pcm == null) continue;

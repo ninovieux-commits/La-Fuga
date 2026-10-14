@@ -4,7 +4,7 @@ import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';
 
 void main() {
-  const rate = 44100;
+  const rate = kSoundRate;
   final notes = <String, Pcm>{};
   for (final n in kSoundNotes) {
     for (final o in kSoundOctaves) {
