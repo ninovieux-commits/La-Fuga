@@ -353,7 +353,23 @@ class CorrespondenceService {
     ];
   }
 
-  /// Défie un joueur par correspondance.
+  /// Les parties EN COURS d'un AUTRE joueur, pour son profil.
+  ///
+  /// `list()` ne rend que les miennes — le serveur n'y lit que le jeton.
+  /// Celle-ci passe par `/corr_list_public`, qui répond pour un pseudo, en
+  /// lecture seule, et du point de vue du joueur regardé. Un serveur pas
+  /// encore corrigé répond 404 : on rend une liste vide, et le profil dit
+  /// « pas de partie en cours ».
+  Future<List<CorrGame>> listPublic(String pseudo) async {
+    final r = await _client.corrListPublic(pseudo);
+    if (!r.isOk) return const [];
+    final games = r.get<List<dynamic>>('games') ?? const [];
+    return [
+      for (final g in games)
+        CorrGame.fromJson(Map<String, dynamic>.from(g as Map)),
+    ];
+  }
+
   /// Défie un joueur par correspondance.
   ///
   /// [mode] dit d'où part la partie. [position] est le `.fug` sur une seule

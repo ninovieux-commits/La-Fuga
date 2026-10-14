@@ -519,6 +519,9 @@ class _AccountScreenState extends State<AccountScreen> {
       itemCount: parties.length,
       itemBuilder: (context, i) => CorrSlot(
         game: parties[i],
+        // Sur le profil de quelqu'un d'autre, la case porte les DEUX noms et
+        // dit lequel des deux doit jouer.
+        proprietaire: profile.isSelf ? '' : profile.pseudo,
         palette: paletteOf(axes.general),
         boardTheme: axes.board,
         pieceTheme: axes.pieces,
@@ -536,16 +539,23 @@ class _AccountScreenState extends State<AccountScreen> {
 
   /// Ouvre une partie de correspondance depuis le profil.
   ///
-  /// Les miennes s'ouvrent comme au menu. Celles d'un autre demanderont un
-  /// écran de VISITEUR — qui ne peut ni jouer ni lire le chat — et la route
-  /// qui les sert ; ni l'un ni l'autre n'existent encore.
+  /// Les miennes s'ouvrent comme au menu. Celles d'un autre s'ouvrent en
+  /// VISITEUR — Nino : « donner sur la partie de la personne en mode visiteur
+  /// (ne peut pas intervenir ni voir la boîte de message) ». L'écran est le
+  /// même ; c'est le drapeau qui éteint le doigt, le ½, le X et le Chat.
   Future<void> _ouvrirPartie(CorrGame game) async {
-    if (!(_profile?.isSelf ?? false)) return;
+    final profile = _profile;
+    if (profile == null) return;
     await _push(
       CorrGameScreen(
         game: game,
         service: CorrespondenceService(widget.online.client),
-        myPseudo: widget.online.pseudo ?? T('Moi'),
+        // En visite, c'est SON nom qui va sous le plateau : la partie est
+        // rendue de son point de vue.
+        myPseudo: profile.isSelf
+            ? (widget.online.pseudo ?? T('Moi'))
+            : profile.pseudo,
+        visiteur: !profile.isSelf,
       ),
     );
     if (mounted) await _load();

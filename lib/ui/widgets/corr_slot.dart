@@ -36,10 +36,21 @@ class CorrSlot extends StatelessWidget {
     required this.onClose,
     required this.onShow,
     required this.onShowChallenge,
+    this.proprietaire = '',
   });
 
   /// La partie affichée, ou `null` pour une case vide.
   final CorrGame? game;
+
+  /// Le joueur dont c'est la partie, quand on REGARDE le profil de quelqu'un
+  /// d'autre. Vide sur mes propres cases.
+  ///
+  /// La partie est alors rendue de SON point de vue — « mon tour » veut dire
+  /// le sien. Sans son nom, la case dirait « à vous de jouer » à quelqu'un
+  /// qui ne joue pas cette partie.
+  final String proprietaire;
+
+  bool get _visite => proprietaire.isNotEmpty;
 
   final ThemePalette palette;
   final String boardTheme;
@@ -114,7 +125,9 @@ class CorrSlot extends StatelessWidget {
     Align(
       alignment: Alignment.topCenter,
       child: _plate(
-        '${g.opponent}\n'
+        // Chez moi, le nom de l'adversaire suffit : l'autre, c'est moi. Sur
+        // le profil de quelqu'un, il faut les deux.
+        '${_visite ? "$proprietaire — ${g.opponent}" : g.opponent}\n'
         '${g.mode.label} · '
         '${g.myScore} - ${g.opponentScore}',
         bold: true,
@@ -126,9 +139,16 @@ class CorrSlot extends StatelessWidget {
         Align(
           alignment: const Alignment(0, 0.92),
           child: _plate(
-            g.myTurn
-                ? T('À vous de jouer')
-                : T("À votre adversaire\nde jouer").replaceAll('\n', ' '),
+            _visite
+                // En visite, « mon tour » est le SIEN : on nomme qui joue.
+                ? T(
+                    'À %s de jouer',
+                  ).replaceAll('%s', g.myTurn ? proprietaire : g.opponent)
+                : (g.myTurn
+                      ? T('À vous de jouer')
+                      : T(
+                          "À votre adversaire\nde jouer",
+                        ).replaceAll('\n', ' ')),
             bold: true,
           ),
         ),

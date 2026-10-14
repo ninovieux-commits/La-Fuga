@@ -51,6 +51,7 @@ class CorrGameScreen extends StatefulWidget {
     required this.game,
     required this.service,
     required this.myPseudo,
+    this.visiteur = false,
     this.archive,
     this.initialBoard,
     this.sounds,
@@ -58,7 +59,18 @@ class CorrGameScreen extends StatefulWidget {
 
   final CorrGame game;
   final CorrespondenceService service;
+
+  /// Le joueur dont c'est la partie. En mode visiteur, c'est CELUI QU'ON
+  /// REGARDE : la partie est rendue de son point de vue, ses pièces en bas.
   final String myPseudo;
+
+  /// On REGARDE la partie de quelqu'un d'autre, depuis son profil.
+  ///
+  /// Nino : « donner sur la partie de la personne en mode visiteur (ne peut
+  /// pas intervenir ni voir la boîte de message) ». Le doigt ne joue pas, le
+  /// ½ et le X n'existent pas, la touche Chat non plus — ce serait celle de
+  /// SA conversation avec son adversaire, qui ne nous regarde pas.
+  final bool visiteur;
 
   /// Où ranger la partie une fois finie. Injectable pour les tests.
   final GameArchive? archive;
@@ -197,7 +209,12 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (_controller?.moved ?? false) return;
     _polling = true;
     try {
-      final games = await widget.service.list();
+      // En visiteur, la partie n'est pas dans MA liste : on la redemande là
+      // où elle est, par la route publique. Sans cela l'écran resterait figé
+      // sur la position qu'il avait à l'ouverture.
+      final games = widget.visiteur
+          ? await widget.service.listPublic(widget.myPseudo)
+          : await widget.service.list();
       if (!mounted || games == null) return;
       final fraiche = games.where((g) => g.id == _g.id).firstOrNull;
       if (fraiche == null) return;
@@ -399,6 +416,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   }
 
   bool get _canPlay =>
+      !widget.visiteur &&
       _g.status == CorrStatus.enCours &&
       _g.myTurn &&
       !_played &&
@@ -931,8 +949,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     onFlip: _toggleFlip,
     // Préparer ses réponses pendant que l'adversaire réfléchit. Même touche
     // qu'« Analyser », juste à droite de celle qui retourne le plateau.
-    onPremove: _peutPrejouer ? _openPremove : null,
-    onChat: _openChat,
+    onPremove: (_peutPrejouer && !widget.visiteur) ? _openPremove : null,
+    // En visiteur, pas de Chat : ce serait SA conversation avec son
+    // adversaire. Nino : « ne peut pas intervenir ni voir la boîte de
+    // message. »
+    onChat: widget.visiteur ? null : _openChat,
     // La touche Chat ouvre la conversation privée avec l'adversaire : sa
     // pastille s'allume pour un message de LUI, et pour lui seul. La boîte
     // aux lettres est la seule source — le compteur du serveur, lui, reste
@@ -974,8 +995,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   /// pas de chrono : Kivy y affiche l'infini.
   Widget _panel(ThemePalette palette, Camp camp, MoveController c) {
     final isMine = camp == _g.myCamp;
-    final canAct = isMine && _g.status == CorrStatus.enCours && !_played;
-    final enCours = _g.status == CorrStatus.enCours;
+    // En visiteur, AUCUN geste : ni annuler, ni proposer la nulle, ni
+    // abandonner. On regarde jouer, on n'intervient pas.
+    final canAct =
+        !widget.visiteur &&
+        isMine &&
+        _g.status == CorrStatus.enCours &&
+        !_played;
+    final enCours = !widget.visiteur && _g.status == CorrStatus.enCours;
 
     // L'adversaire propose la nulle : son panneau cède la place à l'offre.
     // Le plateau reste entier derrière, et l'analyse à portée de touche.

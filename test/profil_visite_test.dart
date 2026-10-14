@@ -26,6 +26,7 @@ import 'package:lafuga/theme/theme_assets.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
+import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/widgets/bulle_devise.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
 import 'package:lafuga/ui/widgets/fuga_background.dart';
@@ -317,6 +318,104 @@ void main() {
         find.widgetWithText(FugaButton, T('Revenir au menu')),
       );
       expect(retour.color, paletteOf(kMonTheme).clair);
+    });
+  });
+
+  group('Les parties d un autre, en visiteur', () {
+    /// Une partie en cours de `mesange` contre `celia`, telle que la route
+    /// publique la rend : du point de vue de mesange.
+    Map<String, dynamic> sonJeu({bool aLui = true}) => {
+      'ok': true,
+      'games': [
+        {
+          'id': 7,
+          'statut': 'en_cours',
+          'ma_couleur': 'Blanc',
+          'adversaire': 'celia',
+          'adversaire_melo': 1449,
+          'mon_score': 3,
+          'score_adverse': 1,
+          'objectif': 'partie',
+          'turn': aLui ? 'Blanc' : 'Noir',
+          'moves_text': '',
+          'my_turn': aLui,
+        },
+      ],
+    };
+
+    testWidgets('l aperçu porte les DEUX noms', (tester) async {
+      // Chez moi, le nom de l'adversaire suffit — l'autre, c'est moi. Sur le
+      // profil de quelqu'un, il en faut deux.
+      reponses['/get_profile'] = profil();
+      reponses['/corr_list_public'] = sonJeu();
+      await ouvrir(tester);
+
+      expect(find.byType(CorrSlot), findsOneWidget);
+      final case_ = tester.widget<CorrSlot>(find.byType(CorrSlot));
+      expect(case_.proprietaire, 'mesange');
+      expect(find.textContaining('mesange — celia'), findsOneWidget);
+    });
+
+    testWidgets('et dit LEQUEL des deux doit jouer', (tester) async {
+      reponses['/get_profile'] = profil();
+      reponses['/corr_list_public'] = sonJeu();
+      await ouvrir(tester);
+      expect(find.textContaining('À mesange de jouer'), findsOneWidget);
+      expect(
+        find.textContaining('À vous de jouer'),
+        findsNothing,
+        reason: 'ce n est pas à moi de jouer : je regarde',
+      );
+    });
+
+    testWidgets('quand c est à son adversaire, c est lui qu on nomme', (
+      tester,
+    ) async {
+      reponses['/get_profile'] = profil();
+      reponses['/corr_list_public'] = sonJeu(aLui: false);
+      await ouvrir(tester);
+      expect(find.textContaining('À celia de jouer'), findsOneWidget);
+    });
+
+    testWidgets('la toucher ouvre la partie en VISITEUR', (tester) async {
+      // Nino : « donner sur la partie de la personne en mode visiteur (ne
+      // peut pas intervenir ni voir la boîte de message) ».
+      reponses['/get_profile'] = profil();
+      reponses['/corr_list_public'] = sonJeu();
+      await ouvrir(tester);
+
+      await tester.tap(find.byType(CorrSlot));
+      await tester.pumpAndSettle();
+
+      final ecran = tester.widget<CorrGameScreen>(find.byType(CorrGameScreen));
+      expect(ecran.visiteur, isTrue);
+      expect(
+        ecran.myPseudo,
+        'mesange',
+        reason: 'la partie est rendue de SON point de vue, son nom en bas',
+      );
+      expect(
+        find.text('Chat'),
+        findsNothing,
+        reason: 'sa conversation avec son adversaire ne nous regarde pas',
+      );
+      expect(find.text('½'), findsNothing);
+      expect(find.text('X'), findsNothing);
+    });
+
+    testWidgets('sur MON profil, rien de tout cela', (tester) async {
+      reponses['/get_profile'] = profil(moi: true, pseudo: 'nino');
+      reponses['/corr_list'] = sonJeu();
+      await ouvrir(tester, pseudo: null);
+
+      final case_ = tester.widget<CorrSlot>(find.byType(CorrSlot));
+      expect(case_.proprietaire, '');
+      await tester.tap(find.byType(CorrSlot));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<CorrGameScreen>(find.byType(CorrGameScreen)).visiteur,
+        isFalse,
+      );
     });
   });
 
