@@ -39,32 +39,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // La toute première connexion d'un fichier arme un minuteur que la
-  // vérification de fin de test signale, et qui ne vient pas de notre code.
-  // On la fait ici, hors de tout cas.
-  setUpAll(() async {
-    SharedPreferences.setMockInitialValues({
-      'lang_chosen': true,
-      'tuto_seen': true,
-    });
-    await Settings.load();
-    await Translations.load('fr');
-    final amorce = OnlineService(
-      client: OnlineClient(
-        api: ApiClient(
-          client: MockClient(
-            (req) async => http.Response(
-              jsonEncode({'ok': true, 'token': 't', 'pseudo': 'Nino'}),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            ),
-          ),
-        ),
-      ),
-    );
-    await amorce.login('Nino', 'mdp');
-  });
-
   setUp(() async {
     SharedPreferences.setMockInitialValues({
       'lang_chosen': true,
@@ -79,6 +53,10 @@ void main() {
   tearDown(resetScale);
 
   /// Un service connecté dont `/get_profile` répond ce qu'on lui dit.
+  ///
+  /// La connexion se fait par le CLIENT et non par le service : celle du
+  /// service ouvre en plus une socket, dont le minuteur survit au cas de test
+  /// et le fait échouer — sur une machine lente, là où il passait ici.
   ///
   /// `favori: null` imite un serveur pas encore corrigé : la clé est ABSENTE.
   ({OnlineService online, List<String> chemins}) serveur({bool? favori}) {
@@ -135,7 +113,7 @@ void main() {
       // Le défaut que j'avais manqué : la clé absente doit valoir faux, et ne
       // doit pas faire redemander sans fin.
       final s = serveur(favori: null);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       expect(
         await FavorisConnus.instance.demande('celia', online: s.online),
         isFalse,
@@ -154,7 +132,7 @@ void main() {
 
     testWidgets('un serveur qui répond VRAI est cru', (tester) async {
       final s = serveur(favori: true);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       expect(
         await FavorisConnus.instance.demande('celia', online: s.online),
         isTrue,
@@ -274,7 +252,7 @@ void main() {
     /// La fiche ouverte sur « celia », sur un serveur qui dit toujours oui.
     Future<void> ouvre(WidgetTester tester, {required bool favori}) async {
       final s = serveur(favori: favori);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(

@@ -34,31 +34,6 @@ import 'online_game_test.dart' show FakeSocket, makeGame;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // La toute première connexion d'un fichier arme un minuteur que la
-  // vérification de fin de test signale, et qui ne vient pas de notre code —
-  // la socket du paquet `socket_io_client`. On la fait ici, hors de tout cas.
-  setUpAll(() async {
-    SharedPreferences.setMockInitialValues({
-      'lang_chosen': true,
-      'tuto_seen': true,
-    });
-    await Settings.load();
-    final amorce = OnlineService(
-      client: OnlineClient(
-        api: ApiClient(
-          client: MockClient(
-            (req) async => http.Response(
-              jsonEncode({'ok': true, 'token': 't', 'pseudo': 'Nino'}),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            ),
-          ),
-        ),
-      ),
-    );
-    await amorce.login('Nino', 'mdp');
-  });
-
   setUp(() async {
     SharedPreferences.setMockInitialValues({
       'lang_chosen': true,
@@ -297,6 +272,12 @@ void main() {
 
   group('Le score en direct', () {
     /// Un service connecté dont `/get_profile` répond ces deux nombres.
+    ///
+    /// La connexion se fait par le CLIENT et non par le service : celle du
+    /// service ouvre en plus une socket, dont le minuteur de vingt secondes
+    /// survit au cas de test. Il ne tombait pas ici — il est tombé sur la
+    /// machine d'intégration, plus lente. Le client, lui, ne fait qu'un POST,
+    /// et c'est tout ce dont ces caches ont besoin pour se croire connectés.
     ({OnlineService online, List<String> chemins}) serveur({
       required int moi,
       required int lui,
@@ -325,7 +306,7 @@ void main() {
 
     testWidgets('le cache lit les deux nombres du profil', (tester) async {
       final s = serveur(moi: 17, lui: 6);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       expect(await ScoresDirects.resolve('celia', online: s.online), (
         mine: 17,
         theirs: 6,
@@ -343,7 +324,7 @@ void main() {
       // Le serveur compte une victoire de plus : garder l'ancien nombre à
       // l'écran serait afficher un score faux jusqu'à la sortie de la partie.
       final s = serveur(moi: 17, lui: 6);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       await ScoresDirects.resolve('celia', online: s.online);
       s.chemins.clear();
       await ScoresDirects.resolve('celia', online: s.online, force: true);
