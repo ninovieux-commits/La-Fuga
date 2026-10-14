@@ -20,6 +20,7 @@ import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
+import '../../game/defi_relais.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/profile.dart';
 import '../../net/scores_directs.dart';
@@ -133,6 +134,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   @override
   void initState() {
     super.initState();
+    // Une partie en direct est en cours : « Défier » se hachure PARTOUT, ici
+    // comme dans le chat ouvert d'ici. On ne joue pas deux parties à la fois.
+    DefiRelais.enPartieDirecte = true;
     _photoAdverse = AvatarPhotos.known(_g.info.opponent);
     _scoreDirect = ScoresDirects.connu(_g.info.opponent);
     _chargerPhotoAdverse();
@@ -152,6 +156,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   @override
   void dispose() {
+    DefiRelais.enPartieDirecte = false;
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
     _sounds.dispose();
@@ -393,8 +398,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         builder: (_) => ConversationScreen(
           online: OnlineService.instance,
           pseudo: _g.info.opponent,
-          // On est EN PARTIE : pas de second défi depuis le chat non plus.
-          defiPossible: false,
         ),
       ),
     );
@@ -586,7 +589,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         pseudo: isMine
             ? (OnlineService.instance.pseudo ?? '')
             : _g.info.opponent,
-        defiPossible: false,
       ),
       // L'étoile ne vaut que pour l'ADVERSAIRE : se mettre soi-même en
       // favori n'a pas de sens, et la touche n'est pas proposée non plus.

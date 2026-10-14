@@ -24,6 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:lafuga/game/defi_relais.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/favoris_connus.dart';
 import 'package:lafuga/net/online_client.dart';
@@ -108,6 +109,7 @@ void main() {
     // Les favoris connus vivent toute la session : sans ce ménage, un cas
     // hériterait de ce qu'un autre a appris.
     FavorisConnus.instance.oublie();
+    DefiRelais.oublie();
   });
 
   group('La fiche d un joueur', () {
@@ -237,7 +239,6 @@ void main() {
       WidgetTester tester, {
       String pseudo = 'mesange',
       OnlineService? online,
-      bool defiPossible = false,
       bool reglee = true,
     }) async {
       final service = online ?? connecte;
@@ -252,7 +253,6 @@ void main() {
                     online: service,
                     pseudo: pseudo,
                     palette: paletteOf('original'),
-                    defiPossible: defiPossible,
                   ),
                   child: const Text('ouvrir'),
                 ),
@@ -358,23 +358,20 @@ void main() {
   });
 
   group('La touche « Défier »', () {
-    Future<String?> ouvre(
-      WidgetTester tester, {
-      required bool defiPossible,
-    }) async {
-      String? defie;
+    // Elle ne prend plus d'ordre de l'appelant : elle lit LA règle. Nino :
+    // « de partout tant qu'une partie en direct n'est pas en cours ».
+    Future<void> ouvre(WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
                 child: ElevatedButton(
-                  onPressed: () async => defie = await showPlayerCard(
+                  onPressed: () => showPlayerCard(
                     context,
                     online: connecte,
                     pseudo: 'mesange',
                     palette: paletteOf('original'),
-                    defiPossible: defiPossible,
                   ),
                   child: const Text('ouvrir'),
                 ),
@@ -385,28 +382,15 @@ void main() {
       );
       await tester.tap(find.text('ouvrir'));
       await tester.pumpAndSettle();
-      return defie;
     }
 
     final defier = find.widgetWithText(FugaButton, T('Défier'));
 
-    testWidgets('en partie, elle est HACHURÉE et ne répond pas', (
-      tester,
-    ) async {
-      // Nino : « lors d'une partie en direct, ce popup doit avoir la touche
-      // défier hachurée en traits noirs et être désactivée. »
-      await ouvre(tester, defiPossible: false);
-      expect(defier, findsOneWidget);
-      expect(
-        tester.widget<FugaButton>(defier).onPressed,
-        isNull,
-        reason: 'désactivée : elle ne doit pas répondre au doigt',
-      );
-      expect(
-        find.byKey(kHachuresKey),
-        findsOneWidget,
-        reason: 'les hachures sont peintes PAR-DESSUS la touche',
-      );
+    testWidgets('personne pour mener le défi : HACHURÉE', (tester) async {
+      DefiRelais.oublie();
+      await ouvre(tester);
+      expect(tester.widget<FugaButton>(defier).onPressed, isNull);
+      expect(find.byKey(kHachuresKey), findsOneWidget);
 
       // Et elle ne ferme pas la fiche.
       await tester.tap(defier);
@@ -414,10 +398,24 @@ void main() {
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('ailleurs, elle est pleine et renvoie le pseudo', (
+    testWidgets('une partie EN DIRECT en cours : hachurée aussi', (
       tester,
     ) async {
-      await ouvre(tester, defiPossible: true);
+      // Nino : « lors d'une partie en direct, ce popup doit avoir la touche
+      // défier hachurée en traits noirs et être désactivée. » Même avec
+      // quelqu'un pour le mener : on ne joue pas deux parties à la fois.
+      DefiRelais.pose((_) async {});
+      DefiRelais.enPartieDirecte = true;
+      addTearDown(DefiRelais.oublie);
+      await ouvre(tester);
+      expect(tester.widget<FugaButton>(defier).onPressed, isNull);
+      expect(find.byKey(kHachuresKey), findsOneWidget);
+    });
+
+    testWidgets('sinon elle est pleine et renvoie le pseudo', (tester) async {
+      DefiRelais.pose((_) async {});
+      addTearDown(DefiRelais.oublie);
+      await ouvre(tester);
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
       expect(
         find.byKey(kHachuresKey),

@@ -30,12 +30,16 @@ import 'package:lafuga/net/scores_directs.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
+import 'package:lafuga/game/clock.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
+import 'package:lafuga/ui/screens/online_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/player_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'online_game_test.dart' show FakeSocket, makeGame;
 import 'support/fake_realtime.dart';
 
 void main() {
@@ -102,6 +106,18 @@ void main() {
   Future<void> calme(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  /// Pose un écran par-dessus ce qui est déjà là, sans attendre son retour.
+  Future<void> pousse(WidgetTester tester, Widget ecran, Finder dessous) async {
+    // SANS attendre : `push` ne rend la main qu'au retour de l'écran, et le
+    // cas de test resterait planté là jusqu'à sa mort.
+    unawaited(
+      Navigator.of(
+        tester.element(dessous),
+      ).push(MaterialPageRoute<void>(builder: (_) => ecran)),
+    );
+    await calme(tester);
   }
 
   /// Le menu ouvert — c'est lui qui pose le relais — et un écran par-dessus.
@@ -209,32 +225,79 @@ void main() {
       );
     });
 
-    testWidgets('mais PAS depuis le chat d une partie en direct', (
-      tester,
-    ) async {
-      // On n'en lance pas une seconde pendant la première.
+    testWidgets('mais PAS pendant une partie EN DIRECT', (tester) async {
+      // Nino : « de partout tant qu'une partie en direct n'est pas en
+      // cours ». C'est l'écran de partie qui pose cet état — la touche se
+      // hachure donc aussi dans le chat ouvert depuis cette partie, sans que
+      // la conversation ait à le savoir.
       await parDessusLeMenu(
         tester,
-        ConversationScreen(
-          online: online,
-          pseudo: 'mesange',
-          defiPossible: false,
+        OnlineGameScreen(
+          game: makeGame(socket: FakeSocket(), cadence: Cadence.quinze),
+          myPseudo: 'nino',
         ),
       );
+      expect(DefiRelais.pret, isFalse);
 
+      await pousse(
+        tester,
+        ConversationScreen(online: online, pseudo: 'mesange'),
+        find.byType(OnlineGameScreen),
+      );
       await tester.tap(find.text('mesange', findRichText: true));
       await calme(tester);
-      expect(
-        tester
-            .widget<FugaButton>(find.widgetWithText(FugaButton, T('Défier')))
-            .onPressed,
-        isNull,
-      );
-      expect(find.byKey(kHachuresKey), findsOneWidget);
 
+      expect(find.byKey(kHachuresKey), findsOneWidget);
       await tester.tap(find.widgetWithText(FugaButton, T('Défier')));
       await calme(tester);
       expect(socket.lastOf('defier'), isNull);
+    });
+  });
+
+  group('Quand la partie en direct se termine', () {
+    testWidgets('la touche redevient pleine', (tester) async {
+      await parDessusLeMenu(
+        tester,
+        OnlineGameScreen(
+          game: makeGame(socket: FakeSocket(), cadence: Cadence.quinze),
+          myPseudo: 'nino',
+        ),
+      );
+      expect(DefiRelais.pret, isFalse);
+
+      Navigator.of(tester.element(find.byType(OnlineGameScreen))).pop();
+      await calme(tester);
+      expect(
+        DefiRelais.pret,
+        isTrue,
+        reason: 'la partie fermée, on peut de nouveau défier',
+      );
+    });
+  });
+
+  group('Depuis une partie de l historique', () {
+    /// Une partie rejouée, nino contre mesange.
+    const nmc =
+        '[Date "2026-10-14"]\n'
+        '[Joueur1 "nino"]\n'
+        '[Joueur2 "mesange"]\n'
+        '[Blanc "nino"]\n'
+        '[Cadence "15"]\n\n'
+        '1.Do2-Do3/Do7-Do6';
+
+    testWidgets('le défi part de là aussi', (tester) async {
+      // Nino : « et depuis l'historique ».
+      await parDessusLeMenu(tester, ReplayScreen(nmc: nmc, online: online));
+
+      await tester.tap(find.text('mesange', findRichText: true));
+      await calme(tester);
+      final defier = find.widgetWithText(FugaButton, T('Défier'));
+      expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
+      expect(find.byKey(kHachuresKey), findsNothing);
+
+      await tester.tap(defier);
+      await calme(tester);
+      expect(socket.lastOf('defier')?['pseudo_cible'], 'mesange');
     });
   });
 

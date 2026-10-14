@@ -1004,7 +1004,6 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
       online: OnlineService.instance,
       palette: palette,
       pseudo: pseudo,
-      defiPossible: DefiRelais.pret,
     );
     if (cible != null) await DefiRelais.defier(cible);
   }

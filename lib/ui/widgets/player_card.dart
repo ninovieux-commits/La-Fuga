@@ -14,6 +14,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../game/defi_relais.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
@@ -61,17 +62,16 @@ bool isRealPlayer(String? pseudo) {
 /// recherche du menu, qui vient de le recevoir — ou avec le seul [pseudo], et
 /// la fiche va alors chercher le profil pendant qu'elle est déjà à l'écran.
 ///
-/// [defiPossible] : seul l'écran qui sait LANCER un défi met la touche en
-/// service. Ailleurs — en partie, dans une conversation, dans l'historique —
-/// elle paraît hachurée et ne répond pas, plutôt que de promettre ce qui
-/// n'arrivera pas.
+/// La touche « Défier » suit UNE règle, et la fiche l'applique elle-même :
+/// elle sert partout tant qu'aucune partie en direct n'est en cours et que le
+/// menu est à l'écoute pour mener le défi (voir [DefiRelais]). Aucun appelant
+/// n'a à la désactiver — donc aucun ne peut oublier de le faire.
 Future<String?> showPlayerCard(
   BuildContext context, {
   required OnlineService online,
   required ThemePalette palette,
   Profile? player,
   String? pseudo,
-  bool defiPossible = true,
 }) {
   final nom = player?.pseudo ?? pseudo ?? '';
   if (!online.isLoggedIn || !isRealPlayer(nom)) return Future.value();
@@ -82,7 +82,6 @@ Future<String?> showPlayerCard(
       player: player,
       pseudo: nom,
       palette: palette,
-      defiPossible: defiPossible,
     ),
   );
 }
@@ -93,7 +92,6 @@ class _PlayerCard extends StatefulWidget {
     required this.player,
     required this.pseudo,
     required this.palette,
-    required this.defiPossible,
   });
 
   final OnlineService online;
@@ -103,7 +101,6 @@ class _PlayerCard extends StatefulWidget {
 
   final String pseudo;
   final ThemePalette palette;
-  final bool defiPossible;
 
   @override
   State<_PlayerCard> createState() => _PlayerCardState();
@@ -320,7 +317,7 @@ class _PlayerCardState extends State<_PlayerCard> {
         texte: T('Défier'),
         couleur: widget.palette.clair,
         encre: Colors.black,
-        hachuree: !widget.defiPossible,
+        hachuree: !DefiRelais.pret,
         onPressed: () => Navigator.of(context).pop(widget.pseudo),
       ),
     if (!_moi)

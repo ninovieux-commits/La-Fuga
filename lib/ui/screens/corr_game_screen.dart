@@ -689,7 +689,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       online: OnlineService.instance,
       palette: palette,
       pseudo: pseudo,
-      defiPossible: DefiRelais.pret,
     );
     if (cible != null) await DefiRelais.defier(cible);
   }

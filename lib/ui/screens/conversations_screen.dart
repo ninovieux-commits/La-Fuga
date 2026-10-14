@@ -256,20 +256,12 @@ class ConversationScreen extends StatefulWidget {
     super.key,
     required this.online,
     required this.pseudo,
-    this.defiPossible = true,
   });
 
   final OnlineService online;
 
   /// L'interlocuteur.
   final String pseudo;
-
-  /// Peut-on défier depuis sa fiche ?
-  ///
-  /// Oui depuis le menu et depuis une partie de correspondance. Non depuis
-  /// une partie EN DIRECT : on n'en lance pas une seconde pendant la
-  /// première, et la touche y paraît hachurée.
-  final bool defiPossible;
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
@@ -599,7 +591,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       online: widget.online,
       palette: palette,
       pseudo: pseudo,
-      defiPossible: widget.defiPossible && DefiRelais.pret,
     );
     if (cible != null) await DefiRelais.defier(cible);
   }

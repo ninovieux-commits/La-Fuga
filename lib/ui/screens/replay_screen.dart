@@ -375,7 +375,6 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       online: _online,
       palette: palette,
       pseudo: pseudo,
-      defiPossible: DefiRelais.pret,
     );
     if (cible != null) await DefiRelais.defier(cible);
   }
