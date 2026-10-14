@@ -9,8 +9,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
-import '../../net/profile.dart';
 import '../scale.dart';
 import '../screens/account_screen.dart';
 import 'fuga_button.dart';
@@ -51,11 +51,8 @@ Future<void> showNameMenu(
   // rien, retirer ce qu'on n'a pas serait plus déroutant.
   var estFavori = false;
   if (!isMe) {
-    final r = await online.client.getProfile(pseudo);
+    estFavori = await FavorisConnus.instance.demande(pseudo, online: online);
     if (!context.mounted) return;
-    estFavori = r.isOk && r.data != null
-        ? Profile.fromJson(r.data!).isFavorite
-        : false;
   }
 
   final choice = await showDialog<String>(
@@ -123,6 +120,9 @@ Future<void> showNameMenu(
       final r = estFavori
           ? await online.client.removeFavorite(pseudo)
           : await online.client.addFavorite(pseudo);
+      // Le cache apprend le nouvel état : l'étoile du bandeau, derrière ce
+      // menu, s'allume ou s'éteint du même coup.
+      if (r.isOk) FavorisConnus.instance.retiens(pseudo, !estFavori);
       if (!context.mounted) return;
       _say(
         context,

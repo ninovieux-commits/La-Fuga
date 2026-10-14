@@ -810,7 +810,63 @@ la même paire de bases donne des chiffres différents de la première passe : l
 comptes créés au premier tour changent l'état. Une passe par paire neuve, comme
 le dit `tests/README.md`, et pas deux.
 
-## 14. Les fichiers
+## 14. Le favori et le blocage dans le profil — `patch_profil_favori.py`
+
+**L'application posait déjà la question, le serveur n'a jamais répondu.** Elle
+lit `is_favorite` et `is_blocked` dans `/get_profile` ; ces deux clés n'ont
+jamais été envoyées. La touche « Favori » ne devenait donc jamais « Retirer »,
+ni « Bloquer » jamais « Débloquer » : les deux lisaient une clé absente,
+c'est-à-dire toujours faux.
+
+Nino : « le bouton favori doit devenir retirer quand le joueur est favori […]
+il doit y avoir une étoile dans les infos de joueur s'il est favori ».
+
+**Les deux relations sont à SENS UNIQUE**, du point de vue de celui qui
+regarde. `is_favorite` : je l'ai mis dans MES favoris — qu'il m'ait ou non dans
+les siens ne me regarde pas. `is_blocked` : c'est MOI qui l'ai bloqué ; le
+blocage est bilatéral dans ses EFFETS, mais seul celui que j'ai posé se défait
+depuis mon écran, et afficher « Débloquer » pour un blocage posé par l'autre
+promettrait une action impossible.
+
+Sur MON propre profil, les deux clés sont absentes : se mettre en favori ou se
+bloquer soi-même n'a pas de sens, et l'écran ne propose pas ces touches.
+
+### La preuve
+
+```bash
+python3 tests/test_favori.py <port>
+```
+
+| | serveur actuel | avec le patch |
+|---|---|---|
+| le profil rend `is_favorite` et `is_blocked` | ECHEC | **OK** |
+| ajouté aux favoris, le profil le dit | ECHEC | **OK** |
+| retiré, il le dit aussi | ECHEC | **OK** |
+| ses favoris à LUI ne sont pas les miens | ECHEC | **OK** |
+| le blocage que J'AI posé, et lui seul | ECHEC | **OK** |
+| mon propre profil n'a ni l'une ni l'autre | OK | **OK** |
+| les neuf autres clés sont toujours là | OK | **OK** |
+| total | **13/23** | **23/23** |
+
+Non-régression : 32 événements Socket.IO **identiques**, et 81 appels HTTP dont
+2 diffèrent — les deux `/get_profile` d'un AUTRE joueur, par les seules clés
+ajoutées ; mon propre profil est inchangé, ce que la comparaison montre bien.
+En retirant les deux clés des deux côtés, **81 identiques, 0 différents**. Les
+six autres bancs sur le serveur corrigé : **45/45**, **17/17**, **16/16**,
+**40/40**, **20/20**, **17/17**, inchangés.
+
+### La leçon
+
+J'avais livré la veille la bascule « Favori / Retirer » en la croyant
+vérifiée : mes tests d'application simulaient un serveur qui renvoyait
+`is_favorite`. **Je testais contre une fiction.** Le banc d'essai ci-dessus
+interroge un vrai serveur, et c'est lui qui a montré que la clé n'existait pas.
+
+Depuis, les tests de l'application couvrent aussi le cas « serveur muet sur la
+clé » : ce que fait l'écran quand la réponse manque, au lieu de supposer
+qu'elle est là.
+
+## 15. Les fichiers
 
 | Fichier | Rôle |
 |---|---|
@@ -828,4 +884,5 @@ le dit `tests/README.md`, et pas deux.
 | `patch_glissee.py` | la vitesse de glissée dans le compte ; zéro est un choix, pas une absence |
 | `patch_profil_theme.py` | `/get_profile` rend `theme` : la conversation s'habille du décor de l'interlocuteur |
 | `patch_plafond_messages.py` | une boîte garde ses 200 derniers messages ; les plus anciens sont effacés |
+| `patch_profil_favori.py` | `/get_profile` rend `is_favorite` et `is_blocked` : la touche sait quoi dire |
 | `tests/` | tous les tests de cette page (`tests/README.md`) |

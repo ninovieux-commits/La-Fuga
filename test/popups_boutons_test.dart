@@ -21,6 +21,7 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lafuga/net/api_client.dart';
+import 'package:lafuga/net/favoris_connus.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/net/profile.dart';
@@ -101,6 +102,9 @@ void main() {
     });
     await Settings.load();
     await Translations.load('fr');
+    // Les favoris connus vivent toute la session : sans ce ménage, un cas
+    // hériterait de ce qu'un autre a appris.
+    FavorisConnus.instance.oublie();
   });
 
   group('La fiche d un joueur', () {

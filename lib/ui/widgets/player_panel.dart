@@ -81,6 +81,9 @@ class _CapturesPainter extends CustomPainter {
 }
 
 /// Le panneau d'un joueur.
+/// Or de l'étoile des favoris — celui de l'étoile du menu.
+const Color kEtoileFavori = Color(0xFFFFC928);
+
 class PlayerPanel extends StatelessWidget {
   const PlayerPanel({
     super.key,
@@ -95,6 +98,7 @@ class PlayerPanel extends StatelessWidget {
     this.subtitle,
     this.nameColor = kPanelInk,
     this.onNameTap,
+    this.favori = false,
     this.drawOffered = false,
     this.drawEnabled = true,
     this.onDrawBlocked,
@@ -129,6 +133,12 @@ class PlayerPanel extends StatelessWidget {
   /// Toucher le nom ouvre le menu du joueur (profil, favori, message,
   /// blocage) — `_on_name_click`. Absent pour un joueur qui n'en est pas un.
   final VoidCallback? onNameTap;
+
+  /// Dans MES favoris : une étoile paraît à côté du nom.
+  ///
+  /// Nino : « il doit y avoir une étoile dans les infos de joueur s'il est
+  /// favori et cette étoile doit disparaître s'il est retiré. »
+  final bool favori;
 
   final bool busy;
 
@@ -215,8 +225,35 @@ class PlayerPanel extends StatelessWidget {
         flex: 42,
         child: GestureDetector(
           onTap: onNameTap,
-          child: Text(
-            subtitle == null ? name : '$name  ·  $subtitle',
+          // UN SEUL texte, étoile comprise, et non une rangée.
+          //
+          // Une rangée « étoile + nom » déborde dès que la place manque :
+          // une icône ne rétrécit pas, et sur un bandeau étroit — mesuré,
+          // 16 pixels pour le nom quand la photo a pris le reste — l'étoile
+          // seule n'y tenait plus et Flutter peignait la bande jaune.
+          //
+          // En fragment de texte, l'ellipse s'occupe de tout. Et comme
+          // l'étoile est EN TÊTE, c'est la fin du nom qu'elle ronge, jamais
+          // l'étoile : l'information « il est dans mes favoris » survit à
+          // n'importe quel pseudo.
+          child: Text.rich(
+            TextSpan(
+              children: [
+                if (favori)
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: EdgeInsets.only(right: S(4)),
+                      child: Icon(
+                        Icons.star,
+                        size: SF(16),
+                        color: kEtoileFavori,
+                      ),
+                    ),
+                  ),
+                TextSpan(text: subtitle == null ? name : '$name  ·  $subtitle'),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(

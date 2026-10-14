@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../net/notification_permission.dart';
+import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../state/settings.dart';
@@ -16,6 +17,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/player_panel.dart';
 import '../widgets/profile_photo.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';
@@ -357,13 +359,28 @@ class _AccountScreenState extends State<AccountScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              profile.pseudo,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: SF(22),
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                // La même étoile qu'en partie, et pour la même raison : on
+                // voit d'un coup d'œil qu'il est dans MES favoris. Elle
+                // s'allume et s'éteint avec la touche juste en dessous.
+                if (!profile.isSelf && _favori) ...[
+                  Icon(Icons.star, size: SF(22), color: kEtoileFavori),
+                  SizedBox(width: S(6)),
+                ],
+                Flexible(
+                  child: Text(
+                    profile.pseudo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: SF(22),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: S(4)),
             Text(
@@ -532,7 +549,11 @@ class _AccountScreenState extends State<AccountScreen> {
         ? await widget.online.client.removeFavorite(profile.pseudo)
         : await widget.online.client.addFavorite(profile.pseudo);
     if (!mounted) return;
-    if (r.isOk) setState(() => _favoriLocal = !etait);
+    if (r.isOk) {
+      setState(() => _favoriLocal = !etait);
+      // Le cache apprend : l'étoile du bandeau d'une partie en cours suit.
+      FavorisConnus.instance.retiens(profile.pseudo, !etait);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

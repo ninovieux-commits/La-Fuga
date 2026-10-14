@@ -22,6 +22,7 @@ import '../../net/avatar_photos.dart';
 import '../../net/corr_hub.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/decors_connus.dart';
+import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
@@ -141,6 +142,8 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     // `DecorsConnus` qui décide de demander — une photo déjà connue ne doit
     // pas faire sauter la question du thème.
     await DecorsConnus.resolve(_g.opponent);
+    // Et sait-on s'il est dans mes favoris ? L'étoile du bandeau en dépend.
+    await FavorisConnus.instance.demande(_g.opponent);
     final photo = await AvatarPhotos.resolve(_g.opponent);
     if (!mounted) return;
     setState(() => _photoAdverse = photo);
@@ -154,6 +157,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _sounds.init();
     // La pastille du bouton Chat suit les messages en direct.
     OnlineService.instance.messages.addListener(_onMessages);
+    // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
+    // un popup : le cache partagé fait le lien.
+    FavorisConnus.instance.addListener(_onMessages);
     _ecouteCorr = OnlineService.instance.corr.changes.listen(_surChangement);
     _restore();
     _poll = Timer.periodic(_pollInterval, (_) {
@@ -230,6 +236,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _poll?.cancel();
     _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
+    FavorisConnus.instance.removeListener(_onMessages);
     _sounds.dispose();
     super.dispose();
   }
@@ -986,6 +993,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
         online: OnlineService.instance,
         pseudo: isMine ? widget.myPseudo : _g.opponent,
       ),
+      // L'étoile ne vaut que pour l'ADVERSAIRE : se mettre soi-même en
+      // favori n'a pas de sens, et la touche n'est pas proposée non plus.
+      favori: !isMine && (FavorisConnus.instance.connu(_g.opponent) ?? false),
       onUndo: canAct && c.canValidate
           ? () {
               if (c.cancelCurrentMove()) setState(() {});
