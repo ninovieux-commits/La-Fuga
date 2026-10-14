@@ -912,6 +912,17 @@ revient vide. C'est la règle des défis (`_is_blocked_pair`), appliquée ici.
 table n'est modifiée, aucune colonne ajoutée. Une application plus ancienne ne
 connaît pas la route et ne l'appelle jamais.
 
+**Déployé le 14 octobre 2026 à 20 h 13.** `server.py` est passé de
+`327540eb…` à `0635d93b…`, 4 195 → 4 253 lignes. Sauvegarde posée avant :
+`server.py.avant-parties-20261014-201343`. Aucune donnée touchée : la route ne
+fait que lire.
+
+Vérifié en direct sur la production, en lecture seule : pour celia, lilou,
+mesange et nino — un joueur avec une partie en cours chacun —, la route rend
+**exactement autant de parties que la base en compte**, et **aucune clé privée**
+chez aucun des quatre. « Deep Grey » donne `Joueur introuvable`, puisque ce
+n'est pas un compte.
+
 ### La preuve
 
 Le correctif a été appliqué à une copie, et le serveur corrigé lancé sur le
