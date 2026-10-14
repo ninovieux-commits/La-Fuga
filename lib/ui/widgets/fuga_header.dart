@@ -8,6 +8,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'etoile_favori.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
 
@@ -20,6 +21,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
     this.titleSize = 28,
     this.titleColor = Colors.black,
     this.bold = false,
+    this.favori = false,
   });
 
   /// Intitulé du bouton de retour, barre chevron comprise : `< Menu`.
@@ -37,6 +39,13 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
 
   /// Les titres en gras (messagerie, composeur) ne sont pas en italique.
   final bool bold;
+
+  /// Le titre est le pseudo de quelqu'un, et il est dans MES favoris :
+  /// l'étoile se range devant, comme dans les bandeaux de partie.
+  ///
+  /// Nino, en montrant l'en-tête d'une boîte de discussion : « à ces
+  /// endroits, l'étoile doit aussi apparaître devant le nom. »
+  final bool favori;
 
   static const double _sideWidth = 110;
 
@@ -68,8 +77,10 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
             child: FugaButton(text: back, fontSize: SF(16), onPressed: onBack),
           ),
           Expanded(
-            child: Text(
-              title,
+            child: Text.rich(
+              // L'étoile est un peu plus petite que les lettres du titre :
+              // elle accompagne le nom, elle ne le concurrence pas.
+              nomEtoile(title, favori: favori, taille: SF(titleSize) * 0.82),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

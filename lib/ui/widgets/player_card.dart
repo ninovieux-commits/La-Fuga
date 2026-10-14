@@ -7,10 +7,12 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../../net/profile.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'etoile_favori.dart';
 import 'fuga_button.dart';
 import '../screens/account_screen.dart';
 import '../screens/history_screen.dart';
@@ -49,6 +51,21 @@ class _PlayerCardState extends State<_PlayerCard> {
   late bool _blocked = widget.player.isBlocked;
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // La fiche arrive avec un profil frais du serveur : il fait autorité, et
+    // les écrans restés DESSOUS doivent en profiter — c'est leur étoile.
+    //
+    // À la fin de la frame, et pas tout de suite : prévenir le cache réveille
+    // ses auditeurs, or la fiche se construit par-dessus un écran en cours de
+    // construction, et Flutter refuse un `setState` à ce moment-là.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.player.isSelf) return;
+      FavorisConnus.instance.retiens(widget.player.pseudo, _favorite);
+    });
+  }
+
   Future<void> _toggleFavorite() async {
     setState(() => _busy = true);
     final client = widget.online.client;
@@ -60,6 +77,9 @@ class _PlayerCardState extends State<_PlayerCard> {
       _busy = false;
       if (r.isOk) _favorite = !_favorite;
     });
+    // L'étoile du bandeau derrière la fiche suit la touche, sans attendre un
+    // retour à l'écran.
+    if (r.isOk) FavorisConnus.instance.retiens(widget.player.pseudo, _favorite);
   }
 
   Future<void> _toggleBlock() async {
@@ -94,8 +114,12 @@ class _PlayerCardState extends State<_PlayerCard> {
 
     return AlertDialog(
       // La fiche de Kivy (`_show_player_card`) commence par le pseudo seul :
-      // elle ne montre pas d'avatar.
-      title: Text(p.pseudo),
+      // elle ne montre pas d'avatar. L'étoile, elle, se range devant le nom,
+      // et change avec la touche « Enregistrer / Retirer » plus bas.
+      //
+      // Taille en dur : le titre d'un `AlertDialog` prend le `titleLarge` du
+      // thème, qui ne passe pas par `SF`. L'étoile suit ses lettres.
+      title: Text.rich(nomEtoile(p.pseudo, favori: _favorite, taille: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

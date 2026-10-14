@@ -14,6 +14,9 @@ import '../../game/replay_controller.dart';
 import '../../game/vitesse_lecture.dart';
 import '../../game/sound_player.dart';
 import '../../i18n/translations.dart';
+import '../../net/avatar_photos.dart';
+import '../../net/favoris_connus.dart';
+import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
@@ -69,6 +72,33 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
     // de départ (`viewing_idx = 0` à la fin de `load_replay`).
     _replay.goTo(1);
     _sounds.init();
+    unawaited(_visages());
+  }
+
+  /// Les visages et les étoiles des deux joueurs de l'en-tête.
+  ///
+  /// Un `.nmc` ne porte que des NOMS : le lecteur montrait donc la pièce par
+  /// défaut pour tout le monde. Quand ce sont des comptes, le serveur connaît
+  /// leur photo et sait lesquels sont dans mes favoris — Nino : « dans
+  /// l'historique, ce serait bien si ça affichait l'image de profil liée au
+  /// nom de compte ».
+  ///
+  /// Une requête par joueur, et une seule : les deux caches la partagent, et
+  /// une partie ouverte après une autre ne redemande rien. Hors ligne, rien
+  /// n'est demandé et le lecteur garde ses pièces par défaut.
+  Future<void> _visages() async {
+    final online = OnlineService.instance;
+    if (!online.isLoggedIn) return;
+    final meta = _replay.meta;
+    for (final nom in {meta.player1, meta.player2}) {
+      if (nom.trim().isEmpty) continue;
+      await AvatarPhotos.resolve(nom, online: online);
+      // Deep Grey n'est pas un compte, et on n'est pas son propre favori :
+      // deux requêtes qui ne peuvent rien rapporter.
+      if (AvatarPhotos.isDeepGrey(nom) || nom == online.pseudo) continue;
+      await FavorisConnus.instance.demande(nom, online: online);
+    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -303,6 +333,10 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
 
     return PlayerPanel(
       name: name.isEmpty ? T('Joueur 1') : name,
+      // Ce que les caches savent à l'instant : vide tant que la réponse n'est
+      // pas là, et le `setState` de `_visages` repasse par ici.
+      photo: AvatarPhotos.known(name),
+      favori: FavorisConnus.instance.connu(name) ?? false,
       clock: _clockLabel(meta.cadence),
       palette: palette,
       isWhite: camp == Camp.blanc,

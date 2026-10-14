@@ -21,6 +21,8 @@ import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
 import '../../net/favoris_connus.dart';
+import '../../net/profile.dart';
+import '../../net/scores_directs.dart';
 import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -92,6 +94,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// va la chercher par son pseudo (voir `AvatarPhotos`). Vide en attendant.
   String _photoAdverse = '';
 
+  /// Le score des parties en direct entre nous — « 6 » d'un côté, « 17 » de
+  /// l'autre. `null` tant qu'on ne l'a pas : le bandeau n'écrit alors rien.
+  ///
+  /// Nino : « ce système de score doit aussi marcher pour les parties en
+  /// direct ». C'est le même cumul qu'en correspondance, à ceci près qu'en
+  /// direct il vient du profil et non de la partie.
+  HeadToHead? _scoreDirect;
+
   /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
   Future<void> _chargerPhotoAdverse() async {
     // Le décor, et pas seulement la photo : c'est son thème qui donne leurs
@@ -102,14 +112,29 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     // Et sait-on s'il est dans mes favoris ? L'étoile du bandeau en dépend.
     await FavorisConnus.instance.demande(_g.info.opponent);
     final photo = await AvatarPhotos.resolve(_g.info.opponent);
+    // Et le score de nos parties en direct. Les quatre réponses sortent du
+    // même `/get_profile` : celle-ci est déjà en cache quand on la demande.
+    await ScoresDirects.resolve(_g.info.opponent);
     if (!mounted) return;
-    setState(() => _photoAdverse = photo);
+    setState(() {
+      _photoAdverse = photo;
+      _scoreDirect = ScoresDirects.connu(_g.info.opponent);
+    });
+  }
+
+  /// Le score a bougé : une partie du match vient de finir, le serveur en
+  /// tient un nouveau. On repose la question plutôt que d'afficher l'ancien.
+  Future<void> _rafraichirScore() async {
+    await ScoresDirects.resolve(_g.info.opponent, force: true);
+    if (!mounted) return;
+    setState(() => _scoreDirect = ScoresDirects.connu(_g.info.opponent));
   }
 
   @override
   void initState() {
     super.initState();
     _photoAdverse = AvatarPhotos.known(_g.info.opponent);
+    _scoreDirect = ScoresDirects.connu(_g.info.opponent);
     _chargerPhotoAdverse();
     _sounds.init();
     _rebuildSteps();
@@ -182,6 +207,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     if (_g.endReason != null && !_endShown) {
       _endShown = true;
       _archive();
+      // La partie est finie : le serveur a compté une victoire de plus pour
+      // l'un de nous deux.
+      unawaited(_rafraichirScore());
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showEnd();
       });
@@ -512,11 +540,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   Widget _banner(ThemePalette palette, Camp camp) {
     final isMine = camp == _g.myCamp;
-    // En ligne, Kivy écrit le mélo à côté du nom : « Nino  (1500) ».
+    // Kivy écrivait le mélo À CÔTÉ du nom — « Nino  (1500) » — et sur un
+    // téléphone l'ellipse le mangeait. Il passe SOUS le pseudo.
     final melo = isMine
         ? (_g.newMelo ?? OnlineService.instance.session?.melo ?? 1500)
         : _g.info.opponentMelo;
-    var label = '${isMine ? widget.myPseudo : _g.info.opponent}  ($melo)';
+    var label = isMine ? widget.myPseudo : _g.info.opponent;
     var nameColor = kPanelInk;
 
     // Adversaire déconnecté : son nom porte le décompte, en rouge — c'est lui
@@ -555,6 +584,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       // favori n'a pas de sens, et la touche n'est pas proposée non plus.
       favori:
           !isMine && (FavorisConnus.instance.connu(_g.info.opponent) ?? false),
+      rating: '$melo',
       subtitle: subtitle,
       clock: _g.clock.displayFor(camp),
       palette: palette,
@@ -564,9 +594,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       photo: isMine
           ? (OnlineService.instance.session?.photo ?? '')
           : _photoAdverse,
-      score: _g.scoreLine.isEmpty
+      // LE CUMUL DE NOS PARTIES EN DIRECT, et non le score du match.
+      //
+      // Nino, sur le score du bandeau : « juste 4 et 15 […] ce système de
+      // score doit aussi marcher pour les parties en direct ». C'est donc le
+      // même nombre qu'en correspondance — combien de parties chacun a
+      // gagnées contre l'autre — et non le compte de ce match-ci.
+      score: _scoreDirect == null
           ? null
-          : (camp == Camp.blanc ? '${_g.scoreBlanc}' : '${_g.scoreNoir}'),
+          : '${isMine ? _scoreDirect!.mine : _scoreDirect!.theirs}',
       busy: !isMine && !_g.opponentConnected,
       mirrored: isMine,
       onUndo: canAct && _g.game.canValidate

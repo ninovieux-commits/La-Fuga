@@ -15,8 +15,10 @@
 library;
 
 import 'avatar_photos.dart';
+import 'favoris_connus.dart';
 import 'online_service.dart';
 import 'profile.dart';
+import 'scores_directs.dart';
 
 class DecorsConnus {
   DecorsConnus._();
@@ -72,6 +74,9 @@ class DecorsConnus {
     final profil = Profile.fromJson(r.data!);
     AvatarPhotos.remember(pseudo, profil.photo);
     remember(pseudo, profil.theme);
+    // Et l'étoile, pour la même raison : une seule requête pour les trois.
+    FavorisConnus.instance.retiens(pseudo, profil.isFavorite);
+    ScoresDirects.remember(pseudo, profil.direct);
     return _cache[cle] ?? '';
   }
 

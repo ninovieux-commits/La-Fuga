@@ -25,6 +25,7 @@ import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/messages.dart';
 import 'package:lafuga/net/avatar_photos.dart';
 import 'package:lafuga/net/decors_connus.dart';
+import 'package:lafuga/net/favoris_connus.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
@@ -84,6 +85,7 @@ void main() {
     // un test hériterait de ce qu'un autre a appris.
     AvatarPhotos.clear();
     DecorsConnus.clear();
+    FavorisConnus.instance.oublie();
   });
 
   group('Avatar', () {
@@ -254,6 +256,7 @@ void main() {
       WidgetTester tester, {
       List<Map<String, dynamic>> messages = const [],
       String? sonTheme,
+      bool? favori,
     }) async {
       server.replies['/login'] ??= {'ok': true, 'token': 't', 'pseudo': 'Nino'};
       await online.login('Nino', 'mdp');
@@ -263,6 +266,7 @@ void main() {
         'pseudo': 'Ana',
         'photo': '',
         if (sonTheme != null) 'theme': sonTheme,
+        if (favori != null) 'is_favorite': favori,
       };
       await tester.pumpWidget(
         MaterialApp(
@@ -271,6 +275,35 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('l en-tête porte l étoile quand il est favori', (tester) async {
+      // Nino, en montrant l'en-tête d'une conversation : « à ces endroits,
+      // l'étoile doit aussi apparaître devant le nom. »
+      //
+      // Et SANS requête de plus : la conversation demande déjà le profil pour
+      // son décor, et cette réponse-là porte aussi l'étoile.
+      await ouvrir(tester, favori: true);
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(
+        server.calls
+            .where((c) => c.path == '/get_profile' && c.body['pseudo'] == 'Ana')
+            .length,
+        1,
+        reason: 'une seule requête de profil pour le fond ET l étoile',
+      );
+    });
+
+    testWidgets('et pas d étoile quand il ne l est pas', (tester) async {
+      await ouvrir(tester, favori: false);
+      expect(find.byIcon(Icons.star), findsNothing);
+    });
+
+    testWidgets('un serveur muet sur la clé n invente pas d étoile', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      expect(find.byIcon(Icons.star), findsNothing);
+    });
 
     MessageBubble bulleDe(WidgetTester tester, String texte) =>
         tester.widget<MessageBubble>(

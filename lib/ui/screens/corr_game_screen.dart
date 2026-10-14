@@ -974,8 +974,10 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     }
 
     return PlayerPanel(
-      // Comme en ligne, le mélo suit le nom.
-      name: isMine ? widget.myPseudo : '${_g.opponent}  (${_g.opponentMelo})',
+      name: isMine ? widget.myPseudo : _g.opponent,
+      // Comme en ligne, le classement de l'adversaire s'écrit SOUS son nom :
+      // à côté, il finissait coupé — « mesange  (1… ».
+      rating: isMine ? null : '${_g.opponentMelo}',
       clock: '∞',
       palette: palette,
       isWhite: camp == Camp.blanc,
@@ -984,9 +986,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       photo: isMine
           ? (OnlineService.instance.session?.photo ?? '')
           : _photoAdverse,
-      // En correspondance le score est cumulatif, sans objectif fixe : Kivy
-      // écrit « X / ... ».
-      score: '${isMine ? _g.myScore : _g.opponentScore} / ...',
+      // Le score des parties jouées entre nous, cumulatif et sans objectif.
+      // Kivy écrivait « X / ... », faute d'un dénominateur à mettre ; Nino :
+      // « le score ne doit plus marquer 4 / ... d'un côté et 15 / ... de
+      // l'autre, mais juste 4 et 15 ».
+      score: '${isMine ? _g.myScore : _g.opponentScore}',
       mirrored: isMine,
       onNameTap: () => showNameMenu(
         context,

@@ -18,6 +18,7 @@ import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'etoile_favori.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
@@ -81,9 +82,6 @@ class _CapturesPainter extends CustomPainter {
 }
 
 /// Le panneau d'un joueur.
-/// Or de l'étoile des favoris — celui de l'étoile du menu.
-const Color kEtoileFavori = Color(0xFFFFC928);
-
 class PlayerPanel extends StatelessWidget {
   const PlayerPanel({
     super.key,
@@ -95,6 +93,7 @@ class PlayerPanel extends StatelessWidget {
     required this.captures,
     this.photo = '',
     this.score,
+    this.rating,
     this.subtitle,
     this.nameColor = kPanelInk,
     this.onNameTap,
@@ -123,7 +122,17 @@ class PlayerPanel extends StatelessWidget {
   /// Score du match, quand il y en a un (« 2 / 5 »).
   final String? score;
 
-  /// Ligne d'état : Deep Grey réfléchit, adversaire déconnecté…
+  /// Le classement, écrit SOUS le pseudo.
+  ///
+  /// Kivy l'écrivait à la suite du nom — « mesange  (1530) » — et c'est lui
+  /// que l'ellipse mangeait en premier : sur un téléphone, le bandeau de
+  /// l'adversaire affichait « mesange  (1… ». Nino : « durant les parties, le
+  /// classement de la personne doit être en dessous du pseudo. Ainsi il ne
+  /// sera jamais coupé. »
+  final String? rating;
+
+  /// Ce qui s'ajoute à la ligne du classement : la variation de mélo en fin
+  /// de partie (« +8 »).
   final String? subtitle;
 
   /// Couleur du nom. Kivy le passe en rouge pendant le décompte de
@@ -218,6 +227,17 @@ class PlayerPanel extends StatelessWidget {
     },
   );
 
+  /// La ligne sous le pseudo : le classement, et la variation de mélo quand
+  /// la partie vient de finir. `null` quand il n'y a ni l'un ni l'autre —
+  /// une partie locale, par exemple.
+  String? get _ligneBasse {
+    final morceaux = [
+      if (rating != null && rating!.isNotEmpty) rating!,
+      if (subtitle != null && subtitle!.isNotEmpty) subtitle!,
+    ];
+    return morceaux.isEmpty ? null : morceaux.join('   ');
+  }
+
   /// Nom, chrono et score — la rangée « loin du plateau ».
   Widget _identity() => Row(
     children: [
@@ -225,41 +245,57 @@ class PlayerPanel extends StatelessWidget {
         flex: 42,
         child: GestureDetector(
           onTap: onNameTap,
-          // UN SEUL texte, étoile comprise, et non une rangée.
+          // DEUX LIGNES DANS UNE RANGÉE QUI N'EN PRÉVOYAIT QU'UNE.
           //
-          // Une rangée « étoile + nom » déborde dès que la place manque :
-          // une icône ne rétrécit pas, et sur un bandeau étroit — mesuré,
-          // 16 pixels pour le nom quand la photo a pris le reste — l'étoile
-          // seule n'y tenait plus et Flutter peignait la bande jaune.
+          // La rangée d'identité n'a que la hauteur que le bandeau lui laisse
+          // — mesuré, une quarantaine de points sur un téléphone, mais 27 sur
+          // un écran large et court, où les lettres suivent la LARGEUR et le
+          // bandeau la HAUTEUR. Les deux lignes y débordaient de 5,8 points.
           //
-          // En fragment de texte, l'ellipse s'occupe de tout. Et comme
-          // l'étoile est EN TÊTE, c'est la fin du nom qu'elle ronge, jamais
-          // l'étoile : l'information « il est dans mes favoris » survit à
-          // n'importe quel pseudo.
-          child: Text.rich(
-            TextSpan(
-              children: [
-                if (favori)
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Padding(
-                      padding: EdgeInsets.only(right: S(4)),
-                      child: Icon(
-                        Icons.star,
-                        size: SF(16),
-                        color: kEtoileFavori,
+          // `scaleDown` ne fait que rétrécir : à l'aise, rien ne bouge ; à
+          // l'étroit, le bloc entier diminue au lieu de déborder. La largeur
+          // reste celle de la case, pour que l'ellipse du pseudo continue de
+          // jouer son rôle.
+          child: LayoutBuilder(
+            builder: (context, cellule) => FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: cellule.maxWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // UN SEUL texte, étoile comprise, et non une rangée : voir
+                    // `nomEtoile`, qui dit pourquoi.
+                    Text.rich(
+                      nomEtoile(name, favori: favori, taille: SF(16)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: nameColor,
+                        fontSize: SF(16),
+                        fontWeight: FontWeight.bold,
+                        // Interligne serré : deux lignes à 1,43 — l'interligne
+                        // d'usine — ne tiennent pas dans la rangée.
+                        height: 1.1,
                       ),
                     ),
-                  ),
-                TextSpan(text: subtitle == null ? name : '$name  ·  $subtitle'),
-              ],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: nameColor,
-              fontSize: SF(16),
-              fontWeight: FontWeight.bold,
+                    if (_ligneBasse != null)
+                      Text(
+                        _ligneBasse!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: nameColor,
+                          fontSize: SF(13),
+                          height: 1.1,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

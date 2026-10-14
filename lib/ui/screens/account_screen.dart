@@ -17,7 +17,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
-import '../widgets/player_panel.dart';
+import '../widgets/etoile_favori.dart';
 import '../widgets/profile_photo.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';

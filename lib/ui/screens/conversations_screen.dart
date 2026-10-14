@@ -10,6 +10,7 @@ import '../../i18n/translations.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
+import '../../net/favoris_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
@@ -540,6 +541,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 back: T('< Retour'),
                 title: widget.pseudo,
                 titleSize: 18,
+                // L'étoile vient du cache, et le cache a été rempli par la
+                // requête de profil de `_load` : rien de plus n'a été
+                // demandé au serveur. Tant qu'on ne sait pas, pas d'étoile —
+                // elle paraîtra au `setState` de l'arrivée.
+                favori: FavorisConnus.instance.connu(widget.pseudo) ?? false,
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(

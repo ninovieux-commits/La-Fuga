@@ -9,8 +9,10 @@
 library;
 
 import 'decors_connus.dart';
+import 'favoris_connus.dart';
 import 'online_service.dart';
 import 'profile.dart';
+import 'scores_directs.dart';
 
 /// Marqueur de l'IA : ce n'est pas une pièce de thème mais son portrait.
 const String kDeepGreyPhoto = 'deepgrey';
@@ -67,10 +69,15 @@ class AvatarPhotos {
     if (r.isOk && r.data != null) {
       final profil = Profile.fromJson(r.data!);
       photo = profil.photo;
-      // La même réponse porte son thème : la boîte de messages en a besoin et
-      // ce serait une seconde requête pour rien. C'est elle qui faisait
+      // La même réponse porte son thème ET son étoile : la boîte de messages
+      // a besoin du premier, l'en-tête et les bandeaux de la seconde, et ce
+      // serait deux requêtes de plus pour rien. C'est elle qui faisait
       // s'afficher MON fond avant le sien.
       DecorsConnus.remember(pseudo, profil.theme);
+      FavorisConnus.instance.retiens(pseudo, profil.isFavorite);
+      // Et le score des parties jouées en direct entre nous, que le
+      // bandeau de la partie en ligne écrit à droite du chrono.
+      ScoresDirects.remember(pseudo, profil.direct);
     }
     // On retient même une photo vide : inutile de redemander à chaque coup.
     _cache[cle] = photo;

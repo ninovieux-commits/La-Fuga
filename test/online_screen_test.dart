@@ -101,11 +101,21 @@ void main() {
     expect(find.byTooltip('Abandonner'), findsOneWidget);
   });
 
-  testWidgets('le mélo suit chaque nom, comme en Kivy', (tester) async {
+  testWidgets('le mélo est SOUS chaque nom, et non à sa suite', (tester) async {
+    // Kivy écrivait « Nino  (1500) » sur la ligne du nom. Nino, capture à
+    // l'appui — « ⭐ mesange  (1… » : « durant les parties, le classement de
+    // la personne doit être en dessous du pseudo. Ainsi il ne sera jamais
+    // coupé. » Les deux panneaux portent donc le nom seul, et le nombre sur
+    // sa propre ligne. Le détail de la mise en page est mesuré dans
+    // `classement_score_test.dart`.
     await open(tester);
 
-    expect(find.text('Nino  (1500)'), findsOneWidget);
-    expect(find.text('Adversaire  (1500)'), findsOneWidget);
+    expect(find.text('Nino  (1500)'), findsNothing);
+    expect(find.text('Adversaire  (1500)'), findsNothing);
+    for (final nom in ['Nino', 'Adversaire']) {
+      expect(find.text(nom, findRichText: true), findsOneWidget);
+    }
+    expect(find.text('1500'), findsNWidgets(2));
   });
 
   testWidgets('le chat ouvre LA conversation, pas une boîte à part', (

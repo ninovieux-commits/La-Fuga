@@ -27,6 +27,12 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/net/avatar_photos.dart';
+import 'package:lafuga/net/profile.dart';
+import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/screens/replay_screen.dart';
+import 'package:lafuga/ui/widgets/fuga_header.dart';
+import 'package:lafuga/ui/widgets/player_card.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -67,7 +73,10 @@ void main() {
     await Settings.load();
     await Translations.load('fr');
     FavorisConnus.instance.oublie();
+    AvatarPhotos.clear();
+    setScaleSize(const Size(393, 851));
   });
+  tearDown(resetScale);
 
   /// Un service connecté dont `/get_profile` répond ce qu'on lui dit.
   ///
@@ -215,6 +224,184 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.star), findsOneWidget);
+    });
+  });
+
+  group('L étoile de l en-tête', () {
+    Future<void> montre(WidgetTester tester, {required bool favori}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FugaHeader(
+              back: '< Retour',
+              title: 'celia',
+              titleSize: 18,
+              favori: favori,
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('paraît devant le titre', (tester) async {
+      await montre(tester, favori: true);
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.textContaining('celia', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('et pas quand il ne l est pas', (tester) async {
+      await montre(tester, favori: false);
+      expect(find.byIcon(Icons.star), findsNothing);
+    });
+
+    testWidgets('elle reste DANS le bandeau', (tester) async {
+      // Le bandeau se mesure sur son titre : l'étoile ne doit pas le faire
+      // déborder, ni par le haut ni par le bas.
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await montre(tester, favori: true);
+      final bandeau = tester.getRect(find.byType(FugaHeader));
+      final etoile = tester.getRect(find.byIcon(Icons.star));
+      expect(etoile.top, greaterThanOrEqualTo(bandeau.top - 0.5));
+      expect(etoile.bottom, lessThanOrEqualTo(bandeau.bottom + 0.5));
+    });
+  });
+
+  group('L étoile de la fiche', () {
+    /// La fiche ouverte sur « celia », sur un serveur qui dit toujours oui.
+    Future<void> ouvre(WidgetTester tester, {required bool favori}) async {
+      final s = serveur(favori: favori);
+      await s.online.login('Nino', 'mdp');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => showPlayerCard(
+                    context,
+                    online: s.online,
+                    player: Profile(
+                      pseudo: 'celia',
+                      isSelf: false,
+                      melo: 1449,
+                      isFavorite: favori,
+                    ),
+                    palette: paletteOf('original'),
+                  ),
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('paraît devant le pseudo du titre', (tester) async {
+      await ouvre(tester, favori: true);
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      // DANS le titre, et pas ailleurs dans la fiche : le texte qui porte
+      // l'étoile est celui qui porte le pseudo. (« celia » paraît aussi plus
+      // bas, dans « Moi contre celia : ».)
+      final porteur = tester.widget<RichText>(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.star),
+              matching: find.byType(RichText),
+            )
+            .first,
+      );
+      expect(porteur.text.toPlainText(), contains('celia'));
+    });
+
+    testWidgets('et pas quand il ne l est pas', (tester) async {
+      await ouvre(tester, favori: false);
+      expect(find.byIcon(Icons.star), findsNothing);
+    });
+
+    testWidgets('elle SUIT la touche, dans les deux sens', (tester) async {
+      // « Retirer » : l'étoile s'éteint sans qu'on referme la fiche.
+      await ouvre(tester, favori: true);
+      await tester.tap(find.text(T('Retirer')));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.star), findsNothing);
+      expect(find.text(T('Enregistrer')), findsOneWidget);
+
+      // Et elle se rallume.
+      await tester.tap(find.text(T('Enregistrer')));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.star), findsOneWidget);
+    });
+
+    testWidgets('et la touche prévient les écrans restés dessous', (
+      tester,
+    ) async {
+      // C'est ainsi que l'étoile du bandeau de partie s'allume : le cache est
+      // le seul lien entre la fiche et ce qu'il y a derrière elle.
+      await ouvre(tester, favori: false);
+      expect(FavorisConnus.instance.connu('celia'), isFalse);
+      await tester.tap(find.text(T('Enregistrer')));
+      await tester.pumpAndSettle();
+      expect(FavorisConnus.instance.connu('celia'), isTrue);
+    });
+  });
+
+  group('Le lecteur de parties', () {
+    /// Une partie de l'historique, nino contre mesange.
+    const String nmc =
+        '[Date "2026-10-14"]\n'
+        '[Joueur1 "nino"]\n'
+        '[Joueur2 "mesange"]\n'
+        '[Blanc "nino"]\n'
+        '[Cadence "15"]\n\n'
+        '1.Do2-Do3/Do7-Do6';
+
+    Future<List<PlayerPanel>> ouvre(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: nmc)));
+      await tester.pumpAndSettle();
+      return tester.widgetList<PlayerPanel>(find.byType(PlayerPanel)).toList();
+    }
+
+    testWidgets('montre la photo attachée au nom de compte', (tester) async {
+      // Nino : « dans l'historique, ce serait bien si ça affichait l'image de
+      // profil liée au nom de compte ». Le fichier ne porte que des noms :
+      // c'est le cache qui tient les visages.
+      AvatarPhotos.remember('nino', 'dragon|Nurse');
+      AvatarPhotos.remember('mesange', 'insectes|Ladybug');
+      final panneaux = await ouvre(tester);
+      expect(panneaux.map((p) => p.photo).toSet(), {
+        'dragon|Nurse',
+        'insectes|Ladybug',
+      });
+    });
+
+    testWidgets('et l étoile de celui qui est dans mes favoris', (
+      tester,
+    ) async {
+      FavorisConnus.instance.retiens('mesange', true);
+      final panneaux = await ouvre(tester);
+      expect(
+        {for (final p in panneaux) p.name: p.favori},
+        {'nino': false, 'mesange': true},
+      );
+      expect(find.byIcon(Icons.star), findsOneWidget);
+    });
+
+    testWidgets('sans rien savoir, aucune étoile et aucune photo', (
+      tester,
+    ) async {
+      final panneaux = await ouvre(tester);
+      expect(panneaux.map((p) => p.photo).toSet(), {''});
+      expect(find.byIcon(Icons.star), findsNothing);
     });
   });
 }
