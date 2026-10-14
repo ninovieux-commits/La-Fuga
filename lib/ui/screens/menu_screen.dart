@@ -192,16 +192,25 @@ class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
   /// champ : Flutter le garde sélectionné, et tout ce qui redonne la main au
   /// menu — fermer un popup, revenir d'un écran — le fait remonter. On coupe
   /// donc le focus nous-mêmes dès que le clavier a fini de descendre.
+  /// Hauteur du clavier à la dernière mesure. Sert à voir qu'il DESCEND.
+  double _hauteurClavier = 0;
+
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    if (!_searchFocus.hasFocus) return;
-    // La marge se mesure APRÈS la frame : pendant l'animation de descente,
-    // elle n'est pas encore nulle.
+    // Ce qu'on guette, c'est une DESCENTE : le clavier était là, il n'y est
+    // plus. Guetter un zéro ne suffit pas, et c'est l'erreur que j'ai livrée
+    // hier : au toucher du champ, le clavier COMMENCE à monter, la marge vaut
+    // encore zéro à cette mesure-là, et le focus sautait aussitôt — le clavier
+    // repartait sans qu'on ait pu écrire une lettre.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_searchFocus.hasFocus) return;
-      final clavier = MediaQuery.viewInsetsOf(context).bottom;
-      if (clavier == 0) _searchFocus.unfocus();
+      if (!mounted) return;
+      final avant = _hauteurClavier;
+      final maintenant = MediaQuery.viewInsetsOf(context).bottom;
+      _hauteurClavier = maintenant;
+      if (avant > 0 && maintenant == 0 && _searchFocus.hasFocus) {
+        _searchFocus.unfocus();
+      }
     });
   }
 

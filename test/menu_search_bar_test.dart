@@ -209,5 +209,62 @@ void _clavier() {
         reason: 'on doit pouvoir taper son texte',
       );
     });
+
+    testWidgets('le clavier qui COMMENCE à monter non plus', (tester) async {
+      // LA SÉQUENCE RÉELLE, celle que j'avais ratée et livrée cassée : au
+      // toucher du champ, le système annonce un changement de métriques alors
+      // que le clavier n'a pas encore pris de place — la marge vaut ENCORE
+      // ZÉRO. Guetter un zéro coupait donc le focus à l'instant même où l'on
+      // venait de toucher la barre, et le clavier repartait aussitôt.
+      //
+      // Mon premier test posait directement la marge à 300, sautant par-dessus
+      // ce zéro transitoire : il passait sur du code cassé.
+      addTearDown(tester.view.reset);
+      await selectionne(tester);
+
+      // Le changement de métriques arrive, la marge est encore nulle.
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isTrue,
+        reason: 'le clavier reparti : on ne peut plus rien écrire',
+      );
+
+      // Puis il monte pour de bon, et le champ reste sélectionné.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+        isTrue,
+      );
+
+      // Et on peut écrire.
+      await tester.enterText(find.byType(TextField), 'celia');
+      await tester.pumpAndSettle();
+      expect(find.text('celia'), findsOneWidget);
+    });
+
+    testWidgets('et après une remontée, la descente marche toujours', (
+      tester,
+    ) async {
+      addTearDown(tester.view.reset);
+      await selectionne(tester);
+      // Monte, descend, remonte, redescend : l'état doit suivre à chaque fois.
+      for (var tour = 0; tour < 2; tour++) {
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        await tester.pumpAndSettle();
+        tester.view.viewInsets = FakeViewPadding.zero;
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+          isFalse,
+          reason: 'tour $tour : la descente doit désélectionner',
+        );
+        // On reprend la main pour le tour suivant.
+        await tester.tap(find.byKey(kBarreRechercheKey));
+        await tester.pumpAndSettle();
+      }
+    });
   });
 }
