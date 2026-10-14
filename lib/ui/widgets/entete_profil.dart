@@ -1,22 +1,32 @@
-/// Le haut du profil : la photo, le pseudo étoilé, la devise.
+/// Le haut du profil : la photo, le pseudo étoilé, les mélos, la devise.
 ///
-/// Nino, dessin à l'appui : « la partie du haut (photo pseudo étoile devise)
-/// doit avoir comme fond la partie correspondante du fond du menu choisi par
-/// la personne. Le pseudo doit occuper l'espace (plus grand si pseudo court).
-/// La devise doit être dans une bulle qui pointe vers l'image de profil à
-/// gauche (comme dans les chats). »
+/// Nino, dessin à l'appui : « le pseudo doit occuper l'espace (plus grand si
+/// pseudo court). La devise doit être dans une bulle qui pointe vers l'image
+/// de profil à gauche (comme dans les chats). »
 ///
-/// « La partie correspondante » : pas l'image entière écrasée dans un
-/// bandeau, mais la TRANCHE que ce bandeau occuperait si le fond était posé
-/// en plein écran. On dessine donc l'image à la taille de l'écran, alignée en
-/// haut, et on coupe à la hauteur du bandeau — le haut du décor de la
-/// personne, exactement comme elle le voit sur son menu.
+/// ## Pas de fond à lui
+///
+/// Le bandeau a d'abord porté une TRANCHE du fond de menu de la personne,
+/// découpée à sa hauteur. Deux cadrages de la même image se touchaient alors
+/// au milieu de l'écran, et la couture se voyait. Nino : « la partie du haut
+/// ne doit pas avoir une partie de fond séparée : on met carrément le fond de
+/// menu choisi par la personne en fond de son profil. » C'est `FugaScaffold`
+/// qui s'en charge, pour la page entière ; ici il ne reste que le contenu.
+///
+/// ## Et plus aucune hauteur fixe
+///
+/// Le bandeau faisait une hauteur calculée, et chaque ligne vivait dans sa
+/// boîte : `S(34)` pour le nom, `S(16)` pour les mélos. Or les boîtes se
+/// mesurent en `S` et les polices en `SF`, qui vaut **1,70 fois plus**. Une
+/// police dont le minimum est `SF(9)` fait 15,3 avant même l'interligne : elle
+/// ne pouvait pas tenir dans 16, et la ligne des mélos sortait coupée en deux
+/// sur tous les téléphones. Tout se mesure maintenant sur son contenu — le
+/// bandeau est aussi haut qu'il le faut, et rien n'est jamais tranché.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
-import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'bulle_devise.dart';
@@ -27,12 +37,6 @@ import 'texte_remplissant.dart';
 
 /// Côté de la photo. Le reste du bandeau s'organise autour.
 double hauteurPhotoProfil() => S(116);
-
-/// Hauteur du bandeau : la photo, ses marges, et la ligne des mélos.
-///
-/// La colonne de droite est donc un peu plus haute que la photo — c'est ce
-/// qui laisse sa place au classement sans rogner la devise.
-double hauteurEnteteProfil() => hauteurPhotoProfil() + 2 * S(12) + S(20);
 
 class EnteteProfil extends StatelessWidget {
   const EnteteProfil({
@@ -59,7 +63,8 @@ class EnteteProfil extends StatelessWidget {
   final int melo;
   final int meloRandom;
 
-  /// Le thème de MENU de la personne : c'est son décor qu'on montre.
+  /// Le thème de MENU de la personne : c'est son décor qui est derrière, et
+  /// c'est lui qui décide de la couleur de l'encre.
   final String theme;
 
   final ThemePalette palette;
@@ -70,70 +75,31 @@ class EnteteProfil extends StatelessWidget {
   final VoidCallback? onDevise;
 
   @override
-  Widget build(BuildContext context) {
-    final hauteur = hauteurEnteteProfil();
-    return SizedBox(
-      height: hauteur,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _tranche(context, hauteur),
-          Padding(
-            padding: EdgeInsets.all(S(12)),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _photo(),
-                SizedBox(width: S(12)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: S(34), child: _nom()),
-                      SizedBox(height: S(4)),
-                      SizedBox(height: S(16), child: _melos()),
-                      SizedBox(height: S(6)),
-                      Expanded(child: _devise()),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) => Padding(
+    // Les mêmes marges que le reste de la page : sans décor à lui, le
+    // bandeau n'a plus de raison de toucher les bords.
+    padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), 0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _photo(),
+        SizedBox(width: S(12)),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _nom(),
+              SizedBox(height: S(4)),
+              _melos(),
+              SizedBox(height: S(6)),
+              _devise(),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  /// La tranche du haut de SON fond de menu.
-  Widget _tranche(BuildContext context, double hauteur) {
-    final image = imagesFor(theme)?.background;
-    if (image == null) return ColoredBox(color: palette.menu);
-    return ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          OverflowBox(
-            alignment: Alignment.topCenter,
-            minHeight: MediaQuery.sizeOf(context).height,
-            maxHeight: MediaQuery.sizeOf(context).height,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(image),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          // Le même voile qu'au menu sur les thèmes clairs, sans quoi la
-          // tranche ne ressemblerait pas à ce que la personne voit chez elle.
-          if (kThemesVoiles.contains(theme))
-            ColoredBox(color: Colors.white.withValues(alpha: 0.45)),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
   Widget _photo() {
     final cote = hauteurPhotoProfil();
@@ -203,23 +169,30 @@ class EnteteProfil extends StatelessWidget {
   Widget _devise() {
     final vide = devise.trim().isEmpty;
     final texte = vide ? _sansDevise : devise.trim();
+    final corps = TexteRemplissant(
+      texte,
+      style: TextStyle(
+        color: vide ? Colors.white54 : Colors.white,
+        fontStyle: vide ? FontStyle.italic : FontStyle.normal,
+      ),
+      tailleMin: SF(10),
+      tailleMax: SF(20),
+      maxLignes: 3,
+    );
     final bulle = BulleDevise(
       couleur: palette.fonce,
-      child: Stack(
-        children: [
-          TexteRemplissant(
-            texte,
-            style: TextStyle(
-              color: vide ? Colors.white54 : Colors.white,
-              fontStyle: vide ? FontStyle.italic : FontStyle.normal,
+      // Le crayon est À CÔTÉ du texte, pas dessus : posé en surimpression
+      // dans le coin, il masquait le premier mot de la devise.
+      child: onDevise == null
+          ? corps
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _crayon(),
+                SizedBox(width: S(6)),
+                Expanded(child: corps),
+              ],
             ),
-            tailleMin: SF(10),
-            tailleMax: SF(20),
-            maxLignes: 3,
-          ),
-          if (onDevise != null) Positioned(top: 0, left: 0, child: _crayon()),
-        ],
-      ),
     );
     return onDevise == null
         ? bulle

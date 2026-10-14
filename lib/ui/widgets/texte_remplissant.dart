@@ -41,6 +41,31 @@ class TexteRemplissant extends StatelessWidget {
   /// sous le dixième de point entre deux bornes distantes de 40.
   static const int _passes = 7;
 
+  /// Le plancher ABSOLU, sous [tailleMin], et pour la HAUTEUR seulement.
+  ///
+  /// [tailleMin] dit « en deçà, ça ne se lit plus », et c'est la bonne règle
+  /// tant que le texte ne risque que d'être trop long : `TextOverflow`
+  /// l'abrège d'un « … », ce qui se lit encore.
+  ///
+  /// Trop HAUT, en revanche, il n'est pas abrégé : il est tranché en plein
+  /// milieu, et là plus rien ne se lit. Entre un texte un peu trop petit et
+  /// un texte coupé en deux, on prend le petit, et on descend jusqu'ici.
+  ///
+  /// Ce n'est pas un cas d'école : les boîtes se mesurent en `S` et les
+  /// polices en `SF`, qui vaut 1,70 fois plus. La ligne des mélos du profil
+  /// demandait `SF(9)` — soit 15,3 — dans une boîte de `S(16)`, et sortait
+  /// coupée en deux sur tous les téléphones.
+  static const double _plancher = 6;
+
+  /// Interligne imposé, quand le style n'en donne pas.
+  ///
+  /// Sans lui, la hauteur d'une ligne est celle que la POLICE décide : 1,0
+  /// pour celle des tests, 1,17 pour Roboto, autre chose ailleurs. Une boîte
+  /// juste assez haute en test sortait donc coupée sur un téléphone, et le
+  /// test ne pouvait pas le voir. En le fixant, la mise en page est la même
+  /// partout — et un défaut de hauteur se reproduit en test.
+  static const double _interligne = 1.2;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, boite) {
@@ -48,35 +73,59 @@ class TexteRemplissant extends StatelessWidget {
       final largeur = boite.maxWidth;
       final hauteur = boite.maxHeight;
 
+      final base = style.height == null
+          ? style.copyWith(height: _interligne)
+          : style;
+
+      TextPainter mesure(double taille) => TextPainter(
+        text: TextSpan(
+          text: texte,
+          style: base.copyWith(fontSize: taille),
+        ),
+        maxLines: maxLignes,
+        textAlign: align,
+        textScaler: echelle,
+        textDirection: Directionality.of(context),
+      )..layout(maxWidth: largeur);
+
       bool tient(double taille) {
-        final peintre = TextPainter(
-          text: TextSpan(
-            text: texte,
-            style: style.copyWith(fontSize: taille),
-          ),
-          maxLines: maxLignes,
-          textAlign: align,
-          textScaler: echelle,
-          textDirection: Directionality.of(context),
-        )..layout(maxWidth: largeur);
+        final peintre = mesure(taille);
         return !peintre.didExceedMaxLines &&
             peintre.height <= hauteur + 0.5 &&
             peintre.width <= largeur + 0.5;
       }
 
-      // Dichotomie : `basse` tient toujours, `haute` jamais.
-      var basse = tailleMin;
-      var haute = tailleMax;
-      if (tient(haute)) {
-        basse = haute;
-      } else {
+      bool tientEnHauteur(double taille) =>
+          mesure(taille).height <= hauteur + 0.5;
+
+      /// La plus grande taille qui satisfasse [critere], entre deux bornes.
+      double cherche(
+        double basse,
+        double haute,
+        bool Function(double) critere,
+      ) {
         for (var i = 0; i < _passes; i++) {
           final milieu = (basse + haute) / 2;
-          if (tient(milieu)) {
+          if (critere(milieu)) {
             basse = milieu;
           } else {
             haute = milieu;
           }
+        }
+        return basse;
+      }
+
+      // Dichotomie : `basse` tient toujours, `haute` jamais.
+      var basse = tailleMin;
+      if (tient(tailleMax)) {
+        basse = tailleMax;
+      } else {
+        basse = cherche(tailleMin, tailleMax, tient);
+        // Même à [tailleMin], le texte peut encore être trop HAUT pour sa
+        // boîte — et là il serait tranché, pas abrégé. On redescend donc
+        // sur le seul critère de la hauteur.
+        if (!tientEnHauteur(basse)) {
+          basse = cherche(_plancher, basse, tientEnHauteur);
         }
       }
 
@@ -85,7 +134,7 @@ class TexteRemplissant extends StatelessWidget {
         maxLines: maxLignes,
         overflow: TextOverflow.ellipsis,
         textAlign: align,
-        style: style.copyWith(fontSize: basse),
+        style: base.copyWith(fontSize: basse),
       );
     },
   );

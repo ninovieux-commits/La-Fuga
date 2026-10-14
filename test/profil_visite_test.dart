@@ -22,7 +22,6 @@ import 'package:lafuga/net/favoris_connus.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
-import 'package:lafuga/theme/theme_assets.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
@@ -170,6 +169,34 @@ void main() {
       expect(rendu.height, lessThanOrEqualTo(boite.height + 0.5));
     });
 
+    testWidgets('une boîte trop courte le fait RÉTRÉCIR, pas déborder', (
+      tester,
+    ) async {
+      // `tailleMin` dit « en deçà, ça ne se lit plus ». Quand la boîte est
+      // plus courte que ça, il reste à choisir entre un texte un peu trop
+      // petit et un texte tranché en plein milieu : on prend le petit.
+      // C'est ce qui arrivait à la ligne des mélos du profil, et le texte
+      // sortait coupé en deux.
+      //
+      // On mesure le TEXTE, pas sa boîte : un parent trop court rabote la
+      // boîte du `Text` à sa propre hauteur, si bien que comparer les deux
+      // boîtes ne montre jamais rien — les lettres, elles, dépassent.
+      await taille(tester, 'Mélo : 1530', hauteur: 8);
+      final rendu = tester.widget<Text>(find.byType(Text).first);
+      final peintre = TextPainter(
+        text: TextSpan(text: rendu.data, style: rendu.style),
+        maxLines: rendu.maxLines,
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: 200);
+      expect(
+        peintre.height,
+        lessThanOrEqualTo(8.5),
+        reason:
+            'le texte occupe ${peintre.height.toStringAsFixed(1)} dans une '
+            'boîte de 8 : il sera coupé',
+      );
+    });
+
     testWidgets('trois lignes tiennent dans la hauteur donnée', (tester) async {
       await taille(
         tester,
@@ -184,9 +211,8 @@ void main() {
   });
 
   group('Le bandeau du haut', () {
-    /// Le fond du bandeau : la seule boîte décorée d'une IMAGE qu'il
-    /// contienne. La chercher par sa position dans l'arbre attrapait le
-    /// crayon, qui est décoré lui aussi.
+    /// Une boîte décorée d'une IMAGE à l'intérieur du bandeau : il ne doit
+    /// plus y en avoir.
     final fondDuBandeau = find.descendant(
       of: find.byType(EnteteProfil),
       matching: find.byWidgetPredicate(
@@ -195,36 +221,60 @@ void main() {
       ),
     );
 
-    testWidgets('porte SON décor, pas le mien', (tester) async {
-      reponses['/get_profile'] = profil();
-      await ouvrir(tester);
-
-      final fond = tester.widget<DecoratedBox>(fondDuBandeau);
-      final image = (fond.decoration as BoxDecoration).image!.image;
-      expect(
-        (image as AssetImage).assetName,
-        imagesFor(kSonTheme)!.background,
-        reason: 'on entre chez lui : c est son fond de menu',
-      );
-      expect((image).assetName, isNot(imagesFor(kMonTheme)!.background));
-    });
-
-    testWidgets('en montre la TRANCHE du haut, pas l image écrasée', (
+    testWidgets('n a PLUS de fond à lui : c est celui de la page', (
       tester,
     ) async {
-      // « La partie correspondante du fond du menu » : l'image est dessinée à
-      // la taille de l'écran et coupée à la hauteur du bandeau.
+      // Nino : « la partie du haut ne doit pas avoir une partie de fond
+      // séparée : on met carrément le fond de menu choisi par la personne en
+      // fond de son profil. » Le bandeau portait une TRANCHE de cette image,
+      // découpée à sa hauteur : deux cadrages de la même image se touchaient
+      // au milieu de l'écran, et la couture se voyait.
       reponses['/get_profile'] = profil();
       await ouvrir(tester);
 
-      final bandeau = tester.getSize(find.byType(EnteteProfil));
-      final peint = tester.getSize(fondDuBandeau);
       expect(
-        peint.height,
-        851,
-        reason: 'l image est posée en plein écran, puis coupée',
+        fondDuBandeau,
+        findsNothing,
+        reason: 'une image dans le bandeau, c est la couture qui revient',
       );
-      expect(bandeau.height, lessThan(peint.height));
+      // Et la page, elle, porte bien SON décor d'un bord à l'autre.
+      final fond = tester.widget<FugaBackground>(
+        find.byType(FugaBackground).first,
+      );
+      expect(fond.theme, kSonTheme);
+    });
+
+    /// Le défaut que Nino a vu sur son téléphone : la ligne des mélos
+    /// tranchée en deux, la devise coupée en bas. Les boîtes se mesuraient en
+    /// `S` et les polices en `SF`, qui vaut 1,70 fois plus — `SF(9)` fait
+    /// 15,3 avant même l'interligne, dans une boîte de `S(16)`.
+    ///
+    /// On mesure donc, pour CHAQUE texte du bandeau, ce qu'il occupe vraiment
+    /// contre la place qu'on lui laisse. Et sur les trois profils qui
+    /// existent : celui d'un autre, le mien — où le crayon prend sa place à
+    /// côté de la devise —, et celui dont la devise tient trois lignes.
+    final cas = {
+      'sur le profil d un autre': profil(),
+      'sur le mien, crayon compris': profil(moi: true, pseudo: 'nino'),
+      'avec une devise de trois lignes': profil(
+        devise:
+            'Une devise qui prend ses aises, assez longue pour tenir sur '
+            'trois bonnes lignes sans jamais se faire couper nulle part.',
+      ),
+      'avec un pseudo interminable': profil(
+        pseudo: 'un pseudo vraiment interminable et sans la moindre pitié',
+      ),
+      'sans devise du tout': profil(devise: ''),
+    };
+    cas.forEach((quand, reponse) {
+      testWidgets('rien n y est coupé, $quand', (tester) async {
+        reponses['/get_profile'] = reponse;
+        await ouvrir(
+          tester,
+          pseudo: reponse['is_self'] == true ? null : 'mesange',
+        );
+        verifieQueRienNEstCoupe(tester);
+      });
     });
 
     testWidgets(
@@ -532,4 +582,50 @@ void main() {
       expect(find.widgetWithText(FugaButton, T('Bloquer')), findsNothing);
     });
   });
+}
+
+/// Chaque texte du bandeau est-il entier, et à sa taille ?
+///
+/// DEUX façons de rater une boîte trop courte, et il faut les deux :
+///
+/// 1. le texte DÉBORDE et se fait trancher — c'est ce que Nino a vu ;
+/// 2. le texte RÉTRÉCIT pour y entrer, et devient illisible — c'est ce que
+///    `TexteRemplissant` fait maintenant plutôt que de le trancher, et ce
+///    serait tout aussi faux dans un bandeau censé s'adapter à son contenu.
+///
+/// `TexteRemplissant` impose son interligne, si bien que ce qu'on mesure ici
+/// est ce que le téléphone affichera — et non ce que la police des tests,
+/// dont l'interligne vaut 1,0, voudrait bien faire croire.
+void verifieQueRienNEstCoupe(WidgetTester tester) {
+  // La plus petite taille demandée dans tout le bandeau : celle des mélos.
+  final plancher = SF(9);
+  final textes = find.descendant(
+    of: find.byType(EnteteProfil),
+    matching: find.byType(Text),
+  );
+  expect(textes, findsWidgets);
+  for (final element in textes.evaluate()) {
+    final texte = element.widget as Text;
+    final boite = (element.renderObject! as RenderBox).size;
+    final peintre = TextPainter(
+      text: TextSpan(text: texte.data, style: texte.style),
+      maxLines: texte.maxLines,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: boite.width);
+    expect(
+      peintre.height,
+      lessThanOrEqualTo(boite.height + 0.5),
+      reason:
+          '« ${texte.data} » occupe ${peintre.height.toStringAsFixed(1)} '
+          'dans une boîte de ${boite.height.toStringAsFixed(1)} : il est coupé',
+    );
+    expect(
+      texte.style!.fontSize!,
+      greaterThanOrEqualTo(plancher - 0.01),
+      reason:
+          '« ${texte.data} » est écrit en '
+          '${texte.style!.fontSize!.toStringAsFixed(1)} : sa boîte le force '
+          'sous le plancher de lisibilité (${plancher.toStringAsFixed(1)})',
+    );
+  }
 }

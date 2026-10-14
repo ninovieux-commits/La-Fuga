@@ -326,8 +326,9 @@ class _AccountScreenState extends State<AccountScreen> {
           // devise se touchent pour les changer, le « moi contre » disparaît,
           // les joueurs bloqués et la déconnexion apparaissent.
           //
-          // Le bandeau du haut déborde des marges — c'est SON décor, il doit
-          // toucher les bords —, le reste est en retrait.
+          // Le fond de la page est SON fond de menu, d'un bord à l'autre :
+          // le bandeau du haut n'a plus de décor à lui, et se range donc
+          // dans les mêmes marges que le reste.
           : ListView(
               padding: EdgeInsets.zero,
               children: [
@@ -424,7 +425,7 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  /// Le bandeau du haut : son décor, sa photo, son pseudo étoilé, sa devise.
+  /// Le haut du profil : sa photo, son pseudo étoilé, ses mélos, sa devise.
   Widget _entete(Profile profile, ThemePalette palette) {
     return EnteteProfil(
       pseudo: profile.pseudo,
