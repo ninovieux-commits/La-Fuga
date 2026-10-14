@@ -246,28 +246,23 @@ void main() {
       expect(fond.theme, kSonTheme);
     });
 
-    testWidgets('la photo mesure LE TIERS de la largeur, et donne sa '
-        'hauteur au bandeau', (tester) async {
+    testWidgets('la photo mesure LE TIERS de la largeur', (tester) async {
       // Nino, schéma à l'appui : « l'emplacement image mesure 1/3 de la
-      // largeur de l'écran. » Et le bandeau fait la même hauteur : les deux
-      // colonnes du dessin s'arrêtent sur la même ligne.
+      // largeur de l'écran. »
       reponses['/get_profile'] = profil();
       await ouvrir(tester);
 
       final photo = tester.getRect(find.byType(ProfilePhoto).first);
       expect(photo.width, closeTo(393 / 3, 0.5), reason: 'un tiers pile');
       expect(photo.height, closeTo(photo.width, 0.5), reason: 'carrée');
-      expect(
-        tester.getSize(find.byType(EnteteProfil)).height,
-        closeTo(photo.height, 0.5),
-        reason: 'le bandeau fait la hauteur de la photo, pas plus',
-      );
     });
 
-    testWidgets('la bulle prend toute la place qui reste', (tester) async {
-      // « La bulle devise occupe la place qu'il reste. » Donc : elle descend
-      // jusqu'en bas de la photo, et pas plus haut que les mélos.
-      reponses['/get_profile'] = profil();
+    testWidgets('devise courte : la bulle descend pile au bas de la photo', (
+      tester,
+    ) async {
+      // « La bulle devise occupe la place qu'il reste. » Les deux colonnes du
+      // dessin s'arrêtent sur la même ligne.
+      reponses['/get_profile'] = profil(devise: 'Vite et mal.');
       await ouvrir(tester);
 
       final photo = tester.getRect(find.byType(ProfilePhoto).first);
@@ -277,6 +272,33 @@ void main() {
         bulle.top,
         greaterThan(tester.getRect(find.text('mesange')).bottom),
       );
+      expect(
+        tester.getSize(find.byType(EnteteProfil)).height,
+        closeTo(photo.height, 0.5),
+        reason: 'rien ne dépasse : le bandeau fait la hauteur de la photo',
+      );
+    });
+
+    testWidgets('devise longue : trois lignes, et le bandeau s allonge', (
+      tester,
+    ) async {
+      // « La bulle doit pouvoir faire trois lignes, rallonge la zone s'il le
+      // faut. Si elle fait plus de trois lignes c'est encore mieux. » Entre
+      // écrire plus petit et écrire une ligne de plus, c'est la ligne de plus.
+      reponses['/get_profile'] = profil(
+        devise:
+            'Une devise qui prend ses aises, assez longue pour tenir sur '
+            'trois bonnes lignes sans jamais se faire couper nulle part.',
+      );
+      await ouvrir(tester);
+
+      final photo = tester.getRect(find.byType(ProfilePhoto).first);
+      expect(
+        tester.getSize(find.byType(EnteteProfil)).height,
+        greaterThan(photo.height),
+        reason: 'la zone devait s allonger au lieu de rapetisser la devise',
+      );
+      expect(lignesDeLaDevise(tester), greaterThanOrEqualTo(3));
     });
 
     testWidgets('le tout est décalé d un bandeau de partie', (tester) async {
@@ -678,4 +700,25 @@ void verifieQueRienNEstCoupe(WidgetTester tester) {
           'sous le plancher de lisibilité (${plancher.toStringAsFixed(1)})',
     );
   }
+}
+
+/// Combien de lignes la devise occupe réellement.
+int lignesDeLaDevise(WidgetTester tester) {
+  final texte = tester.widget<Text>(
+    find.descendant(of: find.byType(BulleDevise), matching: find.byType(Text)),
+  );
+  final boite = tester
+      .renderObject<RenderBox>(
+        find.descendant(
+          of: find.byType(BulleDevise),
+          matching: find.byType(Text),
+        ),
+      )
+      .size;
+  final peintre = TextPainter(
+    text: TextSpan(text: texte.data, style: texte.style),
+    maxLines: texte.maxLines,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: boite.width);
+  return peintre.computeLineMetrics().length;
 }

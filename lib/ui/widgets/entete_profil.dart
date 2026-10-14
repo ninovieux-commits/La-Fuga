@@ -20,9 +20,16 @@
 /// taille du pseudo va bien mais ils ne doivent plus être mangés. La bulle
 /// devise occupe la place qu'il reste. »
 ///
-/// La photo donne donc sa hauteur au bandeau entier, et la colonne de droite
-/// se partage exactement la même : une ligne pour le pseudo, une pour les
-/// mélos, et la bulle prend tout le bas.
+/// La photo donne donc sa hauteur au bandeau, et la colonne de droite se
+/// partage la même : une ligne pour le pseudo, une pour les mélos, et la
+/// bulle prend tout le bas.
+///
+/// Tout le bas, et PLUS si la devise le demande : « la bulle doit pouvoir
+/// faire trois lignes, rallonge la zone s'il le faut. Si elle fait plus de
+/// trois lignes c'est encore mieux. » La bulle a donc un plancher — descendre
+/// jusqu'au bas de la photo quand la devise est courte — mais aucun plafond :
+/// au-delà, c'est le bandeau qui s'allonge. Entre écrire plus petit et écrire
+/// sur une ligne de plus, la devise prend la ligne de plus.
 ///
 /// ## Des boîtes taillées sur la police, et non l'inverse
 ///
@@ -59,6 +66,36 @@ double _hauteurNom() => SF(34) * kInterligne;
 
 /// Hauteur de la ligne des mélos, à sa plus grande taille.
 double _hauteurMelos() => SF(14) * kInterligne;
+
+/// Écart entre le pseudo et les mélos, et entre les mélos et la bulle.
+double _ecartNom() => S(4);
+double _ecartMelos() => S(6);
+
+/// Hauteur sous laquelle la bulle ne descend pas : ce qui reste de la photo
+/// une fois le pseudo et les mélos posés. C'est elle qui fait que la bulle
+/// s'arrête pile au bas de la photo quand la devise est courte.
+double _planchersBulle() {
+  final reste =
+      hauteurPhotoProfil() -
+      _hauteurNom() -
+      _ecartNom() -
+      _hauteurMelos() -
+      _ecartMelos();
+  return reste > 0 ? reste : 0;
+}
+
+/// Nombre de lignes au-delà duquel la devise est abrégée plutôt que
+/// rapetissée.
+///
+/// Trois sont dues, « et plus c'est encore mieux » — la devise prend donc la
+/// ligne de plus plutôt que la taille en moins, jusqu'ici.
+///
+/// Huit, et pas davantage, parce que la bulle prendrait alors plus de place
+/// que la photo et le pseudo réunis. Une devise plus longue que ça rapetisse
+/// d'abord, puis est abrégée d'un « … » : c'est le seul endroit où du texte
+/// peut se perdre, et il faut environ trois cent soixante-dix caractères
+/// pour y arriver, sur les cinq cents que le serveur accepte.
+const int kLignesDevise = 8;
 
 class EnteteProfil extends StatelessWidget {
   const EnteteProfil({
@@ -101,30 +138,30 @@ class EnteteProfil extends StatelessWidget {
     // Les mêmes marges que le reste de la page : sans décor à lui, le
     // bandeau n'a plus de raison de toucher les bords.
     padding: EdgeInsets.symmetric(horizontal: S(16)),
-    child: SizedBox(
-      // La photo donne sa hauteur au bandeau : les deux colonnes font
-      // exactement la même, comme au dessin.
-      height: hauteurPhotoProfil(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _photo(),
-          SizedBox(width: S(12)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(height: _hauteurNom(), child: _nom()),
-                SizedBox(height: S(4)),
-                SizedBox(height: _hauteurMelos(), child: _melos()),
-                SizedBox(height: S(6)),
-                // « La bulle devise occupe la place qu'il reste. »
-                Expanded(child: _devise()),
-              ],
-            ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _photo(),
+        SizedBox(width: S(12)),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: _hauteurNom(), child: _nom()),
+              SizedBox(height: _ecartNom()),
+              SizedBox(height: _hauteurMelos(), child: _melos()),
+              SizedBox(height: _ecartMelos()),
+              // « La bulle devise occupe la place qu'il reste » — au moins,
+              // et davantage si la devise la demande.
+              ConstrainedBox(
+                constraints: BoxConstraints(minHeight: _planchersBulle()),
+                child: _devise(),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 
@@ -204,7 +241,7 @@ class EnteteProfil extends StatelessWidget {
       ),
       tailleMin: SF(10),
       tailleMax: SF(20),
-      maxLignes: 3,
+      maxLignes: kLignesDevise,
     );
     final bulle = BulleDevise(
       couleur: palette.fonce,
