@@ -21,6 +21,7 @@ import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
@@ -546,6 +547,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 // demandé au serveur. Tant qu'on ne sait pas, pas d'étoile —
                 // elle paraîtra au `setState` de l'arrivée.
                 favori: FavorisConnus.instance.connu(widget.pseudo) ?? false,
+                // Son nom ouvre SA fiche — la même qu'en partie.
+                onTitleTap: () => _fiche(widget.pseudo, palette),
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
@@ -565,7 +568,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             _bubble(_messages[i], palette),
                       ),
               ),
-              _visages(),
+              _visages(palette),
               _composer(palette),
             ],
           ),
@@ -573,6 +576,20 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
     );
   }
+
+  /// LA fiche du joueur, la même que partout ailleurs.
+  ///
+  /// D'ici on ne peut pas lancer de défi — l'écran qui sait le faire est le
+  /// menu —, donc la touche « Défier » paraît hachurée.
+  void _fiche(String pseudo, ThemePalette palette) => unawaited(
+    showPlayerCard(
+      context,
+      online: widget.online,
+      palette: palette,
+      pseudo: pseudo,
+      defiPossible: false,
+    ),
+  );
 
   /// Une bulle, et rien qu'une bulle.
   ///
@@ -602,21 +619,30 @@ class _ConversationScreenState extends State<ConversationScreen> {
   ///
   /// Chacun du côté d'où viennent ses bulles — on sait d'un coup d'œil qui
   /// parle de quel côté, et une seule fois suffit à le dire.
-  Widget _visages() => Padding(
+  Widget _visages(ThemePalette palette) => Padding(
     padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(6)),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ProfilePhoto(
-          photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
-          size: kAvatarBasConversation,
-        ),
-        ProfilePhoto(
-          photo: avatarPhotoFor(
-            widget.online.pseudo,
-            widget.online.session?.photo ?? '',
+        // Les deux photos ouvrent la même fiche que les noms : la sienne, et
+        // la mienne — qui n'offre que « Profil », puisqu'on ne se défie pas,
+        // ne se met pas en favori et ne se bloque pas soi-même.
+        GestureDetector(
+          onTap: () => _fiche(widget.pseudo, palette),
+          child: ProfilePhoto(
+            photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
+            size: kAvatarBasConversation,
           ),
-          size: kAvatarBasConversation,
+        ),
+        GestureDetector(
+          onTap: () => _fiche(widget.online.pseudo ?? '', palette),
+          child: ProfilePhoto(
+            photo: avatarPhotoFor(
+              widget.online.pseudo,
+              widget.online.session?.photo ?? '',
+            ),
+            size: kAvatarBasConversation,
+          ),
         ),
       ],
     ),

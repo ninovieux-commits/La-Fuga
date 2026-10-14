@@ -139,8 +139,11 @@ class PlayerPanel extends StatelessWidget {
   /// déconnexion de l'adversaire.
   final Color nameColor;
 
-  /// Toucher le nom ouvre le menu du joueur (profil, favori, message,
-  /// blocage) — `_on_name_click`. Absent pour un joueur qui n'en est pas un.
+  /// Toucher le nom — OU LA PHOTO — ouvre la fiche du joueur.
+  ///
+  /// Nino : « ce même popup doit également apparaître si on clique sur le nom
+  /// ou l'image de profil où qu'ils soient. » Absent pour un joueur qui n'en
+  /// est pas un : Deep Grey et « Joueur 1 » n'ont pas de fiche.
   final VoidCallback? onNameTap;
 
   /// Dans MES favoris : une étoile paraît à côté du nom.
@@ -209,9 +212,12 @@ class PlayerPanel extends StatelessWidget {
             // L'avatar de Kivy est carré et occupe TOUTE la hauteur du
             // panneau : sa largeur suit sa hauteur (`bind(height=…)`), la
             // valeur `S(58)` du constructeur n'est qu'un point de départ.
-            ProfilePhoto(
-              photo: photo,
-              size: box.maxHeight.isFinite ? box.maxHeight - 2 * S(4) : S(58),
+            GestureDetector(
+              onTap: onNameTap,
+              child: ProfilePhoto(
+                photo: photo,
+                size: box.maxHeight.isFinite ? box.maxHeight - 2 * S(4) : S(58),
+              ),
             ),
             SizedBox(width: S(8)),
             Expanded(

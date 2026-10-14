@@ -30,11 +30,18 @@ import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/auto_play_bar.dart';
+import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
 
 class ReplayScreen extends StatefulWidget {
-  const ReplayScreen({super.key, required this.nmc, this.title, this.sounds});
+  const ReplayScreen({
+    super.key,
+    required this.nmc,
+    this.title,
+    this.sounds,
+    this.online,
+  });
 
   /// Contenu du fichier `.nmc`.
   final String nmc;
@@ -45,6 +52,11 @@ class ReplayScreen extends StatefulWidget {
   /// note de la valse sonne-t-elle plus fort ? » ne se vérifie qu'à l'oreille.
   final SoundPlayer? sounds;
 
+  /// Le compte, pour les visages et la fiche des joueurs. Injectable aussi :
+  /// le service de session est un singleton qui parle au VRAI serveur, et un
+  /// test n'a rien à y faire.
+  final OnlineService? online;
+
   @override
   State<ReplayScreen> createState() => _ReplayScreenState();
 }
@@ -52,6 +64,7 @@ class ReplayScreen extends StatefulWidget {
 class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   late final ReplayController _replay;
   late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
+  OnlineService get _online => widget.online ?? OnlineService.instance;
   bool _flipped = true;
 
   /// Lecture automatique : les commandes sont-elles ouvertes ?
@@ -87,7 +100,7 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
   /// une partie ouverte après une autre ne redemande rien. Hors ligne, rien
   /// n'est demandé et le lecteur garde ses pièces par défaut.
   Future<void> _visages() async {
-    final online = OnlineService.instance;
+    final online = _online;
     if (!online.isLoggedIn) return;
     final meta = _replay.meta;
     for (final nom in {meta.player1, meta.player2}) {
@@ -343,6 +356,19 @@ class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
       isTurn: _replay.current.turn == camp,
       captures: _replay.current.captured[camp.opposite] ?? const [],
       score: '0 / ${meta.objectif == 'partie' ? '1' : meta.objectif}',
+      // La fiche s'ouvre sur un VRAI joueur, et seulement connecté : « Joueur
+      // 1 » et Deep Grey n'ont pas de compte. Sinon, pas de geste du tout —
+      // un toucher qui n'ouvre rien ne vaut pas mieux qu'aucun toucher.
+      // Nino : « ça doit aussi marcher depuis les parties dans l'historique. »
+      onNameTap: _online.isLoggedIn && isRealPlayer(name)
+          ? () => showPlayerCard(
+              context,
+              online: _online,
+              palette: palette,
+              pseudo: name,
+              defiPossible: false,
+            )
+          : null,
     );
   }
 

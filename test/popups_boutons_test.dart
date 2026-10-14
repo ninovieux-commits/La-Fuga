@@ -9,8 +9,12 @@
 /// et toute touche plate la reprend.
 ///
 /// Et sur le menu du nom en partie : « enlève le bouton message. Là aussi je
-/// veux que les boutons ressemblent à des boutons. » Ils en étaient déjà —
-/// mais gris sur un fond du même gris, donc invisibles.
+/// veux que les boutons ressemblent à des boutons. »
+///
+/// Ce menu-là n'existe plus. Nino : « le popup de l'image 1 doit remplacer
+/// celui de l'image 2 […] ainsi il n'y a qu'un seul popup, toujours le
+/// même. » La fiche s'ouvre donc aussi en partie — avec le seul pseudo en
+/// main, le profil arrivant pendant qu'elle est à l'écran.
 library;
 
 import 'dart:convert';
@@ -29,7 +33,6 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/player_card.dart';
 import 'package:lafuga/theme/themes.dart';
-import 'package:lafuga/ui/widgets/name_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -228,12 +231,14 @@ void main() {
     });
   });
 
-  group('Le menu du nom, en partie', () {
-    /// Ouvre le menu sur un adversaire, compte connecté.
+  group('La fiche ouverte sur un simple nom', () {
+    /// La fiche ouverte comme en partie : on n'a que le pseudo.
     Future<void> ouvre(
       WidgetTester tester, {
       String pseudo = 'mesange',
       OnlineService? online,
+      bool defiPossible = false,
+      bool reglee = true,
     }) async {
       final service = online ?? connecte;
       await tester.pumpWidget(
@@ -242,8 +247,13 @@ void main() {
             builder: (context) => Scaffold(
               body: Center(
                 child: ElevatedButton(
-                  onPressed: () =>
-                      showNameMenu(context, online: service, pseudo: pseudo),
+                  onPressed: () => showPlayerCard(
+                    context,
+                    online: service,
+                    pseudo: pseudo,
+                    palette: paletteOf('original'),
+                    defiPossible: defiPossible,
+                  ),
                   child: const Text('ouvrir'),
                 ),
               ),
@@ -252,12 +262,14 @@ void main() {
         ),
       );
       await tester.tap(find.text('ouvrir'));
-      await tester.pumpAndSettle();
+      // Une image : la fiche est là, le profil pas encore.
+      await tester.pump();
+      if (reglee) await tester.pumpAndSettle();
     }
 
-    testWidgets('sans compte, le menu ne s ouvre pas du tout', (tester) async {
-      // La garantie d'origine : « il ne s'ouvre que sur un VRAI joueur et
-      // seulement si l'on est connecté ».
+    testWidgets('sans compte, elle ne s ouvre pas du tout', (tester) async {
+      // La garantie d'origine du menu, reprise telle quelle : « elle ne
+      // s'ouvre que sur un VRAI joueur et seulement si l'on est connecté ».
       await ouvre(tester, online: service(ok: false));
       expect(find.byType(AlertDialog), findsNothing);
     });
@@ -267,11 +279,40 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
     });
 
+    testWidgets('ni sur « Joueur 1 », qui ne désigne personne', (tester) async {
+      await ouvre(tester, pseudo: T('Joueur 1'));
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('elle paraît TOUT DE SUITE, et se remplit ensuite', (
+      tester,
+    ) async {
+      // Attendre le profil pour ouvrir aurait fait un temps mort sous le
+      // doigt : on touche un nom, rien ne se passe, puis le popup paraît.
+      await ouvre(tester, reglee: false);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.textContaining('mesange', findRichText: true), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.widgetWithText(FugaButton, T('Bloquer')), findsOneWidget);
+    });
+
+    testWidgets('c est bien LA fiche, avec ses mélos et ses scores', (
+      tester,
+    ) async {
+      await ouvre(tester);
+      expect(find.textContaining('Mélo'), findsOneWidget);
+      expect(find.textContaining(T('En direct')), findsOneWidget);
+      expect(find.textContaining(T('Correspondance')), findsOneWidget);
+      for (final texte in [T('Profil'), T('Bloquer'), T('Fermer')]) {
+        expect(find.widgetWithText(FugaButton, texte), findsOneWidget);
+      }
+    });
+
     testWidgets('plus de touche « Message »', (tester) async {
       await ouvre(tester);
-      expect(find.text(T('Profil')), findsOneWidget);
-      expect(find.text(T('Favori')), findsOneWidget);
-      expect(find.text(T('Bloquer')), findsOneWidget);
       expect(
         find.text(T('Message')),
         findsNothing,
@@ -279,60 +320,24 @@ void main() {
       );
     });
 
-    testWidgets('les touches se détachent du fond', (tester) async {
-      // Elles étaient DÉJÀ des `FugaButton`, mais grises sur un fond du même
-      // gris : on ne voyait que « Bloquer », qui est rouge.
-      await ouvre(tester);
-      final dialogue = tester.widget<AlertDialog>(find.byType(AlertDialog));
-      expect(
-        dialogue.backgroundColor,
-        isNot(kFugaGrey),
-        reason: 'le fond ne doit pas être la couleur des touches',
-      );
-      expect(dialogue.backgroundColor, kFondMenuNom);
-
-      for (final b in tester.widgetList<FugaButton>(find.byType(FugaButton))) {
-        expect(
-          b.color,
-          isNot(dialogue.backgroundColor),
-          reason: 'la touche « ${b.text} » se confond avec le fond',
-        );
-      }
-    });
-
     testWidgets('« Fermer » est une touche, pas un texte violet', (
       tester,
     ) async {
       await ouvre(tester);
-      expect(
-        find.widgetWithText(FugaButton, T('Fermer')),
-        findsOneWidget,
-        reason: 'une touche plate prendrait le violet d usine de Material',
-      );
-      expect(find.byType(TextButton), findsNothing);
+      expect(find.widgetWithText(FugaButton, T('Fermer')), findsOneWidget);
     });
 
-    testWidgets('« Favori » quand il ne l est pas', (tester) async {
-      final s = serviceFavori(dejaFavori: false);
-      await s.online.login('Nino', 'mdp');
-      await ouvre(tester, online: s.online);
-      expect(find.text(T('Favori')), findsOneWidget);
-      expect(find.text(T('Retirer')), findsNothing);
-    });
-
-    testWidgets('« Retirer » quand il l est DÉJÀ', (tester) async {
-      // Nino : « le bouton favori doit se transformer en retirer quand on a
-      // déjà la personne en favori et vice et versa. »
+    testWidgets('« Retirer » quand il est DÉJÀ favori', (tester) async {
       final s = serviceFavori(dejaFavori: true);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       await ouvre(tester, online: s.online);
       expect(find.text(T('Retirer')), findsOneWidget);
-      expect(find.text(T('Favori')), findsNothing);
+      expect(find.text(T('Enregistrer')), findsNothing);
     });
 
     testWidgets('et la touche FAIT ce qu elle annonce', (tester) async {
       final s = serviceFavori(dejaFavori: true);
-      await s.online.login('Nino', 'mdp');
+      await s.online.client.login('Nino', 'mdp');
       await ouvre(tester, online: s.online);
       s.chemins.clear();
       await tester.tap(find.text(T('Retirer')));
@@ -341,24 +346,88 @@ void main() {
       expect(s.chemins, isNot(contains('/add_favorite')));
     });
 
-    testWidgets('le nom est su AVANT l ouverture, pas après', (tester) async {
-      // Sans quoi la touche changerait de nom sous le doigt.
-      final s = serviceFavori(dejaFavori: true);
-      await s.online.login('Nino', 'mdp');
-      await ouvre(tester, online: s.online);
-      expect(
-        s.chemins,
-        contains('/get_profile'),
-        reason: 'on demande son état avant de dessiner la touche',
+    testWidgets('sur MON nom, ni Défier ni Favori ni Bloquer', (tester) async {
+      // Le serveur de ce test ne renvoie PAS `is_self` : c'est mon pseudo
+      // qui le dit, et il suffit.
+      await ouvre(tester, pseudo: 'Nino');
+      expect(find.widgetWithText(FugaButton, T('Profil')), findsOneWidget);
+      for (final texte in [T('Défier'), T('Enregistrer'), T('Bloquer')]) {
+        expect(find.text(texte), findsNothing);
+      }
+    });
+  });
+
+  group('La touche « Défier »', () {
+    Future<String?> ouvre(
+      WidgetTester tester, {
+      required bool defiPossible,
+    }) async {
+      String? defie;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async => defie = await showPlayerCard(
+                    context,
+                    online: connecte,
+                    pseudo: 'mesange',
+                    palette: paletteOf('original'),
+                    defiPossible: defiPossible,
+                  ),
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
-      expect(find.text(T('Favori')), findsNothing);
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+      return defie;
+    }
+
+    final defier = find.widgetWithText(FugaButton, T('Défier'));
+
+    testWidgets('en partie, elle est HACHURÉE et ne répond pas', (
+      tester,
+    ) async {
+      // Nino : « lors d'une partie en direct, ce popup doit avoir la touche
+      // défier hachurée en traits noirs et être désactivée. »
+      await ouvre(tester, defiPossible: false);
+      expect(defier, findsOneWidget);
+      expect(
+        tester.widget<FugaButton>(defier).onPressed,
+        isNull,
+        reason: 'désactivée : elle ne doit pas répondre au doigt',
+      );
+      expect(
+        find.byKey(kHachuresKey),
+        findsOneWidget,
+        reason: 'les hachures sont peintes PAR-DESSUS la touche',
+      );
+
+      // Et elle ne ferme pas la fiche.
+      await tester.tap(defier);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('sur MON nom, ni Favori ni Bloquer', (tester) async {
-      await ouvre(tester, pseudo: 'Nino');
-      expect(find.text(T('Profil')), findsOneWidget);
-      expect(find.text(T('Favori')), findsNothing);
-      expect(find.text(T('Bloquer')), findsNothing);
+    testWidgets('ailleurs, elle est pleine et renvoie le pseudo', (
+      tester,
+    ) async {
+      await ouvre(tester, defiPossible: true);
+      expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
+      expect(
+        find.byKey(kHachuresKey),
+        findsNothing,
+        reason: 'aucune hachure sur une touche en service',
+      );
+
+      await tester.tap(defier);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
     });
   });
 }

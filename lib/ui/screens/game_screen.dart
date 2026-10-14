@@ -43,6 +43,7 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/slide_animation.dart';
+import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 
 class GameScreen extends StatefulWidget {
@@ -1031,6 +1032,21 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
           '${widget.objectif == 'partie' ? '1' : widget.objectif}',
       busy: isAi && _thinking,
       mirrored: mirrored,
+      // La fiche s'ouvre sur un VRAI joueur, et seulement connecté : « Joueur
+      // 1 » et Deep Grey n'ont pas de compte. Sinon, pas de geste du tout —
+      // un toucher qui n'ouvre rien ne vaut pas mieux qu'aucun toucher.
+      onNameTap:
+          !isAi &&
+              OnlineService.instance.isLoggedIn &&
+              isRealPlayer(_playerOf(camp))
+          ? () => showPlayerCard(
+              context,
+              online: OnlineService.instance,
+              palette: palette,
+              pseudo: _playerOf(camp),
+              defiPossible: false,
+            )
+          : null,
       onUndo: canAct && _game.canValidate ? _cancelMove : null,
       onDraw: canAct && _aiCamp == null ? () => _toggleDrawOffer(camp) : null,
       drawOffered: _drawOffers[camp] ?? false,

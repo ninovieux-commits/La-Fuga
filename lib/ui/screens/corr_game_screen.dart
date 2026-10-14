@@ -33,7 +33,7 @@ import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
-import '../widgets/name_menu.dart';
+import '../widgets/player_card.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/draw_offer_panel.dart';
 import '../widgets/player_panel.dart';
@@ -992,10 +992,14 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       // l'autre, mais juste 4 et 15 ».
       score: '${isMine ? _g.myScore : _g.opponentScore}',
       mirrored: isMine,
-      onNameTap: () => showNameMenu(
+      // LA FICHE, la même partout : plus de menu déroulant propre à la
+      // partie. Le défi y est hachuré — d'ici, on ne peut pas en lancer un.
+      onNameTap: () => showPlayerCard(
         context,
         online: OnlineService.instance,
+        palette: palette,
         pseudo: isMine ? widget.myPseudo : _g.opponent,
+        defiPossible: false,
       ),
       // L'étoile ne vaut que pour l'ADVERSAIRE : se mettre soi-même en
       // favori n'a pas de sens, et la touche n'est pas proposée non plus.

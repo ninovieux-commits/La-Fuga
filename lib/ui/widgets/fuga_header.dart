@@ -22,6 +22,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
     this.titleColor = Colors.black,
     this.bold = false,
     this.favori = false,
+    this.onTitleTap,
   });
 
   /// Intitulé du bouton de retour, barre chevron comprise : `< Menu`.
@@ -46,6 +47,10 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   /// Nino, en montrant l'en-tête d'une boîte de discussion : « à ces
   /// endroits, l'étoile doit aussi apparaître devant le nom. »
   final bool favori;
+
+  /// Quand le titre EST un pseudo, le toucher ouvre la fiche du joueur —
+  /// comme son nom en partie, comme sa photo.
+  final VoidCallback? onTitleTap;
 
   static const double _sideWidth = 110;
 
@@ -77,18 +82,21 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
             child: FugaButton(text: back, fontSize: SF(16), onPressed: onBack),
           ),
           Expanded(
-            child: Text.rich(
-              // L'étoile est un peu plus petite que les lettres du titre :
-              // elle accompagne le nom, elle ne le concurrence pas.
-              nomEtoile(title, favori: favori, taille: SF(titleSize) * 0.82),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: SF(titleSize),
-                fontStyle: bold ? FontStyle.normal : FontStyle.italic,
-                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-                color: titleColor,
+            child: GestureDetector(
+              onTap: onTitleTap,
+              child: Text.rich(
+                // L'étoile est un peu plus petite que les lettres du titre :
+                // elle accompagne le nom, elle ne le concurrence pas.
+                nomEtoile(title, favori: favori, taille: SF(titleSize) * 0.82),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: SF(titleSize),
+                  fontStyle: bold ? FontStyle.normal : FontStyle.italic,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                  color: titleColor,
+                ),
               ),
             ),
           ),

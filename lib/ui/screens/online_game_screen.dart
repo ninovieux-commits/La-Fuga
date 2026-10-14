@@ -33,7 +33,7 @@ import '../widgets/game_board_view.dart';
 import '../widgets/bulles_en_jeu.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/move_strip.dart';
-import '../widgets/name_menu.dart';
+import '../widgets/player_card.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
@@ -573,12 +573,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     return PlayerPanel(
       name: label,
       nameColor: nameColor,
-      onNameTap: () => showNameMenu(
+      // LA FICHE, la même partout. Nino : « lors d'une partie en direct, ce
+      // popup doit avoir la touche défier hachurée en traits noirs et être
+      // désactivée » — on joue déjà contre lui, et on ne quitte pas une
+      // partie en direct pour en lancer une autre.
+      onNameTap: () => showPlayerCard(
         context,
         online: OnlineService.instance,
+        palette: palette,
         pseudo: isMine
             ? (OnlineService.instance.pseudo ?? '')
             : _g.info.opponent,
+        defiPossible: false,
       ),
       // L'étoile ne vaut que pour l'ADVERSAIRE : se mettre soi-même en
       // favori n'a pas de sens, et la touche n'est pas proposée non plus.
