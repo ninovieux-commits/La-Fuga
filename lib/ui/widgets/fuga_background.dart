@@ -88,6 +88,7 @@ class FugaScaffold extends StatelessWidget {
     super.key,
     required this.body,
     this.color,
+    this.theme,
     this.bottomNavigationBar,
   });
 
@@ -97,12 +98,20 @@ class FugaScaffold extends StatelessWidget {
   /// menu.
   final Color? color;
 
+  /// Le thème dont on prend le fond. Le mien par défaut.
+  ///
+  /// Le profil d'un autre passe LE SIEN. Nino : « quand on va sur le profil
+  /// d'une personne, tout doit être monté selon le thème choisi par la
+  /// personne. »
+  final String? theme;
+
   final Widget? bottomNavigationBar;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: color ?? pageBackground(),
+    backgroundColor:
+        color ?? (theme == null ? pageBackground() : paletteOf(theme!).menu),
     bottomNavigationBar: bottomNavigationBar,
-    body: FugaBackground(child: body),
+    body: FugaBackground(theme: theme, child: body),
   );
 }

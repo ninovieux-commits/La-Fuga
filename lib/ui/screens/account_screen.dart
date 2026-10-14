@@ -256,12 +256,30 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
+  /// LES AXES DE LA PERSONNE, pas les miens.
+  ///
+  /// Nino : « quand on va sur le profil d'une personne, tout doit être monté
+  /// selon le thème choisi par la personne. » Le fond, les couleurs des
+  /// touches, les aperçus de plateau : tout vient d'ici. Les miens en
+  /// secours, tant que le profil n'est pas arrivé — et sur le mien, ce sont
+  /// les mêmes.
+  ThemeAxes get _axes {
+    final theme = _profile?.theme ?? '';
+    return theme.isEmpty ? Settings.instance.themeAxes : ThemeAxes.parse(theme);
+  }
+
+  /// L'encre lisible sur SON fond : noire sur les thèmes clairs, qui portent
+  /// un voile blanc, blanche partout ailleurs.
+  Color get _encre => encreSurFond(_axes.menu);
+
   @override
   Widget build(BuildContext context) {
-    final palette = paletteOf(Settings.instance.themeAxes.general);
+    final axes = _axes;
+    final palette = paletteOf(axes.general);
     final profile = _profile;
 
     return FugaScaffold(
+      theme: axes.menu,
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(S(10)),
@@ -408,16 +426,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   /// Le bandeau du haut : son décor, sa photo, son pseudo étoilé, sa devise.
   Widget _entete(Profile profile, ThemePalette palette) {
-    // Son thème à lui, tel que le serveur le rend ; le mien en secours, qui
-    // n'est le sien que sur mon propre profil.
-    final nom = profile.theme.isEmpty
-        ? Settings.instance.themeAxes.menu
-        : ThemeAxes.parse(profile.theme).menu;
     return EnteteProfil(
       pseudo: profile.pseudo,
       photo: profile.photo,
       devise: profile.description,
-      theme: nom,
+      theme: _axes.menu,
       palette: palette,
       favori: !profile.isSelf && _favori,
       onPhoto: profile.isSelf ? _pickPhoto : null,
@@ -481,11 +494,14 @@ class _AccountScreenState extends State<AccountScreen> {
     if (parties.isEmpty) {
       return Text(
         T('Pas de partie en cours'),
-        style: TextStyle(color: Colors.white38, fontSize: SF(13)),
+        style: TextStyle(
+          color: _encre.withValues(alpha: 0.5),
+          fontSize: SF(13),
+        ),
       );
     }
 
-    final axes = Settings.instance.themeAxes;
+    final axes = _axes;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -537,7 +553,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _title(T('Adresse mail')),
     Text(
       profile.email.isEmpty ? T('Aucune adresse mail') : profile.email,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: _encre),
     ),
     _action(
       T("Renseigner ou changer l'adresse mail"),
@@ -571,7 +587,7 @@ class _AccountScreenState extends State<AccountScreen> {
         title: Text(
           label,
           style: TextStyle(
-            color: enabled ? Colors.white : Colors.white38,
+            color: enabled ? _encre : _encre.withValues(alpha: 0.5),
             fontSize: SF(13),
           ),
         ),
@@ -609,7 +625,9 @@ class _AccountScreenState extends State<AccountScreen> {
               Icon(
                 p.online ? Icons.circle : Icons.circle_outlined,
                 size: S(12),
-                color: p.online ? Colors.greenAccent : Colors.white30,
+                color: p.online
+                    ? Colors.greenAccent
+                    : _encre.withValues(alpha: 0.4),
               ),
               SizedBox(width: S(8)),
               Expanded(
@@ -655,7 +673,7 @@ class _AccountScreenState extends State<AccountScreen> {
     child: Text(
       text,
       style: TextStyle(
-        color: Colors.white,
+        color: _encre,
         fontWeight: FontWeight.bold,
         fontSize: SF(15),
       ),

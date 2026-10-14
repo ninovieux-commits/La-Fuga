@@ -23,10 +23,12 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/theme_assets.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/widgets/bulle_devise.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
+import 'package:lafuga/ui/widgets/fuga_background.dart';
 import 'package:lafuga/ui/widgets/entete_profil.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/texte_remplissant.dart';
@@ -248,6 +250,51 @@ void main() {
       reponses['/get_profile'] = profil()..['is_favorite'] = true;
       await ouvrir(tester);
       expect(find.byIcon(Icons.star), findsOneWidget);
+    });
+  });
+
+  group('Tout est monté selon SON thème', () {
+    // Nino : « quand on va sur le profil d'une personne, tout doit être monté
+    // selon le thème choisi par la personne. »
+
+    testWidgets('le fond de la page est le SIEN', (tester) async {
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      final fond = tester.widget<FugaBackground>(
+        find.byType(FugaBackground).first,
+      );
+      expect(fond.theme, kSonTheme);
+      expect(fond.theme, isNot(kMonTheme));
+    });
+
+    testWidgets('et les touches portent SES couleurs', (tester) async {
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      final retour = tester.widget<FugaButton>(
+        find.widgetWithText(FugaButton, T('Revenir au menu')),
+      );
+      expect(retour.color, paletteOf(kSonTheme).clair);
+      expect(
+        retour.color,
+        isNot(paletteOf(kMonTheme).clair),
+        reason: 'ce ne sont pas les miennes',
+      );
+    });
+
+    testWidgets('sur MON profil, ce sont les miennes', (tester) async {
+      reponses['/get_profile'] = profil(
+        moi: true,
+        pseudo: 'nino',
+        theme: kMonTheme,
+      );
+      await ouvrir(tester, pseudo: null);
+
+      final retour = tester.widget<FugaButton>(
+        find.widgetWithText(FugaButton, T('Revenir au menu')),
+      );
+      expect(retour.color, paletteOf(kMonTheme).clair);
     });
   });
 
