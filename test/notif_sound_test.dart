@@ -133,7 +133,11 @@ void main() {
       int creteAutourDe(double seconde) {
         final debut = (wav.rate * seconde).round();
         var c = 0;
-        for (var i = debut; i < debut + fenetre && i < wav.samples.length; i++) {
+        for (
+          var i = debut;
+          i < debut + fenetre && i < wav.samples.length;
+          i++
+        ) {
           final a = wav.samples[i].abs();
           if (a > c) c = a;
         }
