@@ -14,6 +14,22 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../scale.dart';
+
+/// Les parts de hauteur d'un écran de jeu : 7 + 12 + 66 + 12 + 7 = 104.
+const int kPartsEcran = 104;
+
+/// Parts prises par un bandeau de joueur.
+const int kPartsBandeauJoueur = 12;
+
+/// Hauteur d'un bandeau de joueur, en pixels logiques.
+///
+/// C'est une mesure que les autres écrans empruntent : le profil s'en sert
+/// pour se décaler d'autant du haut de l'écran. Nino : « le tout doit être
+/// décalé vers le bas de la taille des bandeaux dans les parties. »
+double hauteurBandeauJoueur() =>
+    screenHeight * kPartsBandeauJoueur / kPartsEcran;
+
 class GameLayout extends StatelessWidget {
   const GameLayout({
     super.key,
@@ -63,9 +79,9 @@ class GameLayout extends StatelessWidget {
     builder: (context, box) {
       // 7 + 12 + 66 + 12 + 7 = 104 parts. Sans les bandeaux, leurs 12 parts
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
-      final unit = box.maxHeight / 104;
+      final unit = box.maxHeight / kPartsEcran;
       final bar = unit * 7;
-      final top = topPanel == null ? 0.0 : unit * 12;
+      final top = topPanel == null ? 0.0 : unit * kPartsBandeauJoueur;
       final bottom = bottomPanel == null ? 0.0 : unit * bottomParts;
       final board = box.maxHeight - 2 * bar - top - bottom;
 

@@ -13,15 +13,28 @@
 /// menu choisi par la personne en fond de son profil. » C'est `FugaScaffold`
 /// qui s'en charge, pour la page entière ; ici il ne reste que le contenu.
 ///
-/// ## Et plus aucune hauteur fixe
+/// ## Les proportions du dessin
 ///
-/// Le bandeau faisait une hauteur calculée, et chaque ligne vivait dans sa
-/// boîte : `S(34)` pour le nom, `S(16)` pour les mélos. Or les boîtes se
-/// mesurent en `S` et les polices en `SF`, qui vaut **1,70 fois plus**. Une
-/// police dont le minimum est `SF(9)` fait 15,3 avant même l'interligne : elle
-/// ne pouvait pas tenir dans 16, et la ligne des mélos sortait coupée en deux
-/// sur tous les téléphones. Tout se mesure maintenant sur son contenu — le
-/// bandeau est aussi haut qu'il le faut, et rien n'est jamais tranché.
+/// « L'emplacement image mesure 1/3 de la largeur de l'écran. Le tout doit
+/// être décalé vers le bas de la taille des bandeaux dans les parties. La
+/// taille du pseudo va bien mais ils ne doivent plus être mangés. La bulle
+/// devise occupe la place qu'il reste. »
+///
+/// La photo donne donc sa hauteur au bandeau entier, et la colonne de droite
+/// se partage exactement la même : une ligne pour le pseudo, une pour les
+/// mélos, et la bulle prend tout le bas.
+///
+/// ## Des boîtes taillées sur la police, et non l'inverse
+///
+/// Chaque ligne vivait dans une boîte en `S` — `S(34)` pour le nom, `S(16)`
+/// pour les mélos — alors que les polices se mesurent en `SF`, qui vaut
+/// **1,70 fois plus**. Une police dont le plancher est `SF(9)` fait 15,3
+/// avant même l'interligne : elle ne pouvait pas tenir dans 16, et la ligne
+/// des mélos sortait coupée en deux sur tous les téléphones.
+///
+/// Les deux boîtes font maintenant exactement la hauteur d'une ligne à la
+/// PLUS GRANDE taille que la ligne peut prendre. Le texte y tient donc
+/// toujours : il n'est ni tranché, ni rapetissé pour y entrer.
 library;
 
 import 'package:flutter/material.dart';
@@ -35,8 +48,17 @@ import 'etoile_favori.dart';
 import 'profile_photo.dart';
 import 'texte_remplissant.dart';
 
-/// Côté de la photo. Le reste du bandeau s'organise autour.
-double hauteurPhotoProfil() => S(116);
+/// Côté de la photo : LE TIERS DE LA LARGEUR DE L'ÉCRAN, comme au dessin.
+///
+/// `S(240)` vaut 240/720 de la largeur, soit exactement un tiers, sur
+/// n'importe quel écran.
+double hauteurPhotoProfil() => S(240);
+
+/// Hauteur de la ligne du pseudo : une ligne à sa plus grande taille.
+double _hauteurNom() => SF(34) * kInterligne;
+
+/// Hauteur de la ligne des mélos, à sa plus grande taille.
+double _hauteurMelos() => SF(14) * kInterligne;
 
 class EnteteProfil extends StatelessWidget {
   const EnteteProfil({
@@ -78,26 +100,31 @@ class EnteteProfil extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     // Les mêmes marges que le reste de la page : sans décor à lui, le
     // bandeau n'a plus de raison de toucher les bords.
-    padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), 0),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _photo(),
-        SizedBox(width: S(12)),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _nom(),
-              SizedBox(height: S(4)),
-              _melos(),
-              SizedBox(height: S(6)),
-              _devise(),
-            ],
+    padding: EdgeInsets.symmetric(horizontal: S(16)),
+    child: SizedBox(
+      // La photo donne sa hauteur au bandeau : les deux colonnes font
+      // exactement la même, comme au dessin.
+      height: hauteurPhotoProfil(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _photo(),
+          SizedBox(width: S(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: _hauteurNom(), child: _nom()),
+                SizedBox(height: S(4)),
+                SizedBox(height: _hauteurMelos(), child: _melos()),
+                SizedBox(height: S(6)),
+                // « La bulle devise occupe la place qu'il reste. »
+                Expanded(child: _devise()),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 

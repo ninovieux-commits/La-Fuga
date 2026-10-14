@@ -31,6 +31,8 @@ import 'package:lafuga/ui/widgets/corr_slot.dart';
 import 'package:lafuga/ui/widgets/fuga_background.dart';
 import 'package:lafuga/ui/widgets/entete_profil.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/game_layout.dart';
+import 'package:lafuga/ui/widgets/profile_photo.dart';
 import 'package:lafuga/ui/widgets/texte_remplissant.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -242,6 +244,54 @@ void main() {
         find.byType(FugaBackground).first,
       );
       expect(fond.theme, kSonTheme);
+    });
+
+    testWidgets('la photo mesure LE TIERS de la largeur, et donne sa '
+        'hauteur au bandeau', (tester) async {
+      // Nino, schéma à l'appui : « l'emplacement image mesure 1/3 de la
+      // largeur de l'écran. » Et le bandeau fait la même hauteur : les deux
+      // colonnes du dessin s'arrêtent sur la même ligne.
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      final photo = tester.getRect(find.byType(ProfilePhoto).first);
+      expect(photo.width, closeTo(393 / 3, 0.5), reason: 'un tiers pile');
+      expect(photo.height, closeTo(photo.width, 0.5), reason: 'carrée');
+      expect(
+        tester.getSize(find.byType(EnteteProfil)).height,
+        closeTo(photo.height, 0.5),
+        reason: 'le bandeau fait la hauteur de la photo, pas plus',
+      );
+    });
+
+    testWidgets('la bulle prend toute la place qui reste', (tester) async {
+      // « La bulle devise occupe la place qu'il reste. » Donc : elle descend
+      // jusqu'en bas de la photo, et pas plus haut que les mélos.
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      final photo = tester.getRect(find.byType(ProfilePhoto).first);
+      final bulle = tester.getRect(find.byType(BulleDevise));
+      expect(bulle.bottom, closeTo(photo.bottom, 0.5));
+      expect(
+        bulle.top,
+        greaterThan(tester.getRect(find.text('mesange')).bottom),
+      );
+    });
+
+    testWidgets('le tout est décalé d un bandeau de partie', (tester) async {
+      // « Le tout doit être décalé vers le bas de la taille des bandeaux dans
+      // les parties. » C'est la bande que le haut de l'écran mange, et que le
+      // jeu couvre avec le bandeau de l'adversaire.
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      expect(
+        tester.getRect(find.byType(EnteteProfil)).top,
+        closeTo(hauteurBandeauJoueur(), 0.5),
+        reason: 'collé en haut, le pseudo se fait manger',
+      );
+      expect(hauteurBandeauJoueur(), greaterThan(0));
     });
 
     /// Le défaut que Nino a vu sur son téléphone : la ligne des mélos

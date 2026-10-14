@@ -12,6 +12,15 @@ library;
 
 import 'package:flutter/material.dart';
 
+/// Interligne de tous les textes remplissants.
+///
+/// Sans lui, la hauteur d'une ligne est celle que la POLICE décide : 1,0 pour
+/// celle des tests, 1,17 pour Roboto, autre chose ailleurs. Une boîte juste
+/// assez haute en test sortait coupée sur un téléphone, et le test ne pouvait
+/// pas le voir. En le fixant, la mise en page est la même partout — et une
+/// boîte peut être taillée d'avance à la hauteur exacte d'une ligne.
+const double kInterligne = 1.2;
+
 class TexteRemplissant extends StatelessWidget {
   const TexteRemplissant(
     this.texte, {
@@ -57,15 +66,6 @@ class TexteRemplissant extends StatelessWidget {
   /// coupée en deux sur tous les téléphones.
   static const double _plancher = 6;
 
-  /// Interligne imposé, quand le style n'en donne pas.
-  ///
-  /// Sans lui, la hauteur d'une ligne est celle que la POLICE décide : 1,0
-  /// pour celle des tests, 1,17 pour Roboto, autre chose ailleurs. Une boîte
-  /// juste assez haute en test sortait donc coupée sur un téléphone, et le
-  /// test ne pouvait pas le voir. En le fixant, la mise en page est la même
-  /// partout — et un défaut de hauteur se reproduit en test.
-  static const double _interligne = 1.2;
-
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, boite) {
@@ -74,7 +74,7 @@ class TexteRemplissant extends StatelessWidget {
       final hauteur = boite.maxHeight;
 
       final base = style.height == null
-          ? style.copyWith(height: _interligne)
+          ? style.copyWith(height: kInterligne)
           : style;
 
       TextPainter mesure(double taille) => TextPainter(

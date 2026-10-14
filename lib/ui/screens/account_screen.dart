@@ -23,6 +23,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/entete_profil.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/player_card.dart';
 import 'corr_game_screen.dart';
 import 'history_screen.dart';
@@ -330,7 +331,11 @@ class _AccountScreenState extends State<AccountScreen> {
           // le bandeau du haut n'a plus de décor à lui, et se range donc
           // dans les mêmes marges que le reste.
           : ListView(
-              padding: EdgeInsets.zero,
+              // Nino : « le tout doit être décalé vers le bas de la taille
+              // des bandeaux dans les parties. » C'est la bande que le haut
+              // de l'écran mange — barre d'état, encoche — et que le jeu
+              // couvre avec le bandeau de l'adversaire.
+              padding: EdgeInsets.only(top: hauteurBandeauJoueur()),
               children: [
                 _entete(profile, palette),
                 Padding(
