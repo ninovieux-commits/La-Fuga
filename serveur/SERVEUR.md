@@ -877,7 +877,77 @@ Depuis, les tests de l'application couvrent aussi le cas « serveur muet sur la
 clé » : ce que fait l'écran quand la réponse manque, au lieu de supposer
 qu'elle est là.
 
-## 15. Les fichiers
+## 15. Les parties d'un autre, sur son profil — `patch_profil_parties.py`
+
+Nino : « le "parties" vers le milieu affiche les parties par correspondance en
+cours de la personne. Les plateaux d'aperçus doivent faire la même taille que
+ceux du menu, et donner sur la partie de la personne en mode visiteur. »
+
+`/corr_list` ne rend que les MIENNES : le serveur n'y lit que le jeton, et il
+n'existe aucun moyen de demander celles de quelqu'un d'autre. Le profil d'un
+tiers affichait donc toujours « pas de partie en cours ».
+
+**Une route de plus**, en lecture seule : `/corr_list_public {token, pseudo}`.
+Elle rend les parties **en cours** du joueur demandé, du point de vue de ce
+joueur-là — ses pièces en bas, son adversaire en face —, exactement comme son
+propre aperçu.
+
+### La liste est BLANCHE, pas noire
+
+`_corr_game_dict` porte aussi ce qui ne regarde que le joueur : ses pré-coups,
+ses messages non lus, les nulles en attente. La route ne les retire pas une par
+une ; elle ne recopie que les clés d'une liste explicite. Une clé privée
+ajoutée plus tard au dictionnaire ne peut donc pas sortir par oubli — c'est la
+seule façon qu'une route publique reste publique quand le code bouge.
+
+Ce qui sort : `id`, `statut`, `ma_couleur`, `adversaire`, `adversaire_melo`,
+`mon_score`, `score_adverse`, `objectif`, `turn`, `moves_text`, `my_turn`,
+`resultat`, `methode`, `gagne`, `random_code`, `mode`, `position`, `couleur`,
+`updated_at`. Rien de plus.
+
+**Un blocage ferme la porte** : si l'un des deux a bloqué l'autre, la liste
+revient vide. C'est la règle des défis (`_is_blocked_pair`), appliquée ici.
+
+**Rien n'est écrit, rien n'est enlevé.** `/corr_list` n'est pas touchée, aucune
+table n'est modifiée, aucune colonne ajoutée. Une application plus ancienne ne
+connaît pas la route et ne l'appelle jamais.
+
+### La preuve
+
+Le correctif a été appliqué à une copie, et le serveur corrigé lancé sur le
+port 5300 — jamais la production.
+
+```bash
+python3 tests/test_profil_parties.py <port>
+```
+
+| | serveur d'origine | serveur corrigé |
+|---|---|---|
+| `tests/test_profil_parties.py` | la route n'existe pas | **38 / 38** |
+
+Les trente-huit vérifications : un défi non accepté ne se montre pas, une
+partie abandonnée disparaît du profil mais reste dans la liste de son
+propriétaire, la couleur et l'adversaire sont **les mêmes** que ce que le
+joueur regardé voit chez lui, les huit clés privées sont absentes, un blocage
+vide la liste **dans les deux sens**, un jeton invalide donne 401, un pseudo
+inconnu 404, un pseudo vide une liste vide.
+
+Et la non-régression, sur le même serveur corrigé :
+
+| banc | résultat |
+|---|---|
+| `test_favori.py` | 23 / 23 |
+| `test_profil_theme.py` | 20 / 20 |
+| `test_plafond.py` | 17 / 17 |
+| `test_premove.py` | 40 / 40 |
+| `test_nulle.py` | 6 / 9 — **et 6 / 9 sur le serveur d'origine** |
+| `test_corresp_gagnant.py` | OK, identique à l'origine |
+
+Les trois manques de `test_nulle.py` sont là **avant** le correctif comme
+après : ils ne viennent pas de lui. Je ne les ai pas corrigés et je ne les
+cache pas.
+
+## 16. Les fichiers
 
 | Fichier | Rôle |
 |---|---|
@@ -896,4 +966,5 @@ qu'elle est là.
 | `patch_profil_theme.py` | `/get_profile` rend `theme` : la conversation s'habille du décor de l'interlocuteur |
 | `patch_plafond_messages.py` | une boîte garde ses 200 derniers messages ; les plus anciens sont effacés |
 | `patch_profil_favori.py` | `/get_profile` rend `is_favorite` et `is_blocked` : la touche sait quoi dire |
+| `patch_profil_parties.py` | `/corr_list_public` : les parties en cours d'un autre joueur, sur son profil |
 | `tests/` | tous les tests de cette page (`tests/README.md`) |
