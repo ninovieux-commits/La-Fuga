@@ -831,6 +831,17 @@ promettrait une action impossible.
 Sur MON propre profil, les deux clés sont absentes : se mettre en favori ou se
 bloquer soi-même n'a pas de sens, et l'écran ne propose pas ces touches.
 
+**Déployé le 14 octobre 2026 à 10 h 28.** `server.py` est passé de
+`5641b5197d3b…` à `327540eb71e2…`, 4 181 → 4 195 lignes. Sauvegarde posée
+avant : `server.py.avant-favori-20261014-102805`. Ce correctif ne touche à
+aucune donnée : il lit deux tables de plus pour répondre.
+
+Vérifié en direct sur la production, avec un vrai compte : `is_favorite` vrai
+pour les quatre favoris de `nino` et pour eux seuls, `is_blocked` faux partout,
+et les deux clés absentes de son propre profil. C'est la première fois qu'un
+déploiement se vérifie contre une liste connue d'avance — les favoris avaient
+été lus dans la base avant d'appliquer le correctif.
+
 ### La preuve
 
 ```bash
