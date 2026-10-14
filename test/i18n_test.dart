@@ -39,7 +39,7 @@ void main() {
 
     test('toutes les langues couvrent les mêmes clés', () {
       final reference = read(files.first).keys.toSet();
-      expect(reference.length, 437);
+      expect(reference.length, 533);
       for (final f in files) {
         final keys = read(f).keys.toSet();
         expect(
@@ -88,6 +88,112 @@ void main() {
     });
   });
 
+  /// Un littéral de chaîne Dart simple, lu à partir du guillemet en `i`.
+  ///
+  /// Renvoie le texte TEL QU'IL SERA à l'exécution — échappements résolus —
+  /// et l'indice juste après. `null` pour tout ce qui n'est pas une chaîne
+  /// fixe : triple guillemet, interpolation, `\u....`.
+  (String, int)? litteral(String s, int i) {
+    const echappes = {
+      'n': '\n',
+      't': '\t',
+      'r': '\r',
+      "'": "'",
+      '"': '"',
+      '\\': '\\',
+      r'$': r'$',
+    };
+    final q = s[i];
+    if (i + 3 <= s.length && s.substring(i, i + 3) == q * 3) return null;
+    final out = StringBuffer();
+    var j = i + 1;
+    while (j < s.length) {
+      final c = s[j];
+      if (c == '\\') {
+        final n = s[j + 1];
+        if (n == 'u') return null;
+        out.write(echappes[n] ?? n);
+        j += 2;
+        continue;
+      }
+      if (c == q) return (out.toString(), j + 1);
+      if (c == '\n' || c == r'$') return null;
+      out.write(c);
+      j++;
+    }
+    return null;
+  }
+
+  /// Toutes les chaînes ÉCRITES dans un `T(...)` de `lib/`.
+  ///
+  /// On lit le code source, parce qu'une liste tenue à la main dérive : c'est
+  /// exactement ce qui est arrivé — quatre-vingt-seize textes neufs ne
+  /// vivaient qu'en français, et aucun test ne le voyait.
+  ///
+  /// Les `T(variable)` échappent à ce balayage : seules les chaînes écrites
+  /// là sont vérifiées. C'est déjà l'essentiel, et c'est vérifiable.
+  Set<String> textesDuCode() {
+    final debut = RegExp(r'(?<![A-Za-z0-9_])T\(');
+    final trouves = <String>{};
+    final sources = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'));
+    for (final f in sources) {
+      final src = f.readAsStringSync();
+      for (final m in debut.allMatches(src)) {
+        var i = m.end;
+        while (i < src.length && ' \t\n'.contains(src[i])) {
+          i++;
+        }
+        final morceaux = <String>[];
+        while (i < src.length && (src[i] == "'" || src[i] == '"')) {
+          final lu = litteral(src, i);
+          if (lu == null) {
+            morceaux.clear();
+            break;
+          }
+          morceaux.add(lu.$1);
+          i = lu.$2;
+          while (i < src.length && ' \t\n'.contains(src[i])) {
+            i++;
+          }
+        }
+        if (morceaux.isNotEmpty) trouves.add(morceaux.join());
+      }
+    }
+    return trouves;
+  }
+
+  group('Couverture du code', () {
+    test('le balayage trouve bien les textes de l application', () {
+      // Un garde-fou sur le garde-fou : si le balayage se mettait à ne rien
+      // trouver, le test suivant passerait pour de mauvaises raisons.
+      final textes = textesDuCode();
+      expect(textes.length, greaterThan(250));
+      expect(textes, contains('Revenir au menu'));
+      expect(textes, contains('Pas de partie en cours'));
+    });
+
+    test(
+      'chaque texte écrit dans un T() est traduit, dans TOUTES les langues',
+      () {
+        final textes = textesDuCode();
+        for (final f in files) {
+          final manquants = textes.difference(read(f).keys.toSet()).toList()
+            ..sort();
+          expect(
+            manquants,
+            isEmpty,
+            reason:
+                '${f.path} : ${manquants.length} texte(s) sans traduction\n'
+                '${manquants.take(10).join("\n")}',
+          );
+        }
+      },
+    );
+  });
+
   group('T()', () {
     test('le français renvoie la chaîne telle quelle', () async {
       await Translations.load('fr');
@@ -98,7 +204,7 @@ void main() {
     test('une langue chargée traduit', () async {
       final en = await Translations.load('en');
       expect(en.language, 'en');
-      expect(en.length, 437);
+      expect(en.length, 533);
       expect(
         T('Se connecter'),
         isNot('Se connecter'),
