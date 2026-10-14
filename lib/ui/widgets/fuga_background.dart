@@ -23,6 +23,18 @@ import '../../theme/themes.dart';
 /// clignoter.
 const String kSansFond = '';
 
+/// Thèmes dont le fond est trop clair pour qu'on écrive dessus sans voile.
+///
+/// Le voile blanc est celui de Kivy. Il vaut partout où ce fond est montré —
+/// la page entière, mais aussi la tranche qu'en prend le bandeau du profil —
+/// et il décide de la couleur de l'encre : noire sur un fond voilé, blanche
+/// ailleurs.
+const Set<String> kThemesVoiles = {'fleur', 'dragon'};
+
+/// L'encre lisible sur le fond de ce thème.
+Color encreSurFond(String theme) =>
+    kThemesVoiles.contains(theme) ? Colors.black : Colors.white;
+
 class FugaBackground extends StatelessWidget {
   const FugaBackground({super.key, required this.child, this.theme});
 
@@ -33,9 +45,6 @@ class FugaBackground extends StatelessWidget {
   /// La boîte de messages passe celui de l'INTERLOCUTEUR : on entre chez lui,
   /// on voit son décor. [kSansFond] n'affiche aucune image.
   final String? theme;
-
-  /// Thèmes dont le fond est trop clair pour qu'on écrive dessus sans voile.
-  static const Set<String> _veiled = {'fleur', 'dragon'};
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +59,7 @@ class FugaBackground extends StatelessWidget {
           fit: BoxFit.cover,
         ),
       ),
-      child: _veiled.contains(theme)
+      child: kThemesVoiles.contains(theme)
           ? Stack(
               children: [
                 Positioned.fill(

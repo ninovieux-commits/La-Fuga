@@ -285,6 +285,19 @@ class OnlineClient {
 
   Future<ApiResult> corrList() => _api.post('/corr_list', _auth());
 
+  /// Les parties de correspondance EN COURS d'un AUTRE joueur, pour les
+  /// montrer sur son profil.
+  ///
+  /// Nino : « le "parties" vers le milieu affiche les parties par
+  /// correspondance en cours de la personne. »
+  ///
+  /// `corr_list` ne rend que les miennes — le serveur n'y lit que le jeton.
+  /// Cette route-ci est en lecture seule et ne montre rien qu'on ne puisse
+  /// déjà voir en regardant jouer. Un serveur pas encore corrigé répond 404 :
+  /// l'appel échoue sans bruit et le profil dit « pas de partie en cours ».
+  Future<ApiResult> corrListPublic(String pseudo) =>
+      _api.post('/corr_list_public', _auth({'pseudo': pseudo}));
+
   /// Défie par correspondance.
   ///
   /// [mode] dit d'où part la partie, [position] porte le `.fug` sur une seule

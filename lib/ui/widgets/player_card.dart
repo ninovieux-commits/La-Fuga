@@ -14,6 +14,11 @@ library;
 
 import 'package:flutter/material.dart';
 
+// Les hachures d'une touche hors service vivent ailleurs — elles valent pour
+// toute l'application — mais la fiche est l'écran où on les voit le plus, et
+// c'est d'ici qu'on les cherche.
+export 'hachures.dart' show kHachuresKey;
+
 import '../../game/defi_relais.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
@@ -31,11 +36,6 @@ import '../screens/history_screen.dart';
 
 /// Rouge du blocage.
 const Color kRougeBloquer = Color(0xFFB84343);
-
-/// Les hachures d'une touche hors service. Une clé, parce qu'un bouton
-/// contient d'autres `CustomPaint` que les siennes — l'encre de Material en
-/// pose une — et qu'un test doit pouvoir montrer CELLE-CI.
-const Key kHachuresKey = ValueKey('hachures');
 
 /// Les noms qui ne désignent personne — `_is_real_player` (main.py).
 ///
@@ -348,71 +348,16 @@ class _PlayerCardState extends State<_PlayerCard> {
     Color encre = Colors.white,
     bool hachuree = false,
   }) {
-    final rayon = S(18);
     final bouton = FugaButton(
       text: texte,
       color: couleur,
       textColor: encre,
       fontSize: SF(15),
-      radius: rayon,
       onPressed: hachuree ? null : onPressed,
     );
     return Padding(
       padding: EdgeInsets.only(bottom: S(8)),
-      child: hachuree
-          ? Stack(
-              children: [
-                bouton,
-                // Les hachures ne sont PAS touchables : sans ce filtre, elles
-                // avaleraient le toucher au lieu de le laisser passer à la
-                // touche éteinte — qui, elle, ne répond déjà plus.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(rayon),
-                      child: CustomPaint(
-                        key: kHachuresKey,
-                        painter: _Hachures(pas: S(12)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : bouton,
+      child: bouton,
     );
   }
-}
-
-/// Les traits noirs en diagonale d'une touche hors service.
-///
-/// Nino : « lors d'une partie en direct, ce popup doit avoir la touche défier
-/// hachurée en traits noirs et être désactivée. » Grisée, elle se serait
-/// confondue avec les autres ; hachurée, on voit qu'elle existe, qu'elle est
-/// la même qu'ailleurs, et qu'ici elle ne sert pas.
-class _Hachures extends CustomPainter {
-  const _Hachures({required this.pas});
-
-  /// Écart entre deux traits.
-  final double pas;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final trait = Paint()
-      ..color = Colors.black
-      ..strokeWidth = pas / 3
-      ..strokeCap = StrokeCap.square;
-    // Des diagonales à 45°, du coin bas-gauche vers le haut-droit. On part
-    // AVANT la touche pour que les premières la traversent aussi.
-    for (var x = -size.height; x < size.width; x += pas) {
-      canvas.drawLine(
-        Offset(x, size.height),
-        Offset(x + size.height, 0),
-        trait,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_Hachures old) => old.pas != pas;
 }

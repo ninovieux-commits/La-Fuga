@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../scale.dart';
+import 'hachures.dart';
 
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
@@ -80,6 +81,13 @@ class FugaButton extends StatelessWidget {
         ),
       ),
     );
-    return SizedBox(height: height ?? comfortableHeight, child: button);
+    // HORS SERVICE = HACHURÉE, partout dans l'application. Nino : « si tu
+    // pouvais appliquer ce réglage partout dans l'app ça serait l'idéal. »
+    // Une touche sans geste est une touche éteinte : elle se hachure, et
+    // aucun appelant n'a à y penser.
+    return SizedBox(
+      height: height ?? comfortableHeight,
+      child: HorsService(actif: onPressed != null, rayon: r, child: button),
+    );
   }
 }

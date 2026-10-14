@@ -20,6 +20,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'etoile_favori.dart';
 import 'fuga_button.dart';
+import 'hachures.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
 
@@ -393,22 +394,29 @@ class PlayerPanel extends StatelessWidget {
         heightFactor: 1,
         child: AspectRatio(
           aspectRatio: 1,
-          child: Material(
-            // Éteinte, la touche se fond à moitié dans le panneau et son
-            // libellé pâlit : elle reste lisible, mais visiblement hors
-            // d'usage.
-            color: enabled ? color : Color.lerp(color, palette.menu, 0.6)!,
-            borderRadius: BorderRadius.circular(S(16)),
-            child: InkWell(
+          // Éteinte, la touche garde sa couleur et se HACHURE — comme toutes
+          // les touches hors service de l'application. Elle se fondait à
+          // moitié dans le panneau ; on la prenait pour une touche terne.
+          //
+          // Elle reste touchable : c'est `onBlocked` qui dit ce qui manque,
+          // au moment où l'on se pose la question.
+          child: HorsService(
+            actif: enabled,
+            rayon: S(16),
+            child: Material(
+              color: color,
               borderRadius: BorderRadius.circular(S(16)),
-              onTap: enabled ? onPressed : onBlocked,
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: enabled ? Colors.white : Colors.white54,
-                    fontSize: fontSize ?? SF(18),
-                    fontWeight: FontWeight.bold,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(S(16)),
+                onTap: enabled ? onPressed : onBlocked,
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: fontSize ?? SF(18),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

@@ -191,7 +191,16 @@ void main() {
       await calme(tester);
       final defier = find.widgetWithText(FugaButton, T('Défier'));
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
-      expect(find.byKey(kHachuresKey), findsNothing);
+      expect(
+        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
+        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
+        // sujet.
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(kHachuresKey),
+        ),
+        findsNothing,
+      );
 
       await tester.tap(defier);
       await calme(tester);
@@ -247,7 +256,16 @@ void main() {
       await tester.tap(find.text('mesange', findRichText: true));
       await calme(tester);
 
-      expect(find.byKey(kHachuresKey), findsOneWidget);
+      expect(
+        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
+        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
+        // sujet.
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(kHachuresKey),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(find.widgetWithText(FugaButton, T('Défier')));
       await calme(tester);
       expect(socket.lastOf('defier'), isNull);
@@ -293,7 +311,16 @@ void main() {
       await calme(tester);
       final defier = find.widgetWithText(FugaButton, T('Défier'));
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
-      expect(find.byKey(kHachuresKey), findsNothing);
+      expect(
+        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
+        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
+        // sujet.
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(kHachuresKey),
+        ),
+        findsNothing,
+      );
 
       await tester.tap(defier);
       await calme(tester);
@@ -317,7 +344,16 @@ void main() {
 
       await tester.tap(find.text('mesange', findRichText: true));
       await tester.pumpAndSettle();
-      expect(find.byKey(kHachuresKey), findsOneWidget);
+      expect(
+        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
+        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
+        // sujet.
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(kHachuresKey),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -14,6 +14,9 @@ import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/photo_picker.dart';
+import 'package:lafuga/ui/widgets/bulle_devise.dart';
+import 'package:lafuga/ui/widgets/entete_profil.dart';
+import 'package:lafuga/ui/widgets/profile_photo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -107,30 +110,46 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('mon profil montre pseudo, mélos et description', (tester) async {
+  testWidgets('mon profil montre pseudo et devise, dans le bandeau', (
+    tester,
+  ) async {
+    // Le dessin de Nino : photo, étoile, pseudo, devise — et rien d'autre
+    // dans le bandeau du haut. Les mélos n'y sont plus : ils restent sur le
+    // menu pour le mien, et dans la fiche pour celui d'un autre.
     server.replies['/get_profile'] = profile();
     await open(tester);
 
-    // Kivy n'a pas de barre de titre sur le profil : le pseudo n'apparaît
-    // qu'une fois, dans la fiche d'identité.
+    expect(find.byType(EnteteProfil), findsOneWidget);
     expect(find.text('Nino'), findsOneWidget);
+    expect(find.text('Joue vite.'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(BulleDevise),
+        matching: find.text('Joue vite.'),
+      ),
+      findsOneWidget,
+      reason: 'la devise est DANS la bulle',
+    );
     expect(find.text('Revenir au menu'), findsOneWidget);
     expect(find.text('Se déconnecter'), findsOneWidget);
-    expect(find.textContaining('1620'), findsOneWidget);
-    expect(find.textContaining('1480'), findsOneWidget, reason: 'mélo Random');
-    expect(find.text('Joue vite.'), findsOneWidget);
-    expect(find.text('nino@exemple.fr'), findsOneWidget);
   });
 
   testWidgets('mon profil se modifie, celui des autres non', (tester) async {
+    // Nino : « petit crayon en haut à gauche pour indiquer la
+    // modificabilité ». Un sur la photo, un sur la devise.
     server.replies['/get_profile'] = profile();
     await open(tester);
 
-    expect(find.text('Changer la photo'), findsOneWidget);
-    expect(find.text('Modifier la description'), findsOneWidget);
-    await scrollTo(tester, find.text('Joueurs bloqués'));
-    expect(find.text('Joueurs bloqués'), findsOneWidget);
-    expect(find.text('Zed'), findsOneWidget);
+    expect(find.byIcon(Icons.edit), findsNWidgets(2));
+    await scrollTo(tester, find.text('Joueurs bloqués :'));
+    expect(find.text('Joueurs bloqués :'), findsOneWidget);
+    expect(find.textContaining('Zed'), findsOneWidget);
+  });
+
+  testWidgets('sur le profil d un autre, aucun crayon', (tester) async {
+    server.replies['/get_profile'] = profile(isSelf: false, pseudo: 'Ana');
+    await open(tester, pseudo: 'Ana');
+    expect(find.byIcon(Icons.edit), findsNothing);
   });
 
   testWidgets('le profil d un autre montre le tête-à-tête, pas les réglages', (
@@ -140,11 +159,10 @@ void main() {
     await open(tester, pseudo: 'Ana');
 
     expect(server.bodyOf('/get_profile')['pseudo'], 'Ana');
-    expect(find.textContaining('3 - 1'), findsOneWidget, reason: 'en direct');
-    expect(find.textContaining('0 - 2'), findsOneWidget, reason: 'corresp.');
-    expect(find.text('Changer la photo'), findsNothing);
+    expect(find.textContaining('3/1'), findsOneWidget, reason: 'en direct');
+    expect(find.textContaining('0/2'), findsOneWidget, reason: 'corresp.');
     expect(find.text('Adresse mail'), findsNothing);
-    expect(find.text('Joueurs bloqués'), findsNothing);
+    expect(find.text('Joueurs bloqués :'), findsNothing);
   });
 
   testWidgets('les notifications viennent d account_info et se basculent', (
@@ -209,7 +227,8 @@ void main() {
     server.replies['/get_profile'] = profile();
     await open(tester);
 
-    await tester.tap(find.text('Modifier la description'));
+    // La devise se touche DANS sa bulle : plus de bouton séparé.
+    await tester.tap(find.byType(BulleDevise));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Nouvelle description');
     await tester.tap(find.text('Enregistrer'));
@@ -236,7 +255,8 @@ void main() {
     server.replies['/get_profile'] = profile();
     await open(tester);
 
-    await tester.tap(find.text('Changer la photo'));
+    // La photo se touche elle-même.
+    await tester.tap(find.byType(ProfilePhoto).first);
     await tester.pumpAndSettle();
 
     expect(find.byType(PhotoPickerScreen), findsOneWidget);

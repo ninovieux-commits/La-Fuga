@@ -5,8 +5,12 @@
 /// modifiables, et la liste des joueurs bloqués apparaît.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../game/correspondence.dart';
+import '../../game/defi_relais.dart';
 import '../../i18n/translations.dart';
 import '../../net/notification_permission.dart';
 import '../../net/favoris_connus.dart';
@@ -16,9 +20,11 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
+import '../widgets/corr_slot.dart';
+import '../widgets/entete_profil.dart';
 import '../widgets/fuga_button.dart';
-import '../widgets/etoile_favori.dart';
-import '../widgets/profile_photo.dart';
+import '../widgets/player_card.dart';
+import 'corr_game_screen.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';
 
@@ -51,6 +57,10 @@ class _AccountScreenState extends State<AccountScreen> {
   ];
 
   Profile? _profile;
+
+  /// Ses parties de correspondance en cours ; `null` tant qu'on ne les a pas.
+  List<CorrGame>? _corrEnCours;
+
   NotifPrefs _notif = const NotifPrefs();
   bool _loading = true;
   String? _error;
@@ -83,6 +93,8 @@ class _AccountScreenState extends State<AccountScreen> {
       _profile = profile;
     });
 
+    unawaited(_chargerParties(profile));
+
     // Les préférences de notification ne sont pas dans le profil : elles
     // viennent d'`/account_info`, et seulement pour soi.
     if (profile.isSelf) {
@@ -91,6 +103,28 @@ class _AccountScreenState extends State<AccountScreen> {
       final raw = info.get<Map<String, dynamic>>('notif');
       setState(() => _notif = NotifPrefs.fromJson(raw));
     }
+  }
+
+  /// Ses parties de correspondance en cours.
+  ///
+  /// Les miennes par `corr_list` ; les siennes par une route que le serveur
+  /// n'a pas encore, et qui répond alors 404 — sans bruit, la section dira
+  /// « pas de partie en cours ».
+  Future<void> _chargerParties(Profile profile) async {
+    final r = profile.isSelf
+        ? await widget.online.client.corrList()
+        : await widget.online.client.corrListPublic(profile.pseudo);
+    if (!mounted) return;
+    final jeux = [
+      for (final g in r.get<List<dynamic>>('games') ?? const [])
+        if (g is Map) CorrGame.fromJson(Map<String, dynamic>.from(g)),
+    ];
+    setState(
+      () => _corrEnCours = [
+        for (final g in jeux)
+          if (g.status == CorrStatus.enCours) g,
+      ],
+    );
   }
 
   Future<void> _toggleNotif(String key) async {
@@ -224,8 +258,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final axes = Settings.instance.themeAxes;
-    final palette = paletteOf(axes.general);
+    final palette = paletteOf(Settings.instance.themeAxes.general);
     final profile = _profile;
 
     return FugaScaffold(
@@ -267,154 +300,238 @@ class _AccountScreenState extends State<AccountScreen> {
           ? const Center(child: CircularProgressIndicator())
           : profile == null
           ? Center(child: Text(_error ?? T('Profil indisponible.')))
+          // LE MÊME ÉCRAN POUR SOI ET POUR LES AUTRES.
+          //
+          // Nino : « le profil perso et le profil d'autrui doivent être
+          // construits de la même façon et avec les mêmes proportions. » Les
+          // seules différences sont celles qu'il a nommées : la photo et la
+          // devise se touchent pour les changer, le « moi contre » disparaît,
+          // les joueurs bloqués et la déconnexion apparaissent.
+          //
+          // Le bandeau du haut déborde des marges — c'est SON décor, il doit
+          // toucher les bords —, le reste est en retrait.
           : ListView(
-              padding: EdgeInsets.all(S(16)),
+              padding: EdgeInsets.zero,
               children: [
-                _identity(profile, palette),
-                // Nino : « quand on est sur le profil d'une personne il doit
-                // aussi y avoir ce bouton favori/retirer ». Elle dit son
-                // état : « Favori » pour l'ajouter, « Retirer » quand il
-                // l'est déjà.
-                if (!profile.isSelf)
-                  _action(
-                    _favori ? T('Retirer') : T('Favori'),
-                    _basculerFavori,
-                  ),
-                if (!profile.isSelf) ..._headToHead(profile),
-                if (profile.isSelf) _action(T('Changer la photo'), _pickPhoto),
-                _title(T('Description')),
-                _description(profile),
-                if (profile.isSelf)
-                  _action(
-                    T('Modifier la description'),
-                    () => _editText(
-                      title: T('Description'),
-                      initial: profile.description,
-                      hint: T('Écris ta description…'),
-                      maxLength: 500,
-                      multiline: true,
-                      save: widget.online.client.setDescription,
-                    ),
-                  ),
-                if (profile.isSelf) ..._selfSettings(profile),
-                _title(
-                  profile.isSelf
-                      ? T('Personnes qui me suivent')
-                      : T('Le suivent'),
-                ),
-                ..._people(profile.followers, T('Personne ne le suit encore.')),
-                _title(
-                  profile.isSelf ? T('Personnes que je suis') : T('Il suit'),
-                ),
-                ..._people(profile.following, T('Ne suit personne.')),
-                if (profile.isSelf) ...[
-                  _title(T('Joueurs bloqués')),
-                  ..._people(
-                    profile.blocked,
-                    T('Aucun joueur bloqué.'),
-                    unblockable: true,
-                  ),
-                ],
-                _title(T('Historique')),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _action(
-                        T('Historique local'),
-                        () => _push(
-                          HistoryScreen(
-                            online: widget.online,
-                            mode: HistoryMode.local,
-                            target: _historyTarget(profile),
-                          ),
-                        ),
+                _entete(profile, palette),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(16)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!profile.isSelf) ..._moiContre(profile),
+                      _title(T('Parties :')),
+                      _parties(profile),
+                      _title(
+                        profile.isSelf ? T('Me suivent :') : T('Le suivent :'),
                       ),
-                    ),
-                    SizedBox(width: S(8)),
-                    Expanded(
-                      child: _action(
-                        T('Historique en ligne'),
-                        () => _push(
-                          HistoryScreen(
-                            online: widget.online,
-                            target: _historyTarget(profile),
-                          ),
-                        ),
+                      ..._gens(
+                        profile.followers,
+                        T('Personne ne le suit encore.'),
+                        palette,
                       ),
-                    ),
-                  ],
+                      _title(profile.isSelf ? T('Je suis :') : T('Suivis :')),
+                      ..._gens(
+                        profile.following,
+                        T('Ne suit personne.'),
+                        palette,
+                      ),
+                      if (profile.isSelf) ...[
+                        _title(T('Joueurs bloqués :')),
+                        ..._gens(
+                          profile.blocked,
+                          T('Aucun joueur bloqué.'),
+                          palette,
+                          debloquer: true,
+                        ),
+                        ..._selfSettings(profile),
+                      ],
+                      SizedBox(height: S(14)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _action(
+                              T('Historique local'),
+                              () => _push(
+                                HistoryScreen(
+                                  online: widget.online,
+                                  mode: HistoryMode.local,
+                                  target: _historyTarget(profile),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: S(8)),
+                          Expanded(
+                            child: _action(
+                              T('Historique en ligne'),
+                              () => _push(
+                                HistoryScreen(
+                                  online: widget.online,
+                                  target: _historyTarget(profile),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Nino : « ajoute juste entre les boutons historique
+                      // local / historique en ligne et le bouton revenir au
+                      // menu les boutons retirer/favori et bloquer ».
+                      if (!profile.isSelf)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _action(
+                                _favori ? T('Retirer') : T('Favori'),
+                                _basculerFavori,
+                                couleur: palette.fonce,
+                              ),
+                            ),
+                            SizedBox(width: S(8)),
+                            Expanded(
+                              child: _action(
+                                _bloque ? T('Débloquer') : T('Bloquer'),
+                                _basculerBlocage,
+                                couleur: kRougeBloquer,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
     );
   }
 
-  Widget _identity(Profile profile, ThemePalette palette) => Row(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      // `PiecePhoto(width=S(140))` dans la ligne d'identité de Kivy.
-      ProfilePhoto(photo: profile.photo, size: S(140)),
-      SizedBox(width: S(16)),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // La même étoile qu'en partie, et pour la même raison : on
-                // voit d'un coup d'œil qu'il est dans MES favoris. Elle
-                // s'allume et s'éteint avec la touche juste en dessous.
-                if (!profile.isSelf && _favori) ...[
-                  Icon(Icons.star, size: SF(22), color: kEtoileFavori),
-                  SizedBox(width: S(6)),
-                ],
-                Flexible(
-                  child: Text(
-                    profile.pseudo,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: SF(22),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: S(4)),
-            Text(
-              '${T("Standard : %d").replaceAll('%d', '${profile.melo}')}'
-              '    '
-              '${T("Random : %d").replaceAll('%d', '${profile.meloRandom}')}',
-              style: TextStyle(
-                color: palette.clair,
-                fontSize: SF(13),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
+  /// Le bandeau du haut : son décor, sa photo, son pseudo étoilé, sa devise.
+  Widget _entete(Profile profile, ThemePalette palette) {
+    // Son thème à lui, tel que le serveur le rend ; le mien en secours, qui
+    // n'est le sien que sur mon propre profil.
+    final nom = profile.theme.isEmpty
+        ? Settings.instance.themeAxes.menu
+        : ThemeAxes.parse(profile.theme).menu;
+    return EnteteProfil(
+      pseudo: profile.pseudo,
+      photo: profile.photo,
+      devise: profile.description,
+      theme: nom,
+      palette: palette,
+      favori: !profile.isSelf && _favori,
+      onPhoto: profile.isSelf ? _pickPhoto : null,
+      onDevise: profile.isSelf
+          ? () => _editText(
+              title: T('Devise'),
+              initial: profile.description,
+              hint: T('Écris ta devise…'),
+              maxLength: 500,
+              multiline: true,
+              save: widget.online.client.setDescription,
+            )
+          : null,
+    );
+  }
 
-  /// Les deux scores en tête-à-tête, qui ouvrent l'historique filtré.
-  List<Widget> _headToHead(Profile profile) => [
-    _title(T('Moi contre %s :').replaceAll('%s', profile.pseudo)),
-    _action(
-      T('En direct : %d - %d')
-          .replaceFirst('%d', '${profile.direct.mine}')
-          .replaceFirst('%d', '${profile.direct.theirs}'),
-      () => _openHistory('direct'),
-    ),
-    _action(
-      T('Correspondance : %d - %d')
-          .replaceFirst('%d', '${profile.correspondence.mine}')
-          .replaceFirst('%d', '${profile.correspondence.theirs}'),
-      () => _openHistory('corr'),
+  /// Les deux scores en tête-à-tête, côte à côte, qui ouvrent l'historique
+  /// filtré — tels que Nino les dessine.
+  List<Widget> _moiContre(Profile profile) => [
+    _title(T('Moi contre :')),
+    Row(
+      children: [
+        Expanded(
+          child: _action(
+            '${T("Direct")} : ${profile.direct.mine}/${profile.direct.theirs}',
+            () => _openHistory('direct'),
+          ),
+        ),
+        SizedBox(width: S(8)),
+        Expanded(
+          child: _action(
+            '${T("Corresp")} : '
+            '${profile.correspondence.mine}/${profile.correspondence.theirs}',
+            () => _openHistory('corr'),
+          ),
+        ),
+      ],
     ),
   ];
+
+  /// Ses parties de correspondance EN COURS, aux aperçus du menu.
+  ///
+  /// Sur mon profil, elles viennent de `corr_list`, qui ne rend que les
+  /// miennes. Sur celui d'un autre, il faut une route que le serveur n'a pas
+  /// encore : tant qu'elle manque, la section dit « pas de partie en cours »,
+  /// ce que le dessin de Nino prévoit comme l'un des deux états.
+  Widget _parties(Profile profile) {
+    final parties = _corrEnCours;
+    if (parties == null) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: S(8)),
+        child: Center(
+          child: SizedBox(
+            width: S(20),
+            height: S(20),
+            child: CircularProgressIndicator(strokeWidth: S(2)),
+          ),
+        ),
+      );
+    }
+    if (parties.isEmpty) {
+      return Text(
+        T('Pas de partie en cours'),
+        style: TextStyle(color: Colors.white38, fontSize: SF(13)),
+      );
+    }
+
+    final axes = Settings.instance.themeAxes;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      // La MÊME grille qu'au menu : deux colonnes, la forme du plateau.
+      // Nino : « les plateaux d'aperçus doivent faire la même taille que ceux
+      // du menu ».
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: S(10),
+        crossAxisSpacing: S(10),
+        childAspectRatio: 7 / 8,
+      ),
+      itemCount: parties.length,
+      itemBuilder: (context, i) => CorrSlot(
+        game: parties[i],
+        palette: paletteOf(axes.general),
+        boardTheme: axes.board,
+        pieceTheme: axes.pieces,
+        onTap: () => _ouvrirPartie(parties[i]),
+        onShow: (g) => _ouvrirPartie(g),
+        onAccept: (_) {},
+        onRefuse: (_) {},
+        onCancel: (_) {},
+        onRematch: (_) {},
+        onClose: (_) {},
+        onShowChallenge: (_) {},
+      ),
+    );
+  }
+
+  /// Ouvre une partie de correspondance depuis le profil.
+  ///
+  /// Les miennes s'ouvrent comme au menu. Celles d'un autre demanderont un
+  /// écran de VISITEUR — qui ne peut ni jouer ni lire le chat — et la route
+  /// qui les sert ; ni l'un ni l'autre n'existent encore.
+  Future<void> _ouvrirPartie(CorrGame game) async {
+    if (!(_profile?.isSelf ?? false)) return;
+    await _push(
+      CorrGameScreen(
+        game: game,
+        service: CorrespondenceService(widget.online.client),
+        myPseudo: widget.online.pseudo ?? T('Moi'),
+      ),
+    );
+    if (mounted) await _load();
+  }
 
   List<Widget> _selfSettings(Profile profile) => [
     _title(T('Adresse mail')),
@@ -462,65 +579,75 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _description(Profile profile) => Text(
-    profile.description.isEmpty
-        ? T('(Aucune description)')
-        : profile.description,
-    style: TextStyle(
-      color: profile.description.isEmpty ? Colors.white38 : Colors.white70,
-      fontStyle: profile.description.isEmpty
-          ? FontStyle.italic
-          : FontStyle.normal,
-    ),
-  );
-
-  List<Widget> _people(
-    List<Person> people,
-    String empty, {
-    bool unblockable = false,
+  /// Une liste de gens : chaque nom est une TOUCHE qui ouvre LA fiche.
+  ///
+  /// Nino : « les noms des "le suivent" et "suivis" doivent être des boutons
+  /// cliquables affichant le popup qu'on a branché partout tout à l'heure. »
+  /// Ils menaient jusqu'ici à leur profil, ce qui empilait les profils les uns
+  /// sur les autres ; la fiche, elle, y mène par sa touche « Profil » et offre
+  /// le reste au passage.
+  List<Widget> _gens(
+    List<Person> gens,
+    String vide,
+    ThemePalette palette, {
+    bool debloquer = false,
   }) {
-    if (people.isEmpty) {
+    if (gens.isEmpty) {
       return [
         Text(
-          empty,
+          vide,
           style: TextStyle(color: Colors.white38, fontSize: SF(12)),
         ),
       ];
     }
     return [
-      for (final p in people)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          leading: Icon(
-            p.online ? Icons.circle : Icons.circle_outlined,
-            size: S(12),
-            color: p.online ? Colors.greenAccent : Colors.white30,
-          ),
-          title: Text(
-            p.pseudo,
-            style: TextStyle(color: Colors.white, fontSize: SF(13)),
-          ),
-          subtitle: Text(
-            T('Mélo : %d').replaceAll('%d', '${p.melo}'),
-            style: TextStyle(color: Colors.white38, fontSize: SF(11)),
-          ),
-          trailing: unblockable
-              ? TextButton(
-                  onPressed: () => _unblock(p.pseudo),
-                  child: Text(T('Débloquer')),
-                )
-              : null,
-          onTap: unblockable
-              ? null
-              : () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        AccountScreen(online: widget.online, pseudo: p.pseudo),
+      for (final p in gens)
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: S(3)),
+          child: Row(
+            children: [
+              Icon(
+                p.online ? Icons.circle : Icons.circle_outlined,
+                size: S(12),
+                color: p.online ? Colors.greenAccent : Colors.white30,
+              ),
+              SizedBox(width: S(8)),
+              Expanded(
+                child: FugaButton(
+                  text: '${p.pseudo}   ${p.melo}',
+                  fontSize: SF(14),
+                  height: touchHeight() * 0.8,
+                  onPressed: () => _fiche(p.pseudo, palette),
+                ),
+              ),
+              if (debloquer) ...[
+                SizedBox(width: S(8)),
+                SizedBox(
+                  width: S(96),
+                  child: FugaButton(
+                    text: T('Débloquer'),
+                    fontSize: SF(13),
+                    height: touchHeight() * 0.8,
+                    onPressed: () => _unblock(p.pseudo),
                   ),
                 ),
+              ],
+            ],
+          ),
         ),
     ];
+  }
+
+  /// LA fiche, celle qui s'ouvre partout ailleurs — et le défi qu'elle peut
+  /// lancer.
+  Future<void> _fiche(String pseudo, ThemePalette palette) async {
+    final cible = await showPlayerCard(
+      context,
+      online: widget.online,
+      palette: palette,
+      pseudo: pseudo,
+    );
+    if (cible != null) await DefiRelais.defier(cible);
   }
 
   Widget _title(String text) => Padding(
@@ -568,10 +695,48 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
+  /// Est-il bloqué ? Comme pour l'étoile : l'état du profil chargé, puis mes
+  /// propres bascules.
+  bool get _bloque => _bloqueLocal ?? (_profile?.isBlocked ?? false);
+  bool? _bloqueLocal;
+
+  /// Bloque ou débloque, et le dit.
+  Future<void> _basculerBlocage() async {
+    final profile = _profile;
+    if (profile == null || profile.isSelf) return;
+    final etait = _bloque;
+    final r = etait
+        ? await widget.online.client.unblockUser(profile.pseudo)
+        : await widget.online.client.blockUser(profile.pseudo);
+    if (!mounted) return;
+    if (r.isOk) setState(() => _bloqueLocal = !etait);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          r.isOk
+              ? (etait ? T('%s débloqué.') : T('%s bloqué.')).replaceFirst(
+                  '%s',
+                  profile.pseudo,
+                )
+              : T('Erreur : %s').replaceFirst('%s', r.error ?? ''),
+        ),
+      ),
+    );
+  }
+
   /// Les boutons du profil, tels que Kivy les dessine : pleins, gris, sans
   /// icône.
-  Widget _action(String label, VoidCallback onTap) => Padding(
+  Widget _action(
+    String label,
+    VoidCallback onTap, {
+    Color couleur = kFugaGrey,
+  }) => Padding(
     padding: EdgeInsets.symmetric(vertical: S(4)),
-    child: FugaButton(text: label, fontSize: SF(14), onPressed: onTap),
+    child: FugaButton(
+      text: label,
+      color: couleur,
+      fontSize: SF(14),
+      onPressed: onTap,
+    ),
   );
 }
