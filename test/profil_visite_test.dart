@@ -245,6 +245,28 @@ void main() {
       },
     );
 
+    testWidgets('les mélos sont SOUS le pseudo', (tester) async {
+      reponses['/get_profile'] = profil();
+      await ouvrir(tester);
+
+      final melos = find.textContaining('1530');
+      expect(melos, findsOneWidget);
+      expect(find.textContaining('1500'), findsOneWidget);
+
+      final nom = tester.getRect(find.text('mesange'));
+      final classement = tester.getRect(melos);
+      expect(
+        classement.top,
+        greaterThanOrEqualTo(nom.bottom - 1),
+        reason: 'sous le pseudo, pas à côté',
+      );
+      // Et au-dessus de la devise : pseudo, mélos, devise.
+      expect(
+        classement.bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(BulleDevise)).top + 1),
+      );
+    });
+
     testWidgets('l étoile paraît sur le profil d un favori', (tester) async {
       FavorisConnus.instance.retiens('mesange', true);
       reponses['/get_profile'] = profil()..['is_favorite'] = true;

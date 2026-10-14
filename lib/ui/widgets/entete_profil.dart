@@ -28,8 +28,11 @@ import 'texte_remplissant.dart';
 /// Côté de la photo. Le reste du bandeau s'organise autour.
 double hauteurPhotoProfil() => S(116);
 
-/// Hauteur du bandeau : la photo et ses marges.
-double hauteurEnteteProfil() => hauteurPhotoProfil() + 2 * S(12);
+/// Hauteur du bandeau : la photo, ses marges, et la ligne des mélos.
+///
+/// La colonne de droite est donc un peu plus haute que la photo — c'est ce
+/// qui laisse sa place au classement sans rogner la devise.
+double hauteurEnteteProfil() => hauteurPhotoProfil() + 2 * S(12) + S(20);
 
 class EnteteProfil extends StatelessWidget {
   const EnteteProfil({
@@ -37,6 +40,8 @@ class EnteteProfil extends StatelessWidget {
     required this.pseudo,
     required this.photo,
     required this.devise,
+    required this.melo,
+    required this.meloRandom,
     required this.theme,
     required this.palette,
     required this.favori,
@@ -49,6 +54,10 @@ class EnteteProfil extends StatelessWidget {
 
   /// Sa devise — la `description` du serveur. Vide : la bulle le dit.
   final String devise;
+
+  /// Ses deux classements, écrits sous le pseudo.
+  final int melo;
+  final int meloRandom;
 
   /// Le thème de MENU de la personne : c'est son décor qu'on montre.
   final String theme;
@@ -81,7 +90,9 @@ class EnteteProfil extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(height: S(34), child: _nom()),
-                      SizedBox(height: S(8)),
+                      SizedBox(height: S(4)),
+                      SizedBox(height: S(16), child: _melos()),
+                      SizedBox(height: S(6)),
                       Expanded(child: _devise()),
                     ],
                   ),
@@ -174,6 +185,19 @@ class EnteteProfil extends StatelessWidget {
         ),
       ),
     ],
+  );
+
+  /// Les deux classements, sous le pseudo — comme sur la fiche du joueur.
+  Widget _melos() => TexteRemplissant(
+    '${T("Mélo : %d").replaceAll('%d', '$melo')}'
+    '   ·   '
+    '${T("Random : %d").replaceAll('%d', '$meloRandom')}',
+    style: TextStyle(
+      color: _encre.withValues(alpha: 0.85),
+      fontWeight: FontWeight.bold,
+    ),
+    tailleMin: SF(9),
+    tailleMax: SF(14),
   );
 
   Widget _devise() {

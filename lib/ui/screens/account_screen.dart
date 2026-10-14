@@ -430,6 +430,8 @@ class _AccountScreenState extends State<AccountScreen> {
       pseudo: profile.pseudo,
       photo: profile.photo,
       devise: profile.description,
+      melo: profile.melo,
+      meloRandom: profile.meloRandom,
       theme: _axes.menu,
       palette: palette,
       favori: !profile.isSelf && _favori,
