@@ -28,6 +28,7 @@ import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/message_rapide.dart';
 import '../widgets/bulles_en_jeu.dart';
 import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
@@ -255,8 +256,34 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
+    unawaited(_mesMots.close());
     _sounds.dispose();
     super.dispose();
+  }
+
+  /// Ce que J'ÉCRIS depuis le plateau, pour que ça paraisse aussitôt dans la
+  /// bande des bulles — comme un message reçu, mais à droite et à ma couleur.
+  final StreamController<String> _mesMots =
+      StreamController<String>.broadcast();
+
+  /// Un mot à l'adversaire, sans quitter le plateau des yeux.
+  ///
+  /// Le même geste qu'en partie en direct, et le même envoi : `sendMessage`,
+  /// comme la boîte de messages. Une partie de correspondance se joue sur
+  /// plusieurs jours — raison de plus pour pouvoir dire un mot sans ouvrir
+  /// la conversation.
+  Future<void> _messageRapide(ThemePalette palette) async {
+    final texte = await ouvrirMessageRapide(context, palette: palette);
+    if (texte == null || !mounted) return;
+    _mesMots.add(texte);
+    final r = await OnlineService.instance.client.sendMessage(
+      _g.opponent,
+      texte,
+    );
+    if (!mounted || r.isOk) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
   }
 
   /// Rejoue l'historique pour retrouver la position courante.
@@ -741,6 +768,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                   flux: OnlineService.instance.messages.incoming
                       .where((m) => m.from == widget.game.opponent)
                       .map((m) => m.text),
+                  // Et les miens, écrits depuis le plateau : même bande,
+                  // même durée, à droite.
+                  miens: _mesMots.stream,
                   palette: _paletteDeLAdversaire,
                 ),
                 topBar: _bar(palette, flipped),
@@ -1056,6 +1086,12 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       onDrawBlocked: _expliquerNulle,
       drawOffered: isMine && _g.drawOfferedByMe,
       onResign: canAct ? _resign : null,
+      // Écrire n'est pas jouer : la touche reste là partie finie, mais JAMAIS
+      // en visiteur — ce serait sa conversation avec son adversaire, et on
+      // ne lui écrit pas depuis sa propre partie.
+      onMessageRapide: (isMine && !widget.visiteur)
+          ? () => unawaited(_messageRapide(palette))
+          : null,
     );
   }
 }

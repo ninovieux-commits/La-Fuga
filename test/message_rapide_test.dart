@@ -22,10 +22,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/game/clock.dart';
+import 'package:lafuga/game/correspondence.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
+import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/online_game_screen.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
@@ -405,6 +407,96 @@ void main() {
 
       expect(appels.where((a) => a.path == '/send_message'), isEmpty);
       expect(find.byType(MessageBubble), findsNothing);
+    });
+  });
+
+  group('En CORRESPONDANCE aussi', () {
+    // Nino : « je le veux aussi en correspondance. » Une partie de
+    // correspondance se joue sur plusieurs jours — raison de plus pour
+    // pouvoir dire un mot sans ouvrir la conversation.
+
+    late List<({String path, Map<String, dynamic> corps})> appels;
+    late OnlineClient client;
+
+    Map<String, dynamic> partieJson() => const {
+      'id': 'g1',
+      'statut': 'en_cours',
+      'adversaire': 'Ana',
+      'adversaire_melo': 1600,
+      'ma_couleur': 'Blanc',
+      'turn': 'Blanc',
+      'my_turn': true,
+      'mon_score': 0,
+      'score_adverse': 0,
+      'objectif': 'partie',
+      'moves_text': '',
+      'is_defieur': false,
+    };
+
+    setUp(() async {
+      appels = [];
+      client = OnlineClient(
+        api: ApiClient(
+          client: MockClient((req) async {
+            appels.add((
+              path: req.url.path,
+              corps: Map<String, dynamic>.from(jsonDecode(req.body) as Map),
+            ));
+            return http.Response(
+              jsonEncode({'ok': true, 'token': 't', 'pseudo': 'nino'}),
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }),
+        ),
+      );
+      final online = OnlineService(client: client);
+      await online.client.login('nino', 'mdp');
+      final precedent = OnlineService.instance;
+      OnlineService.instance = online;
+      addTearDown(() => OnlineService.instance = precedent);
+    });
+
+    Future<void> ouvre(WidgetTester tester, {bool visiteur = false}) async {
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CorrGameScreen(
+            game: CorrGame.fromJson(partieJson()),
+            service: CorrespondenceService(client),
+            myPseudo: 'nino',
+            visiteur: visiteur,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('la touche est là, et le message part', (tester) async {
+      await ouvre(tester);
+      expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'à toi de jouer');
+      await tester.tap(find.text(T('Envoyer')));
+      await tester.pumpAndSettle();
+
+      final envoi = appels.where((a) => a.path == '/send_message').toList();
+      expect(envoi.length, 1);
+      expect(envoi.single.corps['pseudo'], 'Ana');
+      expect(envoi.single.corps['text'], 'à toi de jouer');
+      expect(find.text('à toi de jouer'), findsOneWidget);
+    });
+
+    testWidgets('mais JAMAIS en visiteur', (tester) async {
+      // « Ne peut pas intervenir ni voir la boîte de message » : on regarde
+      // jouer deux autres personnes, on ne s invite pas dans leur
+      // conversation.
+      await ouvre(tester, visiteur: true);
+      expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
     });
   });
 }
