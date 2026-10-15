@@ -130,7 +130,9 @@ void main() {
       findsOneWidget,
       reason: 'la devise est DANS la bulle',
     );
-    expect(find.text('Revenir au menu'), findsOneWidget);
+    // « Retour » : cette touche rend l'écran d'où l'on vient, qui n'est
+    // le menu que lorsqu'on y est entré par le menu.
+    expect(find.text('Retour'), findsOneWidget);
     expect(find.text('Se déconnecter'), findsOneWidget);
   });
 

@@ -44,6 +44,7 @@ import '../widgets/draw_offer_panel.dart';
 import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
 import '../../game/premove.dart';
+import '../retour_menu.dart';
 import '../scale.dart';
 import 'premove_screen.dart';
 import 'conversations_screen.dart';
@@ -601,7 +602,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       body: _verdictOf(result),
       winner: _winnerOf(result),
       onMenu: () {
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) retourAuMenu(context);
       },
     );
   }
@@ -921,7 +922,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       // chaque actualisation et [Ok] ne servirait à rien.
       await widget.service.premoveSeen(_g.id);
       if (!mounted) return;
-      if (auMenu == true) Navigator.of(context).pop();
+      if (auMenu == true) retourAuMenu(context);
     });
   }
 
@@ -1047,7 +1048,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     // La touche « Retour au menu » apparaît dès que la partie est finie,
     // que ce soit par le serveur ou par le coup qu'on vient de jouer.
     onMenu: (_g.status == CorrStatus.termine || _finished)
-        ? () => Navigator.of(context).pop()
+        ? () => retourAuMenu(context)
         : null,
   );
 
@@ -1069,7 +1070,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     if (!mounted) return;
     _sounds.applySettings();
     setState(() {});
-    if (leave) Navigator.of(context).pop();
+    if (leave) retourAuMenu(context);
   }
 
   /// Le panneau d'un joueur, comme en partie en ligne. La correspondance n'a

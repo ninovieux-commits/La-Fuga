@@ -32,6 +32,7 @@ import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
+import '../retour_menu.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
@@ -947,7 +948,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     // En analyse, il n'y a rien à suspendre : la touche ramène au menu.
     pauseLabel: widget.analysis ? '<<' : '| |',
     onPause: widget.analysis ? () => Navigator.of(context).pop() : _openPause,
-    onMenu: _game.gameOver ? () => Navigator.of(context).pop() : null,
+    onMenu: _game.gameOver ? () => retourAuMenu(context) : null,
     // En analyse, la position qu'on regarde se copie : c'est elle qu'on
     // emporte pour la rejouer ailleurs, ou pour en faire un défi.
     onCopyFug: widget.analysis
@@ -994,7 +995,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
     // changer, et le changement doit s'entendre dès le coup suivant.
     _sounds.applySettings();
     setState(() {});
-    if (left) Navigator.of(context).pop();
+    if (left) retourAuMenu(context);
   }
 
   /// LA fiche du joueur, et le défi qu'elle peut lancer.
@@ -1098,7 +1099,7 @@ class _GameScreenState extends State<GameScreen> with SlideAnimation {
           body: _matchVerdict ?? _match.scoreLine,
           winner: _lastWinner,
           onMenu: () {
-            if (mounted) Navigator.of(context).pop();
+            if (mounted) retourAuMenu(context);
           },
         ),
       );

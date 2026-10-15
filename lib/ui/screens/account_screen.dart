@@ -291,7 +291,12 @@ class _AccountScreenState extends State<AccountScreen> {
                 Expanded(
                   flex: (profile?.isSelf ?? false) ? 6 : 10,
                   child: FugaButton(
-                    text: T('Revenir au menu'),
+                    // « RETOUR », et non « revenir au menu » : cette touche
+                    // rend l'écran d'où l'on vient, qui n'est le menu que
+                    // lorsqu'on y est entré par le menu. La fiche d'un joueur
+                    // ouvre ce profil depuis une partie, une conversation,
+                    // l'historique — y promettre le menu serait faux.
+                    text: T('Retour'),
                     color: palette.clair,
                     fontSize: SF(15),
                     height: double.infinity,

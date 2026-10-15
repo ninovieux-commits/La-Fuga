@@ -30,6 +30,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import 'conversations_screen.dart';
+import '../retour_menu.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
@@ -518,9 +519,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
               _g.info.opponent,
             ),
             onPause: _openPause,
-            onMenu: _g.endReason != null
-                ? () => Navigator.of(context).pop()
-                : null,
+            onMenu: _g.endReason != null ? () => retourAuMenu(context) : null,
           ),
           topPanel: _banner(palette, topCamp),
           board: GameBoardView(
@@ -790,7 +789,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                   .replaceFirst('%s', delta >= 0 ? '+' : '')
                   .replaceFirst('%d', '$delta'),
         onMenu: () {
-          if (mounted) Navigator.of(context).pop();
+          if (mounted) retourAuMenu(context);
         },
       ),
     );

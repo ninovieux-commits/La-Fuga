@@ -421,7 +421,7 @@ void main() {
       await ouvrir(tester);
 
       final retour = tester.widget<FugaButton>(
-        find.widgetWithText(FugaButton, T('Revenir au menu')),
+        find.widgetWithText(FugaButton, T('Retour')),
       );
       expect(retour.color, paletteOf(kSonTheme).clair);
       expect(
@@ -440,7 +440,7 @@ void main() {
       await ouvrir(tester, pseudo: null);
 
       final retour = tester.widget<FugaButton>(
-        find.widgetWithText(FugaButton, T('Revenir au menu')),
+        find.widgetWithText(FugaButton, T('Retour')),
       );
       expect(retour.color, paletteOf(kMonTheme).clair);
     });
@@ -642,11 +642,13 @@ void main() {
       expect(
         tester.getRect(favori).top,
         greaterThan(tester.getRect(histoire).top),
-        reason: 'entre les historiques et « Revenir au menu »',
+        reason: 'entre les historiques et « Retour »',
       );
       expect(
         tester.getRect(favori).top,
-        lessThan(tester.getRect(find.text(T('Revenir au menu'))).top),
+        lessThan(
+          tester.getRect(find.widgetWithText(FugaButton, T('Retour'))).top,
+        ),
       );
     });
 
