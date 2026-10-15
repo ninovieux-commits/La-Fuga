@@ -12,6 +12,14 @@ import '../scale.dart';
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 
+/// Opacité d'une touche HORS SERVICE — le signe, partout dans l'application.
+///
+/// Nino : « effet pâlissant comme les autres touches. » C'est celui des
+/// flèches du bandeau des coups depuis toujours ; les hachures l'ont remplacé
+/// le temps d'un essai, et c'est lui qui reste. Une seule valeur, pour que
+/// deux touches éteintes ne pâlissent jamais différemment.
+const double kOpaciteEteinte = 0.35;
+
 class FugaButton extends StatelessWidget {
   const FugaButton({
     super.key,
@@ -80,6 +88,13 @@ class FugaButton extends StatelessWidget {
         ),
       ),
     );
-    return SizedBox(height: height ?? comfortableHeight, child: button);
+    return SizedBox(
+      height: height ?? comfortableHeight,
+      // Sans geste, la touche PÂLIT. Aucun appelant n'a à y penser : une
+      // touche sans `onPressed` est une touche éteinte, et elle se voit.
+      child: onPressed == null
+          ? Opacity(opacity: kOpaciteEteinte, child: button)
+          : button,
+    );
   }
 }

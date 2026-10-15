@@ -433,11 +433,12 @@ void main() {
 /// La touche « Défier » est-elle visiblement hors service ?
 ///
 /// Elle s'est hachurée le temps d'un essai. Nino, les hachures vues en vrai :
-/// « on vire tout, on remet comme c'était avant, partout. » Hors service,
-/// elle PÂLIT, comme les flèches du bandeau des coups.
+/// « on vire tout » puis « effet pâlissant comme les autres touches ». Hors
+/// service, toute `FugaButton` pâlit d'elle-même — la pâleur vit DANS la
+/// touche, on la cherche donc parmi ses enfants.
 bool defierPalie(WidgetTester tester) => tester
     .widgetList<Opacity>(
-      find.ancestor(
+      find.descendant(
         of: find.widgetWithText(FugaButton, T('Défier')),
         matching: find.byType(Opacity),
       ),

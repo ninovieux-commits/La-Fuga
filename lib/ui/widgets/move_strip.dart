@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import 'game_top_bar.dart';
 
 class MoveStrip extends StatefulWidget {
@@ -184,10 +185,11 @@ class _MoveStripState extends State<MoveStrip> {
 
   /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
   ///
-  /// Sans geste, elle PÂLIT. Elle a porté des hachures le temps d'un essai ;
-  /// Nino, les ayant vues en vrai, a demandé qu'on revienne à ceci.
+  /// Sans geste, elle PÂLIT — de la pâleur commune à toutes les touches
+  /// éteintes de l'application. Elle a porté des hachures le temps d'un
+  /// essai ; Nino, les ayant vues en vrai, a demandé qu'on revienne à ceci.
   Widget _arrow(String label, VoidCallback? onPressed) => Opacity(
-    opacity: onPressed == null ? 0.35 : 1,
+    opacity: onPressed == null ? kOpaciteEteinte : 1,
     child: AspectRatio(
       aspectRatio: 1,
       child: Material(

@@ -350,13 +350,12 @@ class _PlayerCardState extends State<_PlayerCard> {
       fontSize: SF(15),
       onPressed: horsService ? null : onPressed,
     );
+    // Hors service, elle pâlit — mais ce n'est pas ici que ça se décide :
+    // `FugaButton` pâlit de lui-même dès qu'il n'a plus de geste. Ici on ne
+    // fait que lui retirer le geste.
     return Padding(
       padding: EdgeInsets.only(bottom: S(8)),
-      // Hors service, la touche PÂLIT — comme les flèches du bandeau des
-      // coups, et comme tout ce qui est hors d'usage dans l'application.
-      // Elle s'est hachurée le temps d'un essai ; Nino, les hachures vues en
-      // vrai : « on vire tout, on remet comme c'était avant, partout. »
-      child: horsService ? Opacity(opacity: 0.35, child: bouton) : bouton,
+      child: bouton,
     );
   }
 }

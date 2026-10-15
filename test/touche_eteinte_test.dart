@@ -1,0 +1,185 @@
+/// Une touche HORS SERVICE se voit — et de la même façon partout.
+///
+/// Elle s'est hachurée le temps d'un essai. Nino, les hachures vues sur son
+/// téléphone : « on vire tout, on remet comme c'était avant, partout. Là
+/// c'est moche de fou », puis « effet pâlissant comme les autres touches ».
+///
+/// Le signe est donc la PÂLEUR, à une seule valeur — `kOpaciteEteinte` —,
+/// posée dans la touche elle-même pour qu'aucun appelant n'ait à y penser.
+/// Le ½ du bandeau de joueur garde son signe à lui, plus ancien : il se fond
+/// à moitié dans son panneau, parce qu'il doit rester touchable pour dire ce
+/// qui manque.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/i18n/translations.dart';
+import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/move_strip.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({
+      'lang_chosen': true,
+      'tuto_seen': true,
+    });
+    await Settings.load();
+    await Translations.load('fr');
+    setScaleSize(const Size(393, 851));
+  });
+  tearDown(resetScale);
+
+  Future<void> montre(WidgetTester tester, Widget enfant) async {
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: Center(child: enfant)),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// L'opacité appliquée autour de [quoi] — 1 si rien ne la pâlit.
+  double paleurAutourDe(WidgetTester tester, Finder quoi) {
+    final voiles = tester.widgetList<Opacity>(
+      find.ancestor(of: quoi, matching: find.byType(Opacity)),
+    );
+    return voiles.isEmpty
+        ? 1
+        : voiles.map((o) => o.opacity).reduce((a, b) => a < b ? a : b);
+  }
+
+  group('Une touche ordinaire', () {
+    testWidgets('sans geste, elle PÂLIT', (tester) async {
+      await montre(tester, const FugaButton(text: 'Défier', onPressed: null));
+      expect(
+        paleurAutourDe(tester, find.text('Défier')),
+        kOpaciteEteinte,
+        reason: 'une touche éteinte doit se voir',
+      );
+    });
+
+    testWidgets('avec un geste, elle est pleine', (tester) async {
+      await montre(tester, FugaButton(text: 'Défier', onPressed: () {}));
+      expect(paleurAutourDe(tester, find.text('Défier')), 1);
+    });
+
+    testWidgets('et la pâleur ne mange pas le toucher', (tester) async {
+      // Éteinte, rien ne doit se passer — mais rien ne doit planter non plus.
+      await montre(tester, const FugaButton(text: 'Défier', onPressed: null));
+      await tester.tap(find.byType(FugaButton));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Les flèches du bandeau des coups', () {
+    Future<void> bandeau(
+      WidgetTester tester, {
+      required List<String> coups,
+      required int? actif,
+    }) => montre(
+      tester,
+      SizedBox(
+        height: 60,
+        width: 393,
+        child: MoveStrip(
+          moves: coups,
+          activeIndex: actif,
+          color: paletteOf('original').clair,
+          palette: paletteOf('original'),
+          onSelect: (_) {},
+        ),
+      ),
+    );
+
+    testWidgets('sans coup joué, les DEUX pâlissent', (tester) async {
+      await bandeau(tester, coups: const [], actif: null);
+      expect(paleurAutourDe(tester, find.text('<')), kOpaciteEteinte);
+      expect(paleurAutourDe(tester, find.text('>')), kOpaciteEteinte);
+    });
+
+    testWidgets('au présent, seule la droite pâlit', (tester) async {
+      // On peut reculer, on ne peut pas avancer : `activeIndex` nul dit
+      // qu'on est au dernier coup.
+      await bandeau(tester, coups: const ['Do2-Do3', 'Do7-Do6'], actif: null);
+      expect(paleurAutourDe(tester, find.text('>')), kOpaciteEteinte);
+      expect(paleurAutourDe(tester, find.text('<')), 1);
+    });
+
+    testWidgets('en revoyant un coup, les deux sont pleines', (tester) async {
+      await bandeau(tester, coups: const ['Do2-Do3', 'Do7-Do6'], actif: 1);
+      expect(paleurAutourDe(tester, find.text('<')), 1);
+      expect(paleurAutourDe(tester, find.text('>')), 1);
+    });
+
+    testWidgets('et c est la MÊME pâleur que celle des touches', (
+      tester,
+    ) async {
+      // Deux valeurs voisines se verraient côte à côte à l'écran. Il n'y en
+      // a qu'une, et les deux endroits la lisent au même endroit.
+      await bandeau(tester, coups: const [], actif: null);
+      await montre(tester, const FugaButton(text: 'Défier', onPressed: null));
+      expect(paleurAutourDe(tester, find.text('Défier')), kOpaciteEteinte);
+    });
+  });
+
+  group('Le ½ du bandeau de joueur', () {
+    Future<void> panneau(
+      WidgetTester tester, {
+      required bool actif,
+      VoidCallback? bloque,
+    }) => montre(
+      tester,
+      SizedBox(
+        height: 120,
+        width: 393,
+        child: PlayerPanel(
+          name: 'nino',
+          clock: '∞',
+          palette: paletteOf('original'),
+          isWhite: true,
+          isTurn: true,
+          captures: const [],
+          drawEnabled: actif,
+          onDraw: () {},
+          onDrawBlocked: bloque,
+        ),
+      ),
+    );
+
+    Color? encreDu(WidgetTester tester, String label) =>
+        tester.widget<Text>(find.text(label)).style?.color;
+
+    testWidgets('éteint, son libellé pâlit', (tester) async {
+      await panneau(tester, actif: false);
+      expect(find.text('½'), findsOneWidget);
+      expect(encreDu(tester, '½'), Colors.white54);
+    });
+
+    testWidgets('allumé, il est franc', (tester) async {
+      await panneau(tester, actif: true);
+      expect(encreDu(tester, '½'), Colors.white);
+    });
+
+    testWidgets('et il reste touchable, pour dire ce qui manque', (
+      tester,
+    ) async {
+      // Éteint, le ½ répond quand même — par `onDrawBlocked`, qui explique.
+      var explique = 0;
+      await panneau(tester, actif: false, bloque: () => explique++);
+      await tester.tap(find.text('½'));
+      await tester.pumpAndSettle();
+      expect(explique, 1);
+    });
+  });
+}
