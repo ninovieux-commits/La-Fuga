@@ -77,6 +77,15 @@ const Duration kBulleEnJeuDuree = Duration(seconds: 7);
 /// Le temps que met la vue à glisser jusqu'au dernier message.
 const Duration kBulleEnJeuGlissee = Duration(milliseconds: 220);
 
+/// Le temps que met une bulle neuve à MONTER depuis le bas de la bande.
+///
+/// Nino, après l'avoir vue sauter : « et oui je voudrais une glissée. »
+/// Quand la place est libre, il n'y a rien à faire DÉFILER — la vue ne bouge
+/// pas, c'est la colonne qui se réarrange. La glissée vient donc de la bulle
+/// elle-même : elle grandit depuis le bas, et ce qu'elle prend de hauteur,
+/// elle le prend aux précédentes, qui montent d'autant.
+const Duration kBulleEnJeuMontee = Duration(milliseconds: 180);
+
 class BullesEnJeu extends StatefulWidget {
   const BullesEnJeu({
     super.key,
@@ -151,9 +160,11 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
     if (!mounted || texte.trim().isEmpty) return;
     final venue = _Affiche(texte, deMoi: deMoi);
     venue.mort = Timer(widget.duree, () => _retire(venue));
+    // Le dernier arrivé se montrera par son début — mais une fois MONTÉ,
+    // c'est-à-dire depuis `onEnd` de sa montée. Viser pendant qu'il grandit,
+    // c'est viser une boîte encore vide : la vue ne bouge pas, et la bulle
+    // finit sa montée SOUS le bandeau, hors de vue. Mesuré.
     setState(() => _bulles.add(venue));
-    // Le dernier arrivé se montre, par son début.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _montre(venue));
   }
 
   void _retire(_Affiche b) {
@@ -212,22 +223,56 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   for (final b in _bulles)
-                    Padding(
-                      key: b.cle,
-                      padding: EdgeInsets.only(bottom: S(4)),
-                      child: Align(
-                        // Reçu à gauche, envoyé à droite : la disposition de
-                        // la boîte de messages, puisque c'en sont.
-                        alignment: b.deMoi
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: MessageBubble(
-                          texte: b.texte,
-                          // La couleur et l'écriture que ce message aurait
-                          // dans la boîte de messages.
-                          deMoi: b.deMoi,
-                          palette: widget.palette,
-                          selectionnable: false,
+                    // LA GLISSÉE. La bulle neuve grandit depuis son bas :
+                    // `heightFactor` dit quelle part de sa hauteur elle
+                    // occupe, le `ClipRect` cache le reste, et la colonne
+                    // étant alignée sur sa fin, tout ce qu'elle gagne, les
+                    // précédentes le montent. Une seule bulle bouge, et
+                    // quatre remontent sans qu'on s'en occupe.
+                    TweenAnimationBuilder<double>(
+                      // L'identité de la bulle DANS LA LISTE : sans elle, une
+                      // bulle qui s'efface décale les suivantes d'un cran et
+                      // relance leur montée alors qu'elles sont déjà là.
+                      //
+                      // Ce n'est PAS la clé que vise le défilement : celle-là
+                      // reste plus bas, sur une boîte qui existe vraiment.
+                      // Posée ici, `Scrollable.ensureVisible` n'avait plus
+                      // rien à viser et la vue ne bougeait plus — quatre
+                      // bulles s'empilaient sous le bandeau, hors de vue.
+                      key: ObjectKey(b),
+                      tween: Tween<double>(begin: 0, end: 1),
+                      duration: kBulleEnJeuMontee,
+                      curve: Curves.easeOut,
+                      // Montée finie : on amène son début sous les yeux, à
+                      // l'image SUIVANTE — celle où sa hauteur est enfin
+                      // celle qu'elle gardera.
+                      onEnd: () => WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => _montre(b),
+                      ),
+                      builder: (context, part, enfant) => ClipRect(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          heightFactor: part,
+                          child: enfant,
+                        ),
+                      ),
+                      child: Padding(
+                        key: b.cle,
+                        padding: EdgeInsets.only(bottom: S(4)),
+                        child: Align(
+                          // Reçu à gauche, envoyé à droite : la disposition de
+                          // la boîte de messages, puisque c'en sont.
+                          alignment: b.deMoi
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: MessageBubble(
+                            texte: b.texte,
+                            // La couleur et l'écriture que ce message aurait
+                            // dans la boîte de messages.
+                            deMoi: b.deMoi,
+                            palette: widget.palette,
+                            selectionnable: false,
+                          ),
                         ),
                       ),
                     ),

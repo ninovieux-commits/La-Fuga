@@ -208,6 +208,43 @@ void main() {
       );
     });
 
+    testWidgets('le premier GLISSE vers le haut, il ne saute pas', (
+      tester,
+    ) async {
+      // Nino, l'ayant vu sauter : « et oui je voudrais une glissée. » La
+      // bulle neuve grandit depuis le bas, et ce qu'elle prend de hauteur,
+      // les précédentes le montent — progressivement, donc.
+      //
+      // On relève TROIS positions successives pendant la montée, et on exige
+      // qu'elles décroissent strictement. Un saut les rendrait toutes égales
+      // — et c'est le seul relevé qui ne dépende pas de l'image exacte où
+      // l'horloge de l'animation démarre.
+      await seule(tester);
+      flux.add('Premier');
+      await tester.pumpAndSettle();
+
+      flux.add('Second');
+      await tester.pump();
+      final tiers = kBulleEnJeuMontee ~/ 3;
+      await tester.pump(tiers);
+      final tot = tester.getRect(find.text('Premier')).top;
+      await tester.pump(tiers);
+      final tard = tester.getRect(find.text('Premier')).top;
+      await tester.pumpAndSettle();
+      final arrivee = tester.getRect(find.text('Premier')).top;
+
+      expect(
+        tard,
+        lessThan(tot - 0.5),
+        reason: 'il doit déjà être EN TRAIN de monter',
+      );
+      expect(
+        arrivee,
+        lessThan(tard - 0.5),
+        reason: 'et il monte encore : d un saut, tout serait déjà fini',
+      );
+    });
+
     testWidgets('quand ça déborde, la bande est pleine du haut en bas', (
       tester,
     ) async {

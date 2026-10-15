@@ -262,13 +262,7 @@ void main() {
 
       final bulle = tester.widget<MessageBubble>(find.byType(MessageBubble));
       expect(bulle.deMoi, isTrue, reason: 'c est moi qui l ai écrit');
-      final aligne = tester.widget<Align>(
-        find.ancestor(
-          of: find.byType(MessageBubble),
-          matching: find.byType(Align),
-        ),
-      );
-      expect(aligne.alignment, Alignment.centerRight);
+      expect(coteDeLaBulle(tester), Alignment.centerRight);
     });
 
     testWidgets('le reçu reste à gauche, et à sa couleur', (tester) async {
@@ -280,13 +274,7 @@ void main() {
         tester.widget<MessageBubble>(find.byType(MessageBubble)).deMoi,
         isFalse,
       );
-      final aligne = tester.widget<Align>(
-        find.ancestor(
-          of: find.byType(MessageBubble),
-          matching: find.byType(Align),
-        ),
-      );
-      expect(aligne.alignment, Alignment.centerLeft);
+      expect(coteDeLaBulle(tester), Alignment.centerLeft);
     });
 
     testWidgets('et il s efface au bout du même temps', (tester) async {
@@ -420,3 +408,19 @@ void main() {
     });
   });
 }
+
+/// De quel CÔTÉ la bulle est rangée.
+///
+/// On ne prend pas le premier `Align` venu : la montée d'une bulle neuve en
+/// pose un autre au-dessus, pour sa hauteur. Celui qu'on cherche est celui
+/// qui range à gauche ou à droite, et on le nomme ainsi.
+Alignment coteDeLaBulle(WidgetTester tester) => tester
+    .widgetList<Align>(
+      find.ancestor(
+        of: find.byType(MessageBubble),
+        matching: find.byType(Align),
+      ),
+    )
+    .map((a) => a.alignment)
+    .whereType<Alignment>()
+    .firstWhere((a) => a == Alignment.centerLeft || a == Alignment.centerRight);
