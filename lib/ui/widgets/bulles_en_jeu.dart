@@ -18,6 +18,18 @@
 /// La photo reste visible à gauche : les bulles commencent après elle, comme
 /// sur le dessin.
 ///
+/// ## Les miens y passent aussi
+///
+/// Un message écrit depuis le plateau — la touche à bulle du bandeau du bas —
+/// paraît ici de la même façon, à droite et à ma couleur, exactement comme
+/// dans la boîte de messages. Nino : « il apparaît du coup sur la partie
+/// quelques secondes comme n'importe quel autre message. Il est écrit d'un
+/// autre endroit mais doit être traité de la même manière. »
+///
+/// Sans cela, écrire depuis le plateau ne montrerait RIEN : il faudrait
+/// ouvrir la conversation pour savoir si le message est parti, ce qui est
+/// précisément ce que cette touche évite.
+///
 /// ## Les messages s'empilent PAR LE BAS
 ///
 /// Nino : « lorsque celle-ci est petite, qu'elle soit en bas du bandeau et
@@ -70,11 +82,16 @@ class BullesEnJeu extends StatefulWidget {
     super.key,
     required this.flux,
     required this.palette,
+    this.miens,
     this.duree = kBulleEnJeuDuree,
   });
 
   /// Les textes reçus de l'adversaire de CETTE partie.
   final Stream<String> flux;
+
+  /// Les textes que J'ENVOIE depuis le plateau. Ils paraissent dans la même
+  /// bande, à droite et à ma couleur.
+  final Stream<String>? miens;
 
   /// Les couleurs de MON thème : la bulle doit ressembler à celles de la
   /// boîte de messages, et celles-là sont les miennes.
@@ -88,9 +105,13 @@ class BullesEnJeu extends StatefulWidget {
 
 /// Un message affiché, avec le minuteur qui l'effacera.
 final class _Affiche {
-  _Affiche(this.texte);
+  _Affiche(this.texte, {required this.deMoi});
 
   final String texte;
+
+  /// Vrai quand c'est moi qui l'ai écrit : la bulle passe à droite et prend
+  /// ma couleur, comme dans la boîte de messages.
+  final bool deMoi;
 
   /// Pour amener le début de cette bulle en haut du bandeau à son arrivée.
   final GlobalKey cle = GlobalKey();
@@ -106,11 +127,13 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
   final List<_Affiche> _bulles = [];
   final ScrollController _scroll = ScrollController();
   StreamSubscription<String>? _ecoute;
+  StreamSubscription<String>? _ecouteMiens;
 
   @override
   void initState() {
     super.initState();
-    _ecoute = widget.flux.listen(_arrive);
+    _ecoute = widget.flux.listen((t) => _arrive(t, deMoi: false));
+    _ecouteMiens = widget.miens?.listen((t) => _arrive(t, deMoi: true));
   }
 
   @override
@@ -119,13 +142,14 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
       b.mort?.cancel();
     }
     _ecoute?.cancel();
+    _ecouteMiens?.cancel();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _arrive(String texte) {
+  void _arrive(String texte, {required bool deMoi}) {
     if (!mounted || texte.trim().isEmpty) return;
-    final venue = _Affiche(texte);
+    final venue = _Affiche(texte, deMoi: deMoi);
     venue.mort = Timer(widget.duree, () => _retire(venue));
     setState(() => _bulles.add(venue));
     // Le dernier arrivé se montre, par son début.
@@ -192,12 +216,16 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
                       key: b.cle,
                       padding: EdgeInsets.only(bottom: S(4)),
                       child: Align(
-                        alignment: Alignment.centerLeft,
+                        // Reçu à gauche, envoyé à droite : la disposition de
+                        // la boîte de messages, puisque c'en sont.
+                        alignment: b.deMoi
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: MessageBubble(
                           texte: b.texte,
-                          // Reçu : la couleur et l'écriture d'un message reçu
+                          // La couleur et l'écriture que ce message aurait
                           // dans la boîte de messages.
-                          deMoi: false,
+                          deMoi: b.deMoi,
                           palette: widget.palette,
                           selectionnable: false,
                         ),

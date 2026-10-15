@@ -31,6 +31,7 @@ import 'conversations_screen.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/message_rapide.dart';
 import '../widgets/bulles_en_jeu.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/move_strip.dart';
@@ -159,9 +160,40 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     DefiRelais.enPartieDirecte = false;
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
+    unawaited(_mesMots.close());
     _sounds.dispose();
     _g.dispose();
     super.dispose();
+  }
+
+  /// Ce que J'ÉCRIS depuis le plateau, pour que ça paraisse aussitôt dans la
+  /// bande des bulles — comme un message reçu, mais à droite et à ma couleur.
+  final StreamController<String> _mesMots =
+      StreamController<String>.broadcast();
+
+  /// Un mot à l'adversaire, sans quitter le plateau des yeux.
+  ///
+  /// Nino : « il est écrit d'un autre endroit mais doit être traité de la
+  /// même manière. » C'est donc le MÊME envoi que celui de la boîte de
+  /// messages — `sendMessage`, rien d'autre —, et le serveur le range dans la
+  /// conversation comme tous les autres.
+  ///
+  /// La bulle paraît AVANT la réponse du serveur : l'aller-retour prend un
+  /// dixième de seconde qu'on ne fait pas attendre à quelqu'un qui joue. Si
+  /// l'envoi échoue, on le dit — un message qu'on croit parti et qui n'est
+  /// jamais arrivé est pire que pas de message du tout.
+  Future<void> _messageRapide(ThemePalette palette) async {
+    final texte = await ouvrirMessageRapide(context, palette: palette);
+    if (texte == null || !mounted) return;
+    _mesMots.add(texte);
+    final r = await OnlineService.instance.client.sendMessage(
+      _g.info.opponent,
+      texte,
+    );
+    if (!mounted || r.isOk) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
   }
 
   /// Le popup de fin n'est montré qu'une fois par partie.
@@ -445,6 +477,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             flux: OnlineService.instance.messages.incoming
                 .where((m) => m.from == _g.info.opponent)
                 .map((m) => m.text),
+            // Et les miens, écrits depuis le plateau : même bande, même
+            // durée, à droite.
+            miens: _mesMots.stream,
             palette: _paletteDeLAdversaire,
           ),
           topBar: GameTopBar(
@@ -623,6 +658,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           : null,
       onDraw: canAct ? _g.offerDraw : null,
       onResign: canAct ? _confirmResign : null,
+      // Écrire n'est pas jouer : la touche reste là jusqu'au bout, même
+      // partie finie — on se dit encore « bien joué » après le dernier coup.
+      onMessageRapide: isMine ? () => _messageRapide(palette) : null,
     );
   }
 

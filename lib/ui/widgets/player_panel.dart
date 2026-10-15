@@ -106,6 +106,7 @@ class PlayerPanel extends StatelessWidget {
     this.onUndo,
     this.onDraw,
     this.onResign,
+    this.onMessageRapide,
   });
 
   final String name;
@@ -176,6 +177,11 @@ class PlayerPanel extends StatelessWidget {
   /// Ce camp a proposé la nulle : Kivy allume alors son ½ en orange.
   final bool drawOffered;
   final VoidCallback? onResign;
+
+  /// Écrire un mot à l'adversaire sans quitter le plateau des yeux.
+  ///
+  /// N'appartient qu'à MON panneau : on n'écrit pas à sa propre place.
+  final VoidCallback? onMessageRapide;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -350,6 +356,19 @@ class PlayerPanel extends StatelessWidget {
       Expanded(
         child: CapturesStrip(pieces: captures, palette: palette),
       ),
+      // LE MESSAGE RAPIDE, en tête des gestes. Nino l'a dessiné là, à gauche
+      // du ½ : c'est la place libre de la rangée, et la plus éloignée de
+      // l'abandon.
+      if (onMessageRapide != null)
+        _carre(
+          T('Message rapide'),
+          onMessageRapide!,
+          enfant: Icon(
+            Icons.chat_bubble_outline,
+            color: Colors.white,
+            size: SF(18),
+          ),
+        ),
       if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
       if (onDraw != null)
         _button(
@@ -374,14 +393,38 @@ class PlayerPanel extends StatelessWidget {
     ],
   );
 
-  /// Touche carrée de la rangée d'actions : chez Kivy elle occupe 85 % de la
-  /// hauteur de la rangée et sa largeur suit sa hauteur.
+  /// Touche carrée de la rangée d'actions, portant un LIBELLÉ.
   Widget _button(
     String label,
     String tooltip,
     VoidCallback onPressed, {
     Color color = kFugaGrey,
     double? fontSize,
+    bool enabled = true,
+    VoidCallback? onBlocked,
+  }) => _carre(
+    tooltip,
+    onPressed,
+    color: color,
+    enabled: enabled,
+    onBlocked: onBlocked,
+    enfant: Text(
+      label,
+      style: TextStyle(
+        color: enabled ? Colors.white : Colors.white54,
+        fontSize: fontSize ?? SF(18),
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
+
+  /// Touche carrée de la rangée d'actions : chez Kivy elle occupe 85 % de la
+  /// hauteur de la rangée et sa largeur suit sa hauteur.
+  Widget _carre(
+    String tooltip,
+    VoidCallback onPressed, {
+    required Widget enfant,
+    Color color = kFugaGrey,
     bool enabled = true,
     VoidCallback? onBlocked,
   }) => Tooltip(
@@ -406,16 +449,7 @@ class PlayerPanel extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),
               onTap: enabled ? onPressed : onBlocked,
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: enabled ? Colors.white : Colors.white54,
-                    fontSize: fontSize ?? SF(18),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              child: Center(child: enfant),
             ),
           ),
         ),
