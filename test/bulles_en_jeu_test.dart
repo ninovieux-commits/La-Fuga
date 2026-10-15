@@ -7,6 +7,13 @@
 /// Il ne faut pas que ça déborde sur le plateau ni sur les touches du haut.
 /// L'espace que je prend sur mon dessin est l'espace maximal utilisable sur
 /// l'écran de jeu. »
+///
+/// Puis, l'ayant essayé en partie : « la bulle doit rester 2 secondes de
+/// plus. Il faudrait aussi, lorsque celle-ci est petite, qu'elle soit en bas
+/// du bandeau et non pas en haut, mais le défilement de plusieurs messages
+/// reste dans le même sens : le premier message apparaît en bas du bandeau,
+/// puis le deuxième prend sa place alors que le premier défile vers le
+/// haut. »
 library;
 
 import 'dart:async';
@@ -94,22 +101,26 @@ void main() {
       expect(find.byType(MessageBubble), findsNothing);
     });
 
-    testWidgets('un message paraît, et tient CINQ secondes', (tester) async {
+    testWidgets('un message paraît, et tient SEPT secondes', (tester) async {
+      // Cinq au départ ; Nino, l'ayant essayé en partie : « doit rester 2
+      // secondes de plus ». Les bornes sont lues sur la constante, pour que
+      // le jour où elle rebouge le test dise la vérité sans être réécrit.
+      expect(kBulleEnJeuDuree, const Duration(seconds: 7));
       await seule(tester);
       flux.add('Salut');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Salut'), findsOneWidget);
 
-      // Encore là à quatre secondes et demie.
-      await tester.pump(const Duration(milliseconds: 4200));
+      // Encore là un demi-dixième avant l'échéance.
+      await tester.pump(kBulleEnJeuDuree - const Duration(milliseconds: 800));
       expect(
         find.text('Salut'),
         findsOneWidget,
-        reason: 'il doit rester cinq secondes pleines',
+        reason: 'il doit rester ses sept secondes pleines',
       );
 
-      // Parti après cinq.
+      // Parti après.
       await tester.pump(const Duration(milliseconds: 800));
       await tester.pump();
       expect(find.text('Salut'), findsNothing);
@@ -128,7 +139,7 @@ void main() {
       expect(
         bulle.selectionnable,
         isFalse,
-        reason: 'elle s efface en cinq secondes : rien à y sélectionner',
+        reason: 'elle s efface en sept secondes : rien à y sélectionner',
       );
     });
 
@@ -137,6 +148,86 @@ void main() {
       flux.add('   ');
       await tester.pumpAndSettle();
       expect(find.byType(MessageBubble), findsNothing);
+    });
+  });
+
+  group('La pile part du BAS', () {
+    // Nino : « lorsque celle-ci est petite, qu'elle soit en bas du bandeau et
+    // non pas en haut, mais le défilement de plusieurs messages reste dans le
+    // même sens : le premier message apparaît en bas du bandeau, puis le
+    // deuxième prend sa place alors que le premier défile vers le haut. »
+
+    testWidgets('une bulle courte se range CONTRE LE BAS du bandeau', (
+      tester,
+    ) async {
+      await seule(tester);
+      flux.add('Salut');
+      await tester.pumpAndSettle();
+
+      final bulle = tester.getRect(find.byType(MessageBubble));
+      final bandeau = lucarne(tester);
+      expect(
+        bandeau.bottom - bulle.bottom,
+        lessThan(bulle.height),
+        reason: 'elle doit toucher le bas, pas flotter en haut',
+      );
+      expect(
+        bulle.top - bandeau.top,
+        greaterThan(bulle.height),
+        reason: 'et il reste de la place vide AU-DESSUS d elle',
+      );
+    });
+
+    testWidgets('le second prend sa place, et pousse le premier VERS LE HAUT', (
+      tester,
+    ) async {
+      await seule(tester);
+      flux.add('Premier');
+      await tester.pumpAndSettle();
+      final avant = tester.getRect(find.text('Premier'));
+
+      flux.add('Second');
+      await tester.pumpAndSettle();
+      final apres = tester.getRect(find.text('Premier'));
+      final second = tester.getRect(find.text('Second'));
+
+      expect(
+        apres.top,
+        lessThan(avant.top - 1),
+        reason: 'le premier doit MONTER quand le second arrive',
+      );
+      expect(
+        second.top,
+        greaterThan(apres.top),
+        reason: 'le dernier arrivé est en dessous : le sens ne change pas',
+      );
+      expect(
+        second.bottom,
+        closeTo(avant.bottom, 1),
+        reason: 'le second occupe exactement la place qu avait le premier',
+      );
+    });
+
+    testWidgets('quand ça déborde, la bande est pleine du haut en bas', (
+      tester,
+    ) async {
+      // Au-delà de la hauteur du bandeau, la hauteur minimale ne contraint
+      // plus rien : la liste défile comme avant, sans bande vide en haut.
+      await seule(tester);
+      for (final t in ['Un', 'Deux', 'Trois', 'Quatre', 'Cinq', 'Six']) {
+        flux.add(t);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+      await tester.pumpAndSettle();
+
+      final bandeau = lucarne(tester);
+      final premiere = tester.getRect(find.byType(MessageBubble).first);
+      expect(
+        premiere.top,
+        lessThanOrEqualTo(bandeau.top + 1),
+        reason: 'la bande doit être remplie, pas creuse en haut',
+      );
     });
   });
 
@@ -156,9 +247,9 @@ void main() {
       expect(find.text('Second'), findsOneWidget);
     });
 
-    testWidgets('chacun vit CINQ secondes depuis SON arrivée', (tester) async {
+    testWidgets('chacun vit SEPT secondes depuis SON arrivée', (tester) async {
       // Le piège serait de tout effacer d'un coup : le second disparaîtrait
-      // deux secondes trop tôt, parce que le premier a fini.
+      // trois secondes trop tôt, parce que le premier a fini.
       await seule(tester);
       flux.add('Premier');
       await tester.pump();
@@ -168,8 +259,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Premier'), findsOneWidget);
 
-      // À 5,3 s le premier s'en va ; le second est arrivé à 3 s, il reste.
-      await tester.pump(const Duration(seconds: 2));
+      // À 7,3 s le premier s'en va ; le second est arrivé à 3 s, il reste.
+      await tester.pump(const Duration(seconds: 4));
       await tester.pump();
       expect(find.text('Premier'), findsNothing);
       expect(
@@ -178,7 +269,7 @@ void main() {
         reason: 'le second a sa propre échéance',
       );
 
-      // Et il part à 8,3 s, cinq secondes après SON arrivée.
+      // Et il part à 10,3 s, sept secondes après SON arrivée.
       await tester.pump(const Duration(seconds: 3));
       await tester.pump();
       expect(find.text('Second'), findsNothing);

@@ -18,11 +18,26 @@
 /// La photo reste visible à gauche : les bulles commencent après elle, comme
 /// sur le dessin.
 ///
+/// ## Les messages s'empilent PAR LE BAS
+///
+/// Nino : « lorsque celle-ci est petite, qu'elle soit en bas du bandeau et
+/// non pas en haut, mais le défilement de plusieurs messages reste dans le
+/// même sens : le premier message apparaît en bas du bandeau, puis le
+/// deuxième prend sa place alors que le premier défile vers le haut. »
+///
+/// C'est la pile d'une boîte de messages, et elle tient en deux choses : la
+/// colonne est alignée sur la FIN, et elle reçoit une hauteur minimale égale
+/// à celle du bandeau. Tant que les bulles n'emplissent pas la bande, elles
+/// sont donc poussées contre son bas ; dès qu'elles la dépassent, la hauteur
+/// minimale ne contraint plus rien et la liste défile comme avant, le dernier
+/// arrivé en bas.
+///
 /// ## Ce qui défile
 ///
-/// Chaque message vit cinq secondes, à partir de SON arrivée — son propre
-/// minuteur, et rien d'autre. Deux messages rapprochés se retrouvent donc
-/// affichés ensemble, et le premier s'efface à son heure sans emporter l'autre.
+/// Chaque message vit [kBulleEnJeuDuree], à partir de SON arrivée — son
+/// propre minuteur, et rien d'autre. Deux messages rapprochés se retrouvent
+/// donc affichés ensemble, et le premier s'efface à son heure sans emporter
+/// l'autre.
 ///
 /// À chaque arrivée, la vue glisse pour amener le DÉBUT du dernier message en
 /// haut du bandeau. Glisser jusqu'en bas serait plus simple, mais un message
@@ -40,7 +55,12 @@ import '../scale.dart';
 import 'message_bubble.dart';
 
 /// Combien de temps un message reste à l'écran.
-const Duration kBulleEnJeuDuree = Duration(seconds: 5);
+///
+/// Cinq secondes au départ, « le message doit rester afficher pendant 5
+/// secondes ». Puis, l'ayant essayé en partie : « la bulle qui apparaît avec
+/// le message reçu doit rester 2 secondes de plus. » Sept, donc — le temps de
+/// lever les yeux du plateau, de lire, et de revenir.
+const Duration kBulleEnJeuDuree = Duration(seconds: 7);
 
 /// Le temps que met la vue à glisser jusqu'au dernier message.
 const Duration kBulleEnJeuGlissee = Duration(milliseconds: 220);
@@ -153,27 +173,38 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
           child: SingleChildScrollView(
             controller: _scroll,
             clipBehavior: Clip.hardEdge,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final b in _bulles)
-                  Padding(
-                    key: b.cle,
-                    padding: EdgeInsets.only(bottom: S(4)),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: MessageBubble(
-                        texte: b.texte,
-                        // Reçu : la couleur et l'écriture d'un message reçu
-                        // dans la boîte de messages.
-                        deMoi: false,
-                        palette: widget.palette,
-                        selectionnable: false,
+            // La hauteur du bandeau, imposée EN MINIMUM à la colonne : tant
+            // que les bulles n'emplissent pas la bande, la colonne l'emplit
+            // pour elles et les pousse contre son bas. Dès qu'elles la
+            // dépassent, ce minimum ne contraint plus rien.
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight - 2 * S(4)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                // EN BAS, comme dans une boîte de messages : le premier
+                // message paraît contre le bas du bandeau, et le suivant
+                // prend sa place en le poussant vers le haut.
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  for (final b in _bulles)
+                    Padding(
+                      key: b.cle,
+                      padding: EdgeInsets.only(bottom: S(4)),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: MessageBubble(
+                          texte: b.texte,
+                          // Reçu : la couleur et l'écriture d'un message reçu
+                          // dans la boîte de messages.
+                          deMoi: false,
+                          palette: widget.palette,
+                          selectionnable: false,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );
