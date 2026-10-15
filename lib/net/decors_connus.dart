@@ -16,6 +16,7 @@ library;
 
 import 'avatar_photos.dart';
 import 'favoris_connus.dart';
+import 'devises_connues.dart';
 import 'online_service.dart';
 import 'profile.dart';
 import 'scores_directs.dart';
@@ -77,6 +78,8 @@ class DecorsConnus {
     // Et l'étoile, pour la même raison : une seule requête pour les trois.
     FavorisConnus.instance.retiens(pseudo, profil.isFavorite);
     ScoresDirects.remember(pseudo, profil.direct);
+    // Et sa devise, que l'écran de jeu montre à l'ouverture.
+    DevisesConnues.retiens(pseudo, profil.description);
     return _cache[cle] ?? '';
   }
 

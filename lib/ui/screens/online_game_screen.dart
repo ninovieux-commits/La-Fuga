@@ -20,6 +20,8 @@ import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
+import '../../net/message_hub.dart';
+import '../../net/devises_connues.dart';
 import '../../game/defi_relais.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/profile.dart';
@@ -122,6 +124,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       _photoAdverse = photo;
       _scoreDirect = ScoresDirects.connu(_g.info.opponent);
     });
+    unawaited(_annonceSaDevise());
+  }
+
+  /// Sa devise, montrée au DÉBUT de la partie — comme un mot qu'il aurait dit
+  /// en s'asseyant.
+  ///
+  /// Nino : « qu'au début d'une partie direct […] la devise du joueur
+  /// apparaisse quelques secondes sur la partie comme les messages. Mais ça
+  /// ne doit pas apparaître dans la boîte de chat. » Elle ne passe donc par
+  /// aucun envoi : elle est posée directement dans la bande, et le serveur de
+  /// messages n'en entend jamais parler.
+  Future<void> _annonceSaDevise() async {
+    final devise = await DevisesConnues.resolve(_g.info.opponent);
+    if (!mounted || devise.isEmpty || _bulles.isClosed) return;
+    _bulles.add((texte: devise, deMoi: false));
   }
 
   /// Le score a bougé : une partie du match vient de finir, le serveur en
@@ -140,6 +157,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     DefiRelais.enPartieDirecte = true;
     _photoAdverse = AvatarPhotos.known(_g.info.opponent);
     _scoreDirect = ScoresDirects.connu(_g.info.opponent);
+    _ecouteBulles = OnlineService.instance.messages.incoming
+        .where((m) => m.from == _g.info.opponent)
+        .listen((m) => _bulles.add((texte: m.text, deMoi: false)));
     _chargerPhotoAdverse();
     _sounds.init();
     _rebuildSteps();
@@ -160,16 +180,23 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     DefiRelais.enPartieDirecte = false;
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
-    unawaited(_mesMots.close());
+    _ecouteBulles?.cancel();
+    unawaited(_bulles.close());
     _sounds.dispose();
     _g.dispose();
     super.dispose();
   }
 
-  /// Ce que J'ÉCRIS depuis le plateau, pour que ça paraisse aussitôt dans la
-  /// bande des bulles — comme un message reçu, mais à droite et à ma couleur.
-  final StreamController<String> _mesMots =
-      StreamController<String>.broadcast();
+  /// TOUT ce qui paraît dans la bande des bulles : les messages reçus, ceux
+  /// que j'écris depuis le plateau, et sa devise à l'ouverture.
+  ///
+  /// Un seul flux, composé ici : la bande ne connaît que des mots et leur
+  /// provenance. Rien de ce qui part d'ici ne touche la conversation — Nino,
+  /// à propos de la devise : « ça ne doit pas apparaître dans la boîte de
+  /// chat. »
+  final StreamController<BulleEnJeu> _bulles =
+      StreamController<BulleEnJeu>.broadcast();
+  StreamSubscription<IncomingMessage>? _ecouteBulles;
 
   /// Un mot à l'adversaire, sans quitter le plateau des yeux.
   ///
@@ -185,7 +212,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   Future<void> _messageRapide(ThemePalette palette) async {
     final texte = await ouvrirMessageRapide(context, palette: palette);
     if (texte == null || !mounted) return;
-    _mesMots.add(texte);
+    _bulles.add((texte: texte, deMoi: true));
     final r = await OnlineService.instance.client.sendMessage(
       _g.info.opponent,
       texte,
@@ -474,12 +501,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           // Les messages de l'adversaire passent dans SON bandeau, rognés à
           // lui : ni le plateau ni les touches n'en voient rien.
           topOverlay: BullesEnJeu(
-            flux: OnlineService.instance.messages.incoming
-                .where((m) => m.from == _g.info.opponent)
-                .map((m) => m.text),
-            // Et les miens, écrits depuis le plateau : même bande, même
-            // durée, à droite.
-            miens: _mesMots.stream,
+            flux: _bulles.stream,
             palette: _paletteDeLAdversaire,
           ),
           topBar: GameTopBar(

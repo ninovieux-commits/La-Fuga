@@ -66,6 +66,9 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'message_bubble.dart';
 
+/// Un mot à montrer dans la bande : son texte, et qui l'a dit.
+typedef BulleEnJeu = ({String texte, bool deMoi});
+
 /// Combien de temps un message reste à l'écran.
 ///
 /// Cinq secondes au départ, « le message doit rester afficher pendant 5
@@ -91,16 +94,17 @@ class BullesEnJeu extends StatefulWidget {
     super.key,
     required this.flux,
     required this.palette,
-    this.miens,
     this.duree = kBulleEnJeuDuree,
   });
 
-  /// Les textes reçus de l'adversaire de CETTE partie.
-  final Stream<String> flux;
-
-  /// Les textes que J'ENVOIE depuis le plateau. Ils paraissent dans la même
-  /// bande, à droite et à ma couleur.
-  final Stream<String>? miens;
+  /// Tout ce qui doit paraître dans la bande : les messages reçus de
+  /// l'adversaire, ceux que j'écris depuis le plateau, et la devise qu'on
+  /// montre à l'ouverture.
+  ///
+  /// UN seul flux, et non un par provenance : la bande les traite tous de la
+  /// même façon — même durée, même montée, même ordre d'arrivée — et seul
+  /// `deMoi` les distingue, pour le côté et la couleur.
+  final Stream<BulleEnJeu> flux;
 
   /// Les couleurs de MON thème : la bulle doit ressembler à celles de la
   /// boîte de messages, et celles-là sont les miennes.
@@ -135,14 +139,12 @@ final class _Affiche {
 class _BullesEnJeuState extends State<BullesEnJeu> {
   final List<_Affiche> _bulles = [];
   final ScrollController _scroll = ScrollController();
-  StreamSubscription<String>? _ecoute;
-  StreamSubscription<String>? _ecouteMiens;
+  StreamSubscription<BulleEnJeu>? _ecoute;
 
   @override
   void initState() {
     super.initState();
-    _ecoute = widget.flux.listen((t) => _arrive(t, deMoi: false));
-    _ecouteMiens = widget.miens?.listen((t) => _arrive(t, deMoi: true));
+    _ecoute = widget.flux.listen((b) => _arrive(b.texte, deMoi: b.deMoi));
   }
 
   @override
@@ -151,7 +153,6 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
       b.mort?.cancel();
     }
     _ecoute?.cancel();
-    _ecouteMiens?.cancel();
     _scroll.dispose();
     super.dispose();
   }

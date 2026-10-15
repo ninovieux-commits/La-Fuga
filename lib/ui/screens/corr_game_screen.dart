@@ -22,6 +22,8 @@ import '../../net/avatar_photos.dart';
 import '../../net/corr_hub.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/decors_connus.dart';
+import '../../net/message_hub.dart';
+import '../../net/devises_connues.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
@@ -170,6 +172,12 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _chargerPhotoAdverse();
     _sounds.init();
     // La pastille du bouton Chat suit les messages en direct.
+    _ecouteBulles = OnlineService.instance.messages.incoming
+        .where((m) => m.from == _g.opponent)
+        .listen((m) => _bulles.add((texte: m.text, deMoi: false)));
+    // En visiteur, la bande ne montre rien de leur conversation — pas même
+    // une devise : on regarde jouer, on n'entre pas chez eux.
+    if (!widget.visiteur) unawaited(_annonceSaDevise());
     OnlineService.instance.messages.addListener(_onMessages);
     // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
     // un popup : le cache partagé fait le lien.
@@ -256,15 +264,35 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
-    unawaited(_mesMots.close());
+    _ecouteBulles?.cancel();
+    unawaited(_bulles.close());
     _sounds.dispose();
     super.dispose();
   }
 
-  /// Ce que J'ÉCRIS depuis le plateau, pour que ça paraisse aussitôt dans la
-  /// bande des bulles — comme un message reçu, mais à droite et à ma couleur.
-  final StreamController<String> _mesMots =
-      StreamController<String>.broadcast();
+  /// TOUT ce qui paraît dans la bande des bulles : les messages reçus, ceux
+  /// que j'écris depuis le plateau, et sa devise à l'ouverture.
+  ///
+  /// Un seul flux, composé ici : la bande ne connaît que des mots et leur
+  /// provenance. Rien de ce qui part d'ici ne touche la conversation — Nino,
+  /// à propos de la devise : « ça ne doit pas apparaître dans la boîte de
+  /// chat. »
+  final StreamController<BulleEnJeu> _bulles =
+      StreamController<BulleEnJeu>.broadcast();
+  StreamSubscription<IncomingMessage>? _ecouteBulles;
+
+  /// Sa devise, montrée À CHAQUE OUVERTURE de la partie.
+  ///
+  /// Nino : « à chaque fois qu'une correspondance est ouverte, la devise du
+  /// joueur apparaisse quelques secondes sur la partie comme les messages. »
+  /// Une partie de correspondance s'ouvre et se referme vingt fois : c'est
+  /// donc vingt fois, et non une seule — on ne retient pas qu'on l'a déjà
+  /// montrée.
+  Future<void> _annonceSaDevise() async {
+    final devise = await DevisesConnues.resolve(_g.opponent);
+    if (!mounted || devise.isEmpty || _bulles.isClosed) return;
+    _bulles.add((texte: devise, deMoi: false));
+  }
 
   /// Un mot à l'adversaire, sans quitter le plateau des yeux.
   ///
@@ -275,7 +303,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   Future<void> _messageRapide(ThemePalette palette) async {
     final texte = await ouvrirMessageRapide(context, palette: palette);
     if (texte == null || !mounted) return;
-    _mesMots.add(texte);
+    _bulles.add((texte: texte, deMoi: true));
     final r = await OnlineService.instance.client.sendMessage(
       _g.opponent,
       texte,
@@ -765,12 +793,7 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
                 // rognés à lui : ni le plateau ni les touches n'en voient
                 // rien.
                 topOverlay: BullesEnJeu(
-                  flux: OnlineService.instance.messages.incoming
-                      .where((m) => m.from == widget.game.opponent)
-                      .map((m) => m.text),
-                  // Et les miens, écrits depuis le plateau : même bande,
-                  // même durée, à droite.
-                  miens: _mesMots.stream,
+                  flux: _bulles.stream,
                   palette: _paletteDeLAdversaire,
                 ),
                 topBar: _bar(palette, flipped),
@@ -1050,7 +1073,11 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       name: isMine ? widget.myPseudo : _g.opponent,
       // Comme en ligne, le classement de l'adversaire s'écrit SOUS son nom :
       // à côté, il finissait coupé — « mesange  (1… ».
-      rating: isMine ? null : '${_g.opponentMelo}',
+      // Nino : « j'aimerai que mon mélo soit affiché (comme celui de mon
+      // adversaire) ». Le mien vient de ma session, le sien de la partie.
+      rating: isMine
+          ? '${OnlineService.instance.session?.melo ?? 1500}'
+          : '${_g.opponentMelo}',
       clock: '∞',
       palette: palette,
       isWhite: camp == Camp.blanc,

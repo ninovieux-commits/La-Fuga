@@ -225,41 +225,30 @@ void main() {
   });
 
   group('Et il paraît sur la partie', () {
-    late StreamController<String> recus;
-    late StreamController<String> miens;
+    late StreamController<BulleEnJeu> bulles;
 
-    setUp(() {
-      recus = StreamController<String>.broadcast();
-      miens = StreamController<String>.broadcast();
-    });
-    tearDown(() {
-      recus.close();
-      miens.close();
-    });
+    setUp(() => bulles = StreamController<BulleEnJeu>.broadcast());
+    tearDown(() => bulles.close());
 
     Future<void> bande(WidgetTester tester) => montre(
       tester,
       SizedBox(
         width: 393,
         height: 851 * 12 / 104,
-        child: BullesEnJeu(
-          flux: recus.stream,
-          miens: miens.stream,
-          palette: paletteOf('original'),
-        ),
+        child: BullesEnJeu(flux: bulles.stream, palette: paletteOf('original')),
       ),
     );
 
     testWidgets('mon message passe dans la MÊME bande', (tester) async {
       await bande(tester);
-      miens.add('bien joué');
+      bulles.add((texte: 'bien joué', deMoi: true));
       await tester.pumpAndSettle();
       expect(find.text('bien joué'), findsOneWidget);
     });
 
     testWidgets('à MA couleur, et à droite', (tester) async {
       await bande(tester);
-      miens.add('bien joué');
+      bulles.add((texte: 'bien joué', deMoi: true));
       await tester.pumpAndSettle();
 
       final bulle = tester.widget<MessageBubble>(find.byType(MessageBubble));
@@ -269,7 +258,7 @@ void main() {
 
     testWidgets('le reçu reste à gauche, et à sa couleur', (tester) async {
       await bande(tester);
-      recus.add('salut');
+      bulles.add((texte: 'salut', deMoi: false));
       await tester.pumpAndSettle();
 
       expect(
@@ -282,7 +271,7 @@ void main() {
     testWidgets('et il s efface au bout du même temps', (tester) async {
       // « Traité de la même manière » : même durée, même minuteur.
       await bande(tester);
-      miens.add('bien joué');
+      bulles.add((texte: 'bien joué', deMoi: true));
       await tester.pump();
       await tester.pump(kBulleEnJeuDuree - const Duration(milliseconds: 500));
       expect(find.text('bien joué'), findsOneWidget);
@@ -295,10 +284,10 @@ void main() {
       tester,
     ) async {
       await bande(tester);
-      recus.add('salut');
+      bulles.add((texte: 'salut', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      miens.add('bien joué');
+      bulles.add((texte: 'bien joué', deMoi: true));
       await tester.pumpAndSettle();
 
       expect(find.text('salut'), findsOneWidget);

@@ -32,7 +32,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late StreamController<String> flux;
+  late StreamController<BulleEnJeu> flux;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({
@@ -42,7 +42,7 @@ void main() {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(const Size(393, 851));
-    flux = StreamController<String>.broadcast();
+    flux = StreamController<BulleEnJeu>.broadcast();
   });
   tearDown(() {
     flux.close();
@@ -107,7 +107,7 @@ void main() {
       // le jour où elle rebouge le test dise la vérité sans être réécrit.
       expect(kBulleEnJeuDuree, const Duration(seconds: 7));
       await seule(tester);
-      flux.add('Salut');
+      flux.add((texte: 'Salut', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Salut'), findsOneWidget);
@@ -130,7 +130,7 @@ void main() {
       tester,
     ) async {
       await seule(tester);
-      flux.add('Salut');
+      flux.add((texte: 'Salut', deMoi: false));
       await tester.pumpAndSettle();
 
       final bulle = tester.widget<MessageBubble>(find.byType(MessageBubble));
@@ -145,7 +145,7 @@ void main() {
 
     testWidgets('un message vide ne fait rien paraître', (tester) async {
       await seule(tester);
-      flux.add('   ');
+      flux.add((texte: '   ', deMoi: false));
       await tester.pumpAndSettle();
       expect(find.byType(MessageBubble), findsNothing);
     });
@@ -161,7 +161,7 @@ void main() {
       tester,
     ) async {
       await seule(tester);
-      flux.add('Salut');
+      flux.add((texte: 'Salut', deMoi: false));
       await tester.pumpAndSettle();
 
       final bulle = tester.getRect(find.byType(MessageBubble));
@@ -182,11 +182,11 @@ void main() {
       tester,
     ) async {
       await seule(tester);
-      flux.add('Premier');
+      flux.add((texte: 'Premier', deMoi: false));
       await tester.pumpAndSettle();
       final avant = tester.getRect(find.text('Premier'));
 
-      flux.add('Second');
+      flux.add((texte: 'Second', deMoi: false));
       await tester.pumpAndSettle();
       final apres = tester.getRect(find.text('Premier'));
       final second = tester.getRect(find.text('Second'));
@@ -220,10 +220,10 @@ void main() {
       // — et c'est le seul relevé qui ne dépende pas de l'image exacte où
       // l'horloge de l'animation démarre.
       await seule(tester);
-      flux.add('Premier');
+      flux.add((texte: 'Premier', deMoi: false));
       await tester.pumpAndSettle();
 
-      flux.add('Second');
+      flux.add((texte: 'Second', deMoi: false));
       await tester.pump();
       final tiers = kBulleEnJeuMontee ~/ 3;
       await tester.pump(tiers);
@@ -252,7 +252,7 @@ void main() {
       // plus rien : la liste défile comme avant, sans bande vide en haut.
       await seule(tester);
       for (final t in ['Un', 'Deux', 'Trois', 'Quatre', 'Cinq', 'Six']) {
-        flux.add(t);
+        flux.add((texte: t, deMoi: false));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
       }
@@ -273,10 +273,10 @@ void main() {
       tester,
     ) async {
       await seule(tester);
-      flux.add('Premier');
+      flux.add((texte: 'Premier', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(seconds: 2));
-      flux.add('Second');
+      flux.add((texte: 'Second', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -288,10 +288,10 @@ void main() {
       // Le piège serait de tout effacer d'un coup : le second disparaîtrait
       // trois secondes trop tôt, parce que le premier a fini.
       await seule(tester);
-      flux.add('Premier');
+      flux.add((texte: 'Premier', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(seconds: 3));
-      flux.add('Second');
+      flux.add((texte: 'Second', deMoi: false));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Premier'), findsOneWidget);
@@ -315,7 +315,7 @@ void main() {
     testWidgets('la vue défile, et montre le DERNIER arrivé', (tester) async {
       await seule(tester);
       for (final t in ['Un', 'Deux', 'Trois', 'Quatre']) {
-        flux.add(t);
+        flux.add((texte: t, deMoi: false));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
       }
@@ -347,7 +347,7 @@ void main() {
       // La garantie ne tient pas à la bonne volonté des messages : ce qui est
       // peint est rogné à cette fenêtre, et elle est dans le bandeau.
       await seule(tester);
-      flux.add('Salut');
+      flux.add((texte: 'Salut', deMoi: false));
       await tester.pumpAndSettle();
 
       final boite = tester.getRect(find.byType(BullesEnJeu));
@@ -366,11 +366,13 @@ void main() {
       // Glisser jusqu'en bas de la liste ferait entrer un long message par sa
       // fin, ses premiers mots déjà sortis par le haut.
       await seule(tester);
-      flux.add(
-        'Un message interminable qui raconte toute la partie coup par coup '
-        'et qui ne devrait jamais sortir du bandeau de l adversaire, ni vers '
-        'le plateau, ni vers les touches du haut, quoi qu il arrive.',
-      );
+      flux.add((
+        texte:
+            'Un message interminable qui raconte toute la partie coup par '
+            'coup et qui ne devrait jamais sortir du bandeau de l adversaire, '
+            'ni vers le plateau, ni vers les touches du haut.',
+        deMoi: false,
+      ));
       await tester.pumpAndSettle();
 
       final fenetre = lucarne(tester);
@@ -393,7 +395,7 @@ void main() {
     testWidgets('la photo garde sa place à gauche', (tester) async {
       // Sur le dessin de Nino, la bulle commence APRÈS la photo.
       await seule(tester);
-      flux.add('Salut');
+      flux.add((texte: 'Salut', deMoi: false));
       await tester.pumpAndSettle();
 
       final boite = tester.getRect(find.byType(BullesEnJeu));
@@ -430,10 +432,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      flux.add(
-        'Un message interminable qui raconte toute la partie coup par coup '
-        'et qui ne devrait jamais sortir du bandeau de l adversaire.',
-      );
+      flux.add((
+        texte:
+            'Un message interminable qui raconte toute la partie coup par '
+            'coup et qui ne devrait jamais sortir du bandeau de l adversaire.',
+        deMoi: false,
+      ));
       await tester.pumpAndSettle();
 
       // Le bandeau du haut, et la bulle posée dedans.
