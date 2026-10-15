@@ -14,12 +14,9 @@
 /// `/get_profile` rend la photo ET le thème, on ne demande pas deux fois.
 library;
 
-import 'avatar_photos.dart';
-import 'favoris_connus.dart';
-import 'devises_connues.dart';
 import 'online_service.dart';
 import 'profile.dart';
-import 'scores_directs.dart';
+import 'profils_connus.dart';
 
 class DecorsConnus {
   DecorsConnus._();
@@ -72,14 +69,9 @@ class DecorsConnus {
 
     final r = await service.client.getProfile(pseudo);
     if (!r.isOk || r.data == null) return '';
-    final profil = Profile.fromJson(r.data!);
-    AvatarPhotos.remember(pseudo, profil.photo);
-    remember(pseudo, profil.theme);
-    // Et l'étoile, pour la même raison : une seule requête pour les trois.
-    FavorisConnus.instance.retiens(pseudo, profil.isFavorite);
-    ScoresDirects.remember(pseudo, profil.direct);
-    // Et sa devise, que l'écran de jeu montre à l'ouverture.
-    DevisesConnues.retiens(pseudo, profil.description);
+    // UNE requête, plusieurs réponses : tout ce que le profil porte est
+    // retenu d'un coup, et au même endroit pour les deux résolutions.
+    retiensProfil(pseudo, Profile.fromJson(r.data!));
     return _cache[cle] ?? '';
   }
 

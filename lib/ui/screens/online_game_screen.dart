@@ -223,6 +223,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
   }
 
+  /// Cette partie est-elle une Random Fuga ? C'est son code qui le dit.
+  bool get _estRandom => _g.info.randomCode != null;
+
   /// Le popup de fin n'est montré qu'une fois par partie.
   bool _endShown = false;
 
@@ -604,8 +607,17 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final isMine = camp == _g.myCamp;
     // Kivy écrivait le mélo À CÔTÉ du nom — « Nino  (1500) » — et sur un
     // téléphone l'ellipse le mangeait. Il passe SOUS le pseudo.
+    //
+    // Et c'est CELUI DU MODE JOUÉ. Nino : « il faudrait que le mélo indiqué
+    // durant une partie soit le mélo du mode correspondant ». Le sien arrive
+    // déjà juste : le serveur met dans `partie_trouvee` le mélo du mode,
+    // choisi au moment d'entrer dans la file. Le mien venait de ma session,
+    // qui porte les deux — on y prenait toujours le standard.
+    final session = OnlineService.instance.session;
     final melo = isMine
-        ? (_g.newMelo ?? OnlineService.instance.session?.melo ?? 1500)
+        ? (_g.newMelo ??
+              (_estRandom ? session?.meloRandom : session?.melo) ??
+              1500)
         : _g.info.opponentMelo;
     var label = isMine ? widget.myPseudo : _g.info.opponent;
     var nameColor = kPanelInk;

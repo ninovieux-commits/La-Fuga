@@ -24,6 +24,7 @@ import '../../net/filet_relecture.dart';
 import '../../net/decors_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/devises_connues.dart';
+import '../../net/melos_connus.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
@@ -160,9 +161,18 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     await DecorsConnus.resolve(_g.opponent);
     // Et sait-on s'il est dans mes favoris ? L'étoile du bandeau en dépend.
     await FavorisConnus.instance.demande(_g.opponent);
+    // Et sa devise — qui amène avec elle ses DEUX classements. C'est celle-ci
+    // qui décide de lire son profil : le décor, lui, peut être connu sans
+    // qu'aucun profil ait jamais été lu (la liste des parties le retient), et
+    // s'y fier laissait le mélo du mode Random introuvable.
+    await DevisesConnues.resolve(_g.opponent);
     final photo = await AvatarPhotos.resolve(_g.opponent);
     if (!mounted) return;
     setState(() => _photoAdverse = photo);
+    // En visiteur, la bande ne montre rien de leur conversation — pas même
+    // une devise : on regarde jouer, on n'entre pas chez eux. Son profil a
+    // quand même été lu, pour que son classement soit juste.
+    if (!widget.visiteur) _annonceSaDevise();
   }
 
   @override
@@ -175,9 +185,6 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
     _ecouteBulles = OnlineService.instance.messages.incoming
         .where((m) => m.from == _g.opponent)
         .listen((m) => _bulles.add((texte: m.text, deMoi: false)));
-    // En visiteur, la bande ne montre rien de leur conversation — pas même
-    // une devise : on regarde jouer, on n'entre pas chez eux.
-    if (!widget.visiteur) unawaited(_annonceSaDevise());
     OnlineService.instance.messages.addListener(_onMessages);
     // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
     // un popup : le cache partagé fait le lien.
@@ -281,6 +288,27 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       StreamController<BulleEnJeu>.broadcast();
   StreamSubscription<IncomingMessage>? _ecouteBulles;
 
+  /// Cette partie est-elle une Random Fuga ? C'est son code qui le dit.
+  bool get _estRandom => _g.randomCode.isNotEmpty;
+
+  /// Le classement à écrire sous un pseudo : celui du MODE de cette partie.
+  ///
+  /// Le mien vient de ma session, qui porte les deux. Le sien aussi devrait
+  /// venir de la partie — mais le serveur y met toujours le mélo STANDARD,
+  /// même sur une Random Fuga. On prend donc celui de son profil, déjà
+  /// demandé pour sa photo et son décor ; tant qu'il n'est pas revenu, on
+  /// n'écrit rien plutôt que le chiffre de l'autre mode.
+  String? _meloAffiche(bool isMine) {
+    if (isMine) {
+      final session = OnlineService.instance.session;
+      final mien = _estRandom ? session?.meloRandom : session?.melo;
+      return '${mien ?? 1500}';
+    }
+    if (!_estRandom) return '${_g.opponentMelo}';
+    final sien = MelosConnus.pourLeMode(_g.opponent, random: true);
+    return sien == null ? null : '$sien';
+  }
+
   /// Sa devise, montrée À CHAQUE OUVERTURE de la partie.
   ///
   /// Nino : « à chaque fois qu'une correspondance est ouverte, la devise du
@@ -288,9 +316,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
   /// Une partie de correspondance s'ouvre et se referme vingt fois : c'est
   /// donc vingt fois, et non une seule — on ne retient pas qu'on l'a déjà
   /// montrée.
-  Future<void> _annonceSaDevise() async {
-    final devise = await DevisesConnues.resolve(_g.opponent);
-    if (!mounted || devise.isEmpty || _bulles.isClosed) return;
+  void _annonceSaDevise() {
+    final devise = DevisesConnues.connue(_g.opponent);
+    if (devise.isEmpty || _bulles.isClosed) return;
     _bulles.add((texte: devise, deMoi: false));
   }
 
@@ -1074,10 +1102,9 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
       // Comme en ligne, le classement de l'adversaire s'écrit SOUS son nom :
       // à côté, il finissait coupé — « mesange  (1… ».
       // Nino : « j'aimerai que mon mélo soit affiché (comme celui de mon
-      // adversaire) ». Le mien vient de ma session, le sien de la partie.
-      rating: isMine
-          ? '${OnlineService.instance.session?.melo ?? 1500}'
-          : '${_g.opponentMelo}',
+      // adversaire) », puis « le mélo indiqué durant une partie doit être
+      // celui du mode correspondant ».
+      rating: _meloAffiche(isMine),
       clock: '∞',
       palette: palette,
       isWhite: camp == Camp.blanc,

@@ -14,12 +14,9 @@
 /// passage, et l'écran de jeu la trouve déjà là quand il la demande.
 library;
 
-import 'avatar_photos.dart';
-import 'decors_connus.dart';
-import 'favoris_connus.dart';
 import 'online_service.dart';
 import 'profile.dart';
-import 'scores_directs.dart';
+import 'profils_connus.dart';
 
 class DevisesConnues {
   DevisesConnues._();
@@ -64,14 +61,9 @@ class DevisesConnues {
 
     final r = await service.client.getProfile(pseudo);
     if (!r.isOk || r.data == null) return '';
-    // Le profil porte aussi le reste : on le retient, comme le fait
-    // `DecorsConnus` — une requête, plusieurs réponses.
-    final profil = Profile.fromJson(r.data!);
-    retiens(pseudo, profil.description);
-    AvatarPhotos.remember(pseudo, profil.photo);
-    DecorsConnus.remember(pseudo, profil.theme);
-    FavorisConnus.instance.retiens(pseudo, profil.isFavorite);
-    ScoresDirects.remember(pseudo, profil.direct);
+    // UNE requête, plusieurs réponses : tout ce que le profil porte est
+    // retenu d'un coup, et au même endroit pour les deux résolutions.
+    retiensProfil(pseudo, Profile.fromJson(r.data!));
     return _cache[cle] ?? '';
   }
 

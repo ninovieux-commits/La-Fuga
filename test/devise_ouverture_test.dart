@@ -46,6 +46,11 @@ void main() {
   late List<String> chemins;
   late OnlineClient client;
 
+  /// Ce que le SERVEUR répond comme devise de l'adversaire. Un test qui la
+  /// veut vide la vide ici, et non dans le cache : le profil est relu par
+  /// plus d'un chemin, et un cache forcé se fait écraser par la réponse.
+  late String deviseDuServeur;
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({
       'lang_chosen': true,
@@ -60,6 +65,7 @@ void main() {
     FavorisConnus.instance.oublie();
 
     chemins = [];
+    deviseDuServeur = kSaDevise;
     client = OnlineClient(
       api: ApiClient(
         client: MockClient((req) async {
@@ -70,8 +76,9 @@ void main() {
               'token': 't',
               'pseudo': 'nino',
               'melo': 1530,
+              'melo_random': 1711,
               // Le profil de l'adversaire : c'est lui qui porte la devise.
-              'description': kSaDevise,
+              'description': deviseDuServeur,
               'theme': 'original',
               'photo': 'nurse',
             }),
@@ -89,7 +96,7 @@ void main() {
   });
   tearDown(DevisesConnues.clear);
 
-  Map<String, dynamic> partieJson() => const {
+  Map<String, dynamic> partieJson({String random = ''}) => {
     'id': 'g1',
     'statut': 'en_cours',
     'adversaire': 'Ana',
@@ -102,11 +109,13 @@ void main() {
     'objectif': 'partie',
     'moves_text': '',
     'is_defieur': false,
+    'random_code': random,
   };
 
   Future<void> correspondance(
     WidgetTester tester, {
     bool visiteur = false,
+    String random = '',
   }) async {
     tester.view.physicalSize = const Size(393, 851);
     tester.view.devicePixelRatio = 1;
@@ -114,7 +123,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: CorrGameScreen(
-          game: CorrGame.fromJson(partieJson()),
+          game: CorrGame.fromJson(partieJson(random: random)),
           service: CorrespondenceService(client),
           myPseudo: 'nino',
           visiteur: visiteur,
@@ -124,7 +133,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> direct(WidgetTester tester) async {
+  Future<void> direct(WidgetTester tester, {String? random}) async {
     tester.view.physicalSize = const Size(393, 851);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -135,6 +144,7 @@ void main() {
             socket: FakeSocket(),
             myCamp: Camp.blanc,
             cadence: Cadence.quinze,
+            randomCode: random,
           ),
           myPseudo: 'nino',
         ),
@@ -181,7 +191,7 @@ void main() {
     });
 
     testWidgets('pas de devise, pas de bulle', (tester) async {
-      DevisesConnues.retiens('Ana', '');
+      deviseDuServeur = '';
       await correspondance(tester);
       expect(find.byType(MessageBubble), findsNothing);
     });
@@ -208,19 +218,68 @@ void main() {
   });
 
   group('Mon mélo', () {
+    /// Les classements écrits sur les deux bandeaux.
+    List<String?> classements(WidgetTester tester) => tester
+        .widgetList<PlayerPanel>(find.byType(PlayerPanel))
+        .map((p) => p.rating)
+        .toList();
+
     testWidgets('est écrit sous mon pseudo, comme le sien', (tester) async {
       // Nino : « j'aimerai que mon mélo soit affiché (comme celui de mon
       // adversaire) ».
       await correspondance(tester);
-      final panneaux = tester
-          .widgetList<PlayerPanel>(find.byType(PlayerPanel))
-          .toList();
-      expect(panneaux.length, 2);
+      expect(classements(tester).length, 2);
       expect(
-        panneaux.map((p) => p.rating),
+        classements(tester),
         containsAll(<String>['1530', '1600']),
-        reason: 'le mien ET le sien : ${panneaux.map((p) => p.rating)}',
+        reason: 'le mien ET le sien : ${classements(tester)}',
       );
+    });
+
+    testWidgets('en Random, c est le mélo RANDOM — le mien et le sien', (
+      tester,
+    ) async {
+      // Nino : « il faudrait que le mélo indiqué durant une partie soit le
+      // mélo du mode correspondant (soit standard soit random) ». Le serveur
+      // envoie toujours le standard avec une partie de correspondance : c'est
+      // le profil qui porte l'autre.
+      await correspondance(tester, random: 'ABCDEFG');
+      expect(
+        classements(tester),
+        containsAll(<String>['1711']),
+        reason:
+            'mon mélo Random, et non mon standard : '
+            '${classements(tester)}',
+      );
+      expect(
+        classements(tester),
+        isNot(contains('1530')),
+        reason: 'le standard n a rien à faire sur une Random Fuga',
+      );
+      expect(
+        classements(tester),
+        isNot(contains('1600')),
+        reason: 'le sien non plus : 1600 est son standard',
+      );
+    });
+
+    testWidgets('et en DIRECT aussi, pour le mien', (tester) async {
+      // En direct, le sien arrive déjà juste : le serveur met dans
+      // `partie_trouvee` le mélo du mode. Le mien venait de ma session, où
+      // l'on prenait toujours le standard.
+      await direct(tester, random: 'ABCDEFG');
+      expect(
+        classements(tester),
+        contains('1711'),
+        reason: 'mon mélo Random : ${classements(tester)}',
+      );
+      expect(classements(tester), isNot(contains('1530')));
+    });
+
+    testWidgets('hors Random, c est bien le standard', (tester) async {
+      await direct(tester);
+      expect(classements(tester), contains('1530'));
+      expect(classements(tester), isNot(contains('1711')));
     });
   });
 }
