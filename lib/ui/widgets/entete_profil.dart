@@ -15,10 +15,12 @@
 ///
 /// ## Les proportions du dessin
 ///
-/// « L'emplacement image mesure 1/3 de la largeur de l'écran. Le tout doit
-/// être décalé vers le bas de la taille des bandeaux dans les parties. La
-/// taille du pseudo va bien mais ils ne doivent plus être mangés. La bulle
-/// devise occupe la place qu'il reste. »
+/// « L'emplacement image mesure 1/3 de la largeur de l'écran. La taille du
+/// pseudo va bien mais ils ne doivent plus être mangés. La bulle devise
+/// occupe la place qu'il reste. »
+///
+/// (Le décalage du haut, qu'il demandait dans la même phrase, n'est pas
+/// l'affaire du bandeau : c'est la marge de la page, dans `account_screen`.)
 ///
 /// La photo donne donc sa hauteur au bandeau, et la colonne de droite se
 /// partage la même : une ligne pour le pseudo, une pour les mélos, et la

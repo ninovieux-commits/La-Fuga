@@ -301,17 +301,20 @@ void main() {
       expect(lignesDeLaDevise(tester), greaterThanOrEqualTo(3));
     });
 
-    testWidgets('le tout est décalé d un bandeau de partie', (tester) async {
+    testWidgets('le tout est décalé d un TIERS de bandeau de partie', (
+      tester,
+    ) async {
       // « Le tout doit être décalé vers le bas de la taille des bandeaux dans
-      // les parties. » C'est la bande que le haut de l'écran mange, et que le
-      // jeu couvre avec le bandeau de l'adversaire.
+      // les parties », puis, l'ayant vu : « moins grand l'espace au-dessus du
+      // profil, tu peux le diviser par 3. » Assez pour sortir le pseudo de
+      // dessous la barre d'état, pas assez pour faire un trou.
       reponses['/get_profile'] = profil();
       await ouvrir(tester);
 
       expect(
         tester.getRect(find.byType(EnteteProfil)).top,
-        closeTo(hauteurBandeauJoueur(), 0.5),
-        reason: 'collé en haut, le pseudo se fait manger',
+        closeTo(hauteurBandeauJoueur() / 3, 0.5),
+        reason: 'collé en haut, le pseudo se fait manger ; trop bas, ça baille',
       );
       expect(hauteurBandeauJoueur(), greaterThan(0));
     });

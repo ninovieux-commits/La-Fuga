@@ -332,10 +332,12 @@ class _AccountScreenState extends State<AccountScreen> {
           // dans les mêmes marges que le reste.
           : ListView(
               // Nino : « le tout doit être décalé vers le bas de la taille
-              // des bandeaux dans les parties. » C'est la bande que le haut
-              // de l'écran mange — barre d'état, encoche — et que le jeu
-              // couvre avec le bandeau de l'adversaire.
-              padding: EdgeInsets.only(top: hauteurBandeauJoueur()),
+              // des bandeaux dans les parties », puis, l'ayant vu : « moins
+              // grand l'espace au-dessus du profil, tu peux le diviser par
+              // 3. » Un bandeau entier dégageait bien plus que ce que le haut
+              // de l'écran mange ; le tiers suffit à sortir le pseudo de
+              // dessous la barre d'état.
+              padding: EdgeInsets.only(top: hauteurBandeauJoueur() / 3),
               children: [
                 _entete(profile, palette),
                 Padding(
