@@ -134,7 +134,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   @override
   void initState() {
     super.initState();
-    // Une partie en direct est en cours : « Défier » se hachure PARTOUT, ici
+    // Une partie en direct est en cours : « Défier » s'éteint PARTOUT, ici
     // comme dans le chat ouvert d'ici. On ne joue pas deux parties à la fois.
     DefiRelais.enPartieDirecte = true;
     _photoAdverse = AvatarPhotos.known(_g.info.opponent);
@@ -579,9 +579,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       name: label,
       nameColor: nameColor,
       // LA FICHE, la même partout. Nino : « lors d'une partie en direct, ce
-      // popup doit avoir la touche défier hachurée en traits noirs et être
-      // désactivée » — on joue déjà contre lui, et on ne quitte pas une
-      // partie en direct pour en lancer une autre.
+      // popup doit avoir la touche défier […] désactivée » — on joue déjà
+      // contre lui, et on ne quitte pas une partie en direct pour en lancer
+      // une autre. (Elle s'est hachurée le temps d'un essai ; elle pâlit
+      // depuis qu'il les a vues en vrai.)
       onNameTap: () => showPlayerCard(
         context,
         online: OnlineService.instance,

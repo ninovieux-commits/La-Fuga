@@ -36,7 +36,6 @@ import 'package:lafuga/ui/screens/online_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
-import 'package:lafuga/ui/widgets/player_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'online_game_test.dart' show FakeSocket, makeGame;
@@ -191,16 +190,7 @@ void main() {
       await calme(tester);
       final defier = find.widgetWithText(FugaButton, T('Défier'));
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
-      expect(
-        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
-        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
-        // sujet.
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byKey(kHachuresKey),
-        ),
-        findsNothing,
-      );
+      expect(defierPalie(tester), isFalse);
 
       await tester.tap(defier);
       await calme(tester);
@@ -256,16 +246,7 @@ void main() {
       await tester.tap(find.text('mesange', findRichText: true));
       await calme(tester);
 
-      expect(
-        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
-        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
-        // sujet.
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byKey(kHachuresKey),
-        ),
-        findsOneWidget,
-      );
+      expect(defierPalie(tester), isTrue);
       await tester.tap(find.widgetWithText(FugaButton, T('Défier')));
       await calme(tester);
       expect(socket.lastOf('defier'), isNull);
@@ -311,16 +292,7 @@ void main() {
       await calme(tester);
       final defier = find.widgetWithText(FugaButton, T('Défier'));
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
-      expect(
-        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
-        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
-        // sujet.
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byKey(kHachuresKey),
-        ),
-        findsNothing,
-      );
+      expect(defierPalie(tester), isFalse);
 
       await tester.tap(defier);
       await calme(tester);
@@ -329,7 +301,7 @@ void main() {
   });
 
   group('Sans menu à l écoute', () {
-    testWidgets('la touche est hachurée : personne ne mènerait le défi', (
+    testWidgets('la touche pâlit : personne ne mènerait le défi', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(393, 851);
@@ -344,16 +316,21 @@ void main() {
 
       await tester.tap(find.text('mesange', findRichText: true));
       await tester.pumpAndSettle();
-      expect(
-        // DANS la fiche : depuis que TOUTE touche hors service est hachurée,
-        // le ½ du bandeau resté derrière l'est aussi, et il n'est pas le
-        // sujet.
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byKey(kHachuresKey),
-        ),
-        findsOneWidget,
-      );
+      expect(defierPalie(tester), isTrue);
     });
   });
 }
+
+/// La touche « Défier » est-elle visiblement hors service ?
+///
+/// Elle s'est hachurée le temps d'un essai. Nino, les hachures vues en vrai :
+/// « on vire tout, on remet comme c'était avant, partout. » Hors service,
+/// elle PÂLIT, comme les flèches du bandeau des coups.
+bool defierPalie(WidgetTester tester) => tester
+    .widgetList<Opacity>(
+      find.ancestor(
+        of: find.widgetWithText(FugaButton, T('Défier')),
+        matching: find.byType(Opacity),
+      ),
+    )
+    .any((o) => o.opacity < 0.5);

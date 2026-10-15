@@ -27,7 +27,7 @@ class DefiRelais {
   /// Nino : « de partout tant qu'une partie en direct n'est pas en cours ».
   /// C'est donc un ÉTAT, et non une liste d'écrans : l'écran de partie en
   /// direct le pose en s'ouvrant et le retire en se fermant, et la touche
-  /// « Défier » se hachure d'elle-même partout — dans la fiche ouverte sur le
+  /// « Défier » s'éteint d'elle-même partout — dans la fiche ouverte sur le
   /// bandeau, mais aussi dans le chat ouvert depuis cette partie. Personne
   /// n'a plus à y penser.
   static bool enPartieDirecte = false;
@@ -39,8 +39,8 @@ class DefiRelais {
   /// Peut-on défier, ici et maintenant ?
   ///
   /// Il faut quelqu'un pour mener le défi — le menu, à l'écoute — et aucune
-  /// partie en direct en cours. Sinon la touche paraît hachurée : mieux vaut
-  /// une touche visiblement hors service qu'une promesse sans suite.
+  /// partie en direct en cours. Sinon la touche pâlit : mieux vaut une
+  /// touche visiblement hors service qu'une promesse sans suite.
   static bool get pret => _lancer != null && !enPartieDirecte;
 
   /// Défie, s'il y a quelqu'un pour le faire.

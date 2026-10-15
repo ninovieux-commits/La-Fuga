@@ -386,11 +386,11 @@ void main() {
 
     final defier = find.widgetWithText(FugaButton, T('Défier'));
 
-    testWidgets('personne pour mener le défi : HACHURÉE', (tester) async {
+    testWidgets('personne pour mener le défi : ÉTEINTE', (tester) async {
       DefiRelais.oublie();
       await ouvre(tester);
       expect(tester.widget<FugaButton>(defier).onPressed, isNull);
-      expect(find.byKey(kHachuresKey), findsOneWidget);
+      expect(defierPalie(tester), isTrue);
 
       // Et elle ne ferme pas la fiche.
       await tester.tap(defier);
@@ -398,18 +398,18 @@ void main() {
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('une partie EN DIRECT en cours : hachurée aussi', (
+    testWidgets('une partie EN DIRECT en cours : éteinte aussi', (
       tester,
     ) async {
       // Nino : « lors d'une partie en direct, ce popup doit avoir la touche
-      // défier hachurée en traits noirs et être désactivée. » Même avec
-      // quelqu'un pour le mener : on ne joue pas deux parties à la fois.
+      // défier […] désactivée. » Même avec quelqu'un pour le mener : on ne
+      // joue pas deux parties à la fois.
       DefiRelais.pose((_) async {});
       DefiRelais.enPartieDirecte = true;
       addTearDown(DefiRelais.oublie);
       await ouvre(tester);
       expect(tester.widget<FugaButton>(defier).onPressed, isNull);
-      expect(find.byKey(kHachuresKey), findsOneWidget);
+      expect(defierPalie(tester), isTrue);
     });
 
     testWidgets('sinon elle est pleine et renvoie le pseudo', (tester) async {
@@ -418,9 +418,9 @@ void main() {
       await ouvre(tester);
       expect(tester.widget<FugaButton>(defier).onPressed, isNotNull);
       expect(
-        find.byKey(kHachuresKey),
-        findsNothing,
-        reason: 'aucune hachure sur une touche en service',
+        defierPalie(tester),
+        isFalse,
+        reason: 'une touche en service ne pâlit pas',
       );
 
       await tester.tap(defier);
@@ -429,3 +429,17 @@ void main() {
     });
   });
 }
+
+/// La touche « Défier » est-elle visiblement hors service ?
+///
+/// Elle s'est hachurée le temps d'un essai. Nino, les hachures vues en vrai :
+/// « on vire tout, on remet comme c'était avant, partout. » Hors service,
+/// elle PÂLIT, comme les flèches du bandeau des coups.
+bool defierPalie(WidgetTester tester) => tester
+    .widgetList<Opacity>(
+      find.ancestor(
+        of: find.widgetWithText(FugaButton, T('Défier')),
+        matching: find.byType(Opacity),
+      ),
+    )
+    .any((o) => o.opacity < 0.5);

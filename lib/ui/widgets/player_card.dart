@@ -14,11 +14,6 @@ library;
 
 import 'package:flutter/material.dart';
 
-// Les hachures d'une touche hors service vivent ailleurs — elles valent pour
-// toute l'application — mais la fiche est l'écran où on les voit le plus, et
-// c'est d'ici qu'on les cherche.
-export 'hachures.dart' show kHachuresKey;
-
 import '../../game/defi_relais.dart';
 import '../../i18n/translations.dart';
 import '../../net/avatar_photos.dart';
@@ -317,7 +312,7 @@ class _PlayerCardState extends State<_PlayerCard> {
         texte: T('Défier'),
         couleur: widget.palette.clair,
         encre: Colors.black,
-        hachuree: !DefiRelais.pret,
+        horsService: !DefiRelais.pret,
         onPressed: () => Navigator.of(context).pop(widget.pseudo),
       ),
     if (!_moi)
@@ -346,18 +341,22 @@ class _PlayerCardState extends State<_PlayerCard> {
     required VoidCallback? onPressed,
     Color couleur = kFugaGrey,
     Color encre = Colors.white,
-    bool hachuree = false,
+    bool horsService = false,
   }) {
     final bouton = FugaButton(
       text: texte,
       color: couleur,
       textColor: encre,
       fontSize: SF(15),
-      onPressed: hachuree ? null : onPressed,
+      onPressed: horsService ? null : onPressed,
     );
     return Padding(
       padding: EdgeInsets.only(bottom: S(8)),
-      child: bouton,
+      // Hors service, la touche PÂLIT — comme les flèches du bandeau des
+      // coups, et comme tout ce qui est hors d'usage dans l'application.
+      // Elle s'est hachurée le temps d'un essai ; Nino, les hachures vues en
+      // vrai : « on vire tout, on remet comme c'était avant, partout. »
+      child: horsService ? Opacity(opacity: 0.35, child: bouton) : bouton,
     );
   }
 }
