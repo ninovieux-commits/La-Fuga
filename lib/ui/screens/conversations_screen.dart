@@ -17,6 +17,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/fuga_background.dart';
@@ -35,7 +36,8 @@ class ConversationsScreen extends StatefulWidget {
   State<ConversationsScreen> createState() => _ConversationsScreenState();
 }
 
-class _ConversationsScreenState extends State<ConversationsScreen> {
+class _ConversationsScreenState extends State<ConversationsScreen>
+    with SuitLesReglages {
   List<Conversation>? _conversations;
   bool _loading = true;
   String? _error;
@@ -267,7 +269,8 @@ class ConversationScreen extends StatefulWidget {
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-class _ConversationScreenState extends State<ConversationScreen> {
+class _ConversationScreenState extends State<ConversationScreen>
+    with SuitLesReglages {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 

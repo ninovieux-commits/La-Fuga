@@ -46,7 +46,15 @@ class ChallengeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    // Cet écran n'a pas d'état à lui : c'est donc ici qu'il écoute les
+    // réglages, pour se repeindre quand le thème ou la langue changent même
+    // s'il est resté sous un autre écran.
+    listenable: reglagesVisibles,
+    builder: (context, _) => _contenu(context),
+  );
+
+  Widget _contenu(BuildContext context) {
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
     final sienne = game.couleurAnnoncee;

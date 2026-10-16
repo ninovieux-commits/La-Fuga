@@ -28,6 +28,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -40,7 +41,8 @@ class FugReaderScreen extends StatefulWidget {
   State<FugReaderScreen> createState() => _FugReaderScreenState();
 }
 
-class _FugReaderScreenState extends State<FugReaderScreen> {
+class _FugReaderScreenState extends State<FugReaderScreen>
+    with SuitLesReglages {
   final TextEditingController _input = TextEditingController();
 
   @override

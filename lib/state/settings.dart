@@ -5,6 +5,7 @@
 /// même nom d'un bout à l'autre du projet.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/sound_plan.dart';
@@ -52,6 +53,31 @@ abstract final class SettingsKeys {
 }
 
 /// Réglages de l'application.
+/// Prévient quand un réglage QUI SE VOIT a changé.
+///
+/// Nino : « les thèmes ne se mettent pas bien à jour. Quand on valide un
+/// nouveau thème, la différence doit se charger dans toute l'app directement,
+/// les pages ne doivent pas créer la modif une par une quand elles sont
+/// rechargées. »
+///
+/// Un réglage n'était qu'une valeur lue dans `SharedPreferences` au moment de
+/// dessiner : un écran déjà construit gardait donc l'ancien thème jusqu'à ce
+/// que quelque chose le reconstruise. Et reconstruire la racine ne suffit
+/// pas — mesuré : les écrans EMPILÉS ne se reconstruisent pas pour autant,
+/// chaque route ayant sa propre portée de construction.
+///
+/// D'où ceci : les écrans s'y abonnent (voir `SuitLesReglages`), et le
+/// changement les atteint tous à la fois, visibles ou dessous.
+///
+/// Seuls les réglages qui CHANGENT L'IMAGE y passent — le thème et la langue.
+/// Le volume et l'instrument sont lus au moment de jouer un son ; les y mettre
+/// ferait repeindre l'application entière à chaque mouvement du curseur.
+final ChangeNotifier reglagesVisibles = _Reglages();
+
+class _Reglages extends ChangeNotifier {
+  void previens() => notifyListeners();
+}
+
 class Settings {
   Settings._(this._prefs);
 
@@ -81,8 +107,10 @@ class Settings {
   /// Thème composite `general|pieces|logo|menu|board`, ou un nom simple.
   String get theme => _prefs.getString(SettingsKeys.theme) ?? kDefaultTheme;
 
-  Future<void> setTheme(String value) =>
-      _prefs.setString(SettingsKeys.theme, value);
+  Future<void> setTheme(String value) async {
+    await _prefs.setString(SettingsKeys.theme, value);
+    (reglagesVisibles as _Reglages).previens();
+  }
 
   /// Les cinq axes du thème courant.
   ///
@@ -134,6 +162,9 @@ class Settings {
     if (!kLanguageLabels.containsKey(code)) return;
     await _prefs.setString(SettingsKeys.lang, code);
     await Translations.load(code);
+    // La langue aussi change l'image : un écran déjà construit garderait ses
+    // phrases d'avant.
+    (reglagesVisibles as _Reglages).previens();
   }
 
   // ── Serveur ──────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ import '../../net/profile.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/entete_profil.dart';
@@ -49,7 +50,7 @@ class AccountScreen extends StatefulWidget {
   State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> {
+class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
   /// Les trois notifications secondaires, dans l'ordre de Kivy.
   static const List<(String, String)> _subNotifs = [
     ('turn', "quand c'est à moi de jouer (corresp.)"),

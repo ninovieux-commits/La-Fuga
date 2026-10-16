@@ -8,6 +8,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../suit_les_reglages.dart';
+
 import '../../engine/board.dart';
 import '../../engine/literal_replay.dart';
 import '../../engine/piece.dart';
@@ -68,7 +70,7 @@ class OnlineGameScreen extends StatefulWidget {
 }
 
 class _OnlineGameScreenState extends State<OnlineGameScreen>
-    with SlideAnimation {
+    with SlideAnimation, SuitLesReglages {
   late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
   LastMove? _lastMove;
 

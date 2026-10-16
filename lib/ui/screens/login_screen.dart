@@ -16,6 +16,7 @@ import '../../state/local_games.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 
@@ -33,7 +34,7 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
   final _pseudo = TextEditingController();
   final _password = TextEditingController();
   final _email = TextEditingController();

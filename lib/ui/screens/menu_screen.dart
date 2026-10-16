@@ -31,6 +31,7 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
@@ -94,7 +95,8 @@ class MenuScreen extends StatefulWidget {
 
 /// L'état du menu est public : la visite guidée se lance de l'extérieur
 /// (fin du tuto), et les tests la déclenchent de la même façon.
-class MenuScreenState extends State<MenuScreen> with WidgetsBindingObserver {
+class MenuScreenState extends State<MenuScreen>
+    with WidgetsBindingObserver, SuitLesReglages {
   late final OnlineService _online = widget.online ?? OnlineService.instance;
   late final CorrespondenceService _corr = CorrespondenceService(
     _online.client,

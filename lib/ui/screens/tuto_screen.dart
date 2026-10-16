@@ -12,6 +12,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
@@ -28,7 +29,7 @@ class TutoScreen extends StatefulWidget {
   State<TutoScreen> createState() => _TutoScreenState();
 }
 
-class _TutoScreenState extends State<TutoScreen> {
+class _TutoScreenState extends State<TutoScreen> with SuitLesReglages {
   late final TutoController _tuto = widget.controller ?? TutoController();
 
   @override

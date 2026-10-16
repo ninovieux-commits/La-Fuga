@@ -10,6 +10,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../suit_les_reglages.dart';
+
 import '../../engine/ai/deep_grey_isolate.dart';
 import '../../engine/ai/opening_book.dart';
 import '../../engine/ai/weights.dart';
@@ -149,7 +151,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with SlideAnimation {
+class _GameScreenState extends State<GameScreen>
+    with SlideAnimation, SuitLesReglages {
   late MoveController _game;
   late GameClock _clock;
   late FugaMatch _match;

@@ -124,6 +124,23 @@ void paintPiece(
       outline: outline,
       outlineWidth: outlineWidth,
     );
+    // LES POINTS DE POUSSÉE DISPONIBLES, PAR-DESSUS L'IMAGE.
+    //
+    // Nino : « quand on utilise un thème spécial, il n'y a pas les points de
+    // marquage de poussée quand une pièce a poussé. Il faut qu'ils y soient,
+    // partout tout le temps. »
+    //
+    // Le dessin de la pièce porte déjà ses quatre points — ils font partie de
+    // l'image — mais rien n'y dit LESQUELS restent jouables après une
+    // poussée. Ce rendu-ci s'arrêtait à l'image, et l'information disparais-
+    // sait dès qu'on quittait les thèmes géométriques.
+    _pointsDisponiblesSurImage(
+      canvas,
+      rect,
+      piece,
+      pushHighlightDirs,
+      flipped: flipped,
+    );
     return;
   }
 
@@ -186,33 +203,17 @@ void paintPiece(
       canvas.drawRect(box, line);
       acc.strokeWidth = kivyLine(math.max(2.0, inner * 0.10));
       paintActivationCross(canvas, box, piece.type, acc);
-      if (piece.type == PieceType.soldat) {
-        // …et pousse en diagonale : les points marquent les 4 diagonales.
-        _paintDots(
-          canvas,
-          centre,
-          inner,
-          accent,
-          bigColor,
-          bigDirs,
-          const [(-1, -1), (1, -1), (-1, 1), (1, 1)],
-          // Le Soldat porte ses points en X, un peu resserrés.
-          offset: 0.30,
-        );
-      } else {
-        // …et pousse en orthogonal.
-        _paintDots(
-          canvas,
-          centre,
-          inner,
-          accent,
-          bigColor,
-          bigDirs,
-          const [(0, -1), (0, 1), (-1, 0), (1, 0)],
-          // Le Garde porte les siens en croix, plus écartés.
-          offset: 0.36,
-        );
-      }
+      final poussee = pousseeDe(piece.type)!;
+      _paintDots(
+        canvas,
+        centre,
+        inner,
+        accent,
+        bigColor,
+        bigDirs,
+        poussee.dirs,
+        offset: poussee.offset,
+      );
 
     case PieceType.nurse:
       canvas.drawCircle(centre, inner / 2, fill);
@@ -294,6 +295,26 @@ void paintPiece(
       }
   }
 }
+
+/// Les quatre directions de poussée d'une pièce, et l'écartement de ses
+/// points. `null` pour celles qui ne poussent pas.
+///
+/// Écrit une fois : le rendu géométrique et le rendu à images s'en servent
+/// tous les deux, et deux listes séparées auraient fini par diverger.
+({List<(int, int)> dirs, double offset})? pousseeDe(PieceType type) =>
+    switch (type) {
+      // Le Soldat pousse en diagonale, et porte ses points en X, resserrés.
+      PieceType.soldat => (
+        dirs: const [(-1, -1), (1, -1), (-1, 1), (1, 1)],
+        offset: 0.30,
+      ),
+      // Le Garde pousse en orthogonal : ses points sont en croix, écartés.
+      PieceType.garde => (
+        dirs: const [(0, -1), (0, 1), (-1, 0), (1, 0)],
+        offset: 0.36,
+      ),
+      _ => null,
+    };
 
 /// Points marquant les directions de poussée, grossis et inversés quand la
 /// direction est effectivement poussable.
@@ -406,3 +427,53 @@ Offset _knightPoint(int i, Rect box, Offset centre, double hOff) => switch (i) {
   4 => Offset(box.left, centre.dy + hOff),
   _ => Offset(box.left, centre.dy - hOff),
 };
+
+/// Les points de poussée ENCORE DISPONIBLES, posés sur l'image d'une pièce.
+///
+/// L'image porte déjà les quatre points de la pièce : on ne les redessine
+/// pas. On ne marque que ceux qui restent jouables, à la même place et à la
+/// même taille que sur le rendu géométrique — c'est la même information, elle
+/// doit avoir la même allure.
+///
+/// Un lisere de la couleur opposée, en revanche, n'existe que sur ce
+/// rendu-ci : un point blanc sur un dessin clair ne se verrait pas, et une
+/// image de thème peut être n'importe quoi. Sur le rendu géométrique le corps
+/// de la pièce est uni, et le contraste est acquis.
+void _pointsDisponiblesSurImage(
+  Canvas canvas,
+  Rect rect,
+  Piece piece,
+  List<(int, int)> pushHighlightDirs, {
+  required bool flipped,
+}) {
+  if (pushHighlightDirs.isEmpty) return;
+  final poussee = pousseeDe(piece.type);
+  if (poussee == null) return;
+
+  final inner = rect.width - 2 * (rect.width * 0.04);
+  final r = inner * 0.06 * 2;
+  final off = inner * poussee.offset;
+  // Le joueur Noir voit le plateau tourné : les deux axes s'inversent.
+  final axis = flipped ? 1 : -1;
+  final plein = Paint()
+    ..color = piece.camp == Camp.blanc
+        ? const Color(0xFF000000)
+        : const Color(0xFFFFFFFF);
+  final lisere = Paint()
+    ..color = piece.camp == Camp.blanc
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF000000)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = r * 0.3;
+
+  for (final (dc, dr) in pushHighlightDirs) {
+    // dr positif = vers l'avant en coordonnées de jeu, donc vers le HAUT à
+    // l'écran : d'où le signe inversé sur dy.
+    final ou = Offset(
+      rect.center.dx + dc * axis * off,
+      rect.center.dy - dr * axis * off,
+    );
+    canvas.drawCircle(ou, r, plein);
+    canvas.drawCircle(ou, r, lisere);
+  }
+}

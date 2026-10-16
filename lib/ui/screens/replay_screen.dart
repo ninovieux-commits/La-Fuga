@@ -20,6 +20,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
@@ -62,7 +63,8 @@ class ReplayScreen extends StatefulWidget {
   State<ReplayScreen> createState() => _ReplayScreenState();
 }
 
-class _ReplayScreenState extends State<ReplayScreen> with SlideAnimation {
+class _ReplayScreenState extends State<ReplayScreen>
+    with SlideAnimation, SuitLesReglages {
   late final ReplayController _replay;
   late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
   OnlineService get _online => widget.online ?? OnlineService.instance;

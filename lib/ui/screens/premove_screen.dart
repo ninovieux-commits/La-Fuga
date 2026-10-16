@@ -26,6 +26,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
@@ -63,7 +64,8 @@ class PremoveScreen extends StatefulWidget {
   State<PremoveScreen> createState() => _PremoveScreenState();
 }
 
-class _PremoveScreenState extends State<PremoveScreen> with SlideAnimation {
+class _PremoveScreenState extends State<PremoveScreen>
+    with SlideAnimation, SuitLesReglages {
   late MoveController _jeu;
   late PremovePlan _plan;
 

@@ -45,6 +45,7 @@ import '../widgets/slide_animation.dart';
 import '../../game/premove.dart';
 import '../retour_menu.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import 'premove_screen.dart';
 import 'conversations_screen.dart';
 import 'game_screen.dart';
@@ -93,7 +94,8 @@ class CorrGameScreen extends StatefulWidget {
   State<CorrGameScreen> createState() => _CorrGameScreenState();
 }
 
-class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
+class _CorrGameScreenState extends State<CorrGameScreen>
+    with SlideAnimation, SuitLesReglages {
   late final SoundPlayer _sounds = widget.sounds ?? SoundPlayer();
 
   MoveController? _controller;

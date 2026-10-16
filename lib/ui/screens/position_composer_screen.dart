@@ -25,6 +25,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
@@ -64,7 +65,8 @@ class PositionComposerScreen extends StatefulWidget {
   State<PositionComposerScreen> createState() => _PositionComposerScreenState();
 }
 
-class _PositionComposerScreenState extends State<PositionComposerScreen> {
+class _PositionComposerScreenState extends State<PositionComposerScreen>
+    with SuitLesReglages {
   late Board _board = widget.depart?.clone() ?? Board.empty();
   late Camp _trait = widget.turn ?? Camp.blanc;
 

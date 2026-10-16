@@ -14,6 +14,7 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
@@ -35,7 +36,8 @@ class ThemeComposerScreen extends StatefulWidget {
   State<ThemeComposerScreen> createState() => _ThemeComposerScreenState();
 }
 
-class _ThemeComposerScreenState extends State<ThemeComposerScreen> {
+class _ThemeComposerScreenState extends State<ThemeComposerScreen>
+    with SuitLesReglages {
   late ThemeAxes _axes = Settings.instance.themeAxes;
 
   String _themeOf(String axis) => switch (axis) {
