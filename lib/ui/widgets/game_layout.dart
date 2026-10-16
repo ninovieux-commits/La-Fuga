@@ -41,6 +41,7 @@ class GameLayout extends StatelessWidget {
     this.notice,
     this.bottomParts = 12,
     this.topOverlay,
+    this.topPanelDevant = false,
   });
 
   final Widget topBar;
@@ -74,6 +75,19 @@ class GameLayout extends StatelessWidget {
   /// peut en sortir.
   final Widget? topOverlay;
 
+  /// Le bandeau du haut passe DEVANT les bulles, au lieu d'être dessous.
+  ///
+  /// Les bulles sont posées par-dessus le bandeau de l'adversaire : c'est
+  /// leur place, et un message doit se lire sans quitter le plateau. Mais ce
+  /// bandeau cède parfois la place à une proposition de nulle, et une
+  /// question à laquelle il faut répondre ne se laisse pas recouvrir par un
+  /// message qui passe. Nino : « la proposition de nulle doit passer devant
+  /// la bulle de texte ingame et pas l'inverse. »
+  ///
+  /// Les bulles ne sont pas cachées pour autant : elles continuent de défiler
+  /// derrière, et reparaissent dès que la question est répondue.
+  final bool topPanelDevant;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -99,10 +113,15 @@ class GameLayout extends StatelessWidget {
                       ? topPanel
                       : ClipRect(
                           child: Stack(
-                            children: [
-                              Positioned.fill(child: topPanel!),
-                              Positioned.fill(child: topOverlay!),
-                            ],
+                            children: topPanelDevant
+                                ? [
+                                    Positioned.fill(child: topOverlay!),
+                                    Positioned.fill(child: topPanel!),
+                                  ]
+                                : [
+                                    Positioned.fill(child: topPanel!),
+                                    Positioned.fill(child: topOverlay!),
+                                  ],
                           ),
                         ),
                 ),

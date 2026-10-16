@@ -23,6 +23,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/widgets/draw_offer_panel.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
+import 'package:lafuga/ui/widgets/game_layout.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -218,6 +219,30 @@ void main() {
         reason: 'le mien doit rester : c est celui d en face qui cède la place',
       );
       expect(find.textContaining('mesange'), findsWidgets);
+    });
+
+    testWidgets('elle passe DEVANT les bulles de la partie', (tester) async {
+      // Nino : « la proposition de nulle doit passer devant la bulle de
+      // texte ingame et pas l'inverse. » Les bulles sont posées par-dessus
+      // le bandeau de l'adversaire — c'est leur place — mais une question à
+      // laquelle il faut répondre ne se laisse pas recouvrir par un message
+      // qui passe.
+      await ouvrir(tester, jeuJson(monTour: true, nulleARepondre: true));
+      expect(find.byType(DrawOfferPanel), findsOneWidget);
+      expect(
+        tester.widget<GameLayout>(find.byType(GameLayout)).topPanelDevant,
+        isTrue,
+      );
+    });
+
+    testWidgets('sans offre, les bulles reprennent le dessus', (tester) async {
+      await ouvrir(tester, jeuJson(monTour: true));
+      expect(find.byType(DrawOfferPanel), findsNothing);
+      expect(
+        tester.widget<GameLayout>(find.byType(GameLayout)).topPanelDevant,
+        isFalse,
+        reason: 'hors offre, un message doit se lire par-dessus le bandeau',
+      );
     });
 
     testWidgets('AUCUNE popup : le plateau reste entier', (tester) async {

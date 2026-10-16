@@ -796,6 +796,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
                 ),
                 topBar: _bar(palette, flipped),
                 topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
+                // Une question à laquelle il faut répondre ne se laisse pas
+                // recouvrir par un message qui passe.
+                topPanelDevant: _offreDeNulleAMontrer,
                 board: GameBoardView(
                   board: _shownBoard ?? c.board,
                   palette: palette,
@@ -1025,6 +1028,15 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     if (leave) retourAuMenu(context);
   }
 
+  /// L'adversaire attend ma réponse à une proposition de nulle.
+  ///
+  /// Une seule définition, lue à deux endroits : le panneau qui prend la
+  /// place de celui de l'adversaire, et l'ordre d'empilement qui le met
+  /// devant les bulles. Deux conditions recopiées auraient fini par
+  /// diverger, et la nulle serait repassée dessous.
+  bool get _offreDeNulleAMontrer =>
+      !widget.visiteur && _g.status == CorrStatus.enCours && _g.drawToAnswer;
+
   /// Le panneau d'un joueur, comme en partie en ligne. La correspondance n'a
   /// pas de chrono : Kivy y affiche l'infini.
   Widget _panel(ThemePalette palette, Camp camp, MoveController c) {
@@ -1040,7 +1052,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
     // L'adversaire propose la nulle : son panneau cède la place à l'offre.
     // Le plateau reste entier derrière, et l'analyse à portée de touche.
-    if (!isMine && enCours && _g.drawToAnswer) {
+    if (!isMine && _offreDeNulleAMontrer) {
       return DrawOfferPanel(
         proposer: _g.drawProposer.isEmpty ? _g.opponent : _g.drawProposer,
         palette: palette,
