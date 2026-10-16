@@ -96,11 +96,16 @@ void main() {
   });
   tearDown(DevisesConnues.clear);
 
+  /// Une partie, telle que le SERVEUR la rend.
+  ///
+  /// Le mélo de l'adversaire est celui du mode : depuis `patch_melo_mode.py`,
+  /// une partie Random porte le classement Random. La fixture le reproduit,
+  /// sans quoi le test mesurerait un serveur qui n'existe plus.
   Map<String, dynamic> partieJson({String random = ''}) => {
     'id': 'g1',
     'statut': 'en_cours',
     'adversaire': 'Ana',
-    'adversaire_melo': 1600,
+    'adversaire_melo': random.isEmpty ? 1600 : 1655,
     'ma_couleur': 'Blanc',
     'turn': 'Blanc',
     'my_turn': true,
@@ -240,26 +245,27 @@ void main() {
       tester,
     ) async {
       // Nino : « il faudrait que le mélo indiqué durant une partie soit le
-      // mélo du mode correspondant (soit standard soit random) ». Le serveur
-      // envoie toujours le standard avec une partie de correspondance : c'est
-      // le profil qui porte l'autre.
+      // mélo du mode correspondant (soit standard soit random) ».
+      //
+      // Le mien vient de ma session, qui porte les deux. Le sien vient de la
+      // partie : c'est le serveur qui y met celui du mode, depuis le
+      // 15 octobre. L'application l'a cherché dans son profil le temps d'une
+      // journée — une requête pour un chiffre déjà là.
       await correspondance(tester, random: 'ABCDEFG');
       expect(
         classements(tester),
-        containsAll(<String>['1711']),
-        reason:
-            'mon mélo Random, et non mon standard : '
-            '${classements(tester)}',
+        containsAll(<String>['1711', '1655']),
+        reason: 'les deux classements Random : ${classements(tester)}',
       );
       expect(
         classements(tester),
         isNot(contains('1530')),
-        reason: 'le standard n a rien à faire sur une Random Fuga',
+        reason: 'mon standard n a rien à faire sur une Random Fuga',
       );
       expect(
         classements(tester),
         isNot(contains('1600')),
-        reason: 'le sien non plus : 1600 est son standard',
+        reason: 'son standard non plus',
       );
     });
 

@@ -24,7 +24,6 @@ import '../../net/filet_relecture.dart';
 import '../../net/decors_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/devises_connues.dart';
-import '../../net/melos_connus.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../widgets/end_dialogs.dart';
@@ -294,20 +293,16 @@ class _CorrGameScreenState extends State<CorrGameScreen> with SlideAnimation {
 
   /// Le classement à écrire sous un pseudo : celui du MODE de cette partie.
   ///
-  /// Le mien vient de ma session, qui porte les deux. Le sien aussi devrait
-  /// venir de la partie — mais le serveur y met toujours le mélo STANDARD,
-  /// même sur une Random Fuga. On prend donc celui de son profil, déjà
-  /// demandé pour sa photo et son décor ; tant qu'il n'est pas revenu, on
-  /// n'écrit rien plutôt que le chiffre de l'autre mode.
-  String? _meloAffiche(bool isMine) {
-    if (isMine) {
-      final session = OnlineService.instance.session;
-      final mien = _estRandom ? session?.meloRandom : session?.melo;
-      return '${mien ?? 1500}';
-    }
-    if (!_estRandom) return '${_g.opponentMelo}';
-    final sien = MelosConnus.pourLeMode(_g.opponent, random: true);
-    return sien == null ? null : '$sien';
+  /// Le mien vient de ma session, qui porte les deux. Le SIEN vient de la
+  /// partie, tout simplement — depuis que le serveur y met le mélo du mode
+  /// (`patch_melo_mode.py`, posé le 15 octobre). L'application est allée le
+  /// chercher dans son profil le temps d'une journée, faute de mieux ; une
+  /// requête pour un chiffre déjà là, et une ligne vide le temps qu'elle
+  /// revienne.
+  String _meloAffiche(bool isMine) {
+    if (!isMine) return '${_g.opponentMelo}';
+    final session = OnlineService.instance.session;
+    return '${(_estRandom ? session?.meloRandom : session?.melo) ?? 1500}';
   }
 
   /// Sa devise, montrée À CHAQUE OUVERTURE de la partie.
