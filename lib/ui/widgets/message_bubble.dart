@@ -19,6 +19,13 @@
 ///     dessiner de queue.
 ///   — **écart entre deux bulles : 4**, et le double entre deux locuteurs.
 ///
+/// ## Un cri
+///
+/// Un message qui finit par « ! » sort de sa bulle ronde et prend la bulle
+/// hérissée de [PeintreBulleCri] — même couleur, même côté, même place
+/// maximale. Voir `bulle_cri.dart` pour la forme ; ici, on se contente de
+/// choisir le fond.
+///
 /// ## Un émoji seul
 ///
 /// Il sort de sa bulle et s'affiche en grand, comme dans toutes les
@@ -31,6 +38,7 @@ import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../texte_emoji.dart';
+import 'bulle_cri.dart';
 
 /// Part de la largeur qu'une bulle peut occuper au plus.
 const double kBulleLargeurMax = 0.75;
@@ -82,10 +90,48 @@ class MessageBubble extends StatelessWidget {
     final rayon = Radius.circular(S(18));
     final pointe = Radius.circular(S(4));
 
+    final affiche = echoue ? '$texte  ${T("(non envoyé)")}' : texte;
+    // SelectableText, et non Text : un appui long ouvre les poignées de
+    // sélection et le menu « Copier ». C'est ce que Nino demande, et cela
+    // vaut pour les messages reçus COMME pour les siens.
+    final contenu = selectionnable
+        ? SelectableText(
+            affiche,
+            textAlign: TextAlign.left,
+            style: TextStyle(color: encre, fontSize: SF(16)),
+          )
+        : Text(
+            affiche,
+            textAlign: TextAlign.left,
+            style: TextStyle(color: encre, fontSize: SF(16)),
+          );
+
+    final large = BoxConstraints(
+      maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
+    );
+
+    if (estUnCri(texte)) {
+      // La marge vaut la hauteur des pics : ils poussent vers l'extérieur de
+      // la bulle, donc vers l'intérieur de la boîte qu'on peint. Le creux
+      // s'y ajoute, sans quoi il mordrait sur la première lettre.
+      final marge = S(kPicHaut);
+      return ConstrainedBox(
+        constraints: large,
+        child: CustomPaint(
+          painter: PeintreBulleCri(fond: fond, marge: marge),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: S(14) + marge + S(kPicCreux),
+              vertical: S(10) + marge + S(kPicCreux),
+            ),
+            child: contenu,
+          ),
+        ),
+      );
+    }
+
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
-      ),
+      constraints: large,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: S(14), vertical: S(10)),
         decoration: BoxDecoration(
@@ -98,20 +144,7 @@ class MessageBubble extends StatelessWidget {
             bottomRight: deMoi ? pointe : rayon,
           ),
         ),
-        // SelectableText, et non Text : un appui long ouvre les poignées de
-        // sélection et le menu « Copier ». C'est ce que Nino demande, et cela
-        // vaut pour les messages reçus COMME pour les siens.
-        child: selectionnable
-            ? SelectableText(
-                echoue ? '$texte  ${T("(non envoyé)")}' : texte,
-                textAlign: TextAlign.left,
-                style: TextStyle(color: encre, fontSize: SF(16)),
-              )
-            : Text(
-                echoue ? '$texte  ${T("(non envoyé)")}' : texte,
-                textAlign: TextAlign.left,
-                style: TextStyle(color: encre, fontSize: SF(16)),
-              ),
+        child: contenu,
       ),
     );
   }
