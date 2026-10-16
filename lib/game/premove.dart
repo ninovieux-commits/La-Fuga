@@ -127,9 +127,6 @@ final class PremovePlan {
   /// Reste-t-il de la place pour une variante de plus ?
   bool get peutEnAjouter => variantes.length < kPremoveMaxVariantes;
 
-  /// Le plan sans aucune variante.
-  PremovePlan videDe() => PremovePlan(base: base);
-
   /// Le plan privé de la variante [index].
   PremovePlan sans(int index) => PremovePlan(
     base: base,

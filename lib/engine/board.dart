@@ -46,8 +46,6 @@ final class Cell {
   /// bien à l'écran, et donc encadrable.
   bool get inRally => kRally.contains(col) && (row == 8 || row == -1);
 
-  Cell shifted(int dc, int dr) => Cell(col + dc, row + dr);
-
   @override
   bool operator ==(Object other) =>
       other is Cell && other.col == col && other.row == row;

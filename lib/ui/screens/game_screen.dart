@@ -21,7 +21,6 @@ import '../../engine/move_generator.dart';
 import '../../engine/literal_replay.dart';
 import '../../engine/piece.dart';
 import '../../game/clock.dart';
-import '../../game/slides.dart';
 import '../../game/game_archive.dart';
 import '../../game/last_move.dart';
 import '../../game/match_play.dart';
@@ -552,27 +551,12 @@ class _GameScreenState extends State<GameScreen>
   /// `_snapshots[0]` est la position de départ, `_snapshots[k]` celle d'après
   /// le k-ième coup.
   void _animerCoup(int index, {bool recule = false, int? versIndex}) {
-    if (index <= 0 || index >= _snapshots.length) return;
-    final avant = _snapshots[index - 1];
-    final apres = _snapshots[index];
-    final notation = _game.history[index - 1];
-    final chemin =
-        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
-        const <Cell>[];
-    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
-    // position affichée, pas sur celle d'un coup intermédiaire.
-    final cible = recule ? (versIndex ?? index - 1) : index;
-    final saut = recule && cible != index - 1;
-    rememberSlides(
-      glisseesDuCoup(
-        avant: avant,
-        apres: saut ? _snapshots[cible] : apres,
-        notation: saut ? '' : notation,
-        recule: recule,
-      ),
-      jumpPath: saut
-          ? const <Cell>[]
-          : (recule ? chemin.reversed.toList() : chemin),
+    animerCoupDe(
+      positions: _snapshots,
+      notations: _game.history,
+      index: index,
+      recule: recule,
+      versIndex: versIndex,
     );
   }
 

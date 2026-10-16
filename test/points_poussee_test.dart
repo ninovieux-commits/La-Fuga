@@ -56,7 +56,7 @@ Future<List<int>> rendre(
   );
   final img = await rec.endRecording().toImage(cote.toInt(), cote.toInt());
   final d = await img.toByteData();
-  return List<int>.generate(d!.lengthInBytes, (i) => d.getUint8(i));
+  return List<int>.generate(d!.lengthInBytes, d.getUint8);
 }
 
 int ecart(List<int> a, List<int> b) {

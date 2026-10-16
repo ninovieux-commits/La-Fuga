@@ -15,8 +15,7 @@
 library;
 
 import 'online_service.dart';
-import 'profile.dart';
-import 'profils_connus.dart';
+import 'resolution_profil.dart';
 
 class DecorsConnus {
   DecorsConnus._();
@@ -56,24 +55,13 @@ class DecorsConnus {
   /// décide s'il faut demander : se fier à celui des photos laissait passer
   /// le cas « photo déjà connue, thème pas encore » — la conversation
   /// s'ouvrait alors sans aucun fond, et pour de bon.
-  static Future<String> resolve(String pseudo, {OnlineService? online}) async {
-    final cle = pseudo.trim().toLowerCase();
-    if (cle.isEmpty) return '';
-    final connu = _cache[cle];
-    if (connu != null) return connu;
-    if (_demandes.contains(cle)) return '';
-
-    final service = online ?? OnlineService.instance;
-    if (!service.isLoggedIn) return '';
-    _demandes.add(cle);
-
-    final r = await service.client.getProfile(pseudo);
-    if (!r.isOk || r.data == null) return '';
-    // UNE requête, plusieurs réponses : tout ce que le profil porte est
-    // retenu d'un coup, et au même endroit pour les deux résolutions.
-    retiensProfil(pseudo, Profile.fromJson(r.data!));
-    return _cache[cle] ?? '';
-  }
+  static Future<String> resolve(String pseudo, {OnlineService? online}) =>
+      resoudreDepuisLeProfil(
+        pseudo,
+        cache: _cache,
+        demandes: _demandes,
+        online: online,
+      );
 
   /// Oublie ce qu'on sait — à la déconnexion, et dans les tests.
   static void clear() {

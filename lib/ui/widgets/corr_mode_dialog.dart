@@ -46,13 +46,6 @@ enum CorrMode {
   };
 }
 
-/// La couleur demandée par le défieur. `null` = aléatoire.
-///
-/// Aléatoire veut dire que PERSONNE ne sait : le tirage n'a pas lieu au défi,
-/// mais à son acceptation. Tant qu'il n'a pas eu lieu, il n'y a rien à cacher
-/// — donc rien qui puisse fuir.
-typedef CorrCouleur = Camp?;
-
 /// « D'où part la partie ? » Trois touches, et rien d'autre.
 Future<CorrMode?> askCorrMode(BuildContext context) => showDialog<CorrMode>(
   context: context,

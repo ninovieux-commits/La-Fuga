@@ -254,7 +254,7 @@ List<SoundCue> planForNotation(String? notation) {
   if (n.startsWith('(')) {
     final match = RegExp(r'^\((.*)\)-(.+)$').firstMatch(n);
     if (match != null) {
-      final dest = notationToCell(match.group(2)!);
+      final dest = notationToCell(match.group(2));
       if (dest != null) _ajouteGlissando(cues, dest, 1);
     }
     return cues;

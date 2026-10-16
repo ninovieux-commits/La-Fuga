@@ -86,14 +86,6 @@ class LocalGamesStore {
     }
   }
 
-  Future<void> delete(File file) async {
-    try {
-      if (file.existsSync()) file.deleteSync();
-    } catch (_) {
-      // Un fichier qu'on n'arrive pas à supprimer ne doit pas planter l'écran.
-    }
-  }
-
   /// Efface toutes les parties locales.
   ///
   /// Kivy fait cela à la connexion : le jeu est pensé pour être connecté, et

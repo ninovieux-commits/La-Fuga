@@ -1432,7 +1432,7 @@ class MenuScreenState extends State<MenuScreen>
             // Le champ ne remplit pas la boîte en hauteur : sans ça, toucher
             // le gris au-dessus ou en dessous du texte ne ferait rien.
             behavior: HitTestBehavior.opaque,
-            onTap: () => _searchFocus.requestFocus(),
+            onTap: _searchFocus.requestFocus,
             child: Container(
               // La clé sert au test qui compte les pixels peints de la barre.
               key: kBarreRechercheKey,

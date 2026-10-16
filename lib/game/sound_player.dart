@@ -81,9 +81,6 @@ class SoundPlayer {
   double get volume => _volume;
   bool get enabled => _enabled && _volume > 0;
 
-  /// Vrai quand les notes sont décodées et prêtes à sonner.
-  bool get isReady => _bank != null && !_bank!.isEmpty;
-
   set enabled(bool value) => _enabled = value;
 
   void setVolume(double value) => _volume = value.clamp(0.0, 1.0);

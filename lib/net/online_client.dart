@@ -242,16 +242,12 @@ class OnlineClient {
 
   Future<ApiResult> listFavorites() => _api.post('/list_favorites', _auth());
 
-  Future<ApiResult> listFollowers() => _api.post('/list_followers', _auth());
-
   /// Bloquer un joueur : plus de matchmaking ni de défi entre vous.
   Future<ApiResult> blockUser(String pseudo) =>
       _api.post('/block_user', _auth({'pseudo': pseudo}));
 
   Future<ApiResult> unblockUser(String pseudo) =>
       _api.post('/unblock_user', _auth({'pseudo': pseudo}));
-
-  Future<ApiResult> listBlocked() => _api.post('/list_blocked', _auth());
 
   // ── Parties enregistrées ──────────────────────────────────────────────────
 

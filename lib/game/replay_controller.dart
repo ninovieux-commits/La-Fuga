@@ -82,7 +82,7 @@ bool isReadableNmc(String content) {
   final fug = meta.position;
   if (fug != null && fug.trim().isNotEmpty) {
     final lu = fugLire(fugDepuisUneLigne(fug));
-    if (lu.position != null) return lu.position!;
+    if (lu.position != null) return lu.position;
   }
   final code = meta.random;
   if (code != null && code.trim().isNotEmpty) {

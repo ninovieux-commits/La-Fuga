@@ -15,8 +15,7 @@
 library;
 
 import 'online_service.dart';
-import 'profile.dart';
-import 'profils_connus.dart';
+import 'resolution_profil.dart';
 
 class DevisesConnues {
   DevisesConnues._();
@@ -48,24 +47,13 @@ class DevisesConnues {
   /// le temps — la liste des parties de correspondance retient le décor de
   /// l'adversaire sans jamais lire son profil —, et la devise n'apparaissait
   /// alors jamais en correspondance. Mesuré.
-  static Future<String> resolve(String pseudo, {OnlineService? online}) async {
-    final cle = _cle(pseudo);
-    if (cle.isEmpty) return '';
-    final connu = _cache[cle];
-    if (connu != null) return connu;
-    if (_demandes.contains(cle)) return '';
-
-    final service = online ?? OnlineService.instance;
-    if (!service.isLoggedIn) return '';
-    _demandes.add(cle);
-
-    final r = await service.client.getProfile(pseudo);
-    if (!r.isOk || r.data == null) return '';
-    // UNE requête, plusieurs réponses : tout ce que le profil porte est
-    // retenu d'un coup, et au même endroit pour les deux résolutions.
-    retiensProfil(pseudo, Profile.fromJson(r.data!));
-    return _cache[cle] ?? '';
-  }
+  static Future<String> resolve(String pseudo, {OnlineService? online}) =>
+      resoudreDepuisLeProfil(
+        pseudo,
+        cache: _cache,
+        demandes: _demandes,
+        online: online,
+      );
 
   /// Pseudos pour lesquels la question a déjà été posée. Sans cette trace, un
   /// joueur sans devise ferait redemander son profil à chaque ouverture.

@@ -93,8 +93,6 @@ class OnlineService {
   /// `null` tant que personne n'est connecté : il n'y a rien à authentifier.
   RealtimeSocket? get socket => _socket;
 
-  bool get isSocketConnected => _socket?.isConnected ?? false;
-
   // ── Authentification ──────────────────────────────────────────────────────
 
   Future<AutoLoginOutcome>? _autoLogin;
@@ -294,8 +292,8 @@ class OnlineService {
     final r = await _client.getProfile();
     if (!r.isOk) return;
     await noteMelo(
-      melo: (r.get<num>('melo'))?.toInt(),
-      meloRandom: (r.get<num>('melo_random'))?.toInt(),
+      melo: r.get<num>('melo')?.toInt(),
+      meloRandom: r.get<num>('melo_random')?.toInt(),
     );
   }
 
@@ -329,18 +327,4 @@ class OnlineService {
     _socket = null;
     _client.close();
   }
-}
-
-/// Validation d'un pseudo, aux règles du serveur.
-///
-/// Les vérifier ici évite un aller-retour réseau pour dire au joueur ce qu'on
-/// sait déjà.
-String? validatePseudo(String pseudo) {
-  final p = pseudo.trim();
-  if (p.length < 3) return 'Le pseudo fait au moins 3 caractères.';
-  if (p.length > 20) return 'Le pseudo fait au plus 20 caractères.';
-  if (!RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(p)) {
-    return 'Lettres, chiffres, tiret et tiret bas uniquement.';
-  }
-  return null;
 }

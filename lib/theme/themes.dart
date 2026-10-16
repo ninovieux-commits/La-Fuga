@@ -69,9 +69,6 @@ abstract final class FugaColors {
   /// Contour d'une pièce immobilisée.
   static const Color immobile = Color.fromRGBO(255, 51, 51, 1);
 
-  /// Gris des boutons.
-  static const Color buttonGrey = Color.fromRGBO(89, 89, 89, 1);
-
   /// Contour par défaut d'une pièce blanche.
   static const Color whiteOutline = Color.fromRGBO(222, 222, 222, 1);
 

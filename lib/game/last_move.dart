@@ -46,36 +46,6 @@ final class LastMove {
 
   bool get isEmpty => from.isEmpty && to.isEmpty;
 
-  /// Construit la mise en évidence depuis le résultat d'un geste : c'est ce
-  /// dont disposent les écrans où le joueur compose son coup au doigt.
-  static LastMove? fromSlides({
-    required Board before,
-    required Camp camp,
-    required List<(Piece, Cell, Cell)> slides,
-    List<Cell> pushTargets = const [],
-    List<Cell> jumpPath = const [],
-  }) {
-    if (slides.isEmpty) return null;
-    final from = <Cell>{};
-    final to = <Cell>{};
-    for (final (_, start, end) in slides) {
-      if (start.onBoard) from.add(start);
-      if (end.onBoard) to.add(end);
-    }
-    return LastMove(
-      camp: camp,
-      from: from,
-      to: to,
-      jumpPath: jumpPath,
-      pushDirs: pushDirsOf(
-        before,
-        from.isEmpty ? null : from.first,
-        to.isEmpty ? null : to.first,
-        pushTargets,
-      ),
-    );
-  }
-
   /// Construit la mise en évidence d'un coup, depuis la position d'avant.
   ///
   /// [pushTargets] sont les cases que le joueur a effectivement poussées.
@@ -123,9 +93,9 @@ final class LastMove {
     if (piece == null || !piece.type.isSquare || pushTargets.isEmpty) {
       return const {};
     }
-    final valid = piece.type == PieceType.soldat
-        ? const {(-1, -1), (1, -1), (-1, 1), (1, 1)}
-        : const {(0, -1), (0, 1), (-1, 0), (1, 0)};
+    // Du moteur, et non recopiées : les directions de poussée sont une règle
+    // du jeu, pas une donnée d'affichage.
+    final valid = pushDirsOfType(piece.type);
 
     final dirs = <(int, int)>[];
     for (final target in pushTargets) {
@@ -229,7 +199,7 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
     final m = RegExp(r'^\((.*)\)-(.+)$').firstMatch(n);
     if (m != null) {
       final cells = parseCellsConcat(m.group(1)!);
-      final dest = notationToCell(m.group(2)!);
+      final dest = notationToCell(m.group(2));
       if (cells != null && cells.isNotEmpty && dest != null) {
         final master = cells.first;
         final dc = dest.col - master.col;

@@ -756,5 +756,5 @@ class _EnVol {
   bool echoue = false;
 
   ChatMessage get commeMessage =>
-      ChatMessage(text: texte, fromMe: true, pending: echoue ? false : true);
+      ChatMessage(text: texte, fromMe: true, pending: !echoue);
 }

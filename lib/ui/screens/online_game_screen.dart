@@ -16,7 +16,6 @@ import '../../engine/piece.dart';
 import '../../game/move_controller.dart';
 import '../../game/game_archive.dart';
 import '../../game/online_game.dart';
-import '../../game/slides.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
@@ -32,6 +31,7 @@ import '../../net/online_service.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import 'conversations_screen.dart';
+import '../palette_adverse.dart';
 import '../retour_menu.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/end_dialogs.dart';
@@ -208,33 +208,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   StreamSubscription<IncomingMessage>? _ecouteBulles;
   StreamSubscription<OutgoingMessage>? _ecouteMesBulles;
 
-  /// Un mot à l'adversaire, sans quitter le plateau des yeux.
-  ///
-  /// Nino : « il est écrit d'un autre endroit mais doit être traité de la
-  /// même manière. » C'est donc le MÊME envoi que celui de la boîte de
-  /// messages — `sendMessage`, rien d'autre —, et le serveur le range dans la
-  /// conversation comme tous les autres.
-  ///
-  /// La bulle paraît AVANT la réponse du serveur : l'aller-retour prend un
-  /// dixième de seconde qu'on ne fait pas attendre à quelqu'un qui joue. Si
-  /// l'envoi échoue, on le dit — un message qu'on croit parti et qui n'est
-  /// jamais arrivé est pire que pas de message du tout.
-  Future<void> _messageRapide(ThemePalette palette) async {
-    final texte = await ouvrirMessageRapide(context, palette: palette);
-    if (texte == null || !mounted) return;
-    // La bulle vient de l'annonce, pas d'un ajout direct : un seul chemin
-    // pour tous mes messages, et donc un seul comportement.
-    OnlineService.instance.messages.noteEnvoi(_g.info.opponent, texte);
-    final r = await OnlineService.instance.client.sendMessage(
-      _g.info.opponent,
-      texte,
-    );
-    if (!mounted || r.isOk) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
-  }
-
   /// Cette partie est-elle une Random Fuga ? C'est son code qui le dit.
   bool get _estRandom => _g.info.randomCode != null;
 
@@ -345,28 +318,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
   void _animerCoup(int index, {bool recule = false, int? versIndex}) {
-    if (index <= 0 || index >= _steps.length) return;
-    final avant = _steps[index - 1];
-    final apres = _steps[index];
-    final notations = _g.game.history;
-    final notation = index - 1 < notations.length ? notations[index - 1] : '';
-    final chemin =
-        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
-        const <Cell>[];
-    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
-    // position affichée, pas sur celle d'un coup intermédiaire.
-    final cible = recule ? (versIndex ?? index - 1) : index;
-    final saut = recule && cible != index - 1;
-    rememberSlides(
-      glisseesDuCoup(
-        avant: avant,
-        apres: saut ? _steps[cible] : apres,
-        notation: saut ? '' : notation,
-        recule: recule,
-      ),
-      jumpPath: saut
-          ? const <Cell>[]
-          : (recule ? chemin.reversed.toList() : chemin),
+    animerCoupDe(
+      positions: _steps,
+      notations: _g.game.history,
+      index: index,
+      recule: recule,
+      versIndex: versIndex,
     );
   }
 
@@ -517,7 +474,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           // lui : ni le plateau ni les touches n'en voient rien.
           topOverlay: BullesEnJeu(
             flux: _bulles.stream,
-            palette: _paletteDeLAdversaire,
+            palette: paletteDe(_g.info.opponent),
             mienne: palette,
           ),
           topBar: GameTopBar(
@@ -568,22 +525,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           ),
         ),
       ),
-    );
-  }
-
-  /// Les couleurs de SON thème, pour la bulle qui passe dans son bandeau.
-  ///
-  /// Nino : « j'aimerai aussi que les bulles dépendent de la partie "général"
-  /// du thème de l'adversaire. Y compris les bulles qui apparaissent durant
-  /// les parties corresp et direct. » Le nom de son thème est déjà connu : le
-  /// même appel qui va chercher sa photo le retient au passage, et cet écran
-  /// la demande dès l'ouverture. Sans réponse encore, les miennes — la bulle
-  /// ne dure que cinq secondes, elle ne vaut pas qu'on l'attende.
-  ThemePalette get _paletteDeLAdversaire {
-    final sien = DecorsConnus.known(_g.info.opponent);
-    return paletteOf(
-      (sien.isEmpty ? Settings.instance.themeAxes : ThemeAxes.parse(sien))
-          .general,
     );
   }
 
@@ -705,7 +646,13 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       onResign: canAct ? _confirmResign : null,
       // Écrire n'est pas jouer : la touche reste là jusqu'au bout, même
       // partie finie — on se dit encore « bien joué » après le dernier coup.
-      onMessageRapide: isMine ? () => _messageRapide(palette) : null,
+      onMessageRapide: isMine
+          ? () => envoyerMessageRapide(
+              context,
+              palette: palette,
+              adversaire: _g.info.opponent,
+            )
+          : null,
     );
   }
 

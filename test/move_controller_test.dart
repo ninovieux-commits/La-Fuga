@@ -17,7 +17,7 @@ MoveController controllerWith(
   Camp turn = Camp.blanc,
 }) {
   final b = Board.empty();
-  pieces.forEach((cell, piece) => b.setCell(cell, piece));
+  pieces.forEach(b.setCell);
   return MoveController(board: b, turn: turn);
 }
 

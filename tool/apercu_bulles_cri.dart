@@ -343,8 +343,8 @@ double peintBulle(
   final x = deMoi ? kLargeur - 16 - marge - l : 16 + marge;
   final boite = Rect.fromLTWH(x, y + marge, l, h);
 
-  final rayon = const Radius.circular(18);
-  final pointe = const Radius.circular(4);
+  const rayon = Radius.circular(18);
+  const pointe = Radius.circular(4);
   final sansQueue = v != null && !v.queue;
   final base = RRect.fromRectAndCorners(
     boite,

@@ -540,7 +540,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
         boardTheme: axes.board,
         pieceTheme: axes.pieces,
         onTap: () => _ouvrirPartie(parties[i]),
-        onShow: (g) => _ouvrirPartie(g),
+        onShow: _ouvrirPartie,
         onAccept: (_) {},
         onRefuse: (_) {},
         onCancel: (_) {},

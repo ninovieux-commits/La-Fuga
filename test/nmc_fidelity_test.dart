@@ -45,8 +45,8 @@ void main() {
 
   test('les vecteurs sont chargés', () {
     expect((vectors['notations'] as List).length, greaterThan(50));
-    expect((vectors['files'] as List), isNotEmpty);
-    expect((vectors['parses'] as List), isNotEmpty);
+    expect(vectors['files'] as List, isNotEmpty);
+    expect(vectors['parses'] as List, isNotEmpty);
   });
 
   test('chaque coup légal porte la notation de Kivy', () {

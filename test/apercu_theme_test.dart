@@ -78,7 +78,7 @@ void main() {
       );
       final img = await rec.endRecording().toImage(60, 60);
       final d = await img.toByteData();
-      return List<int>.generate(d!.lengthInBytes, (i) => d.getUint8(i));
+      return List<int>.generate(d!.lengthInBytes, d.getUint8);
     }
 
     int ecart(List<int> a, List<int> b) {

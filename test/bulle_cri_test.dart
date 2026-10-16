@@ -240,7 +240,7 @@ void main() {
     );
     expect(lesPics, findsOneWidget);
     final peintre =
-        (tester.widget<CustomPaint>(lesPics).painter! as PeintreBulleCri);
+        tester.widget<CustomPaint>(lesPics).painter! as PeintreBulleCri;
     expect(peintre.fond, const Color.fromRGBO(120, 40, 40, 1));
   });
 

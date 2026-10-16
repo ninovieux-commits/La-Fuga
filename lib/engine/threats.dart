@@ -50,11 +50,6 @@ Threats threatsOf(Board board, Camp camp) {
   return _scanPushes(board, camp);
 }
 
-/// Vrai si `camp` peut fuguer au coup suivant. Équivalent de
-/// `campCanFugue`, sans générer les coups.
-bool campCanFugueDirect(Board board, Camp camp) =>
-    threatsOf(board, camp).canFugue;
-
 const Threats _fugueOnly = Threats(
   canFugue: true,
   matOnBlanc: false,

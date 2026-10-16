@@ -1,4 +1,9 @@
 // Banc d'essai du mixage d'un coup — lancé à la main.
+//
+// Un banc d'essai dit ce qu'il a mesuré : imprimer EST son travail, comme
+// pour les scripts de `tool/diag/`. La règle vaut pour l'application, pas
+// pour lui.
+// ignore_for_file: avoid_print
 import 'dart:typed_data';
 import 'package:lafuga/game/pcm.dart';
 import 'package:lafuga/game/sound_plan.dart';

@@ -339,7 +339,7 @@ void main() {
         return peintures.first.progress;
       }
 
-      final piece = const Piece(PieceType.soldat, Camp.blanc);
+      const piece = Piece(PieceType.soldat, Camp.blanc);
 
       // Un pas d une case : fini au bout de l unité.
       expect(

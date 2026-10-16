@@ -192,7 +192,6 @@ final class SocketListeners {
 
   bool get isEmpty => _byEvent.isEmpty;
   bool get isNotEmpty => _byEvent.isNotEmpty;
-  bool has(String event) => _byEvent[event]?.isNotEmpty ?? false;
   int count(String event) => _byEvent[event]?.length ?? 0;
   void clear() => _byEvent.clear();
 }
@@ -458,10 +457,6 @@ class FugaSocket implements RealtimeSocket {
   @override
   void chat(String gameId, String texte) =>
       _emit('chat', {'game_id': gameId, 'texte': texte});
-
-  /// Envoie l'état complet à un adversaire qui vient de se reconnecter.
-  void envoyerEtat(String gameId, Map<String, dynamic> etat) =>
-      _emit('envoyer_etat', {'game_id': gameId, ...etat});
 
   @override
   void pretPartieSuivante(String gameId) =>

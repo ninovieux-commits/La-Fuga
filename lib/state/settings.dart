@@ -185,9 +185,6 @@ class Settings {
   Future<void> markTutorialSeen() =>
       _prefs.setBool(SettingsKeys.tutoSeen, true);
 
-  Future<void> setServerUrl(String value) =>
-      _prefs.setString(SettingsKeys.serverUrl, value.trim());
-
   // ── Session en ligne ─────────────────────────────────────────────────────
 
   String? get onlineToken => _prefs.getString(SettingsKeys.onlineToken);

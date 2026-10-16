@@ -11,3 +11,44 @@ linter:
     - prefer_final_locals
     - avoid_print
     - prefer_const_constructors
+
+    # ── Passage de nettoyage du 16 octobre ────────────────────────────────
+    #
+    # Ces règles ont été allumées APRÈS avoir corrigé tout ce qu'elles
+    # relevaient : le code part donc de zéro avertissement, et elles sont là
+    # pour qu'il y reste. Un nettoyage sans garde revient.
+    #
+    # Deux règles proposées par l'analyseur ont été écartées à dessein :
+    #
+    #   — `use_if_null_to_convert_nulls_to_bools` voudrait `ok ?? false` là
+    #     où le code écrit `ok == true`. Un `showDialog<bool>` rend `null`
+    #     quand on le referme sans répondre, et « est-ce vrai ? » dit mieux
+    #     la question que « sinon, faux ».
+    #   — `avoid_redundant_argument_values` voudrait retirer les arguments
+    #     égaux à leur valeur par défaut. `deMoi: false` ou
+    #     `selectionnable: true` sur un appel se lisent mieux écrits que
+    #     devinés — soixante et un endroits concernés, tous volontaires.
+    - avoid_bool_literals_in_conditional_expressions
+    - no_literal_bool_comparisons
+    - unnecessary_null_aware_assignments
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+    - unnecessary_statements
+    - unnecessary_late
+    - unnecessary_overrides
+    - unnecessary_breaks
+    - unnecessary_this
+    - prefer_if_null_operators
+    - prefer_contains
+    - prefer_is_empty
+    - prefer_is_not_empty
+    - use_super_parameters
+    - sized_box_for_whitespace
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - join_return_with_assignment
+    - combinators_ordering
+    - prefer_null_aware_method_calls
+    - use_string_buffers
+    - avoid_unnecessary_containers
+    - unnecessary_await_in_return

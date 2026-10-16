@@ -18,6 +18,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 
@@ -36,6 +37,37 @@ Future<String?> ouvrirMessageRapide(
   backgroundColor: Colors.transparent,
   builder: (context) => _MessageRapide(palette: palette),
 );
+
+/// Ouvre le composeur, puis envoie — tout le geste, d'un bout à l'autre.
+///
+/// Nino : « il est écrit d'un autre endroit mais doit être traité de la même
+/// manière. » C'est donc le MÊME envoi que celui de la boîte de messages —
+/// `sendMessage`, rien d'autre —, et le serveur le range dans la conversation
+/// comme tous les autres.
+///
+/// La bulle paraît AVANT la réponse du serveur : l'aller-retour prend un
+/// dixième de seconde qu'on ne fait pas attendre à quelqu'un qui joue. Elle
+/// vient de l'annonce faite à la boîte aux lettres, et non d'un ajout direct
+/// à la bande : un seul chemin pour tous mes messages, donc un seul
+/// comportement. Si l'envoi échoue, on le dit — un message qu'on croit parti
+/// et qui n'est jamais arrivé est pire que pas de message du tout.
+///
+/// Les deux écrans de partie en ligne en avaient chacun leur copie, au nom
+/// de l'adversaire près.
+Future<void> envoyerMessageRapide(
+  BuildContext context, {
+  required ThemePalette palette,
+  required String adversaire,
+}) async {
+  final texte = await ouvrirMessageRapide(context, palette: palette);
+  if (texte == null || !context.mounted) return;
+  OnlineService.instance.messages.noteEnvoi(adversaire, texte);
+  final r = await OnlineService.instance.client.sendMessage(adversaire, texte);
+  if (!context.mounted || r.isOk) return;
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
+}
 
 class _MessageRapide extends StatefulWidget {
   const _MessageRapide({required this.palette});

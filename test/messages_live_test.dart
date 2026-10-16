@@ -297,7 +297,7 @@ void main() {
 
   group('Les notifications', () {
     test('une notification déjà posée par Android ne se repose pas', () {
-      final avecNotification = const RemoteMessage(
+      const avecNotification = RemoteMessage(
         notification: RemoteNotification(title: 'La Fuga', body: 'coup'),
       );
       expect(
@@ -308,7 +308,7 @@ void main() {
     });
 
     test('un message de données pures, lui, est à afficher', () {
-      final donnees = const RemoteMessage(data: {'title': 'A', 'body': 'B'});
+      const donnees = RemoteMessage(data: {'title': 'A', 'body': 'B'});
       expect(shouldShowInBackground(donnees), isTrue);
     });
   });

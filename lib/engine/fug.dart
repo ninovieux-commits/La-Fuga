@@ -53,9 +53,6 @@ library;
 import 'board.dart';
 import 'piece.dart';
 
-/// Extension des fichiers de position.
-const String kFugExtension = '.fug';
-
 /// Case vide.
 const String kFugVide = '-';
 

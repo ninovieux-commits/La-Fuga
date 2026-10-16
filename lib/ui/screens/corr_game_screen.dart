@@ -12,7 +12,6 @@ import '../../engine/literal_replay.dart';
 import '../../game/correspondence.dart';
 import '../../game/game_archive.dart';
 import '../../game/move_controller.dart';
-import '../../game/slides.dart';
 import '../../game/sound_player.dart';
 import '../../game/last_move.dart';
 import '../../i18n/translations.dart';
@@ -44,6 +43,7 @@ import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
 import '../../game/premove.dart';
 import '../retour_menu.dart';
+import '../palette_adverse.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
 import 'premove_screen.dart';
@@ -327,28 +327,6 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     _bulles.add((texte: devise, deMoi: false));
   }
 
-  /// Un mot à l'adversaire, sans quitter le plateau des yeux.
-  ///
-  /// Le même geste qu'en partie en direct, et le même envoi : `sendMessage`,
-  /// comme la boîte de messages. Une partie de correspondance se joue sur
-  /// plusieurs jours — raison de plus pour pouvoir dire un mot sans ouvrir
-  /// la conversation.
-  Future<void> _messageRapide(ThemePalette palette) async {
-    final texte = await ouvrirMessageRapide(context, palette: palette);
-    if (texte == null || !mounted) return;
-    // La bulle vient de l'annonce, pas d'un ajout direct : un seul chemin
-    // pour tous mes messages, et donc un seul comportement.
-    OnlineService.instance.messages.noteEnvoi(_g.opponent, texte);
-    final r = await OnlineService.instance.client.sendMessage(
-      _g.opponent,
-      texte,
-    );
-    if (!mounted || r.isOk) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
-  }
-
   /// Rejoue l'historique pour retrouver la position courante.
   ///
   /// La relecture est littérale et ne échoue jamais : une notation qu'on ne
@@ -436,28 +414,12 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
   /// Fait glisser les pièces du coup numéro [index] (1 = le premier coup).
   void _animerCoup(int index, {bool recule = false, int? versIndex}) {
-    if (index <= 0 || index >= _steps.length) return;
-    final avant = _steps[index - 1];
-    final apres = _steps[index];
-    final notations = _allMoves();
-    final notation = index - 1 < notations.length ? notations[index - 1] : '';
-    final chemin =
-        lastMoveFromNotation(notation, avant, apres)?.jumpPath ??
-        const <Cell>[];
-    // On saute de plusieurs coups d'un coup : l'animation doit finir sur la
-    // position affichée, pas sur celle d'un coup intermédiaire.
-    final cible = recule ? (versIndex ?? index - 1) : index;
-    final saut = recule && cible != index - 1;
-    rememberSlides(
-      glisseesDuCoup(
-        avant: avant,
-        apres: saut ? _steps[cible] : apres,
-        notation: saut ? '' : notation,
-        recule: recule,
-      ),
-      jumpPath: saut
-          ? const <Cell>[]
-          : (recule ? chemin.reversed.toList() : chemin),
+    animerCoupDe(
+      positions: _steps,
+      notations: _allMoves(),
+      index: index,
+      recule: recule,
+      versIndex: versIndex,
     );
   }
 
@@ -829,7 +791,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
                 // rien.
                 topOverlay: BullesEnJeu(
                   flux: _bulles.stream,
-                  palette: _paletteDeLAdversaire,
+                  palette: paletteDe(widget.game.opponent),
                   mienne: palette,
                 ),
                 topBar: _bar(palette, flipped),
@@ -1007,23 +969,6 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     if (mounted) setState(() {});
   }
 
-  /// Couleur d'un camp, vive quand il a le trait.
-  /// Les couleurs de SON thème, pour la bulle qui passe dans son bandeau.
-  ///
-  /// Nino : « j'aimerai aussi que les bulles dépendent de la partie "général"
-  /// du thème de l'adversaire. Y compris les bulles qui apparaissent durant
-  /// les parties corresp et direct. » Le nom de son thème est déjà connu : le
-  /// même appel qui va chercher sa photo le retient au passage, et cet écran
-  /// la demande dès l'ouverture. Sans réponse encore, les miennes — la bulle
-  /// ne dure que cinq secondes, elle ne vaut pas qu'on l'attende.
-  ThemePalette get _paletteDeLAdversaire {
-    final sien = DecorsConnus.known(widget.game.opponent);
-    return paletteOf(
-      (sien.isEmpty ? Settings.instance.themeAxes : ThemeAxes.parse(sien))
-          .general,
-    );
-  }
-
   Color _campColor(ThemePalette palette, Camp camp) {
     final atTrait =
         _controller?.turn == camp && _g.status == CorrStatus.enCours;
@@ -1152,7 +1097,13 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       // en visiteur — ce serait sa conversation avec son adversaire, et on
       // ne lui écrit pas depuis sa propre partie.
       onMessageRapide: (isMine && !widget.visiteur)
-          ? () => unawaited(_messageRapide(palette))
+          ? () => unawaited(
+              envoyerMessageRapide(
+                context,
+                palette: palette,
+                adversaire: _g.opponent,
+              ),
+            )
           : null,
     );
   }

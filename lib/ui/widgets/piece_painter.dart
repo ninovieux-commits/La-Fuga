@@ -14,6 +14,7 @@ library;
 import 'dart:math' as math;
 import 'dart:ui';
 
+import '../../engine/board.dart';
 import '../../engine/piece.dart';
 import '../../theme/themes.dart';
 import 'theme_image_cache.dart';
@@ -301,18 +302,16 @@ void paintPiece(
 ///
 /// Écrit une fois : le rendu géométrique et le rendu à images s'en servent
 /// tous les deux, et deux listes séparées auraient fini par diverger.
+///
+/// Les directions elles-mêmes viennent du MOTEUR, et ne sont pas recopiées
+/// ici : une règle du jeu n'a qu'un seul endroit où s'écrire. Seul l'écart
+/// des points — affaire de dessin — appartient à ce fichier.
 ({List<(int, int)> dirs, double offset})? pousseeDe(PieceType type) =>
     switch (type) {
       // Le Soldat pousse en diagonale, et porte ses points en X, resserrés.
-      PieceType.soldat => (
-        dirs: const [(-1, -1), (1, -1), (-1, 1), (1, 1)],
-        offset: 0.30,
-      ),
+      PieceType.soldat => (dirs: kSoldatPushDirs, offset: 0.30),
       // Le Garde pousse en orthogonal : ses points sont en croix, écartés.
-      PieceType.garde => (
-        dirs: const [(0, -1), (0, 1), (-1, 0), (1, 0)],
-        offset: 0.36,
-      ),
+      PieceType.garde => (dirs: kGardePushDirs, offset: 0.36),
       _ => null,
     };
 

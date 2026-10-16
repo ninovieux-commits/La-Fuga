@@ -430,7 +430,7 @@ void main() {
       await appuyer(tester, touche('Ne rien préjouer'));
       final envoi = envoyes.where((e) => e.path == '/corr_premove').single;
       expect(
-        ((envoi.body['plan'] as Map)['variantes'] as List),
+        (envoi.body['plan'] as Map)['variantes'] as List,
         isEmpty,
         reason: 'un plan vide est ce qui annule',
       );
