@@ -94,6 +94,7 @@ class BullesEnJeu extends StatefulWidget {
     super.key,
     required this.flux,
     required this.palette,
+    this.mienne,
     this.duree = kBulleEnJeuDuree,
   });
 
@@ -106,9 +107,22 @@ class BullesEnJeu extends StatefulWidget {
   /// `deMoi` les distingue, pour le côté et la couleur.
   final Stream<BulleEnJeu> flux;
 
-  /// Les couleurs de MON thème : la bulle doit ressembler à celles de la
-  /// boîte de messages, et celles-là sont les miennes.
+  /// Les couleurs de l'ADVERSAIRE — son thème à lui.
+  ///
+  /// La bande est son bandeau, portant son décor : ses bulles y sont donc
+  /// aux siennes.
   final ThemePalette palette;
+
+  /// Les miennes, pour les messages que j'écris.
+  ///
+  /// Nino : « les bulles de l'adversaire restent à sa couleur, mais mes
+  /// bulles doivent être à ma couleur ! » Sans ce second jeu, un message
+  /// écrit depuis le plateau paraissait dans le thème de l'autre — je me
+  /// voyais parler dans ses couleurs.
+  ///
+  /// Nulle, les deux se confondent : c'est ce que faisait la bande avant, et
+  /// c'est encore ce qu'il faut quand on ne connaît pas le thème d'en face.
+  final ThemePalette? mienne;
 
   final Duration duree;
 
@@ -271,7 +285,9 @@ class _BullesEnJeuState extends State<BullesEnJeu> {
                             // La couleur et l'écriture que ce message aurait
                             // dans la boîte de messages.
                             deMoi: b.deMoi,
-                            palette: widget.palette,
+                            palette: b.deMoi
+                                ? (widget.mienne ?? widget.palette)
+                                : widget.palette,
                             selectionnable: false,
                           ),
                         ),

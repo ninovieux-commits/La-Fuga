@@ -821,6 +821,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
                 topOverlay: BullesEnJeu(
                   flux: _bulles.stream,
                   palette: _paletteDeLAdversaire,
+                  mienne: palette,
                 ),
                 topBar: _bar(palette, flipped),
                 topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),

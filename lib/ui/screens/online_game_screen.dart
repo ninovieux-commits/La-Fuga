@@ -509,6 +509,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           topOverlay: BullesEnJeu(
             flux: _bulles.stream,
             palette: _paletteDeLAdversaire,
+            mienne: palette,
           ),
           topBar: GameTopBar(
             palette: palette,

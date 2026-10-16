@@ -523,17 +523,23 @@ class _ConversationScreenState extends State<ConversationScreen>
     // s'ouvre alors sur la couleur unie du thème, sans image, et elle y
     // reste. Rien ne clignote.
     final decor = _decorConnu;
-    // LES BULLES AUSSI SONT À LUI.
+    // SES BULLES SONT À LUI, LES MIENNES SONT À MOI.
     //
-    // Nino : « j'aimerais que les bulles dépendent de la partie "général" du
-    // thème de l'adversaire ». C'est l'inverse de ce qu'il demandait d'abord
-    // — les bulles à MOI, le fond à lui — et c'est son dernier mot : on entre
-    // chez lui, tout l'écran est chez lui.
+    // Nino, d'abord : « j'aimerais que les bulles dépendent de la partie
+    // "général" du thème de l'adversaire ». Puis, l'ayant vu : « les bulles
+    // de l'adversaire restent à sa couleur, mais mes bulles doivent être à ma
+    // couleur ! »
     //
-    // Sans son thème, les miennes : il faut bien des couleurs, et l'écran ne
+    // Les deux tiennent ensemble, et c'est même ce qui donne son sens à
+    // l'écran : on entre chez lui, son décor habille la page et ses mots
+    // portent ses couleurs — mais ce que J'ÉCRIS reste à moi, d'une
+    // conversation à l'autre.
+    //
+    // Sans son thème, le mien : il faut bien des couleurs, et l'écran ne
     // s'affiche de toute façon qu'une fois la question tranchée, donc rien ne
     // change sous les yeux.
     final palette = paletteOf((decor ?? Settings.instance.themeAxes).general);
+    final mienne = paletteOf(Settings.instance.themeAxes.general);
 
     return Scaffold(
       backgroundColor: paletteOf(decor?.menu ?? kDefaultTheme).menu,
@@ -569,7 +575,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                         padding: EdgeInsets.all(S(10)),
                         itemCount: _messages.length,
                         itemBuilder: (context, i) =>
-                            _bubble(_messages[i], palette),
+                            _bubble(_messages[i], palette, mienne),
                       ),
               ),
               _visages(palette),
@@ -603,24 +609,26 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// Elle portait une petite photo à côté d'elle, répétée à chaque message.
   /// Les photos sont maintenant en bas, une seule fois et en grand : la
   /// conversation respire, et le texte gagne la place qu'elles prenaient.
-  Widget _bubble(ChatMessage m, ThemePalette palette) => Padding(
-    padding: EdgeInsets.symmetric(vertical: S(4)),
-    child: Row(
-      mainAxisAlignment: m.fromMe
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
-      children: [
-        Flexible(
-          child: MessageBubble(
-            texte: m.text,
-            deMoi: m.fromMe,
-            palette: palette,
-            echoue: m.pending == false,
-          ),
+  Widget _bubble(ChatMessage m, ThemePalette sienne, ThemePalette mienne) =>
+      Padding(
+        padding: EdgeInsets.symmetric(vertical: S(4)),
+        child: Row(
+          mainAxisAlignment: m.fromMe
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: MessageBubble(
+                texte: m.text,
+                deMoi: m.fromMe,
+                // Chacun les siennes.
+                palette: m.fromMe ? mienne : sienne,
+                echoue: m.pending == false,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   /// Les deux visages, en bas : le sien à gauche, le mien à droite.
   ///
