@@ -68,13 +68,42 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  group('Le classement est sur la touche « Jouer en ligne »', () {
+    // Nino : « j'aimerais que le classement soit sur le bouton jouer en ligne
+    // plutôt que sur le bouton d'accès au compte. Il doit dire "???? mélo" au
+    // lieu de juste "????". »
+
+    testWidgets('elle porte le mélo, et dit que c en est un', (tester) async {
+      await open(tester);
+      expect(find.text('Jouer en ligne (1600 mélo)'), findsOneWidget);
+    });
+
+    testWidgets('le bouton Compte n a plus que le pseudo', (tester) async {
+      await open(tester);
+      expect(find.text('Nino'), findsOneWidget);
+      expect(
+        find.text('Nino (1600)'),
+        findsNothing,
+        reason: 'le mélo a déménagé, il ne doit pas être aux deux endroits',
+      );
+    });
+
+    testWidgets('Random porte SON classement', (tester) async {
+      await open(tester);
+      await tester.tap(find.text('Random'));
+      await tester.pumpAndSettle();
+      expect(find.text('Jouer en ligne (1500 mélo)'), findsOneWidget);
+      expect(find.text('Jouer en ligne (1600 mélo)'), findsNothing);
+    });
+  });
+
   group('Matchmaking', () {
     testWidgets('chercher une partie envoie objectif, cadence et random', (
       tester,
     ) async {
       await open(tester);
 
-      await tester.tap(find.text('Jouer en ligne'));
+      await tester.tap(find.textContaining('Jouer en ligne'));
       await tester.pumpAndSettle();
 
       expect(socket.lastOf('chercher_partie')!['cadence'], '15');
@@ -85,14 +114,14 @@ void main() {
 
     testWidgets('annuler la recherche prévient le serveur', (tester) async {
       await open(tester);
-      await tester.tap(find.text('Jouer en ligne'));
+      await tester.tap(find.textContaining('Jouer en ligne'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Annuler'));
       await tester.pumpAndSettle();
 
       expect(socket.didSend('annuler_recherche'), isTrue);
-      expect(find.text('Jouer en ligne'), findsOneWidget);
+      expect(find.textContaining('Jouer en ligne'), findsOneWidget);
     });
   });
 

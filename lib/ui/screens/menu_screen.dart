@@ -172,8 +172,8 @@ class MenuScreenState extends State<MenuScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _ecouteCorr = _online.corr.changes.listen(_surChangementCorr);
-    // Le bouton Compte affiche le mélo : sans cette écoute il garderait
-    // l'ancien à l'écran après une partie classée.
+    // La touche « Jouer en ligne » affiche le mélo : sans cette écoute elle
+    // garderait l'ancien à l'écran après une partie classée.
     _online.revisionMelo.addListener(_surMelo);
     unawaited(_connectWhenReady());
     WidgetsBinding.instance.addPostFrameCallback((_) => _firstLaunch());
@@ -1351,7 +1351,7 @@ class MenuScreenState extends State<MenuScreen>
           _wide(
             FugaButton(
               key: _tourKeys['online'],
-              text: T('Jouer en ligne'),
+              text: _libelleEnLigne(),
               color: palette.fonce,
               height: touchHeight(),
               fontSize: SF(16),
@@ -1579,8 +1579,6 @@ class MenuScreenState extends State<MenuScreen>
               width: MediaQuery.sizeOf(context).width * 0.2,
               child: FugaButton(
                 key: _tourKeys['compte'],
-                // Le mélo est DANS le bouton, comme en Kivy :
-                // `account_btn.text = "%s (%d)"`.
                 text: _online.isLoggedIn ? _accountLabel() : T('Compte'),
                 fontSize: SF(14),
                 height: double.infinity,
@@ -1593,13 +1591,28 @@ class MenuScreenState extends State<MenuScreen>
     ),
   );
 
-  /// Ce qu'écrit le bouton Compte une fois connecté : le pseudo et le mélo.
+  /// Ce qu'écrit le bouton Compte une fois connecté : le pseudo, et lui seul.
   ///
-  /// Le mélo suit le mode — Random Fuga a son propre classement.
-  String _accountLabel() {
+  /// Le mélo y figurait, comme en Kivy (`account_btn.text = "%s (%d)"`). Nino
+  /// l'a déplacé : « j'aimerais que le classement soit sur le bouton jouer en
+  /// ligne plutôt que sur le bouton d'accès au compte. » C'est là qu'il sert
+  /// — on le lit au moment de chercher un adversaire, pas en allant régler
+  /// son compte.
+  String _accountLabel() => _online.pseudo ?? '?';
+
+  /// Ce qu'écrit la touche « Jouer en ligne » : son intitulé, et mon mélo.
+  ///
+  /// Nino : « il doit dire "???? mélo" au lieu de juste "????" ». Le nombre
+  /// seul ne disait pas ce qu'il était ; sur une touche qui parle déjà d'une
+  /// autre chose, il le fallait.
+  ///
+  /// Le mélo suit le mode — Random Fuga a son propre classement —, et le
+  /// libellé entier passe par la traduction : les dix langues ne mettent pas
+  /// le nombre au même endroit.
+  String _libelleEnLigne() {
     final session = _online.session;
-    final pseudo = _online.pseudo ?? '?';
-    if (session == null) return pseudo;
-    return '$pseudo (${_random ? session.meloRandom : session.melo})';
+    if (!_online.isLoggedIn || session == null) return T('Jouer en ligne');
+    final melo = _random ? session.meloRandom : session.melo;
+    return T('Jouer en ligne (%d mélo)').replaceAll('%d', '$melo');
   }
 }
