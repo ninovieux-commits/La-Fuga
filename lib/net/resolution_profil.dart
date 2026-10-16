@@ -48,3 +48,36 @@ Future<String> resoudreDepuisLeProfil(
   retiensProfil(pseudo, Profile.fromJson(r.data!));
   return cache[cle] ?? '';
 }
+
+/// Relit le profil de [pseudo] MAINTENANT, qu'on le connaisse ou non.
+///
+/// Les `resolve` ne demandent qu'une fois par session : c'est ce qu'il faut
+/// pour ne pas réinterroger le serveur à chaque image, et c'est aussi ce qui
+/// faisait tenir une devise périmée jusqu'au redémarrage de l'application.
+///
+/// Appelée à l'OUVERTURE d'un écran qui montre quelque chose d'un autre
+/// joueur, elle ne coûte rien de plus : l'écran lisait déjà un profil par ses
+/// `resolve`, qui trouvent ensuite tout en cache. Une requête par ouverture,
+/// comme avant — mais à jour.
+///
+/// Silencieuse en cas d'échec : garder l'ancienne valeur vaut mieux que vider
+/// l'écran parce que le réseau a toussé.
+Future<void> rafraichisProfil(String pseudo, {OnlineService? online}) async {
+  if (pseudo.trim().isEmpty) return;
+  final service = online ?? OnlineService.instance;
+  if (!service.isLoggedIn) return;
+  final r = await service.client.getProfile(pseudo);
+  if (!r.isOk || r.data == null) return;
+  // Une réponse qui ne porte AUCUN champ de profil n'est pas un profil, et
+  // `Profile.fromJson` en tirerait des chaînes vides qui effaceraient ce
+  // qu'on savait. Le serveur d'aujourd'hui répond `ok: false` quand le
+  // joueur est introuvable, donc le cas ne se présente pas — mais effacer
+  // une devise sur une réponse muette serait un défaut silencieux, et la
+  // garde coûte une ligne.
+  //
+  // Une devise VIDÉE par son auteur, elle, arrive bien avec sa clé : elle
+  // passe, et l'écran l'oublie comme il faut.
+  const champs = ['description', 'photo', 'theme'];
+  if (!champs.any(r.data!.containsKey)) return;
+  retiensProfil(pseudo, Profile.fromJson(r.data!));
+}

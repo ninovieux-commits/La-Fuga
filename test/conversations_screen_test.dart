@@ -747,7 +747,8 @@ void main() {
       tester,
     ) async {
       // Le nom est retenu : l image est déjà dans l application, il n y a rien
-      // à attendre.
+      // à attendre — et la relecture du profil, qui part en même temps, ne
+      // retarde rien puisque l écran est déjà juste.
       final s = serveur(retarde: true);
       await pret(s.online);
       DecorsConnus.remember('toto', kSonTheme);
@@ -765,8 +766,12 @@ void main() {
       );
       expect(
         s.demandes,
-        isNot(contains('/get_profile toto')),
-        reason: 'le nom est connu : on ne le redemande pas',
+        contains('/get_profile toto'),
+        reason:
+            'on le redemande quand même : Nino, « si un adversaire change sa '
+            'devise, je dois relancer mon app » — le cache sert à ouvrir sans '
+            'attendre, pas à figer. La requête part DERRIÈRE un écran déjà '
+            'juste, donc elle ne se voit pas.',
       );
       s.libere();
       await tester.pumpAndSettle();

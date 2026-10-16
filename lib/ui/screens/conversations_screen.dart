@@ -10,6 +10,8 @@ import '../../i18n/translations.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
+import '../../net/profils_connus.dart';
+import '../../net/resolution_profil.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
@@ -337,6 +339,8 @@ class _ConversationScreenState extends State<ConversationScreen>
     super.initState();
     _load();
     _watch = widget.online.messages.incoming.listen(_onIncoming);
+    // Son décor ou sa photo peuvent changer pendant qu'on se parle.
+    profilsConnus.addListener(_surProfil);
     _poll = Timer.periodic(_pollInterval, (_) {
       if (!_filet.fautRelire(
         directVivant: widget.online.socket?.isConnected ?? false,
@@ -352,9 +356,19 @@ class _ConversationScreenState extends State<ConversationScreen>
   void dispose() {
     _poll?.cancel();
     _watch?.cancel();
+    profilsConnus.removeListener(_surProfil);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Son profil a bougé : le décor et la photo de l'écran suivent.
+  void _surProfil() {
+    if (!mounted) return;
+    setState(() {
+      _theirTheme = DecorsConnus.known(widget.pseudo);
+      _theirPhoto = AvatarPhotos.known(widget.pseudo, online: widget.online);
+    });
   }
 
   /// Relit la conversation et ne redessine que si elle a changé.
@@ -451,14 +465,12 @@ class _ConversationScreenState extends State<ConversationScreen>
     // le nom du fond déjà en main, et l'attente ne dure pas plus longtemps
     // que la plus lente des deux requêtes.
     //
-    // `DecorsConnus.resolve` fait la requête de profil et retient au passage
-    // la photo ET le nom du fond ; il ne demande rien quand il sait déjà.
-    // C'est lui, et non le cache des photos, qui décide de demander : une
-    // photo déjà connue par un écran de partie ne doit pas empêcher d'aller
-    // chercher le fond.
+    // Son profil est RELU, et pas seulement demandé s'il manque : un décor
+    // ou une photo changés depuis la dernière visite doivent se voir sans
+    // relancer l'application. Une requête, la même qu'avant.
     final (r, _) = await (
       widget.online.client.listConversation(widget.pseudo),
-      DecorsConnus.resolve(widget.pseudo, online: widget.online),
+      rafraichisProfil(widget.pseudo, online: widget.online),
     ).wait;
     if (!mounted) return;
 

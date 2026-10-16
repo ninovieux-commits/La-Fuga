@@ -43,6 +43,15 @@ class AvatarPhotos {
     return _cache[pseudo.trim().toLowerCase()] ?? '';
   }
 
+  /// Ce que la table RETIENT, sans rien déduire.
+  ///
+  /// [known] répond aussi pour Deep Grey et pour moi, en lisant ma session :
+  /// c'est ce qu'il faut pour afficher, et c'est trop pour comparer deux
+  /// états du cache — cela irait chercher le service en ligne au moment
+  /// d'écrire un profil.
+  static String enCache(String pseudo) =>
+      _cache[pseudo.trim().toLowerCase()] ?? '';
+
   /// Va chercher la photo si elle manque, et renvoie ce qu'on sait à l'arrivée.
   ///
   /// À appeler à l'ouverture d'une partie : le résultat sert à redessiner

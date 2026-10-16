@@ -25,6 +25,8 @@ import '../../net/message_hub.dart';
 import '../../net/devises_connues.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
+import '../../net/profils_connus.dart';
+import '../../net/resolution_profil.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
@@ -156,6 +158,18 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
   /// Demande la photo de l'adversaire et redessine son avatar à l'arrivée.
   Future<void> _chargerPhotoAdverse() async {
+    // SON PROFIL EST RELU À CHAQUE OUVERTURE. Nino : « si un adversaire
+    // change sa devise, je dois relancer mon app pour que ça m'affiche la
+    // nouvelle dans les parties. » Les caches ne demandent qu'une fois par
+    // session — c'est ce qui évite d'interroger le serveur à chaque image, et
+    // c'est aussi ce qui faisait tenir une devise périmée jusqu'au
+    // redémarrage.
+    //
+    // Une requête, pas deux : c'est celle que les `resolve` d'en dessous
+    // faisaient déjà, et ils trouvent tout en cache ensuite. Ils restent
+    // malgré tout — si la relecture échoue, le réseau ayant toussé, ce sont
+    // eux qui vont chercher ce qui manque, exactement comme avant.
+    await rafraichisProfil(_g.opponent);
     // Le décor, et pas seulement la photo : c'est son thème qui donne leurs
     // couleurs aux bulles de messages qui passent dans son bandeau. Et c'est
     // `DecorsConnus` qui décide de demander — une photo déjà connue ne doit
@@ -196,6 +210,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
     // un popup : le cache partagé fait le lien.
     FavorisConnus.instance.addListener(_onMessages);
+    // Et son profil : une devise ou une photo changée pendant que je
+    // regarde l'écran doit s'y voir, sans attendre une réouverture.
+    profilsConnus.addListener(_onMessages);
     _ecouteCorr = OnlineService.instance.corr.changes.listen(_surChangement);
     _restore();
     _poll = Timer.periodic(_pollInterval, (_) {
@@ -278,6 +295,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
+    profilsConnus.removeListener(_onMessages);
     _ecouteBulles?.cancel();
     _ecouteMesBulles?.cancel();
     unawaited(_bulles.close());

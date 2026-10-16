@@ -187,6 +187,60 @@ void main() {
       );
     });
 
+    testWidgets('une devise CHANGÉE paraît sans relancer l application', (
+      tester,
+    ) async {
+      // Nino : « si un adversaire change sa devise, je dois relancer mon app
+      // pour que ça m'affiche la nouvelle dans les parties. Tout doit être
+      // en direct dans l'app. »
+      //
+      // Le cache ne se trompait pas, il ne se remettait jamais en question :
+      // une devise lue une fois tenait jusqu'à la fermeture de
+      // l'application. Ce test ne vide RIEN entre les deux ouvertures —
+      // c'est tout l'enjeu.
+      await correspondance(tester);
+      expect(find.text(kSaDevise), findsOneWidget);
+
+      deviseDuServeur = 'Maintenant je joue bien.';
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pumpAndSettle();
+      await correspondance(tester);
+
+      expect(find.text('Maintenant je joue bien.'), findsOneWidget);
+      expect(
+        find.text(kSaDevise),
+        findsNothing,
+        reason: 'l ancienne ne doit plus être nulle part',
+      );
+    });
+
+    testWidgets('et en direct aussi', (tester) async {
+      await direct(tester);
+      expect(find.text(kSaDevise), findsOneWidget);
+
+      deviseDuServeur = 'Tout change.';
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pumpAndSettle();
+      await direct(tester);
+      expect(find.text('Tout change.'), findsOneWidget);
+    });
+
+    testWidgets('UNE SEULE requête de profil par ouverture', (tester) async {
+      // La relecture ne doit rien coûter de plus : c'est la requête que les
+      // `resolve` faisaient déjà, et ils trouvent tout en cache ensuite. Si
+      // ce compte monte, chaque ouverture de partie paie deux allers-retours.
+      await correspondance(tester);
+      chemins.clear();
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pumpAndSettle();
+      await correspondance(tester);
+      expect(
+        chemins.where((c) => c == '/get_profile').length,
+        1,
+        reason: 'une ouverture, une requête',
+      );
+    });
+
     testWidgets('elle s efface comme un message', (tester) async {
       await direct(tester);
       expect(find.text(kSaDevise), findsOneWidget);
