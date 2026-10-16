@@ -19,6 +19,9 @@ import 'socket_client.dart';
 /// Un message qui vient d'arriver.
 typedef IncomingMessage = ({String from, String text});
 
+/// Un message que je viens d'envoyer, et à qui.
+typedef OutgoingMessage = ({String to, String text});
+
 /// Ce que l'application sait des messages non lus, à l'instant.
 class MessageHub extends ChangeNotifier {
   /// Non-lus par correspondant.
@@ -29,6 +32,26 @@ class MessageHub extends ChangeNotifier {
 
   /// Les messages au fil de l'eau — ce que suit une conversation ouverte.
   Stream<IncomingMessage> get incoming => _incoming.stream;
+
+  final StreamController<OutgoingMessage> _outgoing =
+      StreamController<OutgoingMessage>.broadcast();
+
+  /// Ce que J'ÉCRIS, d'où que je l'écrive.
+  ///
+  /// Les messages reçus passaient déjà par un point unique ; les miens, non :
+  /// la bande de la partie ne voyait que ceux écrits depuis le plateau, et un
+  /// mot tapé dans la boîte de messages n'y paraissait jamais. Nino : « il
+  /// est écrit d'un autre endroit mais doit être traité de la même manière. »
+  ///
+  /// L'annonce part AVANT la réponse du serveur, comme la bulle qu'elle fait
+  /// paraître : l'aller-retour ne doit pas se faire attendre.
+  Stream<OutgoingMessage> get outgoing => _outgoing.stream;
+
+  /// Annonce un message que je viens de confier au serveur.
+  void noteEnvoi(String to, String text) {
+    if (to.trim().isEmpty || text.isEmpty) return;
+    _outgoing.add((to: to, text: text));
+  }
 
   /// Nombre total de messages non lus.
   int get total => _unread.values.fold(0, (a, b) => a + b);
@@ -124,6 +147,7 @@ class MessageHub extends ChangeNotifier {
   void dispose() {
     detach();
     unawaited(_incoming.close());
+    unawaited(_outgoing.close());
     super.dispose();
   }
 }

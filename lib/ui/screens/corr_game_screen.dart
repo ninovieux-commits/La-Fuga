@@ -187,6 +187,11 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     _ecouteBulles = OnlineService.instance.messages.incoming
         .where((m) => m.from == _g.opponent)
         .listen((m) => _bulles.add((texte: m.text, deMoi: false)));
+    // Et les miens, d'où que je les écrive : depuis le plateau comme depuis
+    // la boîte de messages. Avant, la bande ne voyait que les premiers.
+    _ecouteMesBulles = OnlineService.instance.messages.outgoing
+        .where((m) => m.to == _g.opponent)
+        .listen((m) => _bulles.add((texte: m.text, deMoi: true)));
     OnlineService.instance.messages.addListener(_onMessages);
     // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
     // un popup : le cache partagé fait le lien.
@@ -274,6 +279,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     OnlineService.instance.messages.removeListener(_onMessages);
     FavorisConnus.instance.removeListener(_onMessages);
     _ecouteBulles?.cancel();
+    _ecouteMesBulles?.cancel();
     unawaited(_bulles.close());
     _sounds.dispose();
     super.dispose();
@@ -289,6 +295,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
   final StreamController<BulleEnJeu> _bulles =
       StreamController<BulleEnJeu>.broadcast();
   StreamSubscription<IncomingMessage>? _ecouteBulles;
+  StreamSubscription<OutgoingMessage>? _ecouteMesBulles;
 
   /// Cette partie est-elle une Random Fuga ? C'est son code qui le dit.
   bool get _estRandom => _g.randomCode.isNotEmpty;
@@ -329,7 +336,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
   Future<void> _messageRapide(ThemePalette palette) async {
     final texte = await ouvrirMessageRapide(context, palette: palette);
     if (texte == null || !mounted) return;
-    _bulles.add((texte: texte, deMoi: true));
+    // La bulle vient de l'annonce, pas d'un ajout direct : un seul chemin
+    // pour tous mes messages, et donc un seul comportement.
+    OnlineService.instance.messages.noteEnvoi(_g.opponent, texte);
     final r = await OnlineService.instance.client.sendMessage(
       _g.opponent,
       texte,

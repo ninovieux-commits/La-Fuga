@@ -276,6 +276,22 @@ class _ConversationScreenState extends State<ConversationScreen>
 
   final List<ChatMessage> _messages = [];
 
+  /// Les messages que je viens d'envoyer, tant que le serveur ne les a pas
+  /// rendus dans SA liste.
+  ///
+  /// Ils vivent À PART de [_messages], et c'est tout l'objet de cette liste :
+  /// la relecture de sécurité remplace [_messages] en bloc par ce que dit le
+  /// serveur, toutes les quatre secondes. Un message parti depuis moins de
+  /// quatre secondes n'y est pas encore — il disparaissait donc de l'écran,
+  /// pour ne revenir qu'à la relecture suivante.
+  ///
+  /// Mesuré avant correction, avec un envoi lent et une relecture au milieu :
+  /// « après envoi : [coucou, je suis là] », « après relecture : [coucou] »,
+  /// puis un RangeError quand la réponse arrivait enfin, parce que l'indice
+  /// retenu avant l'attente ne désignait plus rien. C'est ce que Nino voyait :
+  /// « certains de mes messages se perdent ou sont ralentis ».
+  final List<_EnVol> _enVol = [];
+
   /// Ce qu'on sait de lui AVANT la première image : le cache répond sans
   /// réseau, donc une conversation déjà ouverte une fois s'ouvre d'emblée
   /// avec sa photo et son décor.
@@ -355,12 +371,36 @@ class _ConversationScreenState extends State<ConversationScreen>
         for (final m in r.get<List<dynamic>>('messages') ?? const [])
           if (m is Map) ChatMessage.fromJson(Map<String, dynamic>.from(m)),
       ];
-      if (frais.length == _messages.length) return;
+
+      // Ceux de mes envois que cette liste porte désormais : ils quittent le
+      // vol au moment même où la liste les reprend, donc sans clignoter ni
+      // paraître deux fois. On compte les occurrences plutôt que de se
+      // contenter d'un « ce texte est présent » : deux fois le même mot
+      // envoyé, c'est deux bulles, et une seule doit partir.
+      final restants = <String, int>{};
+      for (final m in frais) {
+        if (m.fromMe) restants[m.text] = (restants[m.text] ?? 0) + 1;
+      }
+      final atterris = <_EnVol>[];
+      for (final v in _enVol) {
+        if (!v.confirme) continue;
+        final n = restants[v.texte] ?? 0;
+        if (n == 0) continue;
+        restants[v.texte] = n - 1;
+        atterris.add(v);
+      }
+
+      final listeChangee = frais.length != _messages.length;
+      if (!listeChangee && atterris.isEmpty) return;
       setState(() {
-        _messages
-          ..clear()
-          ..addAll(frais);
+        if (listeChangee) {
+          _messages
+            ..clear()
+            ..addAll(frais);
+        }
+        _enVol.removeWhere(atterris.contains);
       });
+      if (!listeChangee) return;
       // Un message vient d'arriver : la conversation est ouverte, donc lue.
       _declareLu();
       _scrollToEnd();
@@ -446,21 +486,26 @@ class _ConversationScreenState extends State<ConversationScreen>
     _input.clear();
 
     // Affichage optimiste : le message apparaît tout de suite, comme en Kivy.
-    final index = _messages.length;
-    setState(
-      () => _messages.add(ChatMessage(text: text, fromMe: true, pending: true)),
-    );
+    //
+    // Dans [_enVol] et non dans [_messages] : ce dernier appartient au
+    // serveur, qui le remplace en bloc toutes les quatre secondes. Retenir un
+    // INDICE dans cette liste-là, puis l'utiliser après l'attente, c'était
+    // écrire dans une liste qui n'est plus la même.
+    final vol = _EnVol(text);
+    setState(() => _enVol.add(vol));
     _scrollToEnd();
+
+    // La partie ouverte dessous montre ce mot dans sa bande, comme s'il
+    // avait été écrit depuis le plateau : un seul chemin pour tous mes
+    // messages.
+    widget.online.messages.noteEnvoi(widget.pseudo, text);
 
     final r = await widget.online.client.sendMessage(widget.pseudo, text);
     if (!mounted) return;
-    setState(() {
-      _messages[index] = ChatMessage(
-        text: text,
-        fromMe: true,
-        pending: r.isOk ? null : false,
-      );
-    });
+    setState(() => r.isOk ? vol.confirme = true : vol.echoue = true);
+    // Le serveur l'a : on va le chercher pour que la liste le reprenne, au
+    // lieu d'attendre la relecture suivante.
+    if (r.isOk) unawaited(_refresh());
   }
 
   /// Amène la conversation à SA FIN, et pas à peu près.
@@ -566,16 +611,21 @@ class _ConversationScreenState extends State<ConversationScreen>
                     ? const Center(child: CircularProgressIndicator())
                     : _error != null
                     ? Center(child: Text(_error!))
-                    : _messages.isEmpty
+                    : _messages.isEmpty && _enVol.isEmpty
                     ? Center(
                         child: Text(T('Aucun message. Écrivez le premier !')),
                       )
                     : ListView.builder(
                         controller: _scroll,
                         padding: EdgeInsets.all(S(10)),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, i) =>
-                            _bubble(_messages[i], palette, mienne),
+                        itemCount: _messages.length + _enVol.length,
+                        itemBuilder: (context, i) => _bubble(
+                          i < _messages.length
+                              ? _messages[i]
+                              : _enVol[i - _messages.length].commeMessage,
+                          palette,
+                          mienne,
+                        ),
                       ),
               ),
               _visages(palette),
@@ -690,4 +740,21 @@ class _ConversationScreenState extends State<ConversationScreen>
       ],
     ),
   );
+}
+
+/// Un message parti, dont le serveur n'a pas encore rendu compte.
+class _EnVol {
+  _EnVol(this.texte);
+
+  final String texte;
+
+  /// Le serveur a répondu « reçu » : il paraîtra dans sa prochaine liste.
+  bool confirme = false;
+
+  /// L'envoi a échoué : la bulle le dit, et elle reste à l'écran. Un message
+  /// qu'on croit parti et qui n'est jamais arrivé est pire que pas de message.
+  bool echoue = false;
+
+  ChatMessage get commeMessage =>
+      ChatMessage(text: texte, fromMe: true, pending: echoue ? false : true);
 }
