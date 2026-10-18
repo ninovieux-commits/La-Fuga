@@ -50,6 +50,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../scale.dart';
+import '../texte_emoji.dart';
 
 /// Distance d'un sommet au suivant, le long du contour.
 const double kPicPas = 38;
@@ -70,8 +71,13 @@ const double kPicRayon = 18;
 /// pourvu qu'elle contienne au moins un `!` : `!`, `!!`, `!?`, `?!`, `!!!`
 /// passent tous. Un message qui finit par `?` seul reste une bulle ordinaire
 /// — c'est une question, pas un cri.
+///
+/// C'est bien la DERNIÈRE phrase qui décide : « Et paf ! Puis non. » ne crie
+/// pas. Mais « le seul truc qu'il doit pouvoir y avoir derrière et que ça
+/// marche toujours sont des espaces ou des emojis » — « Bien joué ! 🎉 »
+/// crie donc autant que « Bien joué ! ».
 bool estUnCri(String texte) {
-  final t = texte.trimRight();
+  final t = sansLaQueueDEmojis(texte);
   var i = t.length;
   var exclamation = false;
   while (i > 0) {

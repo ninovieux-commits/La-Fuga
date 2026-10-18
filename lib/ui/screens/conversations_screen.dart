@@ -11,6 +11,7 @@ import '../../net/filet_relecture.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/decors_connus.dart';
 import '../../net/profils_connus.dart';
+import '../../net/push_notifications.dart';
 import '../../net/resolution_profil.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/message_hub.dart';
@@ -435,6 +436,11 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// tout de suite : il ne réveille personne.
   void _declareLu() {
     unawaited(widget.online.client.markRead(widget.pseudo));
+    // Et ce qui en reste dans le volet de notifications s'en va : le message
+    // est sous les yeux, l'annonce n'a plus lieu d'être. Le retour au premier
+    // plan le fait déjà — mais il ne se produit pas quand on lit sans avoir
+    // quitté l'application.
+    unawaited(PushNotifications.clearAll());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.online.messages.markRead(widget.pseudo);

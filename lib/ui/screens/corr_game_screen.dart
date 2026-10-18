@@ -370,7 +370,19 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       );
       // Le dernier coup de l'adversaire reste encadré à l'ouverture.
       _lastMove = state.lastMove;
-      _viewingIndex = null;
+      // ON NE RAMÈNE PAS AU PRÉSENT QUELQU'UN QUI REGARDE. Nino : « des fois
+      // quand je navigue avec les flèches durant une partie, ça revient seul
+      // au dernier coup. » C'était ici : le coup de l'adversaire arrive, la
+      // partie est rejouée, et la revue sautait avec elle.
+      //
+      // La correspondance n'a PAS de pendule — c'est ce qui change tout.
+      // L'écran de partie en direct, lui, ramène au présent exprès : y
+      // laisser quelqu'un dans le passé, c'est le laisser perdre au temps en
+      // regardant ailleurs. Ici, son coup peut arriver trois jours plus tard,
+      // et rien ne presse.
+      //
+      // L'indice reste valable : un coup s'AJOUTE à la fin, il ne décale pas
+      // ceux d'avant.
       _rebuildSteps();
     });
     _animerDernierCoupArrive();
@@ -419,6 +431,11 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       return;
     }
     _dejaAnime = dernier;
+    // Sauf si je suis en train d'en revoir un autre : l'animation se joue sur
+    // le plateau affiché, et elle ramènerait au présent ce que la ligne
+    // d'au-dessus vient de garder. Le coup est là quand on revient — encadré,
+    // comme à l'ouverture d'une partie.
+    if (_isViewing) return;
     _animerCoup(dernier);
     // Et il s'entend. Le son ne partait qu'au doigt et sur les flèches du
     // bandeau : le coup de l'adversaire glissait sous les yeux sans un bruit.

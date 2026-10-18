@@ -143,6 +143,9 @@ class PushNotifications {
   /// partie est devant lui, une notification ne lui apprendrait rien. Et en
   /// revenant, on efface celles qui attendaient : il vient de les lire en
   /// ouvrant l'application.
+  /// L'application se croit-elle devant les yeux du joueur ?
+  static bool get auPremierPlan => _auPremierPlan;
+
   static Future<void> setForeground(bool value) async {
     _auPremierPlan = value;
     if (value) await clearAll();

@@ -27,7 +27,9 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
+import '../widgets/bandeau_prises.dart';
 import '../widgets/fuga_background.dart';
+import '../widgets/game_layout.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
@@ -172,6 +174,34 @@ class _PremoveScreenState extends State<PremoveScreen>
       turn: coups.length.isEven ? widget.game.opponentCamp : widget.game.myCamp,
       countRepetitions: false,
       fugued: fugues,
+      // Les prises des coups DÉJÀ joués, pour que les bandeaux montrent le
+      // matériel comme en partie. Sans elles, l'écran ouvrait avec deux
+      // bandeaux vides au milieu d'une partie bien entamée. Ce que mange le
+      // pré-coup en préparation s'y ajoute tout seul, à mesure.
+      captured: replay(widget.game).captured,
+    );
+  }
+
+  /// Le matériel mangé, de part et d'autre du plateau.
+  ///
+  /// Nino : « dans tous les modes comprenant un plateau de jeu et des pièces
+  /// pouvant être mangées ». On prépare un coup au milieu d'une partie : ce
+  /// qui a déjà été pris en fait partie.
+  ///
+  /// Même répartition que dans une partie : en haut le camp du haut, en bas
+  /// le mien, chacun montrant les pièces qu'IL a prises — donc celles de
+  /// l'autre.
+  Widget _bandeau(ThemePalette palette, {required bool haut}) {
+    final campHaut = widget.flipped ? Camp.noir : Camp.blanc;
+    final camp = haut ? campHaut : campHaut.opposite;
+    return SizedBox(
+      height: hauteurBandeauJoueur(),
+      child: BandeauPrises(
+        pieces: _jeu.captured[camp.opposite] ?? const [],
+        palette: palette,
+        isWhite: camp == Camp.blanc,
+        miroir: !haut,
+      ),
     );
   }
 
@@ -263,6 +293,7 @@ class _PremoveScreenState extends State<PremoveScreen>
                   children: [
                     _entete(),
                     SizedBox(height: S(8)),
+                    _bandeau(palette, haut: true),
                     AspectRatio(
                       // Un plateau dessine `kExtRows` rangées de haut : les
                       // huit jouables, plus les deux zones de ralliement de
@@ -295,6 +326,7 @@ class _PremoveScreenState extends State<PremoveScreen>
                         slideDuration: slideDuration,
                       ),
                     ),
+                    _bandeau(palette, haut: false),
                     SizedBox(height: S(8)),
                     _ligneEnCours(palette),
                     if (_refus != null)

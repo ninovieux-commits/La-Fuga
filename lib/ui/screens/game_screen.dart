@@ -37,6 +37,7 @@ import '../retour_menu.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/bandeau_prises.dart';
 import '../widgets/game_layout.dart';
 import '../../engine/fug.dart';
 import '../widgets/end_dialogs.dart';
@@ -874,11 +875,16 @@ class _GameScreenState extends State<GameScreen>
         top: false,
         child: GameLayout(
           topBar: _topBar(palette, topCamp),
-          // Pas de bandeaux en analyse : leur absence dit qu'on explore une
-          // position au lieu de jouer une partie, et le plateau y gagne leur
-          // place.
+          // En analyse, le bandeau se réduit à ce qu'il a d'utile : le
+          // matériel mangé. Ni nom, ni chrono, ni touches — on explore une
+          // position, on ne joue pas contre quelqu'un — mais les prises
+          // restent, parce que c'est justement ce qu'on regarde.
           topPanel: widget.analysis
-              ? null
+              ? BandeauPrises(
+                  pieces: _game.captured[topCamp.opposite] ?? const [],
+                  palette: palette,
+                  isWhite: topCamp == Camp.blanc,
+                )
               : _tickingPanel(palette, topCamp, mirrored: false),
           board: GameBoardView(
             board: _shownBoard,
@@ -902,7 +908,12 @@ class _GameScreenState extends State<GameScreen>
             slideDuration: slideDuration,
           ),
           bottomPanel: widget.analysis
-              ? null
+              ? BandeauPrises(
+                  pieces: _game.captured[bottomCamp.opposite] ?? const [],
+                  palette: palette,
+                  isWhite: bottomCamp == Camp.blanc,
+                  miroir: true,
+                )
               : _tickingPanel(palette, bottomCamp, mirrored: true),
           moveStrip: MoveStrip(
             moves: _game.history,

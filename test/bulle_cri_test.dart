@@ -64,6 +64,15 @@ void main() {
       'Non !!!',
       '!',
       'Et paf !   ', // les espaces de fin ne comptent pas
+      // « Le seul truc qu'il doit pouvoir y avoir derrière et que ça marche
+      // toujours sont des espaces ou des emojis. »
+      'Bien joué ! 🎉',
+      'Bien joué !🎉🎉🎉',
+      'Quoi !? 😱',
+      'Bravo ! 👍🏽', // un émoji et sa teinte de peau
+      'Bravo ! 👨‍👩‍👧', // une suite cousue par des liants
+      'Bravo ! 🇫🇷', // un drapeau, deux indicateurs
+      'Bravo !  🎉  ',
     ]) {
       expect(estUnCri(cri), isTrue, reason: '« $cri » devrait crier');
     }
@@ -75,7 +84,11 @@ void main() {
       '',
       '   ',
       'Et paf ! Puis non.', // le « ! » n'est pas à la fin
+      'Et paf ! 🎉 puis non', // ni là : l'émoji n'est pas le dernier mot
       '?',
+      '🎉', // un émoji seul n'est pas un cri
+      'J en ai 3', // un chiffre n'est pas un émoji, même en fin de phrase
+      'Bien joué 🎉', // sans « ! », rien ne crie
     ]) {
       expect(estUnCri(calme), isFalse, reason: '« $calme » ne devrait pas');
     }

@@ -24,6 +24,7 @@ import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/premove_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/bandeau_prises.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
@@ -274,6 +275,22 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('le matériel mangé borde le plateau', (tester) async {
+      // Nino : « dans tous les modes comprenant un plateau de jeu et des
+      // pièces pouvant être mangées ». On prépare un coup au milieu d'une
+      // partie : ce qui a déjà été pris en fait partie.
+      await composer(tester);
+      final bandes = tester
+          .widgetList<BandeauPrises>(find.byType(BandeauPrises))
+          .toList();
+      expect(bandes, hasLength(2), reason: 'un de chaque côté du plateau');
+      expect(
+        bandes.first.isWhite,
+        isNot(bandes.last.isWhite),
+        reason: 'un camp par bande, comme les bandeaux d une partie',
+      );
+    });
 
     /// Joue un coup au doigt : prendre, poser, revalider.
     Future<void> jouer(WidgetTester tester, Cell de, Cell vers) async {

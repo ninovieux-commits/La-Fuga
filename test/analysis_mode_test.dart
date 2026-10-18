@@ -16,6 +16,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
+import 'package:lafuga/ui/widgets/bandeau_prises.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,12 +85,44 @@ void main() {
     expect(viewOf(tester).flipped, isTrue);
   });
 
-  testWidgets('en analyse, les bandeaux disparaissent', (tester) async {
+  testWidgets('en analyse, les bandeaux de JOUEUR disparaissent', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(home: GameScreen(aiCamp: null, analysis: true)),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(PlayerPanel), findsNothing);
+    expect(
+      find.byType(PlayerPanel),
+      findsNothing,
+      reason: 'ni nom, ni chrono, ni touches : on explore une position',
+    );
+  });
+
+  testWidgets('mais le matériel mangé reste, des deux côtés', (tester) async {
+    // Nino : « en mode analyse, il doit y avoir le matériel mangé qui
+    // apparaît autour du plateau comme en partie. » Les bandeaux étaient
+    // retirés tout entiers, et le matériel partait avec eux — alors que
+    // c'est justement ce qu'on regarde en analysant.
+    await tester.pumpWidget(
+      const MaterialApp(home: GameScreen(aiCamp: null, analysis: true)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(BandeauPrises), findsNWidgets(2));
+  });
+
+  testWidgets('en partie, ce sont les bandeaux de joueur qui les portent', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: GameScreen(aiCamp: null)));
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(BandeauPrises),
+      findsNothing,
+      reason:
+          'deux bandeaux de prises EN PLUS des bandeaux de joueur '
+          'feraient quatre bandes : les prises sont déjà dans les leurs',
+    );
   });
 
   testWidgets('en partie, les deux bandeaux sont là', (tester) async {

@@ -64,6 +64,36 @@ bool _estEmoji(int r) =>
 /// Indicateur régional : deux de suite font UN drapeau.
 bool _estIndicateur(int r) => r >= 0x1F1E6 && r <= 0x1F1FF;
 
+/// Le texte sans ce qui le suit : espaces et émojis de la fin.
+///
+/// Nino, à propos des bulles de cri : « le seul truc qu'il doit pouvoir y
+/// avoir derrière [le « ! »] et que ça marche toujours sont des espaces ou
+/// des emojis. » Un « Et paf ! 🎉 » crie autant qu'un « Et paf ! ».
+///
+/// On remonte depuis la FIN et on laisse tomber tout ce qui est blanc,
+/// émoji, ou morceau d'émoji — teinte de peau, liant, sélecteur de variante,
+/// indicateur de drapeau. En remontant ainsi, pas besoin de reconnaître les
+/// suites cousues : chacun de leurs morceaux tombe pour son propre compte.
+String sansLaQueueDEmojis(String texte) {
+  final runes = texte.runes.toList();
+  var fin = runes.length;
+  while (fin > 0) {
+    final r = runes[fin - 1];
+    final blanc = r == 0x20 || r == 0x09 || r == 0x0A || r == 0x0D;
+    // Chiffres et dièse sont « modificateurs » parce qu'ils ne font un émoji
+    // qu'avec l'enceinte qui les suit. Ici on remonte : les prendre pour des
+    // émojis mangerait le « 3 » de « J'en ai 3 ». On s'arrête donc dessus.
+    final partieDEmoji =
+        _estModificateur(r) &&
+        !(r >= 0x30 && r <= 0x39) &&
+        r != 0x23 &&
+        r != 0x2A;
+    if (!blanc && !partieDEmoji && !_estEmoji(r)) break;
+    fin--;
+  }
+  return String.fromCharCodes(runes.sublist(0, fin));
+}
+
 /// Combien d'émojis ce message contient, s'il ne contient QUE des émojis.
 ///
 /// Rend 0 dès qu'il y a autre chose : une lettre, un chiffre isolé, un point.

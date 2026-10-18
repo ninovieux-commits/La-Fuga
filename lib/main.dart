@@ -101,6 +101,20 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    // L'APPLICATION DÉMARRE AU PREMIER PLAN, et personne ne le disait.
+    //
+    // `didChangeAppLifecycleState` ne se déclenche qu'au CHANGEMENT d'état :
+    // au lancement, il ne vient pas. Le drapeau restait donc à « derrière »
+    // tant qu'on n'avait pas quitté l'application et qu'on n'y était pas
+    // revenu — et un message reçu entre-temps s'affichait en notification
+    // alors qu'on le lisait à l'écran, puis restait dans le volet, faute de
+    // retour au premier plan pour l'effacer. Nino : « quand je vois un
+    // message sur l'App, des fois la notif est toujours là. »
+    //
+    // Le drapeau garde sa valeur « derrière » par DÉFAUT : l'isolat des
+    // messages reçus en arrière-plan ne construit jamais cet écran, et c'est
+    // lui qui doit continuer d'afficher les notifications.
+    unawaited(PushNotifications.setForeground(true));
     WidgetsBinding.instance.addObserver(this);
   }
 
