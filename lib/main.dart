@@ -136,6 +136,11 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
     // Les notifications s'effacent en revenant sur l'application, et ne
     // s'affichent pas tant qu'on y est.
     unawaited(PushNotifications.setForeground(devant));
+    // Et on en profite pour s'assurer que le serveur a bien notre jeton : si
+    // la déclaration du lancement s'est perdue dans un réseau coupé, elle
+    // repart ici. Une fois acceptée, celle-ci ne part plus — c'est le même
+    // repère qui l'empêche.
+    if (devant) unawaited(PushNotifications.sendPendingToken());
   }
 
   @override

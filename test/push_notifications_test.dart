@@ -46,6 +46,87 @@ final class FakePermission implements NotificationPermission {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('Le jeton déclaré au serveur', () {
+    // Nino : « des fois je reçois pas de notif. »
+    //
+    // Le repère « déjà déclaré » se posait AVANT la réponse du serveur. Une
+    // déclaration perdue — réseau coupé au lancement — passait donc pour
+    // faite, et le jeton n'était plus jamais renvoyé de la session : plus une
+    // notification jusqu'au redémarrage.
+
+    late List<String> envois;
+    late bool serveurEnPanne;
+    late OnlineService service;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues(_launched);
+      await Settings.load();
+      envois = [];
+      serveurEnPanne = false;
+      final client = MockClient((request) async {
+        if (request.url.path == '/set_fcm_token') {
+          envois.add(request.body);
+          if (serveurEnPanne) {
+            return http.Response('', 500);
+          }
+        }
+        return http.Response(
+          jsonEncode({'ok': true, 'token': 't', 'pseudo': 'Nino'}),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      service = OnlineService(
+        client: OnlineClient(api: ApiClient(client: client)),
+      );
+      await service.login('Nino', 'mdp');
+      final precedent = OnlineService.instance;
+      OnlineService.instance = service;
+      PushNotifications.forgetDeclaredToken();
+      addTearDown(() {
+        OnlineService.instance = precedent;
+        PushNotifications.forgetDeclaredToken();
+      });
+    });
+
+    test('une déclaration perdue repart à la prochaine occasion', () async {
+      serveurEnPanne = true;
+      await PushNotifications.registerToken('jeton-1');
+      expect(
+        envois,
+        hasLength(1),
+        reason: 'la première tentative a bien eu lieu',
+      );
+
+      // Le réseau revient. C'est ce que fait le retour au premier plan.
+      serveurEnPanne = false;
+      await PushNotifications.sendPendingToken();
+      expect(
+        envois,
+        hasLength(2),
+        reason: 'un échec silencieux ne doit pas passer pour une réussite',
+      );
+    });
+
+    test('une déclaration acceptée ne se répète pas', () async {
+      await PushNotifications.registerToken('jeton-1');
+      await PushNotifications.sendPendingToken();
+      await PushNotifications.sendPendingToken();
+      expect(
+        envois,
+        hasLength(1),
+        reason: 'le serveur n a pas besoin de l entendre trois fois',
+      );
+    });
+
+    test('un jeton qui change est redéclaré', () async {
+      await PushNotifications.registerToken('jeton-1');
+      await PushNotifications.registerToken('jeton-2');
+      expect(envois, hasLength(2));
+      expect(envois.last, contains('jeton-2'));
+    });
+  });
+
   group('Contenu d un message', () {
     test('la charge notification donne le titre et le texte', () {
       const m = RemoteMessage(

@@ -231,8 +231,20 @@ class PushNotifications {
     if (!online.isLoggedIn) return;
     final mark = '${online.pseudo}|$value';
     if (mark == _declared) return;
-    _declared = mark;
-    await online.client.setFcmToken(value);
+    // LE REPÈRE SE POSE APRÈS LA RÉPONSE, ET SEULEMENT SI ELLE EST BONNE.
+    //
+    // Il se posait avant l'appel : une déclaration perdue — réseau coupé au
+    // lancement, serveur qui tousse — passait alors pour faite, et le jeton
+    // n'était plus jamais renvoyé de la session. Le serveur gardait l'ancien
+    // ou n'en avait aucun, et plus une seule notification n'arrivait jusqu'au
+    // redémarrage de l'application. Nino : « des fois je reçois pas de
+    // notif. »
+    //
+    // Redéclarer ne coûte rien et ne double rien : le serveur remplace le
+    // jeton de ce compte, et Kivy le lui renvoie à chaque connexion comme à
+    // chaque `ping`.
+    final r = await online.client.setFcmToken(value);
+    if (r.isOk) _declared = mark;
   }
 
   /// Oublie ce qui a été déclaré — à la déconnexion, et pour les tests.
