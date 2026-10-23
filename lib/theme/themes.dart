@@ -69,11 +69,27 @@ abstract final class FugaColors {
   /// Contour d'une pièce immobilisée.
   static const Color immobile = Color.fromRGBO(255, 51, 51, 1);
 
-  /// Contour par défaut d'une pièce blanche.
-  static const Color whiteOutline = Color.fromRGBO(222, 222, 222, 1);
+  /// Contour par défaut d'une pièce blanche : BLANC pur.
+  ///
+  /// Nino : « il y a un effet d'optique qui donne l'impression que les pièces
+  /// noires sont plus petites que les blanches. J'aimerai que le contour des
+  /// pièces noires soit parfaitement noir et le contour des blanches
+  /// parfaitement blanc. »
+  ///
+  /// Le contour se peint À CHEVAL sur le bord : sa moitié extérieure décide
+  /// de la taille qu'on croit voir. Un gris 222 autour d'un fond crème se
+  /// fond dans la pièce et l'agrandit ; un bleu nuit 51-51-84 autour d'un
+  /// fond presque noir en faisait autant du côté sombre, mais moins — d'où
+  /// deux pièces de même diamètre qui n'ont pas l'air de la même taille.
+  /// Deux contours PURS tranchent franchement des deux côtés, et le bord
+  /// tombe au même endroit pour les deux camps.
+  ///
+  /// Les thèmes à images n'en voient rien : leur contour n'est dessiné que
+  /// pour dire une sélection, un groupe ou une immobilisation.
+  static const Color whiteOutline = Color.fromRGBO(255, 255, 255, 1);
 
-  /// Contour par défaut d'une pièce noire.
-  static const Color blackOutline = Color.fromRGBO(51, 51, 84, 1);
+  /// Contour par défaut d'une pièce noire : NOIR pur. Voir [whiteOutline].
+  static const Color blackOutline = Color.fromRGBO(0, 0, 0, 1);
 }
 
 /// Toutes les palettes, par identifiant de thème.

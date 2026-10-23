@@ -279,6 +279,13 @@ class _ConversationScreenState extends State<ConversationScreen>
 
   final List<ChatMessage> _messages = [];
 
+  /// Combien de listes du serveur ont déjà été posées à l'écran.
+  ///
+  /// Deux requêtes peuvent se croiser — celle de l'ouverture et celle que
+  /// déclenche un envoi. Ce compteur dit laquelle est arrivée en dernier, et
+  /// la plus ancienne s'efface devant la plus récente au lieu de l'écraser.
+  int _tourListe = 0;
+
   /// Les messages que je viens d'envoyer, tant que le serveur ne les a pas
   /// rendus dans SA liste.
   ///
@@ -412,6 +419,7 @@ class _ConversationScreenState extends State<ConversationScreen>
           _messages
             ..clear()
             ..addAll(frais);
+          _tourListe++;
         }
         _enVol.removeWhere(atterris.contains);
       });
@@ -465,20 +473,39 @@ class _ConversationScreenState extends State<ConversationScreen>
     // Ouvrir la conversation vaut lecture.
     _declareLu();
 
-    // Les deux ensemble, et on attend les deux. En série, l'écran s'affichait
-    // dès les messages — donc avec MON fond — et changeait de décor quand le
-    // profil arrivait. Ensemble, la boîte n'est construite qu'une fois, avec
-    // le nom du fond déjà en main, et l'attente ne dure pas plus longtemps
-    // que la plus lente des deux requêtes.
+    // LES DEUX PARTENT ENSEMBLE, MAIS ON N'ATTEND PAS LES DEUX.
     //
-    // Son profil est RELU, et pas seulement demandé s'il manque : un décor
-    // ou une photo changés depuis la dernière visite doivent se voir sans
-    // relancer l'application. Une requête, la même qu'avant.
-    final (r, _) = await (
-      widget.online.client.listConversation(widget.pseudo),
-      rafraichisProfil(widget.pseudo, online: widget.online),
-    ).wait;
+    // On les attendait toutes les deux, pour que la boîte ne s'ouvre pas sur
+    // MON fond avant de changer de décor à l'arrivée du profil. C'était juste
+    // à la PREMIÈRE visite — et seulement là. Aux suivantes, son décor est
+    // déjà connu, l'écran est déjà juste, et attendre le profil ne faisait
+    // que retarder les messages de la plus lente des deux requêtes. Nino :
+    // « la boîte de messages charge souvent ainsi », roue au milieu.
+    //
+    // Son profil est quand même RELU à chaque ouverture — un décor ou une
+    // photo changés doivent se voir — mais il arrive quand il arrive, et
+    // `profilsConnus` redessine l'écran à ce moment-là.
+    final tour = _tourListe;
+    final profil = rafraichisProfil(widget.pseudo, online: widget.online);
+    final liste = widget.online.client.listConversation(widget.pseudo);
+    if (DecorsConnus.known(widget.pseudo).isEmpty) {
+      // Première visite : rien ne presse autant qu'un fond qui ne clignote
+      // pas, et il n'y a de toute façon aucun message à l'écran.
+      await profil;
+    } else {
+      unawaited(profil);
+    }
+    final r = await liste;
     if (!mounted) return;
+
+    // Une relecture a pu passer PENDANT que celle-ci voyageait — l'envoi d'un
+    // message en déclenche une. Sa liste est plus fraîche que la nôtre :
+    // l'écraser avec celle-ci ferait disparaître le message qu'on vient
+    // d'écrire, jusqu'à la réouverture de la boîte.
+    if (tour != _tourListe) {
+      setState(() => _loading = false);
+      return;
+    }
 
     setState(() {
       _loading = false;
@@ -494,6 +521,7 @@ class _ConversationScreenState extends State<ConversationScreen>
           for (final m in r.get<List<dynamic>>('messages') ?? const [])
             if (m is Map) ChatMessage.fromJson(Map<String, dynamic>.from(m)),
         ]);
+      _tourListe++;
     });
     _scrollToEnd();
   }
@@ -625,15 +653,13 @@ class _ConversationScreenState extends State<ConversationScreen>
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null
-                    ? Center(child: Text(_error!))
-                    : _messages.isEmpty && _enVol.isEmpty
-                    ? Center(
-                        child: Text(T('Aucun message. Écrivez le premier !')),
-                      )
-                    : ListView.builder(
+                // LA ROUE NE CACHE JAMAIS UN MESSAGE. Dès qu'il y a
+                // quelque chose à montrer — la conversation, ou seulement ce
+                // qu'on vient d'écrire — c'est la liste qui passe, chargement
+                // ou pas. Sinon on pouvait écrire et envoyer sans RIEN voir,
+                // le champ et la touche étant, eux, toujours là.
+                child: _messages.isNotEmpty || _enVol.isNotEmpty
+                    ? ListView.builder(
                         controller: _scroll,
                         padding: EdgeInsets.all(S(10)),
                         itemCount: _messages.length + _enVol.length,
@@ -644,6 +670,13 @@ class _ConversationScreenState extends State<ConversationScreen>
                           palette,
                           mienne,
                         ),
+                      )
+                    : _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                    ? Center(child: Text(_error!))
+                    : Center(
+                        child: Text(T('Aucun message. Écrivez le premier !')),
                       ),
               ),
               _visages(palette),
