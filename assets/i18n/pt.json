@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Uma posição jogável exige:\n\n• um Herdeiro em cada lado, nem mais nem menos;\n• no máximo um Cavaleiro por lado — zero é permitido;\n• em cada lado, pelo menos uma peça quadrada a tocar outra peça quadrada;\n• pelo menos três casas livres.",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Uma posição jogável exige:\n\n• um Herdeiro em cada lado, nem mais nem menos;\n• no máximo um Cavaleiro por lado — zero é permitido;\n• em cada lado, pelo menos uma peça quadrada a tocar outra peça quadrada — uma quadrada isolada não se pode mover, e a partida seria empate à partida;\n• pelo menos três casas livres: um tabuleiro cheio não deixa para onde ir.",
   "Message rapide": "Mensagem rápida",
-  "Message non envoyé.": "Mensagem não enviada."
+  "Message non envoyé.": "Mensagem não enviada.",
+  "Abandonner ou proposer la nulle ?": "Desistir ou propor empate?",
+  "Confirmer l'abandon ?": "Confirmar a desistência?",
+  "Confirmer la demande de nulle ?": "Confirmar a proposta de empate?",
+  "Oui": "Sim",
+  "Non": "Não"
 }

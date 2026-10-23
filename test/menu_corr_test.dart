@@ -342,8 +342,7 @@ void main() {
 
     // `_update_side_buttons` : abandon de mon côté, pas de ½ — le temps est
     // illimité, on abandonne si ça traîne.
-    expect(find.byTooltip('Abandonner'), findsOneWidget);
-    expect(find.byTooltip('Proposer nulle'), findsNothing);
+    expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsOneWidget);
   });
 
   testWidgets('la liste se tient à jour sans touche « Actualiser »', (

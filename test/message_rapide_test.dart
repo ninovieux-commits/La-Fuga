@@ -95,11 +95,14 @@ void main() {
     });
 
     testWidgets('elle est À GAUCHE des autres gestes', (tester) async {
-      // Nino l'a dessinée là, à gauche du ½ : la place libre de la rangée,
-      // et la plus éloignée de l'abandon.
+      // Nino l'a dessinée là : la place libre de la rangée, et la plus
+      // éloignée de l'abandon — qui vit maintenant derrière le drapeau.
       await montre(tester, panneau(ecrire: () {}, abandonner: () {}));
       final bulle = tester.getRect(find.byIcon(Icons.chat_bubble_outline));
-      expect(bulle.right, lessThan(tester.getRect(find.text('X')).left));
+      final drapeau = tester.getRect(
+        find.byTooltip('Abandonner ou proposer la nulle ?'),
+      );
+      expect(bulle.right, lessThan(drapeau.left));
     });
 
     testWidgets('la toucher appelle le composeur', (tester) async {

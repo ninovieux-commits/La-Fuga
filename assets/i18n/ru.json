@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• не более одного Рыцаря с каждой стороны — ноль допустим;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой;\n• не менее трёх свободных клеток.",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• не более одного Рыцаря с каждой стороны — ноль допустим;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой — одинокая квадратная фигура не может ходить, и партия сразу была бы ничьей;\n• не менее трёх свободных клеток: на полной доске некуда ходить.",
   "Message rapide": "Быстрое сообщение",
-  "Message non envoyé.": "Сообщение не отправлено."
+  "Message non envoyé.": "Сообщение не отправлено.",
+  "Abandonner ou proposer la nulle ?": "Сдаться или предложить ничью?",
+  "Confirmer l'abandon ?": "Подтвердить сдачу?",
+  "Confirmer la demande de nulle ?": "Подтвердить предложение ничьей?",
+  "Oui": "Да",
+  "Non": "Нет"
 }

@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に騎士は多くても一つ（ゼロでも可）。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。\n• 空きマスが三つ以上。",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に騎士は多くても一つ（ゼロでも可）。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。孤立した四角い駒は動けず、初手から引き分けになります。\n• 空きマスが三つ以上。盤が埋まっていると行き場がありません。",
   "Message rapide": "クイックメッセージ",
-  "Message non envoyé.": "メッセージを送信できませんでした。"
+  "Message non envoyé.": "メッセージを送信できませんでした。",
+  "Abandonner ou proposer la nulle ?": "投了、それとも引き分けの申し出？",
+  "Confirmer l'abandon ?": "投了を確定しますか？",
+  "Confirmer la demande de nulle ?": "引き分けの申し出を確定しますか？",
+  "Oui": "はい",
+  "Non": "いいえ"
 }

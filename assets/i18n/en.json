@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "A playable position requires:\n\n• one Heir on each side, no more, no fewer;\n• at most one Knight per side — zero is allowed;\n• on each side, at least one square piece touching another square piece;\n• at least three free squares.",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "A playable position requires:\n\n• one Heir on each side, no more, no fewer;\n• at most one Knight per side — zero is allowed;\n• on each side, at least one square piece touching another square piece — a lone square cannot move, and the game would be drawn from the start;\n• at least three free squares: a full board leaves nowhere to go.",
   "Message rapide": "Quick message",
-  "Message non envoyé.": "Message not sent."
+  "Message non envoyé.": "Message not sent.",
+  "Abandonner ou proposer la nulle ?": "Resign or offer a draw?",
+  "Confirmer l'abandon ?": "Confirm resignation?",
+  "Confirmer la demande de nulle ?": "Confirm draw offer?",
+  "Oui": "Yes",
+  "Non": "No"
 }

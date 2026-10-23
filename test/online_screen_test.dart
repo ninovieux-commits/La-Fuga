@@ -97,8 +97,7 @@ void main() {
   testWidgets('les gestes sont de mon côté seulement', (tester) async {
     await open(tester);
 
-    expect(find.byTooltip('Proposer nulle'), findsOneWidget);
-    expect(find.byTooltip('Abandonner'), findsOneWidget);
+    expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsOneWidget);
   });
 
   testWidgets('le mélo est SOUS chaque nom, et non à sa suite', (tester) async {

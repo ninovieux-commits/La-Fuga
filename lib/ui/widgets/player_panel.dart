@@ -12,6 +12,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
@@ -19,6 +21,7 @@ import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'etoile_favori.dart';
+import 'drapeau_dialog.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
@@ -100,10 +103,11 @@ class PlayerPanel extends StatelessWidget {
     this.favori = false,
     this.drawOffered = false,
     this.drawEnabled = true,
-    this.onDrawBlocked,
+    this.raisonNulle,
     this.busy = false,
     this.mirrored = false,
     this.onUndo,
+    this.messageAbandon,
     this.onDraw,
     this.onResign,
     this.onMessageRapide,
@@ -160,6 +164,12 @@ class PlayerPanel extends StatelessWidget {
 
   /// Annuler le coup en cours. Absent = geste indisponible de ce côté.
   final VoidCallback? onUndo;
+
+  /// Ce que la confirmation d'abandon dit sous son titre.
+  ///
+  /// Une partie locale nomme qui abandonne et ce que l'autre marque ; une
+  /// partie en ligne n'a rien à ajouter. L'écran sait, le bandeau non.
+  final String? messageAbandon;
   final VoidCallback? onDraw;
 
   /// Le ½ est-il actionnable ? Faux : il reste VISIBLE mais éteint.
@@ -172,7 +182,15 @@ class PlayerPanel extends StatelessWidget {
   /// Touché alors qu'il est éteint. L'infobulle demande de rester appuyé —
   /// personne ne le fait : c'est ce rappel-ci qui dit ce qui manque, au
   /// moment où on se pose la question.
-  final VoidCallback? onDrawBlocked;
+  /// Pourquoi la nulle n'est pas proposable, quand elle ne l'est pas.
+  ///
+  /// Le ½ éteint répondait par une boîte de dialogue : il fallait le toucher
+  /// pour apprendre ce qui manquait. La raison est maintenant ÉCRITE dans le
+  /// popup du drapeau, au-dessus de la touche pâlie — on la lit sans rien
+  /// demander. L'écran la fournit parce qu'il la connaît : en
+  /// correspondance, « répondez d'abord à la nulle proposée » n'est pas la
+  /// même chose que « jouez votre coup ».
+  final String? raisonNulle;
 
   /// Ce camp a proposé la nulle : Kivy allume alors son ½ en orange.
   final bool drawOffered;
@@ -199,11 +217,11 @@ class PlayerPanel extends StatelessWidget {
       final rows = box.maxHeight.isFinite
           ? [
               Expanded(child: _identity()),
-              SizedBox(height: actions, child: _actions()),
+              SizedBox(height: actions, child: _actions(context)),
             ]
           : [
               SizedBox(height: S(34), child: _identity()),
-              SizedBox(height: actions, child: _actions()),
+              SizedBox(height: actions, child: _actions(context)),
             ];
 
       return Container(
@@ -351,7 +369,7 @@ class PlayerPanel extends StatelessWidget {
   );
 
   /// Prises et gestes — la rangée « près du plateau ».
-  Widget _actions() => Row(
+  Widget _actions(BuildContext context) => Row(
     children: [
       Expanded(
         child: CapturesStrip(pieces: captures, palette: palette),
@@ -370,25 +388,40 @@ class PlayerPanel extends StatelessWidget {
           ),
         ),
       if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
-      if (onDraw != null)
-        _button(
-          '½',
-          drawEnabled
-              ? (drawOffered ? T('Nulle proposée') : T('Proposer nulle'))
-              : T('Jouez votre coup d abord'),
-          onDraw!,
-          color: drawOffered ? palette.clair : kFugaGrey,
-          enabled: drawEnabled,
-          onBlocked: onDrawBlocked,
-        ),
-      // L'abandon est rouge sombre chez Kivy : on n'y touche pas par mégarde.
-      if (onResign != null)
-        _button(
-          'X',
-          T('Abandonner'),
-          onResign!,
-          color: kResignRed,
-          fontSize: SF(17),
+      // LE DRAPEAU remplace le ½ et le X. Nino : « le bouton abandonner et
+      // le bouton match nul doivent disparaître. À la place on met un bouton
+      // avec ce drapeau. » Ce sont les deux seuls gestes qui terminent une
+      // partie sans la jouer : ils tenaient chacun leur carré à côté de ceux
+      // dont on se sert à chaque coup, et le rouge de l'abandon était à un
+      // doigt du reste.
+      if (onDraw != null || onResign != null)
+        _carre(
+          T('Abandonner ou proposer la nulle ?'),
+          () => unawaited(
+            ouvrirDrapeau(
+              context,
+              palette: palette,
+              nulleActive: drawEnabled && onDraw != null,
+              nulleProposee: drawOffered,
+              messageAbandon: messageAbandon ?? '',
+              raisonNulle: raisonNulle,
+              onNulle: onDraw,
+              onAbandon: onResign,
+            ),
+          ),
+          // Le dessin suit le thème, comme les instruments des réglages :
+          // un PNG blanc sur fond transparent, teinté ici. Garder son fond
+          // d'origine, qui est blanc, aurait troué le bandeau.
+          enfant: Padding(
+            padding: EdgeInsets.all(S(7)),
+            child: Image.asset(
+              'assets/images/drapeau.webp',
+              color: palette.clair,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stack) =>
+                  Text('⚑', style: TextStyle(fontSize: SF(17))),
+            ),
+          ),
         ),
     ],
   );

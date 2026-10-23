@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方最多一个骑士，可以没有；\n• 每方至少有一个方形棋子与另一个方形棋子相接；\n• 至少三个空格。",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方最多一个骑士，可以没有；\n• 每方至少有一个方形棋子与另一个方形棋子相接——孤立的方形棋子无法移动，开局即和棋；\n• 至少三个空格：棋盘填满就无处可走。",
   "Message rapide": "快速消息",
-  "Message non envoyé.": "消息未发送。"
+  "Message non envoyé.": "消息未发送。",
+  "Abandonner ou proposer la nulle ?": "认输还是提和？",
+  "Confirmer l'abandon ?": "确认认输？",
+  "Confirmer la demande de nulle ?": "确认提和？",
+  "Oui": "是",
+  "Non": "否"
 }

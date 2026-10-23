@@ -133,11 +133,16 @@ void main() {
     });
   });
 
-  group('Le ½ du bandeau de joueur', () {
+  group('Le drapeau du bandeau de joueur', () {
+    // Le ½ et le X ont quitté le bandeau : un seul drapeau les remplace, et
+    // c'est son popup qui porte les deux gestes. Nino : « le bouton
+    // abandonner et le bouton match nul doivent disparaître. »
     Future<void> panneau(
       WidgetTester tester, {
-      required bool actif,
-      VoidCallback? bloque,
+      required bool nulleActive,
+      String? raison,
+      VoidCallback? onDraw,
+      VoidCallback? onResign,
     }) => montre(
       tester,
       SizedBox(
@@ -150,36 +155,93 @@ void main() {
           isWhite: true,
           isTurn: true,
           captures: const [],
-          drawEnabled: actif,
-          onDraw: () {},
-          onDrawBlocked: bloque,
+          drawEnabled: nulleActive,
+          raisonNulle: raison,
+          onDraw: onDraw ?? () {},
+          onResign: onResign ?? () {},
         ),
       ),
     );
 
-    Color? encreDu(WidgetTester tester, String label) =>
-        tester.widget<Text>(find.text(label)).style?.color;
-
-    testWidgets('éteint, son libellé pâlit', (tester) async {
-      await panneau(tester, actif: false);
-      expect(find.text('½'), findsOneWidget);
-      expect(encreDu(tester, '½'), Colors.white54);
+    testWidgets('le bandeau ne porte plus ni ½ ni X', (tester) async {
+      await panneau(tester, nulleActive: true);
+      expect(find.text('½'), findsNothing);
+      expect(find.text('X'), findsNothing);
+      expect(find.byType(Image), findsWidgets, reason: 'le drapeau est là');
     });
 
-    testWidgets('allumé, il est franc', (tester) async {
-      await panneau(tester, actif: true);
-      expect(encreDu(tester, '½'), Colors.white);
-    });
-
-    testWidgets('et il reste touchable, pour dire ce qui manque', (
+    testWidgets('il ouvre les deux gestes, et dit ce qui manque', (
       tester,
     ) async {
-      // Éteint, le ½ répond quand même — par `onDrawBlocked`, qui explique.
-      var explique = 0;
-      await panneau(tester, actif: false, bloque: () => explique++);
-      await tester.tap(find.text('½'));
+      await panneau(
+        tester,
+        nulleActive: false,
+        raison: 'Jouez votre coup pour pouvoir proposer la nulle',
+      );
+      await tester.tap(find.byType(Image).last);
       await tester.pumpAndSettle();
-      expect(explique, 1);
+
+      expect(find.text('Proposer nulle'), findsOneWidget);
+      expect(find.text('Abandonner'), findsOneWidget);
+      expect(
+        find.text('Jouez votre coup pour pouvoir proposer la nulle'),
+        findsOneWidget,
+        reason: 'la raison se LIT, au lieu de se gagner en touchant un ½ mort',
+      );
+    });
+
+    testWidgets('la nulle ne part qu après un oui', (tester) async {
+      var propose = 0;
+      await panneau(tester, nulleActive: true, onDraw: () => propose++);
+      await tester.tap(find.byType(Image).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirmer la demande de nulle ?'), findsOneWidget);
+      expect(propose, 0, reason: 'rien ne part avant la confirmation');
+      await tester.tap(find.widgetWithText(FugaButton, 'Non'));
+      await tester.pumpAndSettle();
+      expect(propose, 0);
+
+      await tester.tap(find.byType(Image).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Oui'));
+      await tester.pumpAndSettle();
+      expect(propose, 1);
+    });
+
+    testWidgets('l abandon non plus', (tester) async {
+      var abandonne = 0;
+      await panneau(tester, nulleActive: true, onResign: () => abandonne++);
+      await tester.tap(find.byType(Image).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Abandonner'));
+      await tester.pumpAndSettle();
+      expect(find.text('Confirmer l\'abandon ?'), findsOneWidget);
+      expect(abandonne, 0);
+      await tester.tap(find.widgetWithText(FugaButton, 'Oui'));
+      await tester.pumpAndSettle();
+      expect(abandonne, 1);
+    });
+
+    testWidgets('coup non joué : la nulle est pâle et ne mène nulle part', (
+      tester,
+    ) async {
+      var propose = 0;
+      await panneau(tester, nulleActive: false, onDraw: () => propose++);
+      await tester.tap(find.byType(Image).last);
+      await tester.pumpAndSettle();
+      expect(
+        paleurAutourDe(tester, find.text('Proposer nulle')),
+        kOpaciteEteinte,
+      );
+      await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
+      await tester.pumpAndSettle();
+      expect(find.text('Confirmer la demande de nulle ?'), findsNothing);
+      expect(propose, 0);
     });
   });
 }

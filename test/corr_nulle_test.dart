@@ -22,6 +22,7 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/widgets/draw_offer_panel.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/game_layout.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
@@ -106,19 +107,30 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('Le bouton ½', () {
-    testWidgets('il est LÀ, mais éteint, quand c est à moi de jouer', (
+  /// Le drapeau, « Proposer nulle », puis « Oui ».
+  Future<void> proposerNulle(WidgetTester tester) async {
+    await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FugaButton, 'Oui'));
+    await tester.pumpAndSettle();
+  }
+
+  group('La nulle proposée', () {
+    testWidgets('elle est LÀ, mais éteinte, quand c est à moi de jouer', (
       tester,
     ) async {
       await ouvrir(tester, jeuJson(monTour: true));
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
+      await tester.pumpAndSettle();
 
       expect(
-        find.text('½'),
+        find.text('Proposer nulle'),
         findsOneWidget,
-        reason: 'le ½ doit rester visible : caché, il n apprend rien',
+        reason: 'la touche doit rester visible : cachée, elle n apprend rien',
       );
-
-      await tester.tap(find.text('½'));
+      await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
       await tester.pumpAndSettle();
       expect(
         appele('/corr_proposer_nulle'),
@@ -127,11 +139,10 @@ void main() {
       );
     });
 
-    testWidgets('il s allume une fois mon coup joué', (tester) async {
+    testWidgets('elle s allume une fois mon coup joué', (tester) async {
       await ouvrir(tester, jeuJson(monTour: false, coups: 'Do1-Do2'));
 
-      await tester.tap(find.text('½'));
-      await tester.pumpAndSettle();
+      await proposerNulle(tester);
       expect(appele('/corr_proposer_nulle'), isTrue);
       expect(corps('/corr_proposer_nulle')!['game_id'], 'g1');
     });
@@ -156,16 +167,17 @@ void main() {
         ..['statut'] = 'termine'
         ..['resultat'] = 'nulle';
       await ouvrir(tester, j);
-      expect(find.text('½'), findsNothing);
+      expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsNothing);
     });
   });
 
-  group('Le ½ éteint, quand on appuie quand même', () {
-    testWidgets('il dit ce qui manque : jouer son coup', (tester) async {
-      // L'infobulle demande de rester appuyé, et personne ne le fait. La
-      // question se pose au moment de l'appui : c'est là qu'on répond.
+  group('La nulle éteinte dit ce qui manque', () {
+    // La raison était cachée derrière un appui sur un ½ mort. Elle est
+    // maintenant ÉCRITE dans le popup du drapeau, au-dessus de la touche
+    // pâlie : on la lit sans rien demander.
+    testWidgets('jouer son coup', (tester) async {
       await ouvrir(tester, jeuJson(monTour: true));
-      await tester.tap(find.text('½'));
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
       await tester.pumpAndSettle();
 
       expect(
@@ -175,14 +187,12 @@ void main() {
       expect(appele('/corr_proposer_nulle'), isFalse);
     });
 
-    testWidgets('et quand c est une nulle qui attend, il le dit aussi', (
-      tester,
-    ) async {
+    testWidgets('ou répondre à la nulle qui attend', (tester) async {
       await ouvrir(
         tester,
         jeuJson(monTour: false, nulleARepondre: true, coups: 'Do1-Do2'),
       );
-      await tester.tap(find.text('½'));
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
       await tester.pumpAndSettle();
 
       expect(
@@ -192,17 +202,18 @@ void main() {
       );
     });
 
-    testWidgets('allumé, il ne dit rien : il propose', (tester) async {
+    testWidgets('allumée, aucune raison ne s affiche : elle propose', (
+      tester,
+    ) async {
       await ouvrir(tester, jeuJson(monTour: false, coups: 'Do1-Do2'));
-      await tester.tap(find.text('½'));
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
       await tester.pumpAndSettle();
 
       expect(
-        find.byType(AlertDialog),
+        find.text('Jouez votre coup pour pouvoir proposer la nulle'),
         findsNothing,
-        reason: 'une explication s est affichée alors que le geste a marché',
       );
-      expect(appele('/corr_proposer_nulle'), isTrue);
+      expect(find.text('Répondez d abord à la nulle proposée'), findsNothing);
     });
   });
 
@@ -299,7 +310,7 @@ void main() {
         tester,
         jeuJson(monTour: false, nulleARepondre: true, coups: 'Do1-Do2'),
       );
-      await tester.tap(find.text('½'));
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
       await tester.pumpAndSettle();
       expect(
         appele('/corr_proposer_nulle'),

@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 기사는 최대 하나 — 없어도 됩니다;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상;\n• 빈 칸이 세 개 이상.",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 기사는 최대 하나 — 없어도 됩니다;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상 — 외톨이 사각 말은 움직일 수 없어 처음부터 무승부가 됩니다;\n• 빈 칸이 세 개 이상: 꽉 찬 보드에는 갈 곳이 없습니다.",
   "Message rapide": "빠른 메시지",
-  "Message non envoyé.": "메시지를 보내지 못했습니다."
+  "Message non envoyé.": "메시지를 보내지 못했습니다.",
+  "Abandonner ou proposer la nulle ?": "기권 또는 무승부 제안?",
+  "Confirmer l'abandon ?": "기권을 확정할까요?",
+  "Confirmer la demande de nulle ?": "무승부 제안을 확정할까요?",
+  "Oui": "예",
+  "Non": "아니요"
 }

@@ -791,15 +791,9 @@ class _GameScreenState extends State<GameScreen>
   ///
   /// Contre Deep Grey, c'est l'humain qui abandonne, même si c'est à l'IA de
   /// jouer : le bouton n'appartient qu'à lui.
-  Future<void> _abandon(Camp quitter) async {
-    final confirmed = await _confirm(
-      T(
-        '{name} confirme abandonner. L\'adversaire marquera 2 points.',
-      ).replaceAll('{name}', _playerOf(quitter)),
-      T('Oui, abandonner'),
-    );
-    if (!confirmed || !mounted) return;
-
+  /// La confirmation a déjà été donnée au drapeau, avec [_messageAbandon]
+  /// sous les yeux : une seule, au même endroit pour les trois écrans.
+  void _abandon(Camp quitter) {
     setState(
       () => _finish(
         'abandon',
@@ -808,6 +802,13 @@ class _GameScreenState extends State<GameScreen>
       ),
     );
   }
+
+  /// Ce que la confirmation d'abandon dit sous son titre, en partie locale :
+  /// qui abandonne, et ce que l'autre marque. En ligne, il n'y a rien à
+  /// ajouter — l'adversaire est connu et le barème aussi.
+  String _messageAbandon(Camp quitter) => T(
+    '{name} confirme abandonner. L\'adversaire marquera 2 points.',
+  ).replaceAll('{name}', _playerOf(quitter));
 
   /// Proposition de nulle en local — portage de `_toggle_draw_offer`.
   ///
@@ -831,26 +832,6 @@ class _GameScreenState extends State<GameScreen>
   void _resetDrawOffers() {
     _drawOffers[Camp.blanc] = false;
     _drawOffers[Camp.noir] = false;
-  }
-
-  Future<bool> _confirm(String message, String action) async {
-    final answer = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Annuler')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(action),
-          ),
-        ],
-      ),
-    );
-    return answer ?? false;
   }
 
   void _cancelMove() {
@@ -1062,6 +1043,7 @@ class _GameScreenState extends State<GameScreen>
       onDraw: canAct && _aiCamp == null ? () => _toggleDrawOffer(camp) : null,
       drawOffered: _drawOffers[camp] ?? false,
       onResign: canAct ? () => _abandon(camp) : null,
+      messageAbandon: _messageAbandon(camp),
     );
   }
 

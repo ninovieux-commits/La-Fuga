@@ -39,7 +39,7 @@ void main() {
 
     test('toutes les langues couvrent les mêmes clés', () {
       final reference = read(files.first).keys.toSet();
-      expect(reference.length, 536);
+      expect(reference.length, 541);
       for (final f in files) {
         final keys = read(f).keys.toSet();
         expect(
@@ -204,7 +204,7 @@ void main() {
     test('une langue chargée traduit', () async {
       final en = await Translations.load('en');
       expect(en.language, 'en');
-      expect(en.length, 536);
+      expect(en.length, 541);
       expect(
         T('Se connecter'),
         isNot('Se connecter'),

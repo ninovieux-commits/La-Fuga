@@ -14,7 +14,7 @@
 /// | Deep Grey     |   ✗   |   ✗   |    ✔    |
 /// | Analyser      |   ✗   |   ✗   |    ✗    |
 /// | Chat          |   ✗   |   ✗   |    ✗    |
-/// | ↶ ½ X         | 2 côtés | côté humain, sans ½ | aucun |
+/// | ↶ ⚑           | 2 côtés | côté humain, sans ½ | aucun |
 library;
 
 import 'dart:io';
@@ -28,6 +28,7 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/ai_memory.dart';
 import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -86,11 +87,17 @@ void main() {
       expect(find.text('Chat'), findsNothing);
     });
 
-    testWidgets('les deux joueurs ont ↶ ½ X', (tester) async {
+    testWidgets('les deux joueurs ont ↶ et le drapeau', (tester) async {
       await open(tester);
 
-      expect(find.byTooltip('Proposer nulle'), findsNWidgets(2));
-      expect(find.byTooltip('Abandonner'), findsNWidgets(2));
+      // Le ½ et le X ont quitté le bandeau : un drapeau par joueur les
+      // remplace, et c'est son popup qui porte les deux gestes.
+      expect(
+        find.byTooltip('Abandonner ou proposer la nulle ?'),
+        findsNWidgets(2),
+      );
+      expect(find.text('½'), findsNothing);
+      expect(find.text('X'), findsNothing);
     });
 
     testWidgets('le X du haut fait abandonner le joueur du haut', (
@@ -101,12 +108,17 @@ void main() {
       // Les Blancs sont en bas, donc « Joueur 2 » (les Noirs) est en haut.
       // Kivy fait abandonner le camp DONT on touche la croix, même si c'est
       // l'autre qui a le trait.
-      await tester.tap(find.byTooltip('Abandonner').first);
+      await tester.tap(
+        find.byTooltip('Abandonner ou proposer la nulle ?').first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Abandonner'));
       await tester.pumpAndSettle();
 
       expect(
         find.textContaining('Joueur 2 confirme abandonner'),
         findsOneWidget,
+        reason: 'la confirmation nomme qui abandonne, comme avant',
       );
     });
   });
@@ -133,15 +145,18 @@ void main() {
       await open(tester, aiCamp: Camp.noir);
 
       expect(
-        find.byTooltip('Proposer nulle'),
+        find.byTooltip('Abandonner ou proposer la nulle ?'),
+        findsOneWidget,
+        reason: 'seul le joueur humain a un drapeau',
+      );
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Proposer nulle'),
         findsNothing,
         reason: 'on ne négocie pas de nulle avec Deep Grey',
       );
-      expect(
-        find.byTooltip('Abandonner'),
-        findsOneWidget,
-        reason: 'seul le joueur humain abandonne',
-      );
+      expect(find.text('Abandonner'), findsWidgets);
     });
   });
 
@@ -245,7 +260,7 @@ void main() {
       await open(tester, analysis: true);
 
       expect(find.byTooltip('Proposer nulle'), findsNothing);
-      expect(find.byTooltip('Abandonner'), findsNothing);
+      expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsNothing);
       expect(find.byTooltip('Annuler'), findsNothing);
     });
 

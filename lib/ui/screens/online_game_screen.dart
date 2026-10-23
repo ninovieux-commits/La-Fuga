@@ -416,27 +416,6 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     accept == true ? _g.acceptDraw() : _g.declineDraw();
   }
 
-  Future<void> _confirmResign() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(T('Abandonner')),
-        content: Text(T('Abandonner cette partie ?')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Annuler')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Abandonner')),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) _g.resign();
-  }
-
   /// La boîte de messages UNIFIÉE avec l'adversaire — `_open_chat`.
   ///
   /// La même conversation qu'au menu : Kivy ne tient pas de chat séparé par
@@ -661,7 +640,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             }
           : null,
       onDraw: canAct ? _g.offerDraw : null,
-      onResign: canAct ? _confirmResign : null,
+      // La confirmation est désormais celle du drapeau : une seule, au
+      // même endroit pour les trois écrans.
+      onResign: canAct ? _g.resign : null,
       // Écrire n'est pas jouer : la touche reste là jusqu'au bout, même
       // partie finie — on se dit encore « bien joué » après le dernier coup.
       onMessageRapide: isMine

@@ -534,5 +534,10 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• höchstens einen Ritter pro Seite — null ist erlaubt;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt;\n• mindestens drei freie Felder.",
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• höchstens einen Ritter pro Seite — null ist erlaubt;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt — eine einzelne Quadratfigur kann sich nicht bewegen, und die Partie wäre von Anfang an remis;\n• mindestens drei freie Felder: ein volles Brett lässt keinen Platz zum Ziehen.",
   "Message rapide": "Schnellnachricht",
-  "Message non envoyé.": "Nachricht nicht gesendet."
+  "Message non envoyé.": "Nachricht nicht gesendet.",
+  "Abandonner ou proposer la nulle ?": "Aufgeben oder Remis anbieten?",
+  "Confirmer l'abandon ?": "Aufgabe bestätigen?",
+  "Confirmer la demande de nulle ?": "Remisangebot bestätigen?",
+  "Oui": "Ja",
+  "Non": "Nein"
 }

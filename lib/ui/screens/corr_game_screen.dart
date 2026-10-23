@@ -29,7 +29,6 @@ import '../../net/profils_connus.dart';
 import '../../net/resolution_profil.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
-import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/message_rapide.dart';
 import '../widgets/bulles_en_jeu.dart';
@@ -695,28 +694,14 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     }
   }
 
-  /// Le ½ est éteint et on vient d'appuyer dessus : dire pourquoi.
+  /// Pourquoi la nulle n'est pas proposable, en ce moment.
   ///
-  /// L'infobulle ne suffit pas — elle demande de rester appuyé, et personne
-  /// ne le fait. Ici la question est posée au moment où elle se pose.
-  Future<void> _expliquerNulle() async {
-    final texte = _g.drawToAnswer
-        ? T('Répondez d abord à la nulle proposée')
-        : T('Jouez votre coup pour pouvoir proposer la nulle');
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kFugaGrey,
-        content: Text(texte, style: const TextStyle(color: Colors.white)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Fermer')),
-          ),
-        ],
-      ),
-    );
-  }
+  /// Écrite dans le popup du drapeau, au-dessus de la touche pâlie, au lieu
+  /// d'une boîte de dialogue qu'il fallait aller chercher en touchant un ½
+  /// éteint.
+  String get _raisonNulle => _g.drawToAnswer
+      ? T('Répondez d abord à la nulle proposée')
+      : T('Jouez votre coup pour pouvoir proposer la nulle');
 
   /// Proposer la nulle. Possible seulement quand on a déjà joué son coup :
   /// tant qu'on a le trait, on joue, on ne négocie pas.
@@ -737,25 +722,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
   /// l'envoi, [_played] l'affirme avant que la partie ne revienne.
   bool get _aJoue => _played || !_g.myTurn;
 
+  /// Abandonner. La confirmation a déjà été donnée au drapeau : une seule,
+  /// au même endroit pour les trois écrans.
   Future<void> _resign() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(T('Abandonner')),
-        content: Text(T('Abandonner cette partie ?')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Annuler')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Abandonner')),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
     await widget.service.resign(_g.id);
     if (mounted) Navigator.of(context).pop();
   }
@@ -1137,7 +1106,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       // il ne répond pas.
       onDraw: (isMine && enCours) ? () => unawaited(_offerDraw()) : null,
       drawEnabled: _aJoue && !_g.drawToAnswer && !_offreNulle,
-      onDrawBlocked: _expliquerNulle,
+      raisonNulle: _raisonNulle,
       drawOffered: isMine && _g.drawOfferedByMe,
       onResign: canAct ? _resign : null,
       // Écrire n'est pas jouer : la touche reste là partie finie, mais JAMAIS

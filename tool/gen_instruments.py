@@ -8,10 +8,17 @@ forme vient de l'obscurité du pixel : l'application le teinte ensuite à la
 couleur du thème, et il suit le décor au lieu de le trouer.
 
 Usage : python3 tool/gen_instruments.py <dossier_source>
+        python3 tool/gen_instruments.py <image> <nom> [dossier]
 
-Le dossier source contient un fichier par instrument, nommé comme lui :
-piano.jpg, orgue.jpg, guitare.jpg, cloche.jpg, xylophone.jpg, harpe.jpg,
-choeur.jpg.
+La première forme prend un dossier contenant un fichier par instrument,
+nommé comme lui : piano.jpg, orgue.jpg, guitare.jpg, cloche.jpg,
+xylophone.jpg, harpe.jpg, choeur.jpg.
+
+La seconde prépare UN pictogramme isolé — le drapeau de la touche d'abandon,
+par exemple — selon la même recette. Elle le ROGNE d'abord sur son sujet :
+une vignette d'instrument est déjà cadrée, une image trouvée ailleurs a
+souvent du vide autour, et un carré centré y couperait le dessin au lieu de
+le cadrer.
 """
 import os
 import sys
@@ -22,12 +29,26 @@ TAILLE = 192  # trois fois la taille affichée : net sur tous les écrans
 DEST = 'assets/instruments'
 
 
-def prepare(src, dest):
+def prepare(src, dest, rogne_au_sujet=False):
     im = Image.open(src).convert('L')
-    # Carré, puis à la bonne taille.
-    cote = min(im.size)
-    g = (im.width - cote) // 2, (im.height - cote) // 2
-    im = im.crop((g[0], g[1], g[0] + cote, g[1] + cote))
+    if rogne_au_sujet:
+        # Le sujet, c'est ce qui est SOMBRE. On prend sa boîte, on l'élargit
+        # un peu pour ne pas coller aux bords, et on la rend carrée : le
+        # dessin garde ses proportions.
+        sujet = im.point(lambda v: 255 if v < 200 else 0).getbbox()
+        if sujet:
+            x0, y0, x1, y1 = sujet
+            cote = max(x1 - x0, y1 - y0)
+            marge = int(cote * 0.06)
+            cote += 2 * marge
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            im = im.crop((cx - cote // 2, cy - cote // 2,
+                          cx + cote // 2, cy + cote // 2))
+    else:
+        # Carré centré : une vignette d'instrument est déjà cadrée.
+        cote = min(im.size)
+        g = (im.width - cote) // 2, (im.height - cote) // 2
+        im = im.crop((g[0], g[1], g[0] + cote, g[1] + cote))
     im = im.resize((TAILLE, TAILLE), Image.LANCZOS)
 
     # L'alpha vient de l'obscurité, et on étire le contraste : le fond de ces
@@ -52,12 +73,29 @@ def prepare(src, dest):
     masque.putdata(alpha)
     blanc = Image.new('RGBA', (TAILLE, TAILLE), (255, 255, 255, 255))
     blanc.putalpha(masque)
-    blanc.save(dest, 'PNG', optimize=True)
+    # Le format suit l'extension : les vignettes d'instruments sont en PNG,
+    # et tout ce qui vit dans `assets/images` est en WebP SANS PERTE —
+    # `theme_assets_test.dart` refuse les PNG oubliés dans ces dossiers-là.
+    if dest.lower().endswith('.webp'):
+        blanc.save(dest, 'WEBP', lossless=True, quality=100, method=6)
+    else:
+        blanc.save(dest, 'PNG', optimize=True)
     pleins = sum(1 for a in alpha if a > 0)
     return 100.0 * pleins / (TAILLE * TAILLE)
 
 
 def main():
+    if len(sys.argv) == 4 or (len(sys.argv) == 3 and
+                              os.path.isfile(sys.argv[1])):
+        src, nom = sys.argv[1], sys.argv[2]
+        dossier = sys.argv[3] if len(sys.argv) == 4 else DEST
+        os.makedirs(dossier, exist_ok=True)
+        ext = '.webp' if 'images' in dossier.split(os.sep) else '.png'
+        dest = os.path.join(dossier, nom + ext)
+        part = prepare(src, dest, rogne_au_sujet=True)
+        print('%-10s %5.1f %% de la vignette dessinée -> %s'
+              % (nom, part, dest))
+        return 0
     if len(sys.argv) != 2:
         print(__doc__)
         return 2

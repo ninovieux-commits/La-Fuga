@@ -13,6 +13,8 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/ai_memory.dart';
 import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,11 +42,25 @@ void main() {
     WidgetTester tester, {
     required String objectif,
     Camp? aiCamp,
+    // Une seconde par défaut : c'est la façon la plus courte de terminer une
+    // partie sans la jouer. Les tests qui ouvrent des popups demandent plus
+    // long — deux popups qui s'ouvrent et se ferment prennent du temps, et
+    // le chrono expirerait au milieu, verdict par-dessus la confirmation.
+    Cadence cadence = const Cadence(1, '1s'),
   }) async {
+    // Un téléphone, et pas la surface d'essai par défaut : à 800 de large,
+    // les polices valent le double (elles suivent la largeur) et les popups
+    // en débordent. On mesurerait une mise en page qui n'existe sur aucun
+    // appareil.
+    setScaleSize(const Size(393, 851));
+    addTearDown(resetScale);
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         home: GameScreen(
-          cadence: const Cadence(1, '1s'),
+          cadence: cadence,
           aiCamp: aiCamp,
           objectif: objectif,
           archive: GameArchive(local: LocalGamesStore(directory: tmp)),
@@ -98,15 +114,38 @@ void main() {
     expect(find.text('Retour au menu'), findsNothing);
   });
 
+  /// Le drapeau, puis « Proposer nulle », puis « Oui » : les trois gestes
+  /// que Nino a demandés à la place du ½.
+  Future<void> proposerNulle(
+    WidgetTester tester, {
+    required bool dernier,
+  }) async {
+    final drapeau = find.byTooltip('Abandonner ou proposer la nulle ?');
+    await tester.tap(dernier ? drapeau.last : drapeau.first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FugaButton, 'Proposer nulle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FugaButton, 'Oui'));
+    await tester.pumpAndSettle();
+  }
+
   group('Abandon et nulle par accord', () {
     testWidgets('abandonner donne deux points à l adversaire', (tester) async {
-      await openQuickGame(tester, objectif: '5');
+      await openQuickGame(
+        tester,
+        objectif: '5',
+        cadence: const Cadence(15, '15'),
+      );
       await tester.pump();
 
-      await tester.tap(find.byTooltip('Abandonner').last);
+      await tester.tap(
+        find.byTooltip('Abandonner ou proposer la nulle ?').last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FugaButton, 'Abandonner'));
       await tester.pumpAndSettle();
       expect(find.textContaining('2 points'), findsOneWidget);
-      await tester.tap(find.text('Oui, abandonner'));
+      await tester.tap(find.widgetWithText(FugaButton, 'Oui'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Abandon'), findsOneWidget);
@@ -118,16 +157,17 @@ void main() {
     });
 
     testWidgets('la nulle demande l accord des DEUX camps', (tester) async {
-      await openQuickGame(tester, objectif: '5');
+      await openQuickGame(
+        tester,
+        objectif: '5',
+        cadence: const Cadence(15, '15'),
+      );
       await tester.pump();
 
-      // Un seul ½ allumé ne fait rien : Kivy attend l'autre.
-      await tester.tap(find.byTooltip('Proposer nulle').last);
-      await tester.pumpAndSettle();
+      // Une seule nulle proposée ne fait rien : Kivy attend l'autre.
+      await proposerNulle(tester, dernier: true);
       expect(find.textContaining('Partie nulle'), findsNothing);
-
-      await tester.tap(find.byTooltip('Proposer nulle').first);
-      await tester.pumpAndSettle();
+      await proposerNulle(tester, dernier: false);
 
       expect(find.textContaining('nulle'), findsWidgets);
       expect(find.textContaining('Joueur 1 : 0'), findsOneWidget);
@@ -139,14 +179,16 @@ void main() {
       await tester.pump();
 
       expect(
-        find.byTooltip('Proposer nulle'),
+        find.byTooltip('Abandonner ou proposer la nulle ?'),
+        findsOneWidget,
+        reason: 'seul le joueur humain a un drapeau',
+      );
+      await tester.tap(find.byTooltip('Abandonner ou proposer la nulle ?'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Proposer nulle'),
         findsNothing,
         reason: 'on ne négocie pas avec Deep Grey',
-      );
-      expect(
-        find.byTooltip('Abandonner'),
-        findsOneWidget,
-        reason: 'seul le joueur humain peut abandonner',
       );
     });
   });
