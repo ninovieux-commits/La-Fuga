@@ -1,5 +1,9 @@
 /// La touche « Pré-coups » : sa place, sa taille, et toutes ses langues.
 ///
+/// Elle n'est plus dans le bandeau. « Analyser » et « Pré-coups » sont
+/// maintenant les deux touches du popup de la boule de cristal — le risque de
+/// rognage a suivi les mots, et c'est donc là qu'on le surveille.
+///
 /// ## Ce que ce fichier peut prouver, et ce qu'il ne peut pas
 ///
 /// En test, Flutter dessine avec la police **Ahem**, dont chaque glyphe est un
@@ -17,12 +21,13 @@
 ///     ne les voit pas. Ce test vérifie donc la présence du mécanisme
 ///     (`FittedBox`), pas le résultat peint : il tombe si on le retire.
 ///  2. **Aucune n'est réduite au point d'être illisible** — mesuré non pas en
-///     pixels absolus, mais PAR RAPPORT à « Analyser », qui occupe la même
-///     touche depuis le début et dont on sait qu'elle se lit bien. La police
-///     de test suffit pour cette comparaison : les deux mots y sont mesurés à
-///     la même aune.
+///     pixels absolus, mais PAR RAPPORT à « Analyser », qui partage sa touche
+///     depuis le début et dont on sait qu'elle se lit bien. La police de test
+///     suffit pour cette comparaison : les deux mots y sont mesurés à la même
+///     aune.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,6 +37,8 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/widgets/boule_dialog.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -67,27 +74,34 @@ void main() {
   });
   tearDown(resetScale);
 
-  /// Le bandeau, avec les deux touches qu'on veut comparer.
-  Future<void> bandeau(WidgetTester tester, Size taille) async {
+  /// Le popup de la boule, ouvert, avec les deux touches qu'on veut comparer.
+  Future<void> boule(WidgetTester tester, Size taille) async {
+    tester.view.physicalSize = taille;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     setScaleSize(taille);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: SizedBox(
-            // La hauteur du bandeau : 7 parts sur 104, comme GameLayout.
-            height: taille.height * 7 / 104,
-            child: GameTopBar(
-              palette: paletteOf('foret'),
-              color: Colors.grey,
-              onFlip: () {},
-              onPause: () {},
-              onAnalyse: () {},
-              onPremove: () {},
+          body: Builder(
+            builder: (context) => Center(
+              child: GestureDetector(
+                onTap: () => unawaited(
+                  ouvrirBoule(
+                    context,
+                    palette: paletteOf('foret'),
+                    onAnalyse: () {},
+                    onPremove: () {},
+                  ),
+                ),
+                child: const Text('boule'),
+              ),
             ),
           ),
         ),
       ),
     );
+    await tester.tap(find.text('boule'));
     await tester.pumpAndSettle();
   }
 
@@ -104,9 +118,9 @@ void main() {
   group('Le garde-fou contre le rognage est en place', () {
     for (final forme in _formes.entries) {
       testWidgets(forme.key, (tester) async {
-        await bandeau(tester, forme.value);
-        // CHAQUE étiquette du bandeau, pas seulement la nôtre : elles ont
-        // toutes une largeur fixe et dix langues à porter.
+        await boule(tester, forme.value);
+        // LES DEUX étiquettes du popup, pas seulement la nôtre : elles se
+        // partagent la largeur à égalité et ont dix langues à porter.
         for (final label in [T('Pré-coups'), T('Analyser')]) {
           final boites = find.ancestor(
             of: find.text(label),
@@ -131,7 +145,7 @@ void main() {
     for (final forme in _formes.entries) {
       for (final langue in kLanguageLabels.keys) {
         testWidgets('${forme.key} — $langue', (tester) async {
-          await bandeau(tester, forme.value);
+          await boule(tester, forme.value);
           final mot = _traduction('Pré-coups', langue);
           final reference = reclame(tester, T('Analyser'));
           final demande = reclame(tester, mot);
@@ -164,7 +178,9 @@ void main() {
         addTearDown(() => FlutterError.onError = precedent);
 
         // TOUTES les touches à la fois : aucun écran ne les montre toutes,
-        // mais c'est la seule façon de savoir où est la limite.
+        // mais c'est la seule façon de savoir où est la limite. Et depuis que
+        // le centre est réservé à l'appareil photo, la rangée a d'autant
+        // moins de place à partager.
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -208,12 +224,9 @@ void main() {
   });
 
   testWidgets('elle a exactement la taille d « Analyser »', (tester) async {
-    await bandeau(tester, const Size(393, 851));
-    Size taille(String label) => tester.getSize(
-      find
-          .ancestor(of: find.text(label), matching: find.byType(SizedBox))
-          .first,
-    );
+    await boule(tester, const Size(393, 851));
+    Size taille(String label) =>
+        tester.getSize(find.widgetWithText(FugaButton, label));
     expect(taille(T('Pré-coups')), taille(T('Analyser')));
     expect(
       tester.widget<Text>(find.text(T('Pré-coups'))).style?.fontSize,

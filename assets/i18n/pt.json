@@ -539,5 +539,8 @@
   "Confirmer l'abandon ?": "Confirmar a desistência?",
   "Confirmer la demande de nulle ?": "Confirmar a proposta de empate?",
   "Oui": "Sim",
-  "Non": "Não"
+  "Non": "Não",
+  "Analyser ou préparer ses coups ?": "Analisar ou preparar jogadas?",
+  "On ne prépare pas les coups d une partie qu on regarde": "Não se preparam jogadas numa partida que apenas se observa.",
+  "Jouez votre coup : les pré-coups attendent le sien": "Jogue a sua jogada: as pré-jogadas esperam a dele."
 }

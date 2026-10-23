@@ -539,5 +539,8 @@
   "Confirmer l'abandon ?": "确认认输？",
   "Confirmer la demande de nulle ?": "确认提和？",
   "Oui": "是",
-  "Non": "否"
+  "Non": "否",
+  "Analyser ou préparer ses coups ?": "分析还是预设着法？",
+  "On ne prépare pas les coups d une partie qu on regarde": "观战的对局无法预设着法。",
+  "Jouez votre coup : les pré-coups attendent le sien": "先走你的棋：预设着法要等对手落子。"
 }

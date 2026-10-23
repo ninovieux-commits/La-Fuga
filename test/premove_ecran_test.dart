@@ -28,7 +28,6 @@ import 'package:lafuga/ui/widgets/bandeau_prises.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
-import 'package:lafuga/theme/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -99,19 +98,32 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('La touche, dans le bandeau du haut', () {
+  group('La boule, dans le bandeau du haut', () {
     GameTopBar barre(WidgetTester tester) =>
         tester.widget<GameTopBar>(find.byType(GameTopBar));
 
-    testWidgets('elle est là quand c est à l adversaire de jouer', (
-      tester,
-    ) async {
-      await ouvrir(tester, partie(monTour: false));
-      expect(barre(tester).onPremove, isNotNull);
-      expect(find.text('Pré-coups'), findsOneWidget);
-    });
+    /// La boule de cristal, qui réunit « Analyser » et « Pré-coups ».
+    final Finder laBoule = find.byTooltip('Analyser ou préparer ses coups ?');
 
-    testWidgets('et pas quand c est à nous : il n y a rien à attendre', (
+    Future<void> ouvrirLaBoule(WidgetTester tester) async {
+      await tester.tap(laBoule);
+      await tester.pumpAndSettle();
+    }
+
+    FugaButton touche(WidgetTester tester, String texte) =>
+        tester.widget<FugaButton>(find.widgetWithText(FugaButton, texte));
+
+    testWidgets(
+      'elle ouvre les pré-coups quand c est à l adversaire de jouer',
+      (tester) async {
+        await ouvrir(tester, partie(monTour: false));
+        expect(barre(tester).onPremove, isNotNull);
+        await ouvrirLaBoule(tester);
+        expect(touche(tester, 'Pré-coups').onPressed, isNotNull);
+      },
+    );
+
+    testWidgets('et pâlit la touche quand c est à nous, en disant pourquoi', (
       tester,
     ) async {
       await ouvrir(tester, partie(monTour: true, moves: 'Fa3-Sol4\nFa6-Sol5'));
@@ -120,97 +132,70 @@ void main() {
         isNull,
         reason: 'préjouer quand on a le trait ne prépare rien',
       );
-      expect(find.text('Pré-coups'), findsNothing);
+      await ouvrirLaBoule(tester);
+      expect(
+        touche(tester, 'Pré-coups').onPressed,
+        isNull,
+        reason: 'la touche est là, mais éteinte',
+      );
+      expect(
+        find.textContaining('les pré-coups attendent'),
+        findsOneWidget,
+        reason: 'une touche pâle sans raison écrite laisse chercher',
+      );
     });
 
-    testWidgets('elle suit celle qui retourne le plateau, et pas les flèches', (
-      tester,
-    ) async {
+    testWidgets('la boule ne bouge pas d un tour à l autre', (tester) async {
+      // Nino : « quand le bouton pré-coups disparaît car c'est mon tour de
+      // jouer, les autres boutons se décalent vers la gauche. Chaque bouton
+      // sur les écrans de jeux, analyse ect doivent être fixés, ne jamais
+      // changer de place. » La boule est là dans les deux cas : c'est à
+      // l'intérieur du popup que « Pré-coups » pâlit.
       await ouvrir(tester, partie(monTour: false));
-      // Les deux touches elles-mêmes, pas leur texte : c'est l'écart entre
-      // leurs bords qui dit « juste à droite ».
-      final retourner = tester.getRect(
-        find
-            .ancestor(of: find.text('< >'), matching: find.byType(AspectRatio))
-            .first,
-      );
-      final premove = tester.getRect(
-        find
-            .ancestor(
-              of: find.text('Pré-coups'),
-              matching: find.byType(SizedBox),
-            )
-            .first,
-      );
+      final attend = tester.getRect(laBoule);
+      await ouvrir(tester, partie(monTour: true, moves: 'Fa3-Sol4\nFa6-Sol5'));
       expect(
-        premove.center.dy,
-        retourner.center.dy,
-        reason: 'elle doit être dans le bandeau du haut, pas en bas',
+        tester.getRect(laBoule),
+        attend,
+        reason: 'la boule a changé de place en passant à notre tour',
       );
-      expect(
-        premove.left - retourner.right,
-        lessThan(30),
-        reason:
-            'JUSTE à droite : rien ne doit s intercaler, et elle ne doit '
-            'pas être poussée vers la droite du bandeau',
+    });
+
+    testWidgets('rien ne s installe au centre du bandeau', (tester) async {
+      // L'appareil photo selfie est percé là, et passe devant tout ce qu'on y
+      // pose. Nino : « il faudrait éviter qu'il y ait de bouton au centre de
+      // ce bandeau. »
+      await ouvrir(tester, partie(monTour: false));
+      final bandeau = tester.getRect(find.byType(GameTopBar));
+      final trou = Rect.fromCenter(
+        center: bandeau.center,
+        width: S(kTrouCamera),
+        height: bandeau.height,
       );
-      expect(
-        premove.left,
-        greaterThan(retourner.right),
-        reason: 'à droite, pas à gauche',
-      );
+      for (final cible
+          in find
+              .descendant(
+                of: find.byType(GameTopBar),
+                matching: find.byType(InkWell),
+              )
+              .evaluate()) {
+        final r = tester.getRect(find.byWidget(cible.widget));
+        expect(
+          r.overlaps(trou),
+          isFalse,
+          reason: 'une touche empiète sur le trou de l appareil photo',
+        );
+      }
+    });
+
+    testWidgets('le bandeau des coups n a plus à la porter', (tester) async {
+      await ouvrir(tester, partie(monTour: false));
       expect(
         find.descendant(
           of: find.byType(MoveStrip),
           matching: find.text('Pré-coups'),
         ),
         findsNothing,
-        reason: 'le bandeau des coups n a plus à la porter',
-      );
-    });
-
-    testWidgets('elle a la même allure qu « Analyser »', (tester) async {
-      await ouvrir(tester, partie(monTour: false));
-      // « Analyser » n'apparaît qu'en relecture : on compare donc la touche
-      // telle que le bandeau la dessine, en lui donnant les deux rappels.
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              height: 56,
-              child: GameTopBar(
-                palette: paletteOf('foret'),
-                color: Colors.grey,
-                onFlip: () {},
-                onPause: () {},
-                onAnalyse: () {},
-                onPremove: () {},
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final a = tester.getSize(
-        find
-            .ancestor(
-              of: find.text('Analyser'),
-              matching: find.byType(SizedBox),
-            )
-            .first,
-      );
-      final p = tester.getSize(
-        find
-            .ancestor(
-              of: find.text('Pré-coups'),
-              matching: find.byType(SizedBox),
-            )
-            .first,
-      );
-      expect(p, a, reason: 'même taille qu « Analyser »');
-      expect(
-        tester.widget<Text>(find.text('Pré-coups')).style?.fontSize,
-        tester.widget<Text>(find.text('Analyser')).style?.fontSize,
       );
     });
   });

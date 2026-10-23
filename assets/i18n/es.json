@@ -539,5 +539,8 @@
   "Confirmer l'abandon ?": "¿Confirmar el abandono?",
   "Confirmer la demande de nulle ?": "¿Confirmar la oferta de tablas?",
   "Oui": "Sí",
-  "Non": "No"
+  "Non": "No",
+  "Analyser ou préparer ses coups ?": "¿Analizar o preparar jugadas?",
+  "On ne prépare pas les coups d une partie qu on regarde": "No se preparan jugadas en una partida que solo se mira.",
+  "Jouez votre coup : les pré-coups attendent le sien": "Juega tu jugada: las pre-jugadas esperan la suya."
 }

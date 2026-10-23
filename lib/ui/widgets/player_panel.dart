@@ -1,7 +1,8 @@
 /// Panneau d'un joueur — portage de `top_info` / `bot_info` (main.py).
 ///
-/// Avatar, nom, chrono, score, pièces prises, et les trois gestes du côté :
-/// annuler le coup en cours (↶), proposer la nulle (½), abandonner (X).
+/// Avatar, nom, chrono, score, pièces prises, et les gestes du côté :
+/// annuler le coup en cours (↶), le message rapide, et le drapeau — qui
+/// réunit la nulle (½) et l'abandon (X) de Kivy derrière un popup.
 /// Le panneau du bas est le miroir de celui du haut, comme en Kivy.
 ///
 /// **Le panneau ne dit pas à qui est le tour.** Chez Kivy il est toujours du
@@ -374,9 +375,21 @@ class PlayerPanel extends StatelessWidget {
       Expanded(
         child: CapturesStrip(pieces: captures, palette: palette),
       ),
-      // LE MESSAGE RAPIDE, en tête des gestes. Nino l'a dessiné là, à gauche
-      // du ½ : c'est la place libre de la rangée, et la plus éloignée de
-      // l'abandon.
+      // L'ANNULATION EN TÊTE, et c'est une question de place fixe. Nino :
+      // « chaque bouton sur les écrans de jeux doit être fixé, ne jamais
+      // changer de place. Ce qui veut dire, dans le bandeau large du bas,
+      // que le bouton pour annuler le coup doit être celui qui est le plus à
+      // gauche, autrement il est obligé de décaler le bouton de message
+      // rapide. »
+      //
+      // Les prises occupent tout ce qui reste à gauche : le groupe de
+      // touches est donc collé à DROITE, et une touche qui paraît en tête du
+      // groupe ne pousse personne — c'est la bande des prises qui se
+      // resserre. Le ↶ va et vient au fil du coup qu'on compose ; le message
+      // rapide et le drapeau, eux, ne bougent plus jamais.
+      if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
+      // LE MESSAGE RAPIDE, ensuite. Nino l'a dessiné là, à gauche du geste
+      // qui termine la partie : la place la plus éloignée de l'abandon.
       if (onMessageRapide != null)
         _carre(
           T('Message rapide'),
@@ -387,7 +400,6 @@ class PlayerPanel extends StatelessWidget {
             size: SF(18),
           ),
         ),
-      if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
       // LE DRAPEAU remplace le ½ et le X. Nino : « le bouton abandonner et
       // le bouton match nul doivent disparaître. À la place on met un bouton
       // avec ce drapeau. » Ce sont les deux seuls gestes qui terminent une
@@ -410,7 +422,7 @@ class PlayerPanel extends StatelessWidget {
             ),
           ),
           // Le dessin suit le thème, comme les instruments des réglages :
-          // un PNG blanc sur fond transparent, teinté ici. Garder son fond
+          // blanc sur fond transparent, teinté ici. Garder son fond
           // d'origine, qui est blanc, aurait troué le bandeau.
           enfant: Padding(
             padding: EdgeInsets.all(S(7)),

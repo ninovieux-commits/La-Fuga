@@ -283,7 +283,7 @@ void main() {
   });
 
   group('Pendant la relecture', () {
-    testWidgets('« Copier » est là, avec Analyser et Deep Grey', (
+    testWidgets('« Copier » est là, avec la boule et Deep Grey', (
       tester,
     ) async {
       // Il fallait ressortir jusqu à l historique pour copier le .nmc d une
@@ -292,7 +292,11 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: nmc)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Analyser'), findsOneWidget, reason: 'repère');
+      expect(
+        find.byTooltip('Analyser ou préparer ses coups ?'),
+        findsOneWidget,
+        reason: 'repère',
+      );
       expect(
         find.text('Copier'),
         findsOneWidget,

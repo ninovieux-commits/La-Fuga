@@ -336,7 +336,7 @@ void main() {
     expect(find.text('< >'), findsOneWidget);
     expect(find.byTooltip('Pause'), findsOneWidget);
     expect(find.text('Chat'), findsOneWidget);
-    expect(find.text('Analyser'), findsOneWidget);
+    expect(find.byTooltip('Analyser ou préparer ses coups ?'), findsOneWidget);
     expect(find.text('Deep Grey'), findsNothing);
     expect(find.text('Rapide'), findsNothing);
 

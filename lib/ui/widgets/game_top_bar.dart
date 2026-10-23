@@ -6,14 +6,31 @@
 ///
 /// Comme en Kivy, « Retour au menu » reste caché tant que la partie n'est pas
 /// finie : on quitte une partie en cours par la pause, pas par mégarde.
+///
+/// ## Deux moitiés, et un trou au milieu
+///
+/// Le centre du bandeau n'appartient à personne : l'appareil photo selfie des
+/// téléphones récents y est percé, et passe devant tout ce qu'on y pose. Les
+/// touches de gauche restent donc collées à gauche, celles de droite à
+/// droite, et [kTrouCamera] les sépare.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'boule_dialog.dart';
 import 'unread_dot.dart';
+
+/// Largeur laissée LIBRE au centre du bandeau.
+///
+/// L'appareil photo selfie des téléphones récents est percé là, dans la
+/// barre d'état, et passe devant tout ce qu'on y pose. Nino : « il faudrait
+/// éviter qu'il y ait de bouton au centre de ce bandeau. »
+const double kTrouCamera = 96;
 
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
 const Color kBarButtonDark = Color.fromRGBO(38, 38, 38, 1);
@@ -36,6 +53,7 @@ class GameTopBar extends StatelessWidget {
     this.onCopyFug,
     this.onAnalyse,
     this.onPremove,
+    this.raisonPremove,
     this.onAutoPlay,
     this.autoPlayOn = false,
     this.onDeepGrey,
@@ -76,7 +94,7 @@ class GameTopBar extends StatelessWidget {
   /// place ; en relecture, la touche « Copier » propose les deux.
   final VoidCallback? onCopyFug;
 
-  /// En relecture seulement.
+  /// En relecture et en correspondance — derrière la boule.
   final VoidCallback? onAnalyse;
 
   /// Relecture : ouvrir (ou refermer) la lecture automatique. Une touche
@@ -88,9 +106,15 @@ class GameTopBar extends StatelessWidget {
   final bool autoPlayOn;
 
   /// Correspondance, et seulement quand c'est à l'adversaire de jouer :
-  /// préparer ses pré-coups. Même touche qu'« Analyser », juste à droite de
-  /// celle qui retourne le plateau.
+  /// préparer ses pré-coups. Derrière la boule, qu'elle partage avec
+  /// « Analyser » : la touche pâlit dans le popup plutôt que de s'en aller.
   final VoidCallback? onPremove;
+
+  /// Pourquoi les pré-coups ne sont pas ouvrables, quand ils ne le sont pas.
+  ///
+  /// Écrite dans le popup de la boule, au-dessus de la touche pâlie : c'est
+  /// à vous de jouer, ou vous ne faites que regarder.
+  final String? raisonPremove;
 
   /// En analyse et en relecture : reprendre la position contre Deep Grey.
   final VoidCallback? onDeepGrey;
@@ -109,151 +133,219 @@ class GameTopBar extends StatelessWidget {
     padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(2)),
     child: Row(
       children: [
-        _round(
-          '< >',
-          onFlip,
-          fontSize: SF(21),
-          tooltip: T('Retourner le plateau'),
-        ),
-        if (onAutoPlay != null) ...[
-          SizedBox(width: S(6)),
-          _button(
-            '▶',
-            onAutoPlay!,
-            width: null,
-            color: autoPlayOn ? palette.clair : kBarButtonDark,
-            radius: S(20),
-            fontSize: SF(19),
-            tooltip: T('Lecture automatique'),
-          ),
-        ],
-        if (onPremove != null) ...[
-          SizedBox(width: S(6)),
-          _flex(
-            _wide(
-              T('Pré-coups'),
-              onPremove!,
-              width: S(118),
-              color: palette.clair,
-            ),
-          ),
-        ],
-        if (onMenu != null) ...[
-          SizedBox(width: S(6)),
-          _flex(
-            _wide(
-              T('Retour au menu'),
-              onMenu!,
-              width: S(178),
-              color: palette.clair,
-              fontSize: SF(13),
-            ),
-          ),
-        ],
-        const Spacer(),
-        if (onChat != null) ...[
-          // Pastille plutôt que compteur, et elle ne s'allume que pour un
-          // message de l'adversaire de cette partie.
-          _flex(
-            UnreadDot(
-              show: unreadChat > 0,
-              child: _wide(
-                T('Chat'),
-                onChat!,
-                width: S(104),
-                color: kBarButtonDark,
+        // DEUX MOITIÉS, ET UN TROU AU MILIEU. Nino : « il faudrait aussi
+        // éviter qu'il y ait de bouton au centre de ce bandeau, car sinon
+        // l'appareil photo selfie est devant le bouton. » Les touches de
+        // gauche restent collées à gauche, celles de droite à droite, et le
+        // centre n'appartient à personne.
+        //
+        // Deux moitiés plutôt qu'un simple écart : avec un `Spacer`, les
+        // deux groupes se rejoignent au milieu dès qu'ils s'allongent, et le
+        // trou disparaît au moment où l'on en a le plus besoin.
+        Expanded(
+          child: Row(
+            children: [
+              _round(
+                '< >',
+                onFlip,
+                fontSize: SF(21),
+                tooltip: T('Retourner le plateau'),
               ),
-            ),
+              if (onAutoPlay != null) ...[
+                SizedBox(width: S(6)),
+                _button(
+                  '▶',
+                  onAutoPlay!,
+                  width: null,
+                  color: autoPlayOn ? palette.clair : kBarButtonDark,
+                  radius: S(20),
+                  fontSize: SF(19),
+                  tooltip: T('Lecture automatique'),
+                ),
+              ],
+              if (onMenu != null) ...[
+                SizedBox(width: S(6)),
+                _flex(
+                  _wide(
+                    T('Retour au menu'),
+                    onMenu!,
+                    width: S(178),
+                    color: palette.clair,
+                    fontSize: SF(13),
+                  ),
+                ),
+              ],
+            ],
           ),
-          SizedBox(width: S(6)),
-        ],
-        if (onToggleAiMode != null) ...[
-          _flex(
-            _wide(
-              aiDeepMode == true ? T('Profond') : T('Rapide'),
-              onToggleAiMode!,
-              width: S(128),
-              color: kBarButtonDark,
-              fontSize: SF(17),
-              tooltip: T('Deep Grey'),
-            ),
-          ),
-          SizedBox(width: S(6)),
-        ],
-        if (onCopyNmc != null) ...[
-          _flex(
-            _wide(
-              T('Copier'),
-              onCopyNmc!,
-              width: S(104),
-              color: kBarButtonDark,
-              tooltip: T('Contenu .nmc'),
-            ),
-          ),
-          SizedBox(width: S(6)),
-        ],
-        if (onCopyFug != null) ...[
-          _flex(
-            _wide(
-              T('Position'),
-              onCopyFug!,
-              width: S(118),
-              color: kBarButtonDark,
-              tooltip: T('Copier au format .fug'),
-            ),
-          ),
-          SizedBox(width: S(6)),
-        ],
-        if (onAnalyse != null) ...[
-          _flex(
-            _wide(
-              T('Analyser'),
-              onAnalyse!,
-              width: S(118),
-              color: palette.clair,
-            ),
-          ),
-          SizedBox(width: S(6)),
-        ],
-        if (onDeepGrey != null) ...[
-          _flex(
-            _wide(
-              'Deep Grey',
-              onDeepGrey!,
-              width: S(130),
-              color: kBarButtonDeepGrey,
-            ),
-          ),
-          SizedBox(width: S(6)),
-        ],
-        if (pauseLabel == '| |')
-          Tooltip(
-            message: T('Pause'),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: Material(
-                color: kBarButtonDark,
-                borderRadius: BorderRadius.circular(S(20)),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(S(20)),
-                  onTap: onPause,
-                  // Deux barres dessinées plutôt que le texte « | | » : à
-                  // cette taille, le glyphe débordait de la touche et
-                  // tombait de travers.
-                  child: const Center(
-                    child: FractionallySizedBox(
-                      widthFactor: 0.30,
-                      heightFactor: 0.40,
-                      child: CustomPaint(painter: _PausePainter()),
+        ),
+        SizedBox(width: S(kTrouCamera)),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (onChat != null) ...[
+                // Pastille plutôt que compteur, et elle ne s'allume que pour un
+                // message de l'adversaire de cette partie.
+                _flex(
+                  UnreadDot(
+                    show: unreadChat > 0,
+                    child: _wide(
+                      T('Chat'),
+                      onChat!,
+                      width: S(104),
+                      color: kBarButtonDark,
                     ),
                   ),
                 ),
+                SizedBox(width: S(6)),
+              ],
+              if (onToggleAiMode != null) ...[
+                _flex(
+                  _wide(
+                    aiDeepMode == true ? T('Profond') : T('Rapide'),
+                    onToggleAiMode!,
+                    width: S(128),
+                    color: kBarButtonDark,
+                    fontSize: SF(17),
+                    tooltip: T('Deep Grey'),
+                  ),
+                ),
+                SizedBox(width: S(6)),
+              ],
+              if (onCopyNmc != null) ...[
+                _flex(
+                  _wide(
+                    T('Copier'),
+                    onCopyNmc!,
+                    width: S(104),
+                    color: kBarButtonDark,
+                    tooltip: T('Contenu .nmc'),
+                  ),
+                ),
+                SizedBox(width: S(6)),
+              ],
+              if (onCopyFug != null) ...[
+                _flex(
+                  _wide(
+                    T('Position'),
+                    onCopyFug!,
+                    width: S(118),
+                    color: kBarButtonDark,
+                    tooltip: T('Copier au format .fug'),
+                  ),
+                ),
+                SizedBox(width: S(6)),
+              ],
+              // LA BOULE réunit « Analyser » et « Pré-coups ». Nino : « analyse et
+              // pré-coups doivent être réunis sur ce bouton, et quand on clique
+              // dessus ça fait apparaître un popup qui demande si on veut aller en
+              // analyse ou en pré-coups. »
+              //
+              // Elle est TOUJOURS là dès que l'une des deux existe : une touche qui
+              // va et vient déplace ses voisines, et c'était le défaut du
+              // « Pré-coups » qui disparaissait dès qu'on avait le trait.
+              if (onAnalyse != null || onPremove != null) ...[
+                _rondImage(
+                  'assets/images/boule.webp',
+                  () => unawaited(
+                    ouvrirBoule(
+                      context,
+                      palette: palette,
+                      onAnalyse: onAnalyse,
+                      onPremove: onPremove,
+                      raisonPremove: raisonPremove,
+                    ),
+                  ),
+                  tooltip: T('Analyser ou préparer ses coups ?'),
+                ),
+                SizedBox(width: S(6)),
+              ],
+              if (onDeepGrey != null) ...[
+                _flex(
+                  _wide(
+                    'Deep Grey',
+                    onDeepGrey!,
+                    width: S(130),
+                    color: kBarButtonDeepGrey,
+                  ),
+                ),
+                SizedBox(width: S(6)),
+              ],
+              if (pauseLabel == '| |')
+                Tooltip(
+                  message: T('Pause'),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Material(
+                      color: kBarButtonDark,
+                      borderRadius: BorderRadius.circular(S(20)),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(S(20)),
+                        onTap: onPause,
+                        // Deux barres dessinées plutôt que le texte « | | » : à
+                        // cette taille, le glyphe débordait de la touche et
+                        // tombait de travers.
+                        child: const Center(
+                          child: FractionallySizedBox(
+                            widthFactor: 0.30,
+                            heightFactor: 0.40,
+                            child: CustomPaint(painter: _PausePainter()),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                _round(
+                  pauseLabel,
+                  onPause,
+                  fontSize: SF(25),
+                  tooltip: T('Retour'),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// Touche ronde portant un DESSIN plutôt qu'un libellé.
+  ///
+  /// Le dessin suit le thème, comme les instruments des réglages : un fichier
+  /// blanc sur fond transparent, teinté ici. Sans dessin, le libellé de
+  /// secours garde la touche utilisable.
+  Widget _rondImage(
+    String asset,
+    VoidCallback onPressed, {
+    required String tooltip,
+    String secours = '?',
+  }) => Tooltip(
+    message: tooltip,
+    child: AspectRatio(
+      aspectRatio: 1,
+      child: Material(
+        color: kBarButtonDark,
+        borderRadius: BorderRadius.circular(S(20)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(S(20)),
+          onTap: onPressed,
+          child: Padding(
+            padding: EdgeInsets.all(S(7)),
+            child: Image.asset(
+              asset,
+              color: palette.clair,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stack) => Center(
+                child: Text(
+                  secours,
+                  style: TextStyle(color: palette.clair, fontSize: SF(17)),
+                ),
               ),
             ),
-          )
-        else
-          _round(pauseLabel, onPause, fontSize: SF(25), tooltip: T('Retour')),
-      ],
+          ),
+        ),
+      ),
     ),
   );
 

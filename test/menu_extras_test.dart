@@ -176,6 +176,12 @@ void main() {
       // Le lecteur s'ouvre sur le premier coup, comme en Kivy : les Noirs
       // ont donc le trait.
       await openReader(tester);
+      // « Analyser » est passée derrière la boule de cristal, qu'elle partage
+      // avec les pré-coups.
+      await tapVisible(
+        tester,
+        find.byTooltip('Analyser ou préparer ses coups ?'),
+      );
       await tapVisible(tester, find.text('Analyser'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));

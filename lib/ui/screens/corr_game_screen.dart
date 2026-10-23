@@ -988,9 +988,14 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     palette: palette,
     color: _campColor(palette, flipped ? Camp.noir : Camp.blanc),
     onFlip: _toggleFlip,
-    // Préparer ses réponses pendant que l'adversaire réfléchit. Même touche
-    // qu'« Analyser », juste à droite de celle qui retourne le plateau.
+    // Préparer ses réponses pendant que l'adversaire réfléchit. Derrière la
+    // boule de cristal, qu'elle partage avec « Analyser ».
     onPremove: (_peutPrejouer && !widget.visiteur) ? _openPremove : null,
+    // Pâle DANS LE POPUP, la touche dit pourquoi : c'est à vous de jouer,
+    // ou vous ne faites que regarder.
+    raisonPremove: widget.visiteur
+        ? T('On ne prépare pas les coups d une partie qu on regarde')
+        : T('Jouez votre coup : les pré-coups attendent le sien'),
     // En visiteur, pas de Chat : ce serait SA conversation avec son
     // adversaire. Nino : « ne peut pas intervenir ni voir la boîte de
     // message. »

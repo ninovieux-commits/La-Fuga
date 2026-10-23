@@ -539,5 +539,8 @@
   "Confirmer l'abandon ?": "Aufgabe bestätigen?",
   "Confirmer la demande de nulle ?": "Remisangebot bestätigen?",
   "Oui": "Ja",
-  "Non": "Nein"
+  "Non": "Nein",
+  "Analyser ou préparer ses coups ?": "Analysieren oder Züge vorbereiten?",
+  "On ne prépare pas les coups d une partie qu on regarde": "Als Zuschauer bereitet man keine Züge vor.",
+  "Jouez votre coup : les pré-coups attendent le sien": "Ziehen Sie zuerst: Vorzüge warten auf seinen Zug."
 }

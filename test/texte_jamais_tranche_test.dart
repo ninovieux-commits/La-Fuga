@@ -138,8 +138,6 @@ void main() {
       T('Chat'),
       T('Profond'),
       T('Copier'),
-      T('Analyser'),
-      T('Pré-coups'),
       'Deep Grey',
     ]) {
       final boites = find.ancestor(

@@ -539,5 +539,8 @@
   "Confirmer l'abandon ?": "Confermare l’abbandono?",
   "Confirmer la demande de nulle ?": "Confermare la proposta di patta?",
   "Oui": "Sì",
-  "Non": "No"
+  "Non": "No",
+  "Analyser ou préparer ses coups ?": "Analizzare o preparare le mosse?",
+  "On ne prépare pas les coups d une partie qu on regarde": "Non si preparano mosse in una partita che si guarda soltanto.",
+  "Jouez votre coup : les pré-coups attendent le sien": "Gioca la tua mossa: le pre-mosse aspettano la sua."
 }
