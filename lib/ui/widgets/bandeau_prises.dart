@@ -2,58 +2,121 @@
 ///
 /// Nino : « en mode analyse, il doit y avoir le matériel mangé qui apparaît
 /// autour du plateau comme en partie. Ainsi que dans tous les modes
-/// comprenant un plateau de jeu et des pièces pouvant être mangées. »
+/// comprenant un plateau de jeu et des pièces pouvant être mangées. » Puis,
+/// l'ayant vu : « il y a beaucoup trop de place pour les pièces mangées en
+/// analyse et pré-coups, fais les deux lignes de pièces au-dessus du
+/// plateau, aussi fines que possible selon la taille à laquelle les pièces
+/// mangées sont montrées. »
+///
+/// ## Deux lignes, et rien d'autre
 ///
 /// En partie, les prises vivent dans le bandeau du joueur, à côté de son nom
-/// et de son chrono. L'analyse n'a ni nom ni chrono — on explore une
-/// position, on ne joue pas contre quelqu'un —, et ses bandeaux étaient donc
-/// retirés tout entiers. Le matériel partait avec eux, alors que c'est
-/// justement ce qu'on regarde en analysant.
+/// et de son chrono : la bande fait 12 parts sur 104, parce qu'il y a tout
+/// cela à loger. Ici il n'y a QUE les pièces — la hauteur est donc celle
+/// d'une pièce, et pas un pixel de plus. Deux bandes de joueur prenaient 196
+/// pixels sur un écran de 851 ; les deux lignes en prennent une quarantaine,
+/// et le plateau récupère le reste.
 ///
-/// Même place, même hauteur et mêmes couleurs qu'un bandeau de partie : ce
-/// n'est pas un autre écran, c'est le même sans ce qui ne sert pas.
+/// Les deux sont AU-DESSUS du plateau, l'une sur l'autre, parce qu'on ne
+/// regarde pas le matériel en jouant : on y jette un œil, et deux lignes
+/// voisines se comparent mieux que deux bandes séparées par tout le plateau.
+///
+/// ## La touche d'annulation
+///
+/// Elle ne paraît que s'il y a un coup à annuler — comme en partie, où elle
+/// s'éteint tant qu'on n'a rien bougé. Elle occupe la hauteur des DEUX
+/// lignes : c'est ce qui lui donne de quoi se viser au doigt sans rien
+/// ajouter à la hauteur du bloc.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
+import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import 'player_panel.dart';
+
+/// Hauteur d'UNE ligne de prises : celle d'une pièce, plus un cheveu.
+///
+/// Kivy plafonne une pièce prise à 36 de l'écran de référence ; `S(34)` la
+/// laisse donc dessiner à sa taille sans qu'il reste du vide autour.
+const double kLignePrises = 34;
 
 class BandeauPrises extends StatelessWidget {
   const BandeauPrises({
     super.key,
-    required this.pieces,
+    required this.prisesHaut,
+    required this.prisesBas,
     required this.palette,
-    required this.isWhite,
-    this.miroir = false,
+    required this.hautEstBlanc,
+    this.onAnnuler,
   });
 
-  /// Les pièces prises PAR ce camp — celles de l'autre.
-  final List<Piece> pieces;
+  /// Les pièces prises par le camp du HAUT — donc celles de l'autre.
+  final List<Piece> prisesHaut;
+
+  /// Celles prises par le camp du bas.
+  final List<Piece> prisesBas;
 
   final ThemePalette palette;
 
-  /// Le camp dont c'est le bandeau : il donne sa couleur de fond.
-  final bool isWhite;
+  /// Quel camp occupe la ligne du haut : il donne sa couleur de fond.
+  final bool hautEstBlanc;
 
-  /// Bandeau du bas : les prises s'alignent à droite, comme dans un bandeau
-  /// de joueur retourné.
-  final bool miroir;
+  /// Annuler le coup en cours. Nulle = il n'y en a pas.
+  final VoidCallback? onAnnuler;
+
+  /// Ce que le bloc entier occupe en hauteur.
+  static double hauteur() => S(kLignePrises) * 2;
+
+  Widget _ligne(List<Piece> pieces, {required bool blanc}) => Container(
+    height: S(kLignePrises),
+    color: blanc ? palette.clairDim : palette.fonceDim,
+    padding: EdgeInsets.symmetric(horizontal: S(8), vertical: S(3)),
+    child: CapturesStrip(pieces: pieces, palette: palette),
+  );
 
   @override
-  Widget build(BuildContext context) => Container(
-    // La teinte atténuée : personne n'a le trait en analyse, et un bandeau
-    // vif dirait le contraire.
-    color: isWhite ? palette.clairDim : palette.fonceDim,
-    padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(6)),
-    child: Align(
-      alignment: miroir ? Alignment.centerRight : Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: 0.6,
-        child: CapturesStrip(pieces: pieces, palette: palette),
+  Widget build(BuildContext context) {
+    final lignes = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ligne(prisesHaut, blanc: hautEstBlanc),
+        _ligne(prisesBas, blanc: !hautEstBlanc),
+      ],
+    );
+    if (onAnnuler == null) return lignes;
+    // Hauteur donnée EXPLICITEMENT : la touche s'étire sur les deux lignes,
+    // et une rangée qui s'étire dans une page qui défile n'a aucune hauteur
+    // à quoi s'étirer. Le bloc en impose donc une, qu'il connaît.
+    return SizedBox(
+      height: hauteur(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: lignes),
+          Tooltip(
+            message: T('Annuler'),
+            child: Material(
+              color: kFugaGrey,
+              child: InkWell(
+                onTap: onAnnuler,
+                child: SizedBox(
+                  width: hauteur(),
+                  child: Center(
+                    child: Text(
+                      '↶',
+                      style: TextStyle(color: Colors.white, fontSize: SF(16)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }

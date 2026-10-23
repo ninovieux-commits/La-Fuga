@@ -281,14 +281,11 @@ void main() {
       // pièces pouvant être mangées ». On prépare un coup au milieu d'une
       // partie : ce qui a déjà été pris en fait partie.
       await composer(tester);
-      final bandes = tester
-          .widgetList<BandeauPrises>(find.byType(BandeauPrises))
-          .toList();
-      expect(bandes, hasLength(2), reason: 'un de chaque côté du plateau');
+      final bande = tester.widget<BandeauPrises>(find.byType(BandeauPrises));
       expect(
-        bandes.first.isWhite,
-        isNot(bandes.last.isWhite),
-        reason: 'un camp par bande, comme les bandeaux d une partie',
+        bande.prisesHaut,
+        isNot(same(bande.prisesBas)),
+        reason: 'une ligne par camp, l une sur l autre au-dessus du plateau',
       );
     });
 

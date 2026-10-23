@@ -108,7 +108,10 @@ void main() {
       const MaterialApp(home: GameScreen(aiCamp: null, analysis: true)),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(BandeauPrises), findsNWidgets(2));
+    // Un seul bloc, DEUX lignes : Nino, « fais les deux lignes de pièces
+    // au-dessus du plateau, aussi fines que possible ».
+    expect(find.byType(BandeauPrises), findsOneWidget);
+    expect(find.byType(CapturesStrip), findsNWidgets(2));
   });
 
   testWidgets('en partie, ce sont les bandeaux de joueur qui les portent', (

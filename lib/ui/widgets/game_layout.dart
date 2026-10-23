@@ -14,10 +14,21 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../engine/board.dart';
+
 import '../scale.dart';
 
 /// Les parts de hauteur d'un écran de jeu : 7 + 12 + 66 + 12 + 7 = 104.
 const int kPartsEcran = 104;
+
+/// Ce qu'un bandeau peut au plus céder au plateau, en fraction de sa
+/// hauteur.
+///
+/// Un cinquième : de quoi absorber le débordement des téléphones courants
+/// sans écraser ce qu'un bandeau de joueur contient. Au-delà — une tablette,
+/// où le plateau dépasse de bien plus — les bandeaux gardent leur hauteur :
+/// les rétrécir à moitié ne réglerait rien et couperait leur contenu.
+const double kBandeauRetraitMax = 0.2;
 
 /// Parts prises par un bandeau de joueur.
 const int kPartsBandeauJoueur = 12;
@@ -42,6 +53,7 @@ class GameLayout extends StatelessWidget {
     this.bottomParts = 12,
     this.topOverlay,
     this.topPanelDevant = false,
+    this.topHeight,
   });
 
   final Widget topBar;
@@ -88,6 +100,13 @@ class GameLayout extends StatelessWidget {
   /// derrière, et reparaissent dès que la question est répondue.
   final bool topPanelDevant;
 
+  /// Hauteur imposée au bandeau du haut, au lieu de ses 12 parts.
+  ///
+  /// L'analyse et les pré-coups n'y mettent que deux lignes de pièces
+  /// prises : elles n'ont pas besoin de la hauteur d'un bandeau de joueur,
+  /// qui loge un nom, un chrono et des touches.
+  final double? topHeight;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -95,8 +114,42 @@ class GameLayout extends StatelessWidget {
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / kPartsEcran;
       final bar = unit * 7;
-      final top = topPanel == null ? 0.0 : unit * kPartsBandeauJoueur;
-      final bottom = bottomPanel == null ? 0.0 : unit * bottomParts;
+      var top = topPanel == null
+          ? 0.0
+          : (topHeight ?? unit * kPartsBandeauJoueur);
+      var bottom = bottomPanel == null ? 0.0 : unit * bottomParts;
+
+      // LES BANDEAUX CÈDENT CE QUI MANQUE AU PLATEAU.
+      //
+      // Un plateau dessine DIX rangées de haut — les huit jouables et les
+      // deux zones de ralliement — pour sept de large : sa hauteur naturelle
+      // vaut donc 10/7 de la largeur, et il est centré dans la place qu'on
+      // lui réserve. Quand cette place est plus courte, il déborde des deux
+      // côtés et vient peindre sur les bandeaux. Nino : « rétrécis très
+      // légèrement les bandeaux pour que le plateau ne déborde plus
+      // dessus. »
+      //
+      // Les parts fixes (12 + 66 + 12) ne peuvent pas convenir à toutes les
+      // formes d'écran : plus un téléphone est étroit, plus son plateau est
+      // haut. On mesure donc le manque, et les bandeaux le rendent — au
+      // prorata de ce qu'ils occupent, et sans jamais perdre plus de
+      // [kBandeauRetraitMax] de leur hauteur, pour que le nom, le chrono et
+      // les touches y tiennent encore.
+      if (topHeight == null && top + bottom > 0) {
+        final naturel = box.maxWidth * kExtRows / kCols;
+        final manque = top + bottom + naturel - (box.maxHeight - 2 * bar);
+        // ET SEULEMENT SI CELA SUFFIT. Sur une tablette, large, le plateau
+        // dépasse de bien plus que ce que les bandeaux peuvent céder : les
+        // rétrécir quand même les abîmerait sans rien régler — le « ∞ » du
+        // chrono n'y tenait plus. Quand le manque dépasse ce qu'ils ont à
+        // donner, ils gardent leur hauteur.
+        if (manque > 0 && manque <= (top + bottom) * kBandeauRetraitMax) {
+          final part = manque / (top + bottom);
+          top -= top * part;
+          bottom -= bottom * part;
+        }
+      }
+
       final board = box.maxHeight - 2 * bar - top - bottom;
 
       return Stack(

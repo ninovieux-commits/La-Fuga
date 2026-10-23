@@ -29,7 +29,6 @@ import '../scale.dart';
 import '../suit_les_reglages.dart';
 import '../widgets/bandeau_prises.dart';
 import '../widgets/fuga_background.dart';
-import '../widgets/game_layout.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
@@ -182,27 +181,31 @@ class _PremoveScreenState extends State<PremoveScreen>
     );
   }
 
-  /// Le matériel mangé, de part et d'autre du plateau.
+  /// Le matériel mangé, en deux lignes au-dessus du plateau.
   ///
   /// Nino : « dans tous les modes comprenant un plateau de jeu et des pièces
   /// pouvant être mangées ». On prépare un coup au milieu d'une partie : ce
   /// qui a déjà été pris en fait partie.
   ///
-  /// Même répartition que dans une partie : en haut le camp du haut, en bas
-  /// le mien, chacun montrant les pièces qu'IL a prises — donc celles de
-  /// l'autre.
-  Widget _bandeau(ThemePalette palette, {required bool haut}) {
+  /// Chaque ligne montre ce qu'un camp a PRIS — donc les pièces de l'autre.
+  Widget _bandeau(ThemePalette palette) {
     final campHaut = widget.flipped ? Camp.noir : Camp.blanc;
-    final camp = haut ? campHaut : campHaut.opposite;
-    return SizedBox(
-      height: hauteurBandeauJoueur(),
-      child: BandeauPrises(
-        pieces: _jeu.captured[camp.opposite] ?? const [],
-        palette: palette,
-        isWhite: camp == Camp.blanc,
-        miroir: !haut,
-      ),
+    return BandeauPrises(
+      prisesHaut: _jeu.captured[campHaut.opposite] ?? const [],
+      prisesBas: _jeu.captured[campHaut] ?? const [],
+      palette: palette,
+      hautEstBlanc: campHaut == Camp.blanc,
+      // Nino : « j'aimerais le bouton pour annuler le coup en cours dans les
+      // deux modes. » Ici le coup en cours est celui qu'on compose à la
+      // main ; l'annuler rend la position d'avant, sans toucher aux
+      // variantes déjà rangées.
+      onAnnuler: _jeu.canValidate ? _annulerLeCoup : null,
     );
+  }
+
+  /// Défait le coup qu'on est en train de composer.
+  void _annulerLeCoup() {
+    if (_jeu.cancelCurrentMove()) setState(() {});
   }
 
   /// Ranger la variante en cours parmi les autres.
@@ -293,7 +296,7 @@ class _PremoveScreenState extends State<PremoveScreen>
                   children: [
                     _entete(),
                     SizedBox(height: S(8)),
-                    _bandeau(palette, haut: true),
+                    _bandeau(palette),
                     AspectRatio(
                       // Un plateau dessine `kExtRows` rangées de haut : les
                       // huit jouables, plus les deux zones de ralliement de
@@ -326,7 +329,6 @@ class _PremoveScreenState extends State<PremoveScreen>
                         slideDuration: slideDuration,
                       ),
                     ),
-                    _bandeau(palette, haut: false),
                     SizedBox(height: S(8)),
                     _ligneEnCours(palette),
                     if (_refus != null)

@@ -881,11 +881,18 @@ class _GameScreenState extends State<GameScreen>
           // restent, parce que c'est justement ce qu'on regarde.
           topPanel: widget.analysis
               ? BandeauPrises(
-                  pieces: _game.captured[topCamp.opposite] ?? const [],
+                  prisesHaut: _game.captured[topCamp.opposite] ?? const [],
+                  prisesBas: _game.captured[bottomCamp.opposite] ?? const [],
                   palette: palette,
-                  isWhite: topCamp == Camp.blanc,
+                  hautEstBlanc: topCamp == Camp.blanc,
+                  // La touche d'annulation ne paraît que s'il y a un coup à
+                  // annuler, comme en partie.
+                  onAnnuler: _game.canValidate ? _cancelMove : null,
                 )
               : _tickingPanel(palette, topCamp, mirrored: false),
+          // Les deux lignes de prises tiennent dans la hauteur d'une pièce :
+          // inutile de leur donner celle d'un bandeau de joueur.
+          topHeight: widget.analysis ? BandeauPrises.hauteur() : null,
           board: GameBoardView(
             board: _shownBoard,
             palette: palette,
@@ -907,13 +914,12 @@ class _GameScreenState extends State<GameScreen>
             slideToken: slideToken,
             slideDuration: slideDuration,
           ),
+          // En analyse, les prises sont toutes les deux EN HAUT : « fais
+          // les deux lignes de pièces au-dessus du plateau ». Deux lignes
+          // voisines se comparent mieux que deux bandes séparées par tout
+          // le plateau, et celui-ci récupère la place du bas.
           bottomPanel: widget.analysis
-              ? BandeauPrises(
-                  pieces: _game.captured[bottomCamp.opposite] ?? const [],
-                  palette: palette,
-                  isWhite: bottomCamp == Camp.blanc,
-                  miroir: true,
-                )
+              ? null
               : _tickingPanel(palette, bottomCamp, mirrored: true),
           moveStrip: MoveStrip(
             moves: _game.history,
