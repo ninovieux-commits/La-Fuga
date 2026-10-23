@@ -8,6 +8,8 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'messages_caches.dart';
+
 import '../game/sound_plan.dart';
 import '../i18n/translations.dart';
 import '../net/api_client.dart';
@@ -88,6 +90,10 @@ class Settings {
   /// Réglages chargés. À appeler une fois au démarrage.
   static Future<Settings> load() async {
     final prefs = await SharedPreferences.getInstance();
+    // Le cache des conversations lit les mêmes préférences, et doit pouvoir
+    // le faire SANS attendre : c'est ce qui permet à une boîte de s'ouvrir
+    // sur ses messages au lieu d'une roue.
+    MessagesCaches.utilise(prefs);
     return _instance = Settings._(prefs);
   }
 

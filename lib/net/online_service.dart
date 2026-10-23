@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../state/messages_caches.dart';
 import '../state/settings.dart';
 import 'api_client.dart';
 import 'corr_hub.dart';
@@ -178,7 +179,10 @@ class OnlineService {
     _socket = null;
     _client.logout();
     // Les portraits appris pendant la session sont ceux des adversaires de
-    // CE compte : les garder les montrerait au suivant.
+    // CE compte : les garder les montrerait au suivant. Les conversations
+    // gardées sur le téléphone partent pour la même raison, en plus forte :
+    // ce sont des mots échangés, pas une image publique.
+    unawaited(MessagesCaches.oublie());
     AvatarPhotos.clear();
     await _settings.clearOnlineSession();
   }

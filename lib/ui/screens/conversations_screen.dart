@@ -17,6 +17,7 @@ import '../../net/favoris_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
+import '../../state/messages_caches.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
@@ -277,7 +278,12 @@ class _ConversationScreenState extends State<ConversationScreen>
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
-  final List<ChatMessage> _messages = [];
+  /// Ce qu'on affichait la dernière fois, tout de suite — et la relecture
+  /// remplace derrière. La boîte n'ouvre donc plus sur une roue dès qu'on
+  /// est déjà venu.
+  late final List<ChatMessage> _messages = [
+    ...MessagesCaches.connus(widget.pseudo),
+  ];
 
   /// Combien de listes du serveur ont déjà été posées à l'écran.
   ///
@@ -379,6 +385,18 @@ class _ConversationScreenState extends State<ConversationScreen>
     });
   }
 
+  /// Deux listes de messages disent-elles autre chose ?
+  ///
+  /// Le texte ET le côté : un même mot renvoyé par l'autre n'est pas le mien.
+  /// L'état d'envoi, lui, ne compte pas — il n'appartient qu'à l'écran.
+  static bool _differe(List<ChatMessage> a, List<ChatMessage> b) {
+    if (a.length != b.length) return true;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].text != b[i].text || a[i].fromMe != b[i].fromMe) return true;
+    }
+    return false;
+  }
+
   /// Relit la conversation et ne redessine que si elle a changé.
   ///
   /// Sans marquer comme lu : `_load` le fait à l'ouverture, et le refaire
@@ -412,7 +430,17 @@ class _ConversationScreenState extends State<ConversationScreen>
         atterris.add(v);
       }
 
-      final listeChangee = frais.length != _messages.length;
+      // LA LONGUEUR NE SUFFIT PAS À DIRE QUE RIEN N'A BOUGÉ, et c'est le
+      // plafond du serveur qui le prouve : passé 200 messages, il efface le
+      // plus ancien à chaque nouveau. La boîte en garde donc 200 pour
+      // toujours — et une relecture qui compare les LONGUEURS ne voyait plus
+      // jamais rien arriver. Nino : « même quand la discussion est bien
+      // affichée, le message le plus récent n'apparaît pas en temps réel. »
+      //
+      // Le comptage était aussi ce qui faisait disparaître un message qu'on
+      // venait d'envoyer : il quittait la liste des envois en vol, puisque le
+      // serveur le portait, mais la liste affichée n'était pas remplacée.
+      final listeChangee = _differe(frais, _messages);
       if (!listeChangee && atterris.isEmpty) return;
       setState(() {
         if (listeChangee) {
@@ -420,6 +448,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             ..clear()
             ..addAll(frais);
           _tourListe++;
+          unawaited(MessagesCaches.retiens(widget.pseudo, frais));
         }
         _enVol.removeWhere(atterris.contains);
       });
@@ -522,6 +551,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             if (m is Map) ChatMessage.fromJson(Map<String, dynamic>.from(m)),
         ]);
       _tourListe++;
+      unawaited(MessagesCaches.retiens(widget.pseudo, _messages));
     });
     _scrollToEnd();
   }
