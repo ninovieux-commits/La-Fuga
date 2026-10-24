@@ -1380,6 +1380,7 @@ class MenuScreenState extends State<MenuScreen>
           SizedBox(height: SH(0.012) + S(gap)),
           _wide(
             FugaButton(
+              key: _tourKeys['ai'],
               text: T('Jouer contre Deep Grey'),
               height: touchHeight(),
               fontSize: SF(16),

@@ -90,6 +90,48 @@ void main() {
     expect(find.text('Continuer >'), findsOneWidget);
   });
 
+  testWidgets('chaque étape entoure VRAIMENT ce dont elle parle', (
+    tester,
+  ) async {
+    // Nino : « dans le tuto, la touche jouer contre Deep Grey n'est pas
+    // entourée au moment [voulu]. » La touche n'avait pas reçu sa clé : le
+    // nom de la cible existait, l'élément du menu ne la portait pas, et
+    // l'encadré ne se dessinait nulle part.
+    //
+    // Le test qui existait vérifiait que chaque cible est un NOM connu —
+    // c'est précisément ce qui restait vrai pendant que l'encadré manquait.
+    // Celui-ci demande le rectangle à l'écran, le seul témoin qui compte.
+    await startTour(tester);
+    final menu = tester.state<MenuScreenState>(find.byType(MenuScreen));
+    final etapes = loadMenuTour();
+
+    for (var i = 0; i < etapes.length; i++) {
+      final cibles = etapes[i].targets;
+      final anneaux = tester
+          .widget<MenuTourOverlay>(find.byType(MenuTourOverlay))
+          .rings;
+      expect(
+        anneaux,
+        hasLength(cibles.length),
+        reason:
+            'étape $i (${cibles.join(', ')}) : '
+            '${cibles.length - anneaux.length} élément(s) du menu ne '
+            'portent pas leur clé, et ne sont donc pas entourés',
+      );
+      for (final anneau in anneaux) {
+        expect(
+          anneau.width > 0 && anneau.height > 0,
+          isTrue,
+          reason: 'étape $i : un encadré sans surface n entoure rien',
+        );
+      }
+      if (i < etapes.length - 1) {
+        await tapVisible(tester, find.text('Continuer >'));
+      }
+    }
+    expect(menu.mounted, isTrue);
+  });
+
   testWidgets('on avance d étape en étape, et la dernière referme', (
     tester,
   ) async {

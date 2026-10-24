@@ -152,6 +152,26 @@ class GameTopBar extends StatelessWidget {
                 fontSize: SF(21),
                 tooltip: T('Retourner le plateau'),
               ),
+              // LA TOUCHE CHAT, CARRÉE, JUSTE À DROITE DU RETOURNEMENT.
+              // Nino : « le bouton chat peut revenir à sa taille carrée si tu
+              // le mets à gauche (juste à droite du bouton pour flipper le
+              // plateau) ». Large, elle mangeait 104 de la rangée de droite,
+              // déjà la plus chargée ; carrée, elle en fait 53 — et le côté
+              // gauche était vide en partie.
+              if (onChat != null) ...[
+                SizedBox(width: S(6)),
+                // Pastille plutôt que compteur, et elle ne s'allume que pour
+                // un message de l'adversaire de cette partie.
+                UnreadDot(
+                  show: unreadChat > 0,
+                  child: _round(
+                    T('Chat'),
+                    onChat!,
+                    fontSize: SF(14),
+                    tooltip: T('Chat'),
+                  ),
+                ),
+              ],
               if (onAutoPlay != null) ...[
                 SizedBox(width: S(6)),
                 _button(
@@ -164,18 +184,6 @@ class GameTopBar extends StatelessWidget {
                   tooltip: T('Lecture automatique'),
                 ),
               ],
-              if (onMenu != null) ...[
-                SizedBox(width: S(6)),
-                _flex(
-                  _wide(
-                    T('Retour au menu'),
-                    onMenu!,
-                    width: S(178),
-                    color: palette.clair,
-                    fontSize: SF(13),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -184,22 +192,6 @@ class GameTopBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (onChat != null) ...[
-                // Pastille plutôt que compteur, et elle ne s'allume que pour un
-                // message de l'adversaire de cette partie.
-                _flex(
-                  UnreadDot(
-                    show: unreadChat > 0,
-                    child: _wide(
-                      T('Chat'),
-                      onChat!,
-                      width: S(104),
-                      color: kBarButtonDark,
-                    ),
-                  ),
-                ),
-                SizedBox(width: S(6)),
-              ],
               if (onToggleAiMode != null) ...[
                 _flex(
                   _wide(
@@ -280,7 +272,25 @@ class GameTopBar extends StatelessWidget {
                 ),
                 SizedBox(width: S(6)),
               ],
-              if (pauseLabel == '| |')
+              // « RETOUR AU MENU » PREND LA PLACE DE LA PAUSE, et ne la
+              // partage pas : il n'y a plus de partie à suspendre quand elle
+              // est finie, et la place manque pour les deux.
+              //
+              // Le bandeau tient exactement DEUX touches carrées par moitié
+              // sur un téléphone élancé — le trou de l'appareil photo coûte
+              // la largeur d'une troisième. Avec « < > » et le chat à gauche,
+              // la droite loge la boule et une seule touche de plus.
+              if (onMenu != null)
+                _flex(
+                  _wide(
+                    T('Retour au menu'),
+                    onMenu!,
+                    width: S(178),
+                    color: palette.clair,
+                    fontSize: SF(13),
+                  ),
+                )
+              else if (pauseLabel == '| |')
                 Tooltip(
                   message: T('Pause'),
                   child: AspectRatio(

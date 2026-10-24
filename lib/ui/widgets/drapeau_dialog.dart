@@ -49,6 +49,15 @@ Future<void> ouvrirDrapeau(
   VoidCallback? onNulle,
   VoidCallback? onAbandon,
 }) async {
+  // Ce qu'il y a à dire sur la nulle, s'il y a quelque chose. Une ligne VIDE
+  // n'est pas une ligne : elle tenait sa part de la hauteur sans rien y
+  // écrire.
+  final raison = onNulle == null
+      ? ''
+      : nulleActive
+      ? (nulleProposee ? T('Nulle proposée') : '')
+      : (raisonNulle ?? T('Jouez votre coup d abord'));
+
   final choix = await showFugaPopup<GesteDrapeau>(
     context,
     widthFactor: 0.82,
@@ -56,18 +65,15 @@ Future<void> ouvrirDrapeau(
     dismissible: true,
     rows: [
       (0.30, popupText(T('Abandonner ou proposer la nulle ?'), size: 17)),
-      (
-        0.22,
-        popupText(
-          onNulle == null
-              ? ''
-              : nulleActive
-              ? (nulleProposee ? T('Nulle proposée') : '')
-              : (raisonNulle ?? T('Jouez votre coup d abord')),
-          size: 13,
-          color: const Color.fromRGBO(217, 217, 217, 1),
+      if (raison.isNotEmpty)
+        (
+          0.22,
+          popupText(
+            raison,
+            size: 13,
+            color: const Color.fromRGBO(217, 217, 217, 1),
+          ),
         ),
-      ),
       (
         kTouchRow,
         Row(

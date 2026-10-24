@@ -11,8 +11,21 @@ import '../scale.dart';
 import 'fuga_button.dart';
 
 /// Une ligne du popup : sa part de la hauteur (le `size_hint_y` de Kivy) et
-/// ce qu'elle contient. Une part nulle laisse la ligne prendre sa hauteur
-/// naturelle, pour les contenus qu'on ne sait pas mesurer.
+/// ce qu'elle contient.
+///
+/// ## La part ne gonfle plus la ligne
+///
+/// Les touches étant servies à épaisseur fixe, les lignes à part se
+/// partageaient tout le reste de la hauteur demandée — et comme leurs parts
+/// étaient renormalisées entre elles, elles l'avalaient en entier, quelle que
+/// soit leur somme. Un popup de trois lignes courtes occupait 40 % de
+/// l'écran, dont les deux tiers de vide. Nino : « aucune raison pour que tous
+/// ces popups soient aussi gros, y a plein d'espace vide. »
+///
+/// Une ligne prend donc maintenant la hauteur qu'elle DEMANDE, et le popup la
+/// somme. La part ne sert plus qu'à distinguer une ligne de touches
+/// ([kTouchRow]) d'une ligne ordinaire ; on la garde telle quelle, parce
+/// qu'elle dit encore l'intention de Kivy en relisant le portage.
 typedef PopupRow = (double, Widget);
 
 /// Part d'une ligne de touches : son épaisseur est celle d'une touche, la même
@@ -74,83 +87,72 @@ class FugaPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    final width = screen.width * widthFactor;
-    final height = screen.height * heightFactor;
+
+    // RESPIRATION VERTICALE, MESURÉE SUR LA HAUTEUR. Les marges d'un popup se
+    // lisent le long de sa hauteur : les prendre en `S` — un pourcentage de
+    // la LARGEUR — donnait 4 px d'écart entre deux lignes sur un téléphone.
+    // La règle du fichier `scale.dart` : ce qui se lit comme une bande se
+    // mesure sur la hauteur.
+    final ecart = touchHeight() * 0.32;
+    final marge = touchHeight() * 0.40;
 
     final titleHeight = title.isEmpty ? 0.0 : SF(18) * 1.8;
-    // Ce que le popup dépense avant ses lignes : bandeau, marges, écarts.
-    final chrome =
-        titleHeight +
-        2 * S(padding) +
-        S(spacing) * (rows.length - 1).clamp(0, rows.length);
-
-    // Les lignes de touches sont à épaisseur imposée ; les autres se
-    // partagent ce qui reste, au prorata de leur part — exactement comme le
-    // calcul d'un `BoxLayout` vertical, une fois les touches servies.
-    final touches = rows.where((r) => r.$1 < 0).length * touchHeight();
-    final parts = rows.fold<double>(0, (a, r) => r.$1 > 0 ? a + r.$1 : a);
-    final requestedInner = height - chrome;
-    var forParts = requestedInner - touches;
-    var boxHeight = height;
-    if (forParts < requestedInner * parts) {
-      // Pas la place : c'est le popup qui s'allonge, pas les touches qui
-      // maigrissent.
-      forParts = requestedInner * parts;
-      boxHeight = chrome + touches + forParts;
-    }
 
     return Dialog(
       backgroundColor: kFugaGrey,
       insetPadding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(S(14))),
-      child: SizedBox(
-        width: width,
-        height: boxHeight,
-        child: Column(
-          children: [
-            if (title.isNotEmpty)
-              SizedBox(
-                height: titleHeight,
-                child: Center(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: SF(18),
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+      child: ConstrainedBox(
+        // [heightFactor] est un PLAFOND, pas une hauteur. Le popup prend ce
+        // que son contenu demande et pas un pixel de plus.
+        constraints: BoxConstraints(maxHeight: screen.height * heightFactor),
+        child: SizedBox(
+          width: screen.width * widthFactor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (title.isNotEmpty)
+                SizedBox(
+                  height: titleHeight,
+                  child: Center(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: SF(18),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(S(padding)),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < rows.length; i++) ...[
-                      if (i > 0) SizedBox(height: S(spacing)),
-                      if (rows[i].$1 < 0)
-                        SizedBox(
-                          height: touchHeight(),
-                          width: double.infinity,
-                          child: rows[i].$2,
-                        )
-                      else if (rows[i].$1 == 0)
-                        Flexible(child: rows[i].$2)
-                      else
-                        SizedBox(
-                          height: parts <= 0
-                              ? 0
-                              : forParts * rows[i].$1 / parts,
-                          width: double.infinity,
-                          child: rows[i].$2,
-                        ),
+              // Au plafond, le contenu DÉFILE plutôt que de déborder : une
+              // traduction longue ne doit pas peindre par-dessus le bord.
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: S(padding),
+                    vertical: marge,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < rows.length; i++) ...[
+                        if (i > 0) SizedBox(height: ecart),
+                        if (rows[i].$1 < 0)
+                          SizedBox(
+                            height: touchHeight(),
+                            width: double.infinity,
+                            child: rows[i].$2,
+                          )
+                        else
+                          SizedBox(width: double.infinity, child: rows[i].$2),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

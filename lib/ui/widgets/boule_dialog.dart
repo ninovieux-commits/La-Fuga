@@ -56,6 +56,11 @@ Future<void> ouvrirBoule(
     onAnalyse?.call();
     return;
   }
+  // Pourquoi les pré-coups sont fermés, quand ils le sont. Une ligne VIDE
+  // n'est pas une ligne : elle tenait sa part de la hauteur sans rien y
+  // écrire, et c'était le gros du vide que Nino voyait.
+  final raison = onPremove == null ? (raisonPremove ?? '') : '';
+
   final choix = await showFugaPopup<GesteBoule>(
     context,
     widthFactor: 0.82,
@@ -63,14 +68,15 @@ Future<void> ouvrirBoule(
     dismissible: true,
     rows: [
       (0.30, popupText(T('Analyser ou préparer ses coups ?'), size: 17)),
-      (
-        0.22,
-        popupText(
-          onPremove == null ? (raisonPremove ?? '') : '',
-          size: 13,
-          color: const Color.fromRGBO(217, 217, 217, 1),
+      if (raison.isNotEmpty)
+        (
+          0.22,
+          popupText(
+            raison,
+            size: 13,
+            color: const Color.fromRGBO(217, 217, 217, 1),
+          ),
         ),
-      ),
       (
         kTouchRow,
         Row(

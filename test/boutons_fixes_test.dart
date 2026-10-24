@@ -294,73 +294,72 @@ void main() {
     });
   });
 
-  group('Le centre reste libre pour l appareil photo, dans tous les modes', () {
-    // L'objectif selfie est percé au milieu de la barre d'état et passe devant
-    // tout ce qu'on y pose. Nino : « les modifications dont je te parle depuis
-    // tout à l'heure doivent être effectives dans tous les modes de jeux
-    // pouvant être concernés. » Le bandeau est le même partout, mais ce sont
-    // ses touches qui changent — et c'est leur nombre qui pousse vers le
-    // centre. On passe donc tous les modes, tels que les écrans les composent.
+  group('Le bandeau tient, dans tous les modes', () {
+    // Nino : « les modifications dont je te parle depuis tout à l'heure
+    // doivent être effectives dans tous les modes de jeux pouvant être
+    // concernés. » Le bandeau est le même partout, mais ce sont ses touches
+    // qui changent — et c'est leur nombre qui pousse vers le centre. On passe
+    // donc tous les modes, tels que les écrans les composent, et on vérifie
+    // les deux choses qui peuvent casser : le trou de l'appareil photo, et le
+    // débordement.
+    //
+    // On ne mélange PAS toutes les touches à la fois : aucun écran ne les
+    // montre toutes, et un bandeau impossible ne prouve rien — il ferait
+    // seulement tomber le test le jour où l'on ajoute une touche quelque
+    // part.
+    GameTopBar barre({
+      bool chat = false,
+      bool finie = false,
+      bool boule = false,
+      bool precoups = false,
+      String pause = '| |',
+      bool autoPlay = false,
+      bool copyNmc = false,
+      bool copyFug = false,
+      bool deepGrey = false,
+      bool modeIa = false,
+    }) => GameTopBar(
+      palette: paletteOf('foret'),
+      color: Colors.grey,
+      onFlip: () {},
+      pauseLabel: pause,
+      onPause: () {},
+      onChat: chat ? () {} : null,
+      onMenu: finie ? () {} : null,
+      onAnalyse: boule ? () {} : null,
+      onPremove: precoups ? () {} : null,
+      raisonPremove: boule && precoups ? 'Jouez votre coup' : null,
+      onAutoPlay: autoPlay ? () {} : null,
+      onCopyNmc: copyNmc ? () {} : null,
+      onCopyFug: copyFug ? () {} : null,
+      onDeepGrey: deepGrey ? () {} : null,
+      onToggleAiMode: modeIa ? () {} : null,
+      aiDeepMode: modeIa ? true : null,
+    );
+
     final modes = <String, GameTopBar>{
-      'partie locale': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        onPause: () {},
-        onMenu: () {},
+      'partie locale': barre(),
+      'partie locale finie': barre(finie: true),
+      'contre Deep Grey': barre(modeIa: true),
+      'analyse': barre(pause: '<<', copyFug: true, deepGrey: true),
+      'partie en ligne': barre(chat: true),
+      'partie en ligne finie': barre(chat: true, finie: true),
+      'correspondance': barre(chat: true, boule: true, precoups: true),
+      'correspondance, à moi de jouer': barre(chat: true, boule: true),
+      'correspondance finie': barre(chat: true, boule: true, finie: true),
+      'relecture': barre(
+        pause: '<<',
+        autoPlay: true,
+        copyNmc: true,
+        boule: true,
+        deepGrey: true,
       ),
-      'analyse': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        pauseLabel: '<<',
-        onPause: () {},
-        onCopyFug: () {},
-        onDeepGrey: () {},
-        onToggleAiMode: () {},
-        aiDeepMode: true,
-      ),
-      'partie en ligne': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        onPause: () {},
-        onChat: () {},
-        onMenu: () {},
-      ),
-      'correspondance': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        onPause: () {},
-        onChat: () {},
-        onAnalyse: () {},
-        onPremove: () {},
-        raisonPremove: 'Jouez votre coup',
-        onMenu: () {},
-      ),
-      'relecture': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        pauseLabel: '<<',
-        onPause: () {},
-        onAutoPlay: () {},
-        onCopyNmc: () {},
-        onAnalyse: () {},
-        onDeepGrey: () {},
-      ),
-      'pré-coups, composeur, défi': GameTopBar(
-        palette: paletteOf('foret'),
-        color: Colors.grey,
-        onFlip: () {},
-        pauseLabel: '<<',
-        onPause: () {},
-      ),
+      'pré-coups, composeur, défi': barre(pause: '<<'),
     };
 
     /// Les deux formes extrêmes du marché : c'est la forme qui fait diverger
-    /// les proportions, pas la taille.
+    /// les proportions, pas la taille. Un 21:9 est le pire cas du bandeau —
+    /// ses touches suivent la HAUTEUR de l'écran et sa rangée la largeur.
     const formes = {
       '16:9 le plus trapu': Size(375, 667),
       '21:9 le plus élancé': Size(411, 960),
@@ -373,6 +372,18 @@ void main() {
           tester.view.devicePixelRatio = 1;
           addTearDown(tester.view.reset);
           setScaleSize(forme.value);
+
+          final debordements = <String>[];
+          final precedent = FlutterError.onError;
+          FlutterError.onError = (d) {
+            if (d.exceptionAsString().contains('overflow')) {
+              debordements.add(d.exceptionAsString());
+            } else {
+              precedent?.call(d);
+            }
+          };
+          addTearDown(() => FlutterError.onError = precedent);
+
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
@@ -384,6 +395,18 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
+          // On rend la main à Flutter AVANT d'affirmer : un `expect` qui
+          // tombe alors que le guetteur est encore en place fait échouer le
+          // test sur une assertion du binding, et on ne lit plus la cause.
+          FlutterError.onError = precedent;
+
+          expect(
+            debordements,
+            isEmpty,
+            reason:
+                'le bandeau déborde : ses touches carrées suivent la hauteur '
+                'et la rangée la largeur — il suffit d une touche de plus',
+          );
 
           final cadre = tester.getRect(find.byType(GameTopBar));
           final trou = Rect.fromCenter(
