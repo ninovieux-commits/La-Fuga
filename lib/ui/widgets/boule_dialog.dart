@@ -28,6 +28,22 @@ import 'fuga_popup.dart';
 /// Ce que la boule propose.
 enum GesteBoule { analyse, precoups }
 
+/// Vrai quand ce mode ne connaît pas les pré-coups : la boule EST alors la
+/// touche « Analyser », et ouvrir un popup pour une seule touche vivante
+/// serait un geste pour rien.
+///
+/// Nino : « dans les modes de jeu sans pré-coups, le bouton analyse est alors
+/// simplement remplacé par la boule de cristal. » Une relecture, une analyse,
+/// une position composée : on n'y prépare pas la réponse de l'adversaire.
+///
+/// LE SIGNE QU'UN MODE LES CONNAÎT EST SA RAISON. Une touche pâle sans raison
+/// écrite est un défaut en soi : un mode qui offre les pré-coups en donne donc
+/// toujours une, y compris quand il les ouvre. Pas de raison, pas de
+/// pré-coups — et la règle se tient d'elle-même, sans un drapeau de plus à
+/// garder d'accord avec le reste.
+bool bouleSansChoix({VoidCallback? onPremove, String? raisonPremove}) =>
+    onPremove == null && raisonPremove == null;
+
 /// Ouvre la boule. Rien ne se confirme : on va quelque part, on en revient.
 Future<void> ouvrirBoule(
   BuildContext context, {
@@ -36,6 +52,10 @@ Future<void> ouvrirBoule(
   VoidCallback? onPremove,
   String? raisonPremove,
 }) async {
+  if (bouleSansChoix(onPremove: onPremove, raisonPremove: raisonPremove)) {
+    onAnalyse?.call();
+    return;
+  }
   final choix = await showFugaPopup<GesteBoule>(
     context,
     widthFactor: 0.82,

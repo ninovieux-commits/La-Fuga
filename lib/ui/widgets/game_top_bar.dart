@@ -23,6 +23,7 @@ import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'boule_dialog.dart';
+import 'picto_touche.dart';
 import 'unread_dot.dart';
 
 /// Largeur laissée LIBRE au centre du bandeau.
@@ -256,7 +257,15 @@ class GameTopBar extends StatelessWidget {
                       raisonPremove: raisonPremove,
                     ),
                   ),
-                  tooltip: T('Analyser ou préparer ses coups ?'),
+                  // L'infobulle dit ce que la touche fait vraiment : dans un
+                  // mode sans pré-coups, elle ouvre l'analyse tout droit.
+                  tooltip:
+                      bouleSansChoix(
+                        onPremove: onPremove,
+                        raisonPremove: raisonPremove,
+                      )
+                      ? T('Analyser')
+                      : T('Analyser ou préparer ses coups ?'),
                 ),
                 SizedBox(width: S(6)),
               ],
@@ -310,11 +319,12 @@ class GameTopBar extends StatelessWidget {
     ),
   );
 
-  /// Touche ronde portant un DESSIN plutôt qu'un libellé.
+  /// Touche carrée portant un DESSIN plutôt qu'un libellé.
   ///
   /// Le dessin suit le thème, comme les instruments des réglages : un fichier
-  /// blanc sur fond transparent, teinté ici. Sans dessin, le libellé de
-  /// secours garde la touche utilisable.
+  /// blanc sur fond transparent, teinté ici. Il n'occupe que la part d'une
+  /// lettre — c'est ce qui laisse voir le carré de la touche (cf.
+  /// [PictoTouche]). Sans dessin, le libellé de secours la garde utilisable.
   Widget _rondImage(
     String asset,
     VoidCallback onPressed, {
@@ -330,18 +340,11 @@ class GameTopBar extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(S(20)),
           onTap: onPressed,
-          child: Padding(
-            padding: EdgeInsets.all(S(7)),
-            child: Image.asset(
-              asset,
-              color: palette.clair,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) => Center(
-                child: Text(
-                  secours,
-                  style: TextStyle(color: palette.clair, fontSize: SF(17)),
-                ),
-              ),
+          child: Center(
+            child: PictoTouche(
+              asset: asset,
+              couleur: palette.clair,
+              secours: secours,
             ),
           ),
         ),

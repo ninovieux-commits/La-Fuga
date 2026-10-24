@@ -292,11 +292,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: nmc)));
       await tester.pumpAndSettle();
 
-      expect(
-        find.byTooltip('Analyser ou préparer ses coups ?'),
-        findsOneWidget,
-        reason: 'repère',
-      );
+      expect(find.byTooltip('Analyser'), findsOneWidget, reason: 'repère');
       expect(
         find.text('Copier'),
         findsOneWidget,

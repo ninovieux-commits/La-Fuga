@@ -29,6 +29,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/game_top_bar.dart';
+import 'package:lafuga/ui/widgets/picto_touche.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -128,6 +129,65 @@ void main() {
     });
   });
 
+  group('La boule prend la place d « Analyser », dans tous les modes', () {
+    testWidgets('sans pré-coups, elle ouvre l analyse tout droit', (
+      tester,
+    ) async {
+      // Nino : « dans les modes de jeu sans pré-coups, le bouton analyse est
+      // alors simplement remplacé par la boule de cristal. » Une relecture,
+      // une analyse : il n y a rien à choisir, donc pas de popup.
+      var analyses = 0;
+      await pose(
+        tester,
+        SizedBox(
+          height: 851 * 7 / 104,
+          child: GameTopBar(
+            palette: paletteOf('foret'),
+            color: Colors.grey,
+            onFlip: () {},
+            pauseLabel: '<<',
+            onPause: () {},
+            onAnalyse: () => analyses++,
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip(T('Analyser')));
+      await tester.pumpAndSettle();
+      expect(analyses, 1, reason: 'la boule doit mener droit à l analyse');
+      expect(
+        find.text(T('Pré-coups')),
+        findsNothing,
+        reason: 'un popup pour une seule touche vivante est un geste pour rien',
+      );
+    });
+
+    testWidgets('avec les pré-coups, elle demande lequel des deux', (
+      tester,
+    ) async {
+      var analyses = 0;
+      await pose(
+        tester,
+        SizedBox(
+          height: 851 * 7 / 104,
+          child: GameTopBar(
+            palette: paletteOf('foret'),
+            color: Colors.grey,
+            onFlip: () {},
+            onPause: () {},
+            onAnalyse: () => analyses++,
+            onPremove: () {},
+            raisonPremove: 'Jouez votre coup',
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip(T('Analyser ou préparer ses coups ?')));
+      await tester.pumpAndSettle();
+      expect(analyses, 0, reason: 'on choisit d abord');
+      expect(find.text(T('Pré-coups')), findsOneWidget);
+      expect(find.text(T('Analyser')), findsOneWidget);
+    });
+  });
+
   group('Le bandeau fin du haut', () {
     /// Le bandeau d'une partie de correspondance : l'analyse est toujours
     /// offerte, les pré-coups seulement quand c'est à l'adversaire de jouer.
@@ -141,6 +201,9 @@ void main() {
         onChat: () {},
         onAnalyse: () {},
         onPremove: prejouable ? () {} : null,
+        // La correspondance offre les pré-coups, et dit donc toujours
+        // pourquoi quand ils sont fermés.
+        raisonPremove: 'Jouez votre coup',
       ),
     );
 
@@ -163,33 +226,191 @@ void main() {
         'le voisinage de la boule a bougé avec elle',
       );
     });
+  });
 
-    testWidgets('et le centre reste libre pour l appareil photo', (
-      tester,
-    ) async {
-      // L'objectif selfie est percé au milieu de la barre d'état, et passe
-      // devant tout ce qu'on y pose.
-      await pose(tester, bandeau(prejouable: true));
-      final cadre = tester.getRect(find.byType(GameTopBar));
-      final trou = Rect.fromCenter(
-        center: cadre.center,
-        width: S(kTrouCamera),
-        height: cadre.height,
+  group('Les touches à dessin restent des carrés', () {
+    // Nino : « la touche doit avoir la même forme carrée que les autres !
+    // Ainsi que la touche drapeau de tout à l'heure d'ailleurs. » Un
+    // pictogramme est cadré sur son sujet : posé avec la marge d'un texte il
+    // remplit la touche et en avale la forme — la boule, ronde, faisait lire
+    // un disque. Il prend donc la part d'une lettre, et pas plus.
+    void mesure(WidgetTester tester) {
+      final dessin = tester.getSize(find.byType(PictoTouche));
+      final touche = tester.getSize(
+        find.ancestor(
+          of: find.byType(PictoTouche),
+          matching: find.byType(AspectRatio),
+        ),
       );
-      final touches = find
-          .descendant(
-            of: find.byType(GameTopBar),
-            matching: find.byType(InkWell),
-          )
-          .evaluate();
-      expect(touches, isNotEmpty, reason: 'le bandeau n a plus de touches ?');
-      for (final touche in touches) {
-        expect(
-          tester.getRect(find.byWidget(touche.widget)).overlaps(trou),
-          isFalse,
-          reason: 'une touche empiète sur le trou de l appareil photo',
-        );
-      }
+      expect(
+        touche.width,
+        moreOrLessEquals(touche.height, epsilon: 0.5),
+        reason: 'la touche elle-même doit être carrée',
+      );
+      expect(
+        dessin.width / touche.width,
+        moreOrLessEquals(kPartPicto, epsilon: 0.02),
+        reason:
+            'le dessin occupe ${(dessin.width / touche.width * 100).round()} % '
+            'de la touche : il en avale la forme, et on ne voit plus le carré',
+      );
+    }
+
+    testWidgets('la boule, dans le bandeau fin', (tester) async {
+      await pose(
+        tester,
+        SizedBox(
+          height: 851 * 7 / 104,
+          child: GameTopBar(
+            palette: paletteOf('foret'),
+            color: Colors.grey,
+            onFlip: () {},
+            onPause: () {},
+            onAnalyse: () {},
+          ),
+        ),
+      );
+      mesure(tester);
     });
+
+    testWidgets('le drapeau, dans le bandeau large', (tester) async {
+      await pose(
+        tester,
+        SizedBox(
+          height: 851 * 12 / 104,
+          child: PlayerPanel(
+            name: 'nino',
+            clock: '15:00',
+            palette: paletteOf('foret'),
+            isWhite: true,
+            isTurn: true,
+            captures: const [],
+            onResign: () {},
+            onDraw: () {},
+          ),
+        ),
+      );
+      mesure(tester);
+    });
+  });
+
+  group('Le centre reste libre pour l appareil photo, dans tous les modes', () {
+    // L'objectif selfie est percé au milieu de la barre d'état et passe devant
+    // tout ce qu'on y pose. Nino : « les modifications dont je te parle depuis
+    // tout à l'heure doivent être effectives dans tous les modes de jeux
+    // pouvant être concernés. » Le bandeau est le même partout, mais ce sont
+    // ses touches qui changent — et c'est leur nombre qui pousse vers le
+    // centre. On passe donc tous les modes, tels que les écrans les composent.
+    final modes = <String, GameTopBar>{
+      'partie locale': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        onPause: () {},
+        onMenu: () {},
+      ),
+      'analyse': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        pauseLabel: '<<',
+        onPause: () {},
+        onCopyFug: () {},
+        onDeepGrey: () {},
+        onToggleAiMode: () {},
+        aiDeepMode: true,
+      ),
+      'partie en ligne': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        onPause: () {},
+        onChat: () {},
+        onMenu: () {},
+      ),
+      'correspondance': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        onPause: () {},
+        onChat: () {},
+        onAnalyse: () {},
+        onPremove: () {},
+        raisonPremove: 'Jouez votre coup',
+        onMenu: () {},
+      ),
+      'relecture': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        pauseLabel: '<<',
+        onPause: () {},
+        onAutoPlay: () {},
+        onCopyNmc: () {},
+        onAnalyse: () {},
+        onDeepGrey: () {},
+      ),
+      'pré-coups, composeur, défi': GameTopBar(
+        palette: paletteOf('foret'),
+        color: Colors.grey,
+        onFlip: () {},
+        pauseLabel: '<<',
+        onPause: () {},
+      ),
+    };
+
+    /// Les deux formes extrêmes du marché : c'est la forme qui fait diverger
+    /// les proportions, pas la taille.
+    const formes = {
+      '16:9 le plus trapu': Size(375, 667),
+      '21:9 le plus élancé': Size(411, 960),
+    };
+
+    for (final mode in modes.entries) {
+      for (final forme in formes.entries) {
+        testWidgets('${mode.key} — ${forme.key}', (tester) async {
+          tester.view.physicalSize = forme.value;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          setScaleSize(forme.value);
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  height: forme.value.height * 7 / 104,
+                  child: mode.value,
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final cadre = tester.getRect(find.byType(GameTopBar));
+          final trou = Rect.fromCenter(
+            center: cadre.center,
+            width: S(kTrouCamera),
+            height: cadre.height,
+          );
+          final touches = find
+              .descendant(
+                of: find.byType(GameTopBar),
+                matching: find.byType(InkWell),
+              )
+              .evaluate();
+          expect(
+            touches,
+            isNotEmpty,
+            reason: 'le bandeau n a plus de touches ?',
+          );
+          for (final touche in touches) {
+            expect(
+              tester.getRect(find.byWidget(touche.widget)).overlaps(trou),
+              isFalse,
+              reason: 'une touche empiète sur le trou de l appareil photo',
+            );
+          }
+        });
+      }
+    }
   });
 }

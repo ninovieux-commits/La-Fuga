@@ -24,6 +24,7 @@ import '../scale.dart';
 import 'etoile_favori.dart';
 import 'drapeau_dialog.dart';
 import 'fuga_button.dart';
+import 'picto_touche.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
 
@@ -423,16 +424,13 @@ class PlayerPanel extends StatelessWidget {
           ),
           // Le dessin suit le thème, comme les instruments des réglages :
           // blanc sur fond transparent, teinté ici. Garder son fond
-          // d'origine, qui est blanc, aurait troué le bandeau.
-          enfant: Padding(
-            padding: EdgeInsets.all(S(7)),
-            child: Image.asset(
-              'assets/images/drapeau.webp',
-              color: palette.clair,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stack) =>
-                  Text('⚑', style: TextStyle(fontSize: SF(17))),
-            ),
+          // d'origine, qui est blanc, aurait troué le bandeau. Il n'occupe
+          // que la part d'une lettre, pour que la touche reste un carré —
+          // cf. [PictoTouche].
+          enfant: PictoTouche(
+            asset: 'assets/images/drapeau.webp',
+            couleur: palette.clair,
+            secours: '⚑',
           ),
         ),
     ],
