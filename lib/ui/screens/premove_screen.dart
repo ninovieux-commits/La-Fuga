@@ -13,6 +13,8 @@
 /// l'appliquer et dire pourquoi, quand elle refuse.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
@@ -30,6 +32,7 @@ import '../suit_les_reglages.dart';
 import '../widgets/bandeau_prises.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/fuga_popup.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/slide_animation.dart';
@@ -70,6 +73,13 @@ class _PremoveScreenState extends State<PremoveScreen>
   late MoveController _jeu;
   late PremovePlan _plan;
 
+  /// Le plan tel qu'on l'a trouvé en ouvrant l'écran.
+  ///
+  /// C'est à lui qu'on compare pour savoir si repartir perdrait quelque
+  /// chose : ce qui est ARMÉ est chez le serveur, ce qui a bougé depuis ne
+  /// vit que sur cet écran.
+  late PremovePlan _planInitial;
+
   /// Les demi-coups de la variante en cours de composition.
   final List<String> _ligne = [];
 
@@ -95,6 +105,7 @@ class _PremoveScreenState extends State<PremoveScreen>
         widget.plan ??
         widget.game.premove ??
         PremovePlan(base: corrMoveLines(widget.game.movesText).length);
+    _planInitial = _plan;
     _jeu = _neuf();
   }
 
@@ -247,6 +258,50 @@ class _PremoveScreenState extends State<PremoveScreen>
     ),
   };
 
+  /// Y a-t-il quelque chose à perdre en repartant maintenant ?
+  ///
+  /// Nino : « quand on est dans les pré-coups et qu'on revient sur la partie
+  /// sans avoir armé, ce serait bien qu'un message nous prévienne qu'on va
+  /// perdre nos lignes non armées. »
+  ///
+  /// Deux choses se perdent, et le message vaut pour les deux : les variantes
+  /// gardées mais jamais envoyées, et celle qu'on était en train de composer.
+  /// Garder une variante ne parle qu'à cet écran — seul « Armer » la porte au
+  /// serveur, qui jouera la réponse téléphone éteint.
+  bool get _enSuspens => _ligne.isNotEmpty || !_memePlan(_plan, _planInitial);
+
+  /// Deux plans décrivent-ils la même chose ? `PremovePlan` est une valeur
+  /// sans égalité propre : on compare ce qu'il contient.
+  static bool _memePlan(PremovePlan a, PremovePlan b) {
+    if (a.base != b.base || a.variantes.length != b.variantes.length) {
+      return false;
+    }
+    for (var i = 0; i < a.variantes.length; i++) {
+      final x = a.variantes[i].coups;
+      final y = b.variantes[i].coups;
+      if (x.length != y.length) return false;
+      for (var j = 0; j < x.length; j++) {
+        if (x[j] != y[j]) return false;
+      }
+    }
+    return true;
+  }
+
+  /// Repartir sur la partie. Si quelque chose est en suspens, on demande.
+  Future<void> _repartir() async {
+    if (_envoi) return;
+    if (_enSuspens) {
+      final sur = await confirmerFuga(
+        context,
+        palette: paletteOf(Settings.instance.themeAxes.general),
+        titre: T('Repartir sans armer ?'),
+        message: T('Les variantes préparées seront perdues.'),
+      );
+      if (!sur || !mounted) return;
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
   /// Envoyer le plan au serveur et refermer l'écran.
   Future<void> _terminer() async {
     setState(() => _envoi = true);
@@ -267,81 +322,90 @@ class _PremoveScreenState extends State<PremoveScreen>
     final axes = Settings.instance.themeAxes;
     final palette = paletteOf(axes.general);
 
-    return FugaScaffold(
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            // Le bandeau a besoin d'une hauteur imposée : ses touches sont
-            // carrées, et sans contrainte verticale elles ne savent pas quelle
-            // taille prendre. Même proportion que `GameLayout` : 7 parts
-            // sur 104.
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 7 / 104,
-              child: GameTopBar(
-                palette: palette,
-                color: palette.fonce,
-                // Le plateau garde le sens qu'il avait dans la partie : le
-                // retourner ici ferait perdre la position de vue.
-                onFlip: () {},
-                pauseLabel: '<<',
-                onPause: () => Navigator.of(context).pop(),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(S(10)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _entete(),
-                    SizedBox(height: S(8)),
-                    _bandeau(palette),
-                    AspectRatio(
-                      // Un plateau dessine `kExtRows` rangées de haut : les
-                      // huit jouables, plus les deux zones de ralliement de
-                      // l'Héritier. Un CARRÉ les faisait déborder d'un
-                      // huitième de largeur en haut et en bas — peintes
-                      // par-dessus les textes voisins, et hors de la boîte,
-                      // donc hors de portée du doigt : Flutter arrête le test
-                      // de contact aux bords d'un widget, quoi qu'il peigne
-                      // au-delà.
-                      //
-                      // `GameLayout` résout la même chose autrement, en posant
-                      // le plateau dans une pile par-dessus une place
-                      // réservée. Ici l'écran défile : on lui donne simplement
-                      // la place qu'il dessine.
-                      aspectRatio: kCols / kExtRows,
-                      child: GameBoardView(
-                        board: _jeu.board,
-                        palette: palette,
-                        flipped: widget.flipped,
-                        onTapCell: _onTapCell,
-                        selected: _jeu.selected,
-                        groupSelection: _jeu.groupSelection,
-                        highlighted: _jeu.availablePushCells.toSet(),
-                        fuguedHeirs: _jeu.fuguedHeirs,
-                        pieceTheme: axes.pieces,
-                        boardTheme: axes.board,
-                        slides: slides,
-                        slideJumpPath: slideJumpPath,
-                        slideToken: slideToken,
-                        slideDuration: slideDuration,
-                      ),
-                    ),
-                    SizedBox(height: S(8)),
-                    _ligneEnCours(palette),
-                    if (_refus != null)
-                      _message(_refus!, palette, alerte: true),
-                    SizedBox(height: S(8)),
-                    _touches(palette),
-                    SizedBox(height: S(12)),
-                    _variantes(palette),
-                  ],
+    return PopScope(
+      // Le geste « retour » du téléphone sort par la même porte que la touche
+      // « << » : sans cela, le message ne préviendrait que la moitié des
+      // joueurs.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_repartir());
+      },
+      child: FugaScaffold(
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              // Le bandeau a besoin d'une hauteur imposée : ses touches sont
+              // carrées, et sans contrainte verticale elles ne savent pas quelle
+              // taille prendre. Même proportion que `GameLayout` : 7 parts
+              // sur 104.
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 7 / 104,
+                child: GameTopBar(
+                  palette: palette,
+                  color: palette.fonce,
+                  // Le plateau garde le sens qu'il avait dans la partie : le
+                  // retourner ici ferait perdre la position de vue.
+                  onFlip: () {},
+                  pauseLabel: '<<',
+                  onPause: () => unawaited(_repartir()),
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(S(10)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _entete(),
+                      SizedBox(height: S(8)),
+                      _bandeau(palette),
+                      AspectRatio(
+                        // Un plateau dessine `kExtRows` rangées de haut : les
+                        // huit jouables, plus les deux zones de ralliement de
+                        // l'Héritier. Un CARRÉ les faisait déborder d'un
+                        // huitième de largeur en haut et en bas — peintes
+                        // par-dessus les textes voisins, et hors de la boîte,
+                        // donc hors de portée du doigt : Flutter arrête le test
+                        // de contact aux bords d'un widget, quoi qu'il peigne
+                        // au-delà.
+                        //
+                        // `GameLayout` résout la même chose autrement, en posant
+                        // le plateau dans une pile par-dessus une place
+                        // réservée. Ici l'écran défile : on lui donne simplement
+                        // la place qu'il dessine.
+                        aspectRatio: kCols / kExtRows,
+                        child: GameBoardView(
+                          board: _jeu.board,
+                          palette: palette,
+                          flipped: widget.flipped,
+                          onTapCell: _onTapCell,
+                          selected: _jeu.selected,
+                          groupSelection: _jeu.groupSelection,
+                          highlighted: _jeu.availablePushCells.toSet(),
+                          fuguedHeirs: _jeu.fuguedHeirs,
+                          pieceTheme: axes.pieces,
+                          boardTheme: axes.board,
+                          slides: slides,
+                          slideJumpPath: slideJumpPath,
+                          slideToken: slideToken,
+                          slideDuration: slideDuration,
+                        ),
+                      ),
+                      SizedBox(height: S(8)),
+                      _ligneEnCours(palette),
+                      if (_refus != null)
+                        _message(_refus!, palette, alerte: true),
+                      SizedBox(height: S(8)),
+                      _touches(palette),
+                      SizedBox(height: S(12)),
+                      _variantes(palette),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

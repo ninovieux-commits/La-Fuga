@@ -6,6 +6,7 @@
 /// coup, c'est encore à vous. [Ok] [menu]". »
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -433,6 +434,126 @@ void main() {
         isEmpty,
         reason: 'un plan vide est ce qui annule',
       );
+    });
+  });
+
+  group('Repartir sans armer prévient', () {
+    // Nino : « quand on est dans les pré-coups et qu'on revient sur la partie
+    // sans avoir armé, ce serait bien qu'un message nous prévienne qu'on va
+    // perdre nos lignes non armées. » Garder une variante ne parle qu'à cet
+    // écran : seul « Armer » la porte au serveur.
+
+    /// L'écran de composition, posé SUR une page : c'est en la retrouvant
+    /// qu'on saura qu'on est reparti.
+    Future<void> composer(WidgetTester tester, {PremovePlan? plan}) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: Center(child: Text('LA PARTIE'))),
+        ),
+      );
+      final navigateur = tester.state<NavigatorState>(find.byType(Navigator));
+      unawaited(
+        navigateur.push(
+          MaterialPageRoute<void>(
+            builder: (_) => PremoveScreen(
+              game: partie(monTour: false, premove: plan?.toJson()),
+              service: CorrespondenceService(client),
+              board: Board.initial(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> jouer(WidgetTester tester, Cell de, Cell vers) async {
+      final vue = tester.widget<GameBoardView>(find.byType(GameBoardView));
+      vue.onTapCell(de);
+      await tester.pump();
+      vue.onTapCell(vers);
+      await tester.pump();
+      vue.onTapCell(vers);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> appuyer(WidgetTester tester, Finder f) async {
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    /// La touche « << » du bandeau, qui ramène à la partie.
+    final Finder retour = find.byTooltip('Retour');
+
+    testWidgets('une variante gardée mais pas armée retient', (tester) async {
+      await composer(tester);
+      await jouer(tester, const Cell(2, 1), const Cell(2, 2));
+      await jouer(tester, const Cell(0, 6), const Cell(0, 5));
+      await appuyer(
+        tester,
+        find.widgetWithText(FugaButton, 'Garder la variante'),
+      );
+
+      await appuyer(tester, retour);
+      expect(find.textContaining('Repartir sans armer'), findsOneWidget);
+      expect(find.textContaining('seront perdues'), findsOneWidget);
+
+      // « Non » : on reste, et la variante est toujours là.
+      await appuyer(tester, find.widgetWithText(FugaButton, 'Non'));
+      expect(find.byType(PremoveScreen), findsOneWidget);
+      expect(find.textContaining('1 / 6'), findsOneWidget);
+
+      // « Oui » : on repart, et on retrouve la partie.
+      await appuyer(tester, retour);
+      await appuyer(tester, find.widgetWithText(FugaButton, 'Oui'));
+      expect(find.byType(PremoveScreen), findsNothing);
+      expect(find.text('LA PARTIE'), findsOneWidget);
+    });
+
+    testWidgets('une variante seulement COMMENCÉE retient aussi', (
+      tester,
+    ) async {
+      // Elle n'est pas gardée, donc pas dans le plan — mais elle se perdrait
+      // tout autant.
+      await composer(tester);
+      await jouer(tester, const Cell(2, 1), const Cell(2, 2));
+
+      await appuyer(tester, retour);
+      expect(find.textContaining('Repartir sans armer'), findsOneWidget);
+    });
+
+    testWidgets('retirer une variante déjà armée retient', (tester) async {
+      await composer(
+        tester,
+        plan: const PremovePlan(
+          base: 1,
+        ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6'])),
+      );
+      await appuyer(tester, find.byIcon(Icons.close));
+
+      await appuyer(tester, retour);
+      expect(
+        find.textContaining('Repartir sans armer'),
+        findsOneWidget,
+        reason: 'effacer sans armer laisse le plan armé intact chez le serveur',
+      );
+    });
+
+    testWidgets('et rien ne retient quand rien n a bougé', (tester) async {
+      await composer(
+        tester,
+        plan: const PremovePlan(
+          base: 1,
+        ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6'])),
+      );
+      await appuyer(tester, retour);
+      expect(
+        find.textContaining('Repartir sans armer'),
+        findsNothing,
+        reason: 'le plan est celui du serveur : il n y a rien à perdre',
+      );
+      expect(find.text('LA PARTIE'), findsOneWidget);
     });
   });
 

@@ -542,5 +542,7 @@
   "Non": "Нет",
   "Analyser ou préparer ses coups ?": "Анализ или подготовка ходов?",
   "On ne prépare pas les coups d une partie qu on regarde": "В партии, за которой вы только наблюдаете, ходы не готовят.",
-  "Jouez votre coup : les pré-coups attendent le sien": "Сделайте свой ход: предварительные ходы ждут его хода."
+  "Jouez votre coup : les pré-coups attendent le sien": "Сделайте свой ход: предварительные ходы ждут его хода.",
+  "Repartir sans armer ?": "Выйти, не включив?",
+  "Les variantes préparées seront perdues.": "Подготовленные варианты будут потеряны."
 }

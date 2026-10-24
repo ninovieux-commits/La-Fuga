@@ -7,6 +7,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../i18n/translations.dart';
+import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 
@@ -178,3 +180,58 @@ Widget popupText(
     ),
   ),
 );
+
+/// « Oui » ou « Non », et rien d'autre.
+///
+/// La confirmation d'un geste qu'on ne peut pas défaire : abandonner, demander
+/// la nulle, repartir en laissant ce qu'on avait préparé. Une seule, la même
+/// partout — chaque écran avait la sienne, et deux d'entre elles étaient mot
+/// pour mot la même.
+Future<bool> confirmerFuga(
+  BuildContext context, {
+  required ThemePalette palette,
+  required String titre,
+  String message = '',
+}) async {
+  final ok = await showFugaPopup<bool>(
+    context,
+    widthFactor: 0.82,
+    heightFactor: message.isEmpty ? 0.34 : 0.42,
+    rows: [
+      (0.42, popupText(titre, size: 17, bold: true)),
+      if (message.isNotEmpty)
+        (
+          0.25,
+          popupText(
+            message,
+            size: 13,
+            color: const Color.fromRGBO(217, 217, 217, 1),
+          ),
+        ),
+      (
+        kTouchRow,
+        Row(
+          children: [
+            Expanded(
+              child: FugaButton(
+                text: T('Non'),
+                fontSize: SF(16),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+            ),
+            SizedBox(width: S(8)),
+            Expanded(
+              child: FugaButton(
+                text: T('Oui'),
+                color: palette.fonce,
+                fontSize: SF(16),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+  return ok == true;
+}

@@ -542,5 +542,7 @@
   "Non": "No",
   "Analyser ou préparer ses coups ?": "Analyse or prepare moves?",
   "On ne prépare pas les coups d une partie qu on regarde": "You cannot prepare moves in a game you are only watching.",
-  "Jouez votre coup : les pré-coups attendent le sien": "Play your move: pre-moves wait for theirs."
+  "Jouez votre coup : les pré-coups attendent le sien": "Play your move: pre-moves wait for theirs.",
+  "Repartir sans armer ?": "Leave without arming?",
+  "Les variantes préparées seront perdues.": "The prepared variations will be lost."
 }

@@ -112,7 +112,7 @@ Future<void> ouvrirDrapeau(
   if (choix == null || !context.mounted) return;
 
   final nulle = choix == GesteDrapeau.nulle;
-  final confirme = await _confirme(
+  final confirme = await confirmerFuga(
     context,
     palette: palette,
     titre: nulle
@@ -122,54 +122,4 @@ Future<void> ouvrirDrapeau(
   );
   if (!confirme) return;
   (nulle ? onNulle : onAbandon)?.call();
-}
-
-/// « Oui » ou « Non », et rien d'autre.
-Future<bool> _confirme(
-  BuildContext context, {
-  required ThemePalette palette,
-  required String titre,
-  required String message,
-}) async {
-  final ok = await showFugaPopup<bool>(
-    context,
-    widthFactor: 0.82,
-    heightFactor: message.isEmpty ? 0.34 : 0.42,
-    rows: [
-      (message.isEmpty ? 0.42 : 0.30, popupText(titre, size: 17, bold: true)),
-      if (message.isNotEmpty)
-        (
-          0.25,
-          popupText(
-            message,
-            size: 13,
-            color: const Color.fromRGBO(217, 217, 217, 1),
-          ),
-        ),
-      (
-        kTouchRow,
-        Row(
-          children: [
-            Expanded(
-              child: FugaButton(
-                text: T('Non'),
-                fontSize: SF(16),
-                onPressed: () => Navigator.of(context).pop(false),
-              ),
-            ),
-            SizedBox(width: S(8)),
-            Expanded(
-              child: FugaButton(
-                text: T('Oui'),
-                color: palette.fonce,
-                fontSize: SF(16),
-                onPressed: () => Navigator.of(context).pop(true),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-  return ok == true;
 }

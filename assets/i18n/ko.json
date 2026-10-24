@@ -542,5 +542,7 @@
   "Non": "아니요",
   "Analyser ou préparer ses coups ?": "분석할까요, 수를 준비할까요?",
   "On ne prépare pas les coups d une partie qu on regarde": "관전 중인 대국에서는 수를 준비할 수 없습니다.",
-  "Jouez votre coup : les pré-coups attendent le sien": "먼저 두세요. 예약 수는 상대의 수를 기다립니다."
+  "Jouez votre coup : les pré-coups attendent le sien": "먼저 두세요. 예약 수는 상대의 수를 기다립니다.",
+  "Repartir sans armer ?": "설정하지 않고 돌아갈까요?",
+  "Les variantes préparées seront perdues.": "준비한 변화는 사라집니다."
 }
