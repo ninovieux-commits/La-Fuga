@@ -66,10 +66,10 @@ Future<bool> showPauseDialog(
             fontSize: SF(16),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                // Depuis une partie, Kivy n'offre ni la langue ni le
-                // composeur : ils reconstruiraient l'écran sous les pieds du
-                // joueur.
-                builder: (_) => const SettingsScreen(fromMenu: false),
+                // LE MÊME écran qu'au menu, composeur de thème compris :
+                // Kivy le réduisait depuis une partie, le portage n'en a plus
+                // besoin. La partie attend dessous et se retrouve entière.
+                builder: (_) => const SettingsScreen(),
               ),
             ),
           ),

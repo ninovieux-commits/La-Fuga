@@ -72,12 +72,14 @@ enum FavoriteAction {
 
 typedef FavoriteChoice = ({String pseudo, FavoriteAction action});
 
-/// Largeur des touches « Défier » et « Chat » dans la liste des favoris.
+/// Côté des touches « Défier » et « Chat » dans la liste des favoris.
 ///
-/// Deux touches au lieu d'une : elles se partagent la place qu'une seule
-/// prenait, et le nom garde la sienne. Mesuré sur un écran de 393 points,
-/// le plus étroit qu'on vise.
-double get kLargeurActionFavori => S(76);
+/// CARRÉES. Nino : « élargis les touches chat et défier pour qu'ils soient
+/// carrés pas rectangles. » Leur largeur était un nombre à part, mesuré sur
+/// un écran de 393 points ; elle suit maintenant leur hauteur, qui est celle
+/// de toute touche de l'appli — elles restent carrées sur n'importe quel
+/// écran, et y gagnent dix points de large au passage.
+double get kCoteActionFavori => FugaButton.comfortableHeight;
 
 /// La barre de recherche du menu, repérée pour `menu_search_bar_test.dart` :
 /// c'est sa hauteur PEINTE qui compte, pas celle de la boîte du `TextField`.
@@ -775,7 +777,7 @@ class MenuScreenState extends State<MenuScreen>
                             ),
                             SizedBox(width: S(6)),
                             SizedBox(
-                              width: kLargeurActionFavori,
+                              width: kCoteActionFavori,
                               child: FugaButton(
                                 text: T('Défier'),
                                 color: palette.fonce,
@@ -786,7 +788,7 @@ class MenuScreenState extends State<MenuScreen>
                             ),
                             SizedBox(width: S(6)),
                             SizedBox(
-                              width: kLargeurActionFavori,
+                              width: kCoteActionFavori,
                               child: FugaButton(
                                 text: T('Chat'),
                                 color: palette.clair,

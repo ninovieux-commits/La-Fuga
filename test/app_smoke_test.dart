@@ -155,8 +155,10 @@ void main() {
     expect(find.text('Deep Grey'), findsOneWidget, reason: 'bandeau adverse');
     expect(
       find.text('∞'),
-      findsNWidgets(2),
-      reason: 'une partie contre Deep Grey est sans chrono',
+      findsNothing,
+      reason:
+          'une partie contre Deep Grey est sans chrono : la place du chrono '
+          'reste vide, elle ne porte plus de symbole',
     );
   });
 

@@ -71,7 +71,7 @@ void main() {
               name: nom,
               rating: rating,
               subtitle: subtitle,
-              clock: '∞',
+              clock: '',
               palette: paletteOf('original'),
               isWhite: true,
               isTurn: false,

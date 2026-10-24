@@ -150,7 +150,7 @@ void main() {
         width: 393,
         child: PlayerPanel(
           name: 'nino',
-          clock: '∞',
+          clock: '',
           palette: paletteOf('original'),
           isWhite: true,
           isTurn: true,

@@ -86,9 +86,14 @@ class GameClock {
     _remaining[Camp.noir] = cadence.seconds;
   }
 
-  /// `mm:ss`, ou `∞` sans chrono.
+  /// `mm:ss`, ou RIEN sans chrono.
+  ///
+  /// Le « ∞ » qu'on écrivait là annonçait une chose que le joueur sait déjà :
+  /// il a choisi sa cadence, et une partie de correspondance n'en a jamais
+  /// eu. Nino : « enlève le symbole infini qui remplace le chrono quand il
+  /// n'y a pas de temps qui s'écoule, il ne sert à rien. »
   static String format(int? seconds) {
-    if (seconds == null) return '∞';
+    if (seconds == null) return '';
     final s = seconds < 0 ? 0 : seconds;
     final m = (s ~/ 60).toString().padLeft(2, '0');
     final r = (s % 60).toString().padLeft(2, '0');

@@ -99,9 +99,7 @@ class _TutoScreenState extends State<TutoScreen> with SuitLesReglages {
               text: T('Réglages'),
               fontSize: SF(16),
               onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(fromMenu: false),
-                ),
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
               ),
             ),
             SizedBox(height: S(10)),

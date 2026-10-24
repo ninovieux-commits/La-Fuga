@@ -16,8 +16,11 @@ void main() {
       expect(GameClock.format(3599), '59:59');
     });
 
-    test('sans chrono, on affiche le symbole infini', () {
-      expect(GameClock.format(null), '∞');
+    test('sans chrono, la place du chrono reste VIDE', () {
+      // Nino : « enlève le symbole infini qui remplace le chrono quand il n y
+      // a pas de temps qui s écoule, il ne sert à rien. » Le joueur a choisi
+      // sa cadence, et une partie de correspondance n en a jamais eu.
+      expect(GameClock.format(null), '');
     });
 
     test('un temps négatif est ramené à zéro', () {
@@ -55,7 +58,7 @@ void main() {
       expect(c.isUnlimited, isTrue);
       expect(c.tick(Camp.blanc), isNull);
       expect(c.remainingFor(Camp.blanc), isNull);
-      expect(c.displayFor(Camp.blanc), '∞');
+      expect(c.displayFor(Camp.blanc), '');
     });
   });
 

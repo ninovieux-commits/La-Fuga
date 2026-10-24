@@ -1079,7 +1079,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       // adversaire) », puis « le mélo indiqué durant une partie doit être
       // celui du mode correspondant ».
       rating: _meloAffiche(isMine),
-      clock: '∞',
+      clock: '',
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: c.turn == camp && _g.status == CorrStatus.enCours,

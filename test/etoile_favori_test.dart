@@ -150,7 +150,7 @@ void main() {
               height: 120,
               child: PlayerPanel(
                 name: 'celia',
-                clock: '∞',
+                clock: '',
                 palette: paletteOf('original'),
                 isWhite: true,
                 isTurn: false,
@@ -189,7 +189,7 @@ void main() {
               height: 120,
               child: PlayerPanel(
                 name: 'un pseudo vraiment très long qui déborde largement',
-                clock: '∞',
+                clock: '',
                 palette: paletteOf('original'),
                 isWhite: true,
                 isTurn: false,

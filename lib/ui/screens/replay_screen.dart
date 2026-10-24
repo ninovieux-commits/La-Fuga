@@ -384,7 +384,7 @@ class _ReplayScreenState extends State<ReplayScreen>
   /// Chrono affiché en relecture : Kivy y remet la pendule de la cadence
   /// enregistrée (`load_replay`), pas le temps réellement consommé.
   String _clockLabel(String cadence) {
-    if (cadence == 'zen' || cadence.isEmpty) return '∞';
+    if (cadence == 'zen' || cadence.isEmpty) return '';
     final minutes = int.tryParse(cadence) ?? 15;
     return '${minutes.toString().padLeft(2, '0')}:00';
   }

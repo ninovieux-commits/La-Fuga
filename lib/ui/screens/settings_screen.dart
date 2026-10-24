@@ -38,13 +38,23 @@ const Map<String, String> kInstrumentLabels = {
   'choeur': 'Chœur',
 };
 
+/// L'écran des réglages — LE MÊME PARTOUT.
+///
+/// Nino : « j'aimerais que le popup réglages ingame soit le même que celui du
+/// menu (avec l'accès au composeur de thème, sans perdre la partie en cours
+/// quand on revient en arrière). Il n'y aurait donc plus deux popups de
+/// réglages différents dans l'app mais qu'un seul. »
+///
+/// ## Pourquoi il y en avait deux
+///
+/// Kivy cachait la langue et le composeur dès qu'on venait d'une partie :
+/// les changer reconstruisait l'écran sous les pieds du joueur. Le portage
+/// n'a plus ce défaut — `SuitLesReglages` fait se repeindre les écrans, y
+/// compris ceux qui sont DESSOUS dans la pile, sans les reconstruire. La
+/// partie reste donc entière pendant qu'on va composer un thème, et on la
+/// retrouve en revenant.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, this.fromMenu = true});
-
-  /// Kivy ne montre la langue et le composeur de thèmes que depuis le menu :
-  /// changer de langue en cours de partie reconstruirait l'écran sous les
-  /// pieds du joueur.
-  final bool fromMenu;
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -155,25 +165,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
                 padding: EdgeInsets.fromLTRB(S(16), S(6), S(16), S(6)),
                 children: [
-                  if (widget.fromMenu) ...[
-                    _label(T('Langue'), size: S(15)),
-                    _selector(
-                      kLanguageLabels.values.elementAt(_langIndex),
-                      (d) => setState(() {
-                        _langIndex = (_langIndex + d) % kLanguageLabels.length;
-                        if (_langIndex < 0) {
-                          _langIndex += kLanguageLabels.length;
-                        }
-                      }),
-                    ),
-                    SizedBox(height: S(6)),
-                    FugaButton(
-                      text: T('Valider la langue'),
-                      color: palette.clair,
-                      fontSize: SF(14),
-                      onPressed: _applyLanguage,
-                    ),
-                  ],
+                  _label(T('Langue'), size: S(15)),
+                  _selector(
+                    kLanguageLabels.values.elementAt(_langIndex),
+                    (d) => setState(() {
+                      _langIndex = (_langIndex + d) % kLanguageLabels.length;
+                      if (_langIndex < 0) {
+                        _langIndex += kLanguageLabels.length;
+                      }
+                    }),
+                  ),
+                  SizedBox(height: S(6)),
+                  FugaButton(
+                    text: T('Valider la langue'),
+                    color: palette.clair,
+                    fontSize: SF(14),
+                    onPressed: _applyLanguage,
+                  ),
 
                   _label(T('Volume')),
                   Slider(
@@ -300,36 +308,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: EdgeInsets.fromLTRB(S(16), S(4), S(16), S(12)),
               child: Row(
                 children: [
-                  // Composer un thème ne se fait que depuis le menu : en
-                  // pleine partie, l'écran se reconstruirait sous les pieds
-                  // du joueur.
-                  if (widget.fromMenu) ...[
-                    Expanded(
-                      flex: 72,
-                      child: FugaButton(
-                        text: T('Composer le thème'),
-                        color: palette.fonce,
-                        fontSize: SF(14),
-                        onPressed: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute<bool>(
-                              builder: (_) => const ThemeComposerScreen(),
-                            ),
-                          );
-                          if (!mounted) return;
-                          setState(
-                            () => _themeIndex = _indexOf(
-                              kThemeOrder,
-                              _settings.themeAxes.general,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    SizedBox(width: S(8)),
-                  ],
                   Expanded(
-                    flex: widget.fromMenu ? 28 : 100,
+                    flex: 72,
+                    child: FugaButton(
+                      text: T('Composer le thème'),
+                      color: palette.fonce,
+                      fontSize: SF(14),
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<bool>(
+                            builder: (_) => const ThemeComposerScreen(),
+                          ),
+                        );
+                        if (!mounted) return;
+                        setState(
+                          () => _themeIndex = _indexOf(
+                            kThemeOrder,
+                            _settings.themeAxes.general,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(width: S(8)),
+                  Expanded(
+                    flex: 28,
                     child: FugaButton(
                       text: T('Fermer'),
                       fontSize: SF(14),

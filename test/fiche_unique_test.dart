@@ -101,7 +101,7 @@ void main() {
               child: PlayerPanel(
                 name: 'mesange',
                 rating: '1530',
-                clock: '∞',
+                clock: '',
                 palette: paletteOf('original'),
                 isWhite: true,
                 isTurn: false,
