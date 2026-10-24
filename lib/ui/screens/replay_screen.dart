@@ -26,6 +26,7 @@ import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/plus_lecteur_dialog.dart';
 import '../widgets/move_strip.dart';
 import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
@@ -241,6 +242,15 @@ class _ReplayScreenState extends State<ReplayScreen>
   }
 
   /// Contre Deep Grey : le joueur choisit son camp, le trait ne change pas.
+  /// Ouvrir ou refermer la lecture automatique.
+  void _basculerLecture() => setState(() {
+    _auto = !_auto;
+    if (!_auto) {
+      _enLecture = false;
+      _battement?.cancel();
+    }
+  });
+
   Future<void> _playAgainstDeepGrey() async {
     final mine = await askDeepGreyCamp(context);
     if (mine == null || !mounted) return;
@@ -271,24 +281,24 @@ class _ReplayScreenState extends State<ReplayScreen>
             onFlip: () => setState(() => _flipped = !_flipped),
             pauseLabel: '<<',
             onPause: () => Navigator.of(context).pop(),
-            // Deux choses à copier, une seule touche : mesuré, une
-            // quatrième touche large déborde du bandeau sur un écran de
-            // 320 points.
-            onCopyNmc: () => showCopyChoice(
-              context,
-              nmc: widget.nmc,
-              fug: fugEcrire(step.board, step.turn),
+            // TOUT DERRIÈRE « PLUS ». Trois touches larges tenaient dans le
+            // bandeau, et c'était déjà juste ; la quatrième débordait. Les
+            // quatre gestes ont maintenant la place de dire ce qu'ils font.
+            onPlus: () => unawaited(
+              ouvrirPlusLecteur(
+                context,
+                palette: palette,
+                onCopierPosition: () => unawaited(
+                  showFugDialog(context, fugEcrire(step.board, step.turn)),
+                ),
+                onCopierPartie: () =>
+                    unawaited(showNmcDialog(context, widget.nmc)),
+                onDeepGrey: () => unawaited(_playAgainstDeepGrey()),
+                onLecture: _basculerLecture,
+                enLecture: _auto,
+              ),
             ),
             onAnalyse: () => _playFromHere(false),
-            onDeepGrey: _playAgainstDeepGrey,
-            onAutoPlay: () => setState(() {
-              _auto = !_auto;
-              if (!_auto) {
-                _enLecture = false;
-                _battement?.cancel();
-              }
-            }),
-            autoPlayOn: _auto,
           ),
           notice: _replay.isTruncated ? _truncatedNotice() : null,
           topPanel: _panel(palette, topCamp, meta),

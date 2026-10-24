@@ -57,6 +57,7 @@ class GameTopBar extends StatelessWidget {
     this.raisonPremove,
     this.onAutoPlay,
     this.autoPlayOn = false,
+    this.onPlus,
     this.onDeepGrey,
     this.aiDeepMode,
     this.onToggleAiMode,
@@ -102,6 +103,10 @@ class GameTopBar extends StatelessWidget {
   /// RONDE, à gauche : les larges du bandeau sont déjà au bord du débordement
   /// sur un petit écran, et le côté gauche est libre en relecture.
   final VoidCallback? onAutoPlay;
+
+  /// Le « Plus » du lecteur : il réunit copier, Deep Grey et la lecture
+  /// automatique derrière une seule touche, juste à droite du retournement.
+  final VoidCallback? onPlus;
 
   /// Vraie quand la lecture automatique est ouverte : la touche s'allume.
   final bool autoPlayOn;
@@ -152,6 +157,36 @@ class GameTopBar extends StatelessWidget {
                 fontSize: SF(21),
                 tooltip: T('Retourner le plateau'),
               ),
+              // LE « PLUS » DU LECTEUR, JUSTE À DROITE DU RETOURNEMENT.
+              // Nino : « on met un bouton "plus" juste à droite du bouton
+              // flip de plateau, qui ouvre un popup laissant 4 choix ».
+              if (onPlus != null) ...[
+                SizedBox(width: S(6)),
+                _flex(
+                  _wide(
+                    T('Plus'),
+                    onPlus!,
+                    width: S(104),
+                    color: kBarButtonDark,
+                  ),
+                ),
+              ],
+              // DEEP GREY, JUSTE À DROITE DU RETOURNEMENT. Nino : « le
+              // bouton deepgrey doit aller à gauche du bandeau (juste à
+              // droite du bouton pour flipper le plateau) ». Il ne croise
+              // jamais le chat : l'un vit en analyse et en relecture,
+              // l'autre dans une partie contre quelqu'un.
+              if (onDeepGrey != null) ...[
+                SizedBox(width: S(6)),
+                _flex(
+                  _wide(
+                    'Deep Grey',
+                    onDeepGrey!,
+                    width: S(130),
+                    color: kBarButtonDeepGrey,
+                  ),
+                ),
+              ],
               // LA TOUCHE CHAT, CARRÉE, JUSTE À DROITE DU RETOURNEMENT.
               // Nino : « le bouton chat peut revenir à sa taille carrée si tu
               // le mets à gauche (juste à droite du bouton pour flipper le
@@ -217,18 +252,6 @@ class GameTopBar extends StatelessWidget {
                 ),
                 SizedBox(width: S(6)),
               ],
-              if (onCopyFug != null) ...[
-                _flex(
-                  _wide(
-                    T('Position'),
-                    onCopyFug!,
-                    width: S(118),
-                    color: kBarButtonDark,
-                    tooltip: T('Copier au format .fug'),
-                  ),
-                ),
-                SizedBox(width: S(6)),
-              ],
               // LA BOULE réunit « Analyser » et « Pré-coups ». Nino : « analyse et
               // pré-coups doivent être réunis sur ce bouton, et quand on clique
               // dessus ça fait apparaître un popup qui demande si on veut aller en
@@ -261,13 +284,22 @@ class GameTopBar extends StatelessWidget {
                 ),
                 SizedBox(width: S(6)),
               ],
-              if (onDeepGrey != null) ...[
+              // « COPIER POSITION », SUR DEUX LIGNES, À LA PLACE QU'OCCUPAIT
+              // DEEP GREY. Nino : « le bouton "position" doit devenir "copier
+              // position" (superposés dans le bouton sinon ça va être écrit
+              // trop petit) et prendre la place du bouton deepgrey. » Sur une
+              // seule ligne, deux mots dans cette largeur partiraient réduits
+              // de moitié.
+              if (onCopyFug != null) ...[
                 _flex(
                   _wide(
-                    'Deep Grey',
-                    onDeepGrey!,
+                    T('Copier position'),
+                    onCopyFug!,
                     width: S(130),
-                    color: kBarButtonDeepGrey,
+                    color: kBarButtonDark,
+                    fontSize: SF(13),
+                    lignes: 2,
+                    tooltip: T('Copier au format .fug'),
                   ),
                 ),
                 SizedBox(width: S(6)),
@@ -386,6 +418,7 @@ class GameTopBar extends StatelessWidget {
     required Color color,
     double? fontSize,
     String? tooltip,
+    int lignes = 1,
   }) => _button(
     label,
     onPressed,
@@ -394,6 +427,7 @@ class GameTopBar extends StatelessWidget {
     radius: S(14),
     fontSize: fontSize ?? SF(16),
     tooltip: tooltip,
+    lignes: lignes,
   );
 
   /// [width] nul : la touche est carrée et suit la hauteur du bandeau.
@@ -405,6 +439,7 @@ class GameTopBar extends StatelessWidget {
     required double radius,
     required double fontSize,
     String? tooltip,
+    int lignes = 1,
   }) {
     final Widget inner = Material(
       color: color,
@@ -424,16 +459,7 @@ class GameTopBar extends StatelessWidget {
             // La marge reste en dehors : seules les lettres se réduisent.
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _etiquette(label, fontSize, width, lignes),
             ),
           ),
         ),
@@ -445,6 +471,27 @@ class GameTopBar extends StatelessWidget {
     }
     final large = SizedBox(width: width, height: double.infinity, child: inner);
     return tooltip == null ? large : Tooltip(message: tooltip, child: large);
+  }
+
+  /// Le libellé d'une touche, sur une ou plusieurs lignes.
+  ///
+  /// SUR DEUX LIGNES, il faut lui donner une largeur : dans un `FittedBox`,
+  /// le texte reçoit une place infinie et ne va donc jamais à la ligne tout
+  /// seul. On lui impose la largeur utile de la touche, il s'y replie, et le
+  /// `FittedBox` ne réduit plus que ce qui dépasse encore.
+  Widget _etiquette(String label, double fontSize, double? width, int lignes) {
+    final texte = Text(
+      label,
+      textAlign: TextAlign.center,
+      maxLines: lignes,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: fontSize,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    if (lignes <= 1 || width == null) return texte;
+    return SizedBox(width: width - S(12), child: texte);
   }
 
   /// Une touche large, rendue réductible.

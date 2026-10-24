@@ -283,37 +283,39 @@ void main() {
   });
 
   group('Pendant la relecture', () {
-    testWidgets('« Copier » est là, avec la boule et Deep Grey', (
-      tester,
-    ) async {
+    testWidgets('« Plus » réunit les quatre gestes du lecteur', (tester) async {
       // Il fallait ressortir jusqu à l historique pour copier le .nmc d une
-      // partie qu on était en train de relire.
+      // partie qu on était en train de relire. Nino : « les boutons "deep
+      // grey", "copier" et le bouton play doivent disparaître. À la place,
+      // on met un bouton "plus" […] qui ouvre un popup laissant 4 choix. »
       const nmc = '[Date "2026-09-27"]\n[Blanc "nino"]\n\n1.Do2-Do3/Do7-Do6';
       await tester.pumpWidget(const MaterialApp(home: ReplayScreen(nmc: nmc)));
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('Analyser'), findsOneWidget, reason: 'repère');
-      expect(
-        find.text('Copier'),
-        findsOneWidget,
-        reason: 'la touche manque dans le bandeau du lecteur',
-      );
+      for (final parti in ['Copier', 'Deep Grey']) {
+        expect(
+          find.text(parti),
+          findsNothing,
+          reason: '« $parti » est passé derrière « Plus »',
+        );
+      }
+      expect(find.text('Plus'), findsOneWidget);
 
-      await tester.tap(find.text('Copier'));
+      await tester.tap(find.text('Plus'));
       await tester.pumpAndSettle();
 
-      // « Copier » propose maintenant deux choses : la partie, et la position
-      // qu'on regarde. Une quatrième touche large dans le bandeau déborderait
-      // sur un écran de 320 points — mesuré.
-      expect(find.text('La partie (.nmc)'), findsOneWidget);
-      expect(find.text('La position (.fug)'), findsOneWidget);
+      expect(find.text('Copier la position'), findsOneWidget);
+      expect(find.text('Copier la partie'), findsOneWidget);
+      expect(find.text('Jouer contre Deep Grey'), findsOneWidget);
+      expect(find.text('Lire la partie'), findsOneWidget);
       expect(
         copie,
         isNull,
         reason: 'rien ne doit être copié avant d avoir choisi quoi',
       );
 
-      await tester.tap(find.text('La partie (.nmc)'));
+      await tester.tap(find.text('Copier la partie'));
       await tester.pumpAndSettle();
 
       expect(

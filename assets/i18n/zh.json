@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "已屏蔽的玩家：",
   "Jouez votre coup d abord": "请先走你的棋",
   "Jouez votre coup pour pouvoir proposer la nulle": "走棋后才能提议和棋",
-  "La partie (.nmc)": "对局 (.nmc)",
-  "La position (.fug)": "局面 (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "第一行表示轮到谁走：B 为白方，N 为黑方。",
   "Le suivent :": "关注者：",
   "Lecteur fug": ".fug 阅读器",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "先走你的棋：预设着法要等对手落子。",
   "Repartir sans armer ?": "不启用就返回吗？",
   "Les variantes préparées seront perdues.": "已准备的变化将会丢失。",
-  "Envoyer une pièce": "发送棋子"
+  "Envoyer une pièce": "发送棋子",
+  "Copier position": "复制\n局面",
+  "Copier la position": "复制局面",
+  "Copier la partie": "复制棋局",
+  "Lire la partie": "播放棋局",
+  "Arrêter la lecture": "停止播放"
 }

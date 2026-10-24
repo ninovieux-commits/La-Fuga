@@ -197,7 +197,9 @@ void main() {
     ) async {
       await openReader(tester);
 
-      await tapVisible(tester, find.text('Deep Grey'));
+      // « Deep Grey » est passé derrière le « Plus » du lecteur.
+      await tapVisible(tester, find.text('Plus'));
+      await tapVisible(tester, find.text('Jouer contre Deep Grey'));
       // Kivy demande SON camp au joueur ; le trait, lui, ne bouge pas.
       // Pas de `pumpAndSettle` ici : c'est aux Noirs de jouer, donc Deep Grey
       // se met à réfléchir et son indicateur tourne sans fin.

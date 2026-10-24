@@ -264,16 +264,16 @@ void main() {
       expect(find.byTooltip('Annuler'), findsNothing);
     });
 
-    testWidgets('venue d une correspondance, Deep Grey est interdit', (
+    testWidgets('venue d une correspondance, Deep Grey est là aussi', (
       tester,
     ) async {
+      // Il était interdit ici — il souffle le coup à jouer. Nino : « ce
+      // bouton deepgrey doit aussi être là lorsqu'on accède à l'analyse
+      // depuis une partie par correspondance. » C'est son jeu, et il joue
+      // contre des gens qu'il connaît.
       await open(tester, analysis: true, analysisFromCorr: true);
 
-      expect(
-        find.text('Deep Grey'),
-        findsNothing,
-        reason: "l'IA soufflerait le coup d'une partie en cours",
-      );
+      expect(find.text('Deep Grey'), findsOneWidget);
       expect(find.text('<<'), findsOneWidget);
     });
   });

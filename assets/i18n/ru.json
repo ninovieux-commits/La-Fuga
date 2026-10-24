@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "Заблокированные:",
   "Jouez votre coup d abord": "Сначала сделайте ход",
   "Jouez votre coup pour pouvoir proposer la nulle": "Сделайте ход, чтобы предложить ничью",
-  "La partie (.nmc)": "Партия (.nmc)",
-  "La position (.fug)": "Позиция (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "Первая строка указывает, чей ход: B — белые, N — чёрные.",
   "Le suivent :": "Подписчики:",
   "Lecteur fug": "Просмотр .fug",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "Сделайте свой ход: предварительные ходы ждут его хода.",
   "Repartir sans armer ?": "Выйти, не включив?",
   "Les variantes préparées seront perdues.": "Подготовленные варианты будут потеряны.",
-  "Envoyer une pièce": "Отправить фигуру"
+  "Envoyer une pièce": "Отправить фигуру",
+  "Copier position": "Копировать\nпозицию",
+  "Copier la position": "Копировать позицию",
+  "Copier la partie": "Копировать партию",
+  "Lire la partie": "Воспроизвести партию",
+  "Arrêter la lecture": "Остановить воспроизведение"
 }

@@ -66,7 +66,7 @@ void main() {
   }
 
   group('Copier la position affichée', () {
-    testWidgets('en analyse, la touche « Position » la met au presse-papier', (
+    testWidgets('en analyse, « Copier position » la met au presse-papier', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -108,7 +108,7 @@ void main() {
         reason: 'le coup n a pas été joué : le test ne distinguerait rien',
       );
 
-      await appuyer(tester, find.text('Position'));
+      await appuyer(tester, find.text('Copier position'));
 
       expect(presse.length, 1);
       final lu = fugLire(presse.single);
@@ -139,8 +139,9 @@ void main() {
       );
     });
 
-    testWidgets('dans l historique, « Copier » propose la partie ET la '
-        'position', (tester) async {
+    testWidgets('dans l historique, « Plus » copie la position affichée', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ReplayScreen(
@@ -149,11 +150,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await appuyer(tester, find.text('Copier'));
+      await appuyer(tester, find.text('Plus'));
 
-      expect(find.text('La partie (.nmc)'), findsOneWidget);
-      expect(find.text('La position (.fug)'), findsOneWidget);
-      await appuyer(tester, find.text('La position (.fug)'));
+      expect(find.text('Copier la partie'), findsOneWidget);
+      expect(find.text('Copier la position'), findsOneWidget);
+      await appuyer(tester, find.text('Copier la position'));
 
       expect(presse.length, 1);
       final lu = fugLire(presse.single);

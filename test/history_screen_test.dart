@@ -127,9 +127,9 @@ void main() {
     // Kivy ouvre la relecture sur le PREMIER coup joué : le bandeau montre
     // les deux joueurs et les coups, pas de « position de départ ».
     expect(find.text('Nino'), findsOneWidget);
-    // « Deep Grey » est à la fois le nom du joueur et la touche du bandeau
-    // qui propose de reprendre la position contre l'IA.
-    expect(find.text('Deep Grey'), findsNWidgets(2));
+    // Une seule fois : le nom du joueur. La touche qui propose de reprendre
+    // la position contre l'IA est passée derrière « Plus ».
+    expect(find.text('Deep Grey'), findsOneWidget);
 
     // On avance d'un coup, puis on recule jusqu'avant le premier.
     await tester.tap(find.text('>'));

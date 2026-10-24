@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "Blockierte Spieler:",
   "Jouez votre coup d abord": "Mach zuerst deinen Zug",
   "Jouez votre coup pour pouvoir proposer la nulle": "Mach deinen Zug, um Remis anbieten zu können",
-  "La partie (.nmc)": "Die Partie (.nmc)",
-  "La position (.fug)": "Die Stellung (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "Die erste Zeile sagt, wer am Zug ist: B für Weiß, N für Schwarz.",
   "Le suivent :": "Folgen ihm:",
   "Lecteur fug": ".fug-Leser",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "Ziehen Sie zuerst: Vorzüge warten auf seinen Zug.",
   "Repartir sans armer ?": "Zurück, ohne zu aktivieren?",
   "Les variantes préparées seront perdues.": "Die vorbereiteten Varianten gehen verloren.",
-  "Envoyer une pièce": "Eine Figur senden"
+  "Envoyer une pièce": "Eine Figur senden",
+  "Copier position": "Stellung\nkopieren",
+  "Copier la position": "Stellung kopieren",
+  "Copier la partie": "Partie kopieren",
+  "Lire la partie": "Partie abspielen",
+  "Arrêter la lecture": "Wiedergabe stoppen"
 }

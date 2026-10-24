@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "Blocked players:",
   "Jouez votre coup d abord": "Play your move first",
   "Jouez votre coup pour pouvoir proposer la nulle": "Play your move to be able to offer a draw",
-  "La partie (.nmc)": "The game (.nmc)",
-  "La position (.fug)": "The position (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "The first line says who is to move: B for White, N for Black.",
   "Le suivent :": "Followers:",
   "Lecteur fug": ".fug reader",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "Play your move: pre-moves wait for theirs.",
   "Repartir sans armer ?": "Leave without arming?",
   "Les variantes préparées seront perdues.": "The prepared variations will be lost.",
-  "Envoyer une pièce": "Send a piece"
+  "Envoyer une pièce": "Send a piece",
+  "Copier position": "Copy\nposition",
+  "Copier la position": "Copy the position",
+  "Copier la partie": "Copy the game",
+  "Lire la partie": "Play the game back",
+  "Arrêter la lecture": "Stop playback"
 }

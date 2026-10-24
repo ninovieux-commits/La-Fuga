@@ -20,7 +20,6 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/widgets/auto_play_bar.dart';
-import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,10 +63,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// La lecture automatique s'ouvre par « Plus » : Nino a retiré la touche
+  /// « play » du bandeau et rangé les quatre gestes du lecteur derrière une
+  /// seule touche.
+  Future<void> lancerLaLecture(WidgetTester tester) async {
+    await tester.tap(find.text('Plus'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lire la partie'));
+    await tester.pumpAndSettle();
+  }
+
+  /// Et elle se referme par la même touche, qui dit alors « Arrêter ».
+  Future<void> arreterLaLecture(WidgetTester tester) async {
+    await tester.tap(find.text('Plus'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arrêter la lecture'));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> ouvrirAuto(WidgetTester tester, {FauxSons? sons}) async {
     await ouvrir(tester, sons: sons);
-    tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
-    await tester.pumpAndSettle();
+    await lancerLaLecture(tester);
   }
 
   AutoPlayBar barre(WidgetTester tester) =>
@@ -85,8 +101,7 @@ void main() {
       expect(find.byType(AutoPlayBar), findsNothing);
       expect(find.byType(PlayerPanel), findsNWidgets(2));
 
-      tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
-      await tester.pumpAndSettle();
+      await lancerLaLecture(tester);
 
       expect(find.byType(AutoPlayBar), findsOneWidget);
       expect(
@@ -115,8 +130,7 @@ void main() {
 
     testWidgets('et on peut les refermer', (tester) async {
       await ouvrirAuto(tester);
-      tester.widget<GameTopBar>(find.byType(GameTopBar)).onAutoPlay!();
-      await tester.pumpAndSettle();
+      await arreterLaLecture(tester);
       expect(find.byType(AutoPlayBar), findsNothing);
       expect(find.byType(PlayerPanel), findsNWidgets(2));
     });

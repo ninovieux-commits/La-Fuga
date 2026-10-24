@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "ブロック中：",
   "Jouez votre coup d abord": "まず自分の手を指してください",
   "Jouez votre coup pour pouvoir proposer la nulle": "引き分けを提案するにはまず着手してください",
-  "La partie (.nmc)": "対局 (.nmc)",
-  "La position (.fug)": "配置 (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "一行目は手番を示します：B は白、N は黒。",
   "Le suivent :": "フォロワー：",
   "Lecteur fug": ".fug ビューア",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "自分の手を指してください。予約手は相手の手を待ちます。",
   "Repartir sans armer ?": "仕掛けずに戻りますか？",
   "Les variantes préparées seront perdues.": "用意した変化は失われます。",
-  "Envoyer une pièce": "駒を送る"
+  "Envoyer une pièce": "駒を送る",
+  "Copier position": "局面を\nコピー",
+  "Copier la position": "局面をコピー",
+  "Copier la partie": "棋譜をコピー",
+  "Lire la partie": "棋譜を再生",
+  "Arrêter la lecture": "再生を止める"
 }

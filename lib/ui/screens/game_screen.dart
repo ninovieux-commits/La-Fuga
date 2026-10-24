@@ -132,8 +132,12 @@ class GameScreen extends StatefulWidget {
   /// on explore.
   final bool analysis;
 
-  /// Analyse ouverte depuis une partie de correspondance EN COURS. Deep Grey
-  /// y est alors interdit : il soufflerait le coup à jouer.
+  /// Analyse ouverte depuis une partie de correspondance EN COURS.
+  ///
+  /// Deep Grey y était interdit — il souffle le coup à jouer. Nino : « ce
+  /// bouton deepgrey doit aussi être là lorsqu'on accède à l'analyse depuis
+  /// une partie par correspondance. » C'est son jeu, et il joue contre des
+  /// gens qu'il connaît : la garde-fou n'était pas la sienne.
   final bool analysisFromCorr;
 
   /// `partie` pour une partie unique, sinon le nombre de points du match.
@@ -940,10 +944,9 @@ class _GameScreenState extends State<GameScreen>
         ? () => showFugDialog(context, fugEcrire(_shownBoard, _game.turn))
         : null,
     // Reprendre la position affichée contre Deep Grey : Kivy l'offre en
-    // analyse comme en relecture.
-    onDeepGrey: widget.analysis && !widget.analysisFromCorr
-        ? _playFromPosition
-        : null,
+    // analyse comme en relecture, et désormais depuis une analyse ouverte
+    // d'une partie de correspondance aussi.
+    onDeepGrey: widget.analysis ? _playFromPosition : null,
     aiDeepMode: _deepMode,
     onToggleAiMode: _aiCamp == null
         ? null

@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "Jogadores bloqueados:",
   "Jouez votre coup d abord": "Joga primeiro a tua jogada",
   "Jouez votre coup pour pouvoir proposer la nulle": "Joga a tua jogada para poderes propor empate",
-  "La partie (.nmc)": "A partida (.nmc)",
-  "La position (.fug)": "A posição (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "A primeira linha diz quem joga: B para as Brancas, N para as Pretas.",
   "Le suivent :": "Seguem-no:",
   "Lecteur fug": "Leitor .fug",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "Jogue a sua jogada: as pré-jogadas esperam a dele.",
   "Repartir sans armer ?": "Voltar sem ativar?",
   "Les variantes préparées seront perdues.": "As variantes preparadas serão perdidas.",
-  "Envoyer une pièce": "Enviar uma peça"
+  "Envoyer une pièce": "Enviar uma peça",
+  "Copier position": "Copiar\nposição",
+  "Copier la position": "Copiar a posição",
+  "Copier la partie": "Copiar a partida",
+  "Lire la partie": "Reproduzir a partida",
+  "Arrêter la lecture": "Parar a reprodução"
 }

@@ -478,8 +478,6 @@
   "Joueurs bloqués :": "차단된 플레이어:",
   "Jouez votre coup d abord": "먼저 수를 두세요",
   "Jouez votre coup pour pouvoir proposer la nulle": "무승부를 제안하려면 먼저 수를 두세요",
-  "La partie (.nmc)": "대국 (.nmc)",
-  "La position (.fug)": "배치 (.fug)",
   "La première ligne dit qui est au trait : B pour les Blancs, N pour les Noirs.": "첫 줄은 차례를 나타냅니다: B는 백, N은 흑.",
   "Le suivent :": "팔로워:",
   "Lecteur fug": ".fug 뷰어",
@@ -545,5 +543,10 @@
   "Jouez votre coup : les pré-coups attendent le sien": "먼저 두세요. 예약 수는 상대의 수를 기다립니다.",
   "Repartir sans armer ?": "설정하지 않고 돌아갈까요?",
   "Les variantes préparées seront perdues.": "준비한 변화는 사라집니다.",
-  "Envoyer une pièce": "말 보내기"
+  "Envoyer une pièce": "말 보내기",
+  "Copier position": "국면\n복사",
+  "Copier la position": "국면 복사",
+  "Copier la partie": "기보 복사",
+  "Lire la partie": "기보 재생",
+  "Arrêter la lecture": "재생 중지"
 }
