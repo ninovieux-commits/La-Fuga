@@ -29,6 +29,7 @@ import '../widgets/message_bubble.dart';
 import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
+import '../widgets/pieces_dialog.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
 class ConversationsScreen extends StatefulWidget {
@@ -794,29 +795,102 @@ class _ConversationScreenState extends State<ConversationScreen>
     ),
   );
 
+  /// Insère [jeton] à l'endroit du curseur, et rend le curseur après.
+  ///
+  /// Et pas « à la fin » : on écrit souvent la pièce au milieu d'une phrase,
+  /// et la renvoyer au bout ferait reculer la main à chaque fois.
+  void _inserer(String jeton) {
+    final avant = _input.value;
+    final debut = avant.selection.isValid
+        ? avant.selection.start
+        : avant.text.length;
+    final fin = avant.selection.isValid
+        ? avant.selection.end
+        : avant.text.length;
+    final texte = avant.text.replaceRange(debut, fin, jeton);
+    _input.value = TextEditingValue(
+      text: texte,
+      selection: TextSelection.collapsed(offset: debut + jeton.length),
+    );
+  }
+
+  Future<void> _ouvrirLesPieces(ThemePalette palette) async {
+    final jeton = await choisirPieceEmoji(context, palette: palette);
+    if (jeton != null) _inserer(jeton);
+  }
+
+  /// La touche qui ouvre les pièces, au-dessus de la saisie.
+  ///
+  /// Nino : « au milieu […] uniquement lorsque [le clavier] est déployé. Ça
+  /// doit faire la taille d'une touche de clavier mais carré pas rectangle,
+  /// et à l'effigie du logo (correspondant au thème choisi). »
+  ///
+  /// Le clavier se reconnaît à la place qu'il prend : `viewInsets.bottom`
+  /// vaut sa hauteur quand il est là, et zéro sinon. Clavier rangé, la
+  /// touche s'en va — elle n'a rien à faire au-dessus d'un champ qu'on ne
+  /// remplit pas.
+  Widget _toucheDesPieces(ThemePalette palette) {
+    if (MediaQuery.viewInsetsOf(context).bottom <= 0) {
+      return const SizedBox.shrink();
+    }
+    final cote = touchHeight();
+    return Padding(
+      padding: EdgeInsets.only(bottom: S(6)),
+      child: Center(
+        child: Tooltip(
+          message: T('Envoyer une pièce'),
+          child: Material(
+            color: Colors.black38,
+            borderRadius: BorderRadius.circular(S(10)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(S(10)),
+              onTap: () => unawaited(_ouvrirLesPieces(palette)),
+              child: SizedBox(
+                width: cote,
+                height: cote,
+                child: Center(
+                  child: ProfilePhoto(
+                    photo: 'logo|${Settings.instance.themeAxes.general}',
+                    size: cote * 0.72,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _composer(ThemePalette palette) => Container(
     padding: EdgeInsets.all(S(8)),
     color: Colors.black26,
-    child: Row(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: TextField(
-            controller: _input,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: T('Votre message…'),
-              hintStyle: const TextStyle(color: Colors.white38),
-              border: const OutlineInputBorder(),
-              isDense: true,
+        _toucheDesPieces(palette),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _input,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: T('Votre message…'),
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted: (_) => _send(),
+              ),
             ),
-            onSubmitted: (_) => _send(),
-          ),
-        ),
-        SizedBox(width: S(8)),
-        FilledButton(
-          onPressed: _send,
-          style: FilledButton.styleFrom(backgroundColor: palette.clair),
-          child: Text(T('Envoyer')),
+            SizedBox(width: S(8)),
+            FilledButton(
+              onPressed: _send,
+              style: FilledButton.styleFrom(backgroundColor: palette.clair),
+              child: Text(T('Envoyer')),
+            ),
+          ],
         ),
       ],
     ),

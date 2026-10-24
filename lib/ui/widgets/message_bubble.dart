@@ -30,15 +30,26 @@
 ///
 /// Il sort de sa bulle et s'affiche en grand, comme dans toutes les
 /// messageries : une bulle autour d'un seul dessin ne sert à rien.
+///
+/// ## Une pièce
+///
+/// `[Soldat]`, `[Soldat Noir]` : le jeton se dessine à la place du texte,
+/// dans le thème de CELUI QUI LIT — comme une photo de profil, qui voyage
+/// elle aussi en mot et non en image. Seules les pièces, et pas le reste du
+/// message : « bien joué [Garde] » garde sa phrase et sa pièce.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
+import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../pieces_emoji.dart';
 import '../scale.dart';
 import '../texte_emoji.dart';
 import 'bulle_cri.dart';
+import 'profile_photo.dart';
 
 /// Part de la largeur qu'une bulle peut occuper au plus.
 const double kBulleLargeurMax = 0.75;
@@ -72,8 +83,57 @@ class MessageBubble extends StatelessWidget {
   /// messages, où il demeure.
   final bool selectionnable;
 
+  /// La photo, au sens de `ProfilePhoto`, qui dessine [piece] dans le thème
+  /// de celui qui lit.
+  static String _photoDe(Piece piece) {
+    final theme = Settings.instance.themeAxes.general;
+    final noir = piece.camp == Camp.noir ? '|${Camp.noir.wire}' : '';
+    return '$theme|${piece.type.wire}$noir';
+  }
+
+  /// Le message en morceaux : du texte, et des pièces dessinées.
+  ///
+  /// Une pièce est un peu plus haute que la lettre qui l'entoure — un dessin
+  /// a besoin de place là où une lettre n'a qu'un trait — et posée sur la
+  /// ligne de base plutôt qu'au milieu, pour ne pas sautiller d'un mot à
+  /// l'autre.
+  static List<InlineSpan> _morceaux(String texte, double taille) => [
+    for (final m in decoupeMessage(texte))
+      if (m.piece != null)
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: ProfilePhoto(photo: _photoDe(m.piece!), size: taille * 1.25),
+        )
+      else
+        TextSpan(text: m.texte),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    // Un message qui n'est QUE des pièces se montre en grand, sans bulle,
+    // exactement comme un émoji seul.
+    final pieces = comptePiecesSeules(texte);
+    if (pieces > 0 && pieces <= kEmojiMaxGrossi && !echoue) {
+      final taille =
+          SF(16) *
+          switch (pieces) {
+            1 => 3.0,
+            2 => 2.4,
+            _ => 2.0,
+          };
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final m in decoupeMessage(texte))
+              if (m.piece != null)
+                ProfilePhoto(photo: _photoDe(m.piece!), size: taille),
+          ],
+        ),
+      );
+    }
+
     final grossi = grossissementEmoji(texte);
     // Un émoji seul se passe de bulle : rien à encadrer.
     if (grossi != null && !echoue) {
@@ -94,16 +154,19 @@ class MessageBubble extends StatelessWidget {
     // SelectableText, et non Text : un appui long ouvre les poignées de
     // sélection et le menu « Copier ». C'est ce que Nino demande, et cela
     // vaut pour les messages reçus COMME pour les siens.
+    final style = TextStyle(color: encre, fontSize: SF(16));
+    // Le style reste SUR la touche de texte, et pas sur l'arbre de morceaux :
+    // c'est là que le reste du code va le lire.
     final contenu = selectionnable
-        ? SelectableText(
-            affiche,
+        ? SelectableText.rich(
+            TextSpan(children: _morceaux(affiche, SF(16))),
+            style: style,
             textAlign: TextAlign.left,
-            style: TextStyle(color: encre, fontSize: SF(16)),
           )
-        : Text(
-            affiche,
+        : Text.rich(
+            TextSpan(children: _morceaux(affiche, SF(16))),
+            style: style,
             textAlign: TextAlign.left,
-            style: TextStyle(color: encre, fontSize: SF(16)),
           );
 
     final large = BoxConstraints(
