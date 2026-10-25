@@ -816,7 +816,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
                   lastMove: _shownLastMove,
                   // La fugue clôt la partie : en revoyant un coup passé,
                   // l'Héritier n'a pas encore rejoint son ralliement.
-                  fuguedHeirs: _isViewing ? const {} : c.fuguedHeirs,
+                  fuguedHeirs: _isViewing
+                      ? const <Camp, Cell>{}
+                      : c.casesDeFugue,
                   pieceTheme: axes.pieces,
                   boardTheme: axes.board,
                   slides: slides,

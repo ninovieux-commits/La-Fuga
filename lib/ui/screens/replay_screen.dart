@@ -308,7 +308,7 @@ class _ReplayScreenState extends State<ReplayScreen>
             flipped: _flipped,
             onTapCell: (_) {},
             lastMove: step.lastMove,
-            fuguedHeirs: step.fugued,
+            fuguedHeirs: step.casesDeFugue,
             slides: slides,
             slideToken: slideToken,
             slideDuration: slideDuration,

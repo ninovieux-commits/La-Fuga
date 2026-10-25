@@ -23,6 +23,7 @@ final class ReplayStep {
     this.boardBefore,
     this.captured = const {},
     this.fugued = const {},
+    this.casesDeFugue = const {},
   });
 
   final Board board;
@@ -46,6 +47,14 @@ final class ReplayStep {
   /// reste. Reculer d'un coup le fait donc revenir sur le plateau, comme il
   /// se doit.
   final Set<Camp> fugued;
+
+  /// Où chaque Héritier qui a fugué se tient, à cette position.
+  ///
+  /// Nino : « l'héritier pourrait simplement apparaître sur la case du
+  /// ralliement où il va / est poussé. » Le `.nmc` ne l'écrit pas — il dit
+  /// d'où l'Héritier part — mais la relecture rejoue le coup et voit donc
+  /// où il arrive, exactement comme la partie l'a vu.
+  final Map<Camp, Cell> casesDeFugue;
 
   /// Mise en évidence du coup qui a mené ici, reconstruite depuis sa seule
   /// notation — c'est tout ce dont Kivy dispose en relisant une partie.
@@ -138,6 +147,7 @@ class ReplayController {
     var turn = startTurn;
     int? broken;
     final fugued = <Camp>{};
+    final casesDeFugue = <Camp, Cell>{};
 
     // Relecture LITTÉRALE, comme `_load_game_from_moves` : chaque notation est
     // appliquée telle qu'elle est écrite, sans la confronter aux règles. Kivy
@@ -153,6 +163,15 @@ class ReplayController {
       }
       board = applied.board;
       fugued.addAll(applied.fugued);
+      // La case où l'Héritier s'est posé : c'est l'arrivée de sa glissée.
+      for (final (piece, _, to) in applied.slides) {
+        if (piece.isHeir && !to.onBoard && to.row == piece.camp.rallyRow) {
+          casesDeFugue[piece.camp] = to;
+        }
+      }
+      for (final camp in fugued) {
+        casesDeFugue[camp] ??= applied.board.caseDeFugueAffichee(camp);
+      }
       for (final piece in ejectedBetween(before, board, notation)) {
         lost[piece.camp]!.add(piece);
       }
@@ -168,6 +187,7 @@ class ReplayController {
             Camp.noir: List.of(lost[Camp.noir]!),
           },
           fugued: Set.of(fugued),
+          casesDeFugue: Map.of(casesDeFugue),
         ),
       );
     }

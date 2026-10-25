@@ -307,7 +307,11 @@ final class BoardPiecesPainter extends CustomPainter {
   /// Camps dont l'Héritier a rejoint son ralliement : il y est dessiné, au
   /// milieu de la zone, et il y reste. Sans cela il disparaissait du plateau
   /// au moment même où il gagnait la partie.
-  final Set<Camp> fuguedHeirs;
+  /// Où se tient l'Héritier de chaque camp qui a fugué.
+  ///
+  /// Sa VRAIE case de ralliement, celle où il est allé ou a été poussé — le
+  /// plateau ne la porte plus, puisqu'il a quitté le jeu.
+  final Map<Camp, Cell> fuguedHeirs;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -356,12 +360,11 @@ final class BoardPiecesPainter extends CustomPainter {
     // Héritiers qui ont fugué, dessinés dans leur ralliement — hors de la
     // zone de jeu, donc hors de la double boucle ci-dessus. Sans contour :
     // la partie est finie, il n'y a plus rien à y désigner.
-    for (final camp in fuguedHeirs) {
+    for (final MapEntry(key: camp, value: cell) in fuguedHeirs.entries) {
       // Tant que la glissée l'emmène encore vers le ralliement, c'est la
       // couche des pièces en vol qui le dessine : le dessiner ici aussi le
       // ferait apparaître en double, arrivé avant d'être parti.
       if (flying.any((c) => !c.onBoard && c.row == camp.rallyRow)) continue;
-      final cell = board.caseDeFugueAffichee(camp);
       paintPiece(
         canvas,
         g.cellRect(cell.col, cell.row),
@@ -457,7 +460,7 @@ final class BoardPiecesPainter extends CustomPainter {
       !setEquals(old.destinations, destinations) ||
       !setEquals(old.groupSelection, groupSelection) ||
       !setEquals(old.flying, flying) ||
-      !setEquals(old.fuguedHeirs, fuguedHeirs) ||
+      !mapEquals(old.fuguedHeirs, fuguedHeirs) ||
       old.theme != theme ||
       old.lastMove != lastMove;
 }

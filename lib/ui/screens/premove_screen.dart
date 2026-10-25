@@ -383,7 +383,7 @@ class _PremoveScreenState extends State<PremoveScreen>
                           selected: _jeu.selected,
                           groupSelection: _jeu.groupSelection,
                           highlighted: _jeu.availablePushCells.toSet(),
-                          fuguedHeirs: _jeu.fuguedHeirs,
+                          fuguedHeirs: _jeu.casesDeFugue,
                           pieceTheme: axes.pieces,
                           boardTheme: axes.board,
                           slides: slides,

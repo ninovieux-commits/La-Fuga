@@ -95,7 +95,13 @@ LiteralMove _simpleOrPush(Board board, String s) {
       ok: true,
       fugued: {leaving.camp},
       // Il glisse jusqu'au milieu de son ralliement, là où il s'affichera.
-      slides: [(leaving, start, board.caseDeFugueAffichee(leaving.camp))],
+      slides: [
+        (
+          leaving,
+          start,
+          board.caseDeFugueAffichee(leaving.camp, depuis: start),
+        ),
+      ],
     );
   }
 
@@ -314,7 +320,11 @@ void _push(
     if (piece.isHeir && ownRally) {
       fugued?.add(piece.camp);
       // Il glisse jusqu'au milieu de son ralliement, comme en partie.
-      slides?.add((piece, cell, board.caseDeFugueAffichee(piece.camp)));
+      slides?.add((
+        piece,
+        cell,
+        board.caseDeFugueAffichee(piece.camp, depuis: cell),
+      ));
     }
     // Une pièce éjectée ne glisse pas : elle est prise.
   }

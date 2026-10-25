@@ -891,7 +891,7 @@ class _GameScreenState extends State<GameScreen>
             lastMove: _shownLastMove,
             // En revoyant un coup passé, l'Héritier n'a pas encore fugué : la
             // fugue clôt la partie, elle est donc toujours au dernier coup.
-            fuguedHeirs: _isViewing ? const {} : _game.fuguedHeirs,
+            fuguedHeirs: _isViewing ? const <Camp, Cell>{} : _game.casesDeFugue,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,

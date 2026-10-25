@@ -45,7 +45,8 @@ class GameBoardView extends StatefulWidget {
   final void Function(Cell cell) onTapCell;
 
   /// Camps dont l'Héritier a rejoint son ralliement : il s'y affiche.
-  final Set<Camp> fuguedHeirs;
+  /// Où se tient l'Héritier de chaque camp qui a fugué : sa vraie case.
+  final Map<Camp, Cell> fuguedHeirs;
 
   /// Atterrissages intermédiaires du coup en cours d'animation : la pièce y
   /// passe au lieu de couper en ligne droite.

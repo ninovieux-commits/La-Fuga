@@ -326,11 +326,47 @@ final class Board {
 
   /// Où s'affiche l'Héritier de [camp] une fois qu'il a fugué.
   ///
-  /// La médiane de sa zone. Un camp sans zone ne fugue jamais : on rend
-  /// alors la colonne du milieu du plateau, pour n'avoir nulle part à se
-  /// demander ce que vaut une case qui n'existe pas.
-  Cell caseDeFugueAffichee(Camp camp) =>
-      Cell(rall.milieu(camp) ?? kCols ~/ 2, camp.rallyRow);
+  /// Nino : « l'héritier pourrait simplement apparaître sur la case du
+  /// ralliement où il va / est poussé. » C'est donc la case EXACTE dès qu'on
+  /// la connaît — en partie, on la connaît toujours.
+  ///
+  /// En relecture on ne l'a pas : le `.nmc` écrit « Mi7* », qui dit d'où
+  /// l'Héritier part et non où il arrive. On la déduit alors de [depuis] :
+  /// un Héritier qui marche atteint une colonne voisine, un Héritier qui
+  /// saute en atteint une à deux colonnes. Quand une seule case de la zone
+  /// est à portée — le cas courant, et toujours le cas avec `--rrr--` —
+  /// la déduction est certaine. Sinon on prend la médiane des candidates :
+  /// la même partie doit donner la même image à chaque relecture.
+  ///
+  /// Un camp sans zone ne fugue jamais ; on rend alors la colonne du milieu
+  /// du plateau, pour n'avoir nulle part à se demander ce que vaut une case
+  /// qui n'existe pas.
+  Cell caseDeFugueAffichee(Camp camp, {Cell? depuis}) {
+    final cols = rall.colonnes(camp);
+    if (cols.isEmpty) return Cell(kCols ~/ 2, camp.rallyRow);
+    if (depuis != null) {
+      final portee = (camp.rallyRow - depuis.row).abs();
+      final aPortee = [
+        for (final c in cols)
+          if ((c - depuis.col).abs() <= portee) c,
+      ];
+      if (aPortee.isNotEmpty) {
+        // LA PLUS PROCHE DE SA COLONNE DE DÉPART, et la plus à gauche en cas
+        // d'égalité. Sortir tout droit est le cas courant, et c'est aussi
+        // celui qui rend la déduction exacte : avec `--rrr--`, quelle que
+        // soit la colonne d'où part l'Héritier, une seule case de la zone
+        // est à un pas de lui une fois cette préférence appliquée. La
+        // relecture montre donc la même case que la partie.
+        aPortee.sort((a, b) {
+          final da = (a - depuis.col).abs();
+          final db = (b - depuis.col).abs();
+          return da != db ? da - db : a - b;
+        });
+        return Cell(aPortee.first, camp.rallyRow);
+      }
+    }
+    return Cell(cols[cols.length ~/ 2], camp.rallyRow);
+  }
 
   /// Clé compacte de la position (`_dg_board_key`) : 56 caractères.
   ///

@@ -240,7 +240,7 @@ void main() {
     // La position finale, avec l Héritier dans son ralliement.
     final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
     expect(
-      view.fuguedHeirs,
+      view.fuguedHeirs.keys,
       {Camp.noir},
       reason: 'la partie rouverte ne montre pas l Héritier qui a fugué',
     );

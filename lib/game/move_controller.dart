@@ -126,6 +126,11 @@ class MoveController {
        } {
     _turnStartBoard = this.board.clone();
     _turnStartCaptured = _capturedCounts();
+    // Une partie reprise en route ne dit que QUI a fugué : on repose son
+    // Héritier au milieu de sa zone, faute de savoir par où il est sorti.
+    for (final camp in fuguedHeirs) {
+      casesDeFugue[camp] = this.board.caseDeFugueAffichee(camp);
+    }
   }
 
   /// Compter les répétitions de position (nulle à la quatrième).
@@ -173,6 +178,13 @@ class MoveController {
   /// reçoit à la construction, sinon l'Héritier manquerait à l'écran alors
   /// qu'il manque au plateau.
   final Set<Camp> fuguedHeirs;
+
+  /// La case de ralliement où chaque Héritier qui a fugué s'est posé.
+  ///
+  /// Le plateau ne la porte plus — l'Héritier l'a quittée — et il faut bien
+  /// la redessiner à chaque image. Une partie reprise en route n'a que les
+  /// camps : on y retombe sur la médiane de la zone, faute de mieux.
+  final Map<Camp, Cell> casesDeFugue = {};
 
   /// Notations jouées, dans l'ordre.
   final List<String> history = [];
@@ -625,18 +637,17 @@ class MoveController {
     final mover = turn;
     fuguedHeirs.add(camp);
 
-    // La glissée de l'Héritier finit là où il s'affichera — au milieu. Sans
-    // ce recalage, elle le posait sur sa colonne de sortie et il sautait
-    // d'une case au moment de se poser. La zone de ralliement est dessinée
-    // d'une seule bande de trois cases : glisser vers son centre se voit
-    // moins qu'un saut à l'atterrissage.
-    final slides = [
-      for (final (piece, from, to) in slidesBruts)
-        if (piece.isHeir && !to.onBoard && to.row == camp.rallyRow)
-          (piece, from, board.caseDeFugueAffichee(camp))
-        else
-          (piece, from, to),
-    ];
+    // L'HÉRITIER SE POSE OÙ IL VA VRAIMENT. Nino : « l'héritier pourrait
+    // simplement apparaître sur la case du ralliement où il va / est
+    // poussé. » On connaît cette case ici : c'est l'arrivée de sa glissée.
+    // On la retient pour que le plateau sache l'y redessiner après coup.
+    for (final (piece, _, to) in slidesBruts) {
+      if (piece.isHeir && !to.onBoard && to.row == camp.rallyRow) {
+        casesDeFugue[camp] = to;
+      }
+    }
+    casesDeFugue[camp] ??= board.caseDeFugueAffichee(camp);
+    final slides = slidesBruts;
 
     // « Départ* » ne convient QUE si l'Héritier est sorti de lui-même : sa
     // case d'arrivée n'a alors pas de nom. Une fugue obtenue en POUSSANT a,

@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/engine/fug.dart';
 import 'package:lafuga/engine/move_generator.dart';
+import 'package:lafuga/game/move_controller.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
@@ -190,6 +191,70 @@ void main() {
       final b = plateau(surFa);
       expect(b.isFugueDest(3, 8, Piece.blancHeritier), isTrue);
       expect(b.isFugueDest(2, 8, Piece.blancHeritier), isFalse);
+    });
+  });
+
+  group('L Héritier se pose où il va vraiment', () {
+    // Nino : « l'héritier pourrait simplement apparaître sur la case du
+    // ralliement où il va / est poussé. »
+
+    test('en partie, c est la case exacte : on la connaît', () {
+      final b = Board.empty();
+      b.set(2, 7, Piece.blancHeritier);
+      b.set(3, 7, Piece.blancNurse);
+      b.set(0, 0, Piece.noirHeritier);
+      final jeu = MoveController(board: b);
+
+      // Une sortie par do♯… pardon : par la colonne 2, qui n est pas le
+      // milieu de la zone.
+      jeu.tapCell(const Cell(2, 7));
+      jeu.tapCell(const Cell(2, 8));
+
+      expect(jeu.fuguedHeirs, {Camp.blanc});
+      expect(
+        jeu.casesDeFugue[Camp.blanc],
+        const Cell(2, 8),
+        reason: 'il se pose là où il est sorti, pas au milieu de la bande',
+      );
+    });
+
+    test('en relecture, la déduction retrouve la même case', () {
+      // Le `.nmc` écrit « Mi7* » : il dit d où l Héritier part, pas où il
+      // arrive. On préfère donc la case de la zone la plus PROCHE de sa
+      // colonne de départ — avec `--rrr--`, il n y en a jamais qu une à un
+      // pas de lui, et la relecture montre ce que la partie a montré.
+      final b = Board.empty();
+      // Colonne de départ (rangée 7) → colonne d arrivée déduite.
+      // do et si sont à DEUX pas de la zone : aucun pas ne les y mène, et un
+      // Héritier ne peut donc pas y fuguer. La médiane reste alors comme
+      // valeur de repli, et personne ne la voit jamais.
+      const attendu = {0: 3, 1: 2, 2: 2, 3: 3, 4: 4, 5: 4, 6: 3};
+      for (final e in attendu.entries) {
+        expect(
+          b.caseDeFugueAffichee(Camp.blanc, depuis: Cell(e.key, 7)).col,
+          e.value,
+          reason: 'parti de la colonne ${e.key}',
+        );
+      }
+    });
+
+    test('sans savoir d où il part, on retombe sur la médiane', () {
+      final b = Board.empty();
+      expect(b.caseDeFugueAffichee(Camp.noir), const Cell(3, -1));
+    });
+
+    test('sur une zone choisie, la case exacte suit', () {
+      final b = Board.empty(
+        rall: const Ralliements(blanc: 1 | (1 << 6), noir: 1 << 3),
+      );
+      expect(
+        b.caseDeFugueAffichee(Camp.blanc, depuis: const Cell(0, 7)).col,
+        0,
+      );
+      expect(
+        b.caseDeFugueAffichee(Camp.blanc, depuis: const Cell(6, 7)).col,
+        6,
+      );
     });
   });
 

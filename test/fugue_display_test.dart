@@ -225,7 +225,7 @@ void main() {
 
     Future<List<int>> pixelsDe(
       WidgetTester tester, {
-      required Set<Camp> fugued,
+      required Map<Camp, Cell> fugued,
       required List<Rect> zones,
       LastMove? lastMove,
     }) async {
@@ -274,7 +274,7 @@ void main() {
       final colonnes = kRallyStandard.toList()..sort();
       final compte = await pixelsDe(
         tester,
-        fugued: {Camp.blanc},
+        fugued: {Camp.blanc: caseDeFugueStandard(Camp.blanc)},
         zones: [for (final c in colonnes) geometry.cellRect(c, 8)],
       );
       final milieu = colonnes.indexOf(kRallyMilieuStandard);
@@ -315,7 +315,7 @@ void main() {
     testWidgets('chaque camp dans SON ralliement', (tester) async {
       final compte = await pixelsDe(
         tester,
-        fugued: {Camp.noir},
+        fugued: {Camp.noir: caseDeFugueStandard(Camp.noir)},
         zones: [
           geometry.cellRect(kRallyMilieuStandard, -1),
           geometry.cellRect(kRallyMilieuStandard, 8),
@@ -352,12 +352,12 @@ void main() {
 
       final sansCadre = await pixelsDe(
         tester,
-        fugued: {Camp.blanc},
+        fugued: {Camp.blanc: caseDeFugueStandard(Camp.blanc)},
         zones: zone,
       );
       final avecCadre = await pixelsDe(
         tester,
-        fugued: {Camp.blanc},
+        fugued: {Camp.blanc: caseDeFugueStandard(Camp.blanc)},
         zones: zone,
         lastMove: last,
       );
@@ -404,9 +404,11 @@ void main() {
       expect(game.gameOver, isTrue);
     });
 
-    test('la glissée du doigt finit là où l Héritier s affichera', () {
-      // Sinon la pièce se pose sur sa colonne de sortie puis saute d une case
-      // pour rejoindre le milieu, juste au moment où la partie s achève.
+    test('la glissée du doigt finit SUR LA CASE où il va vraiment', () {
+      // Elle visait le milieu de la zone, et la pièce sautait d une case en
+      // se posant. Nino : « l héritier pourrait simplement apparaître sur la
+      // case du ralliement où il va / est poussé. » Il s y pose donc, et la
+      // glissée n a plus rien à rattraper.
       //
       // Le coup est joué au DOIGT : un coup construit ailleurs (IA, réseau)
       // n a jamais de glissée de sortie, parce que `_slidesBetween` ne compare
@@ -438,13 +440,13 @@ void main() {
       final arrivees = [for (final (_, _, to) in result.slides) to];
       expect(
         arrivees,
-        contains(caseDeFugueStandard(Camp.blanc)),
-        reason: 'la glissée ne vise pas la case où l Héritier se posera',
+        contains(fugue.to),
+        reason: 'la glissée doit finir sur la case de sortie elle-même',
       );
       expect(
-        arrivees,
-        isNot(contains(fugue.to)),
-        reason: 'elle vise encore la colonne de sortie : la pièce sautera',
+        game.casesDeFugue[Camp.blanc],
+        fugue.to,
+        reason: 'et le plateau doit l y redessiner après coup',
       );
     });
 
@@ -612,9 +614,14 @@ void main() {
 
       final apres = tester.widget<GameBoardView>(find.byType(GameBoardView));
       expect(
-        apres.fuguedHeirs,
+        apres.fuguedHeirs.keys,
         {Camp.blanc},
         reason: 'la partie est gagnée et l Héritier n est plus nulle part',
+      );
+      expect(
+        apres.fuguedHeirs[Camp.blanc],
+        fugue.to,
+        reason: 'il se tient sur la case par laquelle il est sorti',
       );
       expect(
         apres.board.atCell(fugue.from),
@@ -658,9 +665,14 @@ void main() {
 
       final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
       expect(
-        view.fuguedHeirs,
+        view.fuguedHeirs.keys,
         {camp},
         reason: "l historique n affiche pas l Héritier dans son ralliement",
+      );
+      expect(
+        view.fuguedHeirs[camp]!.row,
+        camp.rallyRow,
+        reason: 'il se tient bien sur SA rangée de ralliement',
       );
     });
   });

@@ -501,7 +501,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             lastMove: _shownLastMove,
             // La fugue clôt la partie : en revoyant un coup passé, l'Héritier
             // n'a pas encore rejoint son ralliement.
-            fuguedHeirs: _isViewing ? const {} : _g.game.fuguedHeirs,
+            fuguedHeirs: _isViewing
+                ? const <Camp, Cell>{}
+                : _g.game.casesDeFugue,
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
             slides: slides,
