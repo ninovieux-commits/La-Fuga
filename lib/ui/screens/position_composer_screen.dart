@@ -286,6 +286,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                         boardTheme: axes.board,
                         motRalliement: T('Modifier'),
                         ralliementEnEdition: _zoneEnEdition,
+                        ralliementsTouchables: true,
                       ),
                     ),
                     SizedBox(height: S(8)),

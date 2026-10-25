@@ -314,6 +314,54 @@ void main() {
       );
     });
 
+    testWidgets('une zone vidée se ROUVRE : sinon elle serait perdue', (
+      tester,
+    ) async {
+      // Sans case de ralliement, il n y a plus rien à toucher sur la rangée :
+      // il faut qu elle réponde quand même, sans quoi on ne pourrait jamais
+      // revenir sur une zone qu on a vidée.
+      await ouvrir(tester);
+      vue(tester).onTapCell(const Cell(3, 8));
+      await tester.pumpAndSettle();
+      for (final c in [2, 3, 4]) {
+        vue(tester).onTapCell(Cell(c, 8));
+        await tester.pumpAndSettle();
+      }
+      expect(vue(tester).board.rall.estFerme(Camp.blanc), isTrue);
+
+      // On referme, puis on rouvre en touchant une case qui ne rallie pas.
+      vue(tester).onTapCell(const Cell(0, 0));
+      await tester.pumpAndSettle();
+      expect(vue(tester).ralliementEnEdition, isNull);
+
+      vue(tester).onTapCell(const Cell(5, 8));
+      await tester.pumpAndSettle();
+      expect(
+        vue(tester).ralliementEnEdition,
+        Camp.blanc,
+        reason:
+            'la rangée vide ne répond plus : la zone est perdue pour de bon',
+      );
+      vue(tester).onTapCell(const Cell(5, 8));
+      await tester.pumpAndSettle();
+      expect(vue(tester).board.rall.colonnes(Camp.blanc), [5]);
+    });
+
+    testWidgets('et la rangée entière répond au doigt dans le composeur', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      final g = BoardGeometry(
+        size: const Size(350, 500),
+        flipped: true,
+        ralliementsTouchables: true,
+      );
+      for (var c = 0; c < kCols; c++) {
+        expect(g.pixelToCell(g.cellCenter(c, 8)), Cell(c, 8));
+        expect(g.pixelToCell(g.cellCenter(c, -1)), Cell(c, -1));
+      }
+    });
+
     testWidgets('on peut tout retirer : zéro case est un choix', (
       tester,
     ) async {

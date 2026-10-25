@@ -33,6 +33,7 @@ class GameBoardView extends StatefulWidget {
     this.slideToken = 0,
     this.motRalliement,
     this.ralliementEnEdition,
+    this.ralliementsTouchables = false,
     this.slideDuration = Duration.zero,
   });
 
@@ -84,6 +85,10 @@ class GameBoardView extends StatefulWidget {
   /// Le camp dont on choisit la zone : ses SEPT cases deviennent touchables,
   /// pas seulement celles qui rallient déjà.
   final Camp? ralliementEnEdition;
+
+  /// Dans le composeur : les deux rangées de ralliement répondent au doigt,
+  /// même vides — sinon une zone qu'on a vidée ne se rouvre jamais.
+  final bool ralliementsTouchables;
 
   /// Durée du glissement — le réglage « Vitesse de glissée des pièces ».
   /// Nulle : les pièces se posent d'un coup, comme le mode « Instantané ».
@@ -202,6 +207,7 @@ class _GameBoardViewState extends State<GameBoardView>
           flipped: widget.flipped,
           rall: widget.board.rall,
           rangeeOuverte: widget.ralliementEnEdition,
+          ralliementsTouchables: widget.ralliementsTouchables,
         );
         // Le plateau répond à la POSE du doigt, comme `on_touch_down` en
         // Kivy — pas à son relâchement. Un `Listener` ne passe par aucune

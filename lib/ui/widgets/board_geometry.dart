@@ -28,6 +28,7 @@ final class BoardGeometry {
     required this.flipped,
     this.rall = Ralliements.standard,
     this.rangeeOuverte,
+    this.ralliementsTouchables = false,
   }) : cellSize = size.width / kCols,
        originX = 0,
        originY = (size.height - (size.width / kCols) * kExtRows) / 2;
@@ -44,6 +45,13 @@ final class BoardGeometry {
   /// compris les colonnes qui ne rallient pas encore. Sans cela, on ne
   /// pourrait qu'en RETIRER.
   final Camp? rangeeOuverte;
+
+  /// Dans le COMPOSEUR : les deux rangées de ralliement répondent au doigt,
+  /// toujours, même là où rien ne rallie.
+  ///
+  /// Sans quoi une zone qu'on a vidée ne se rouvre jamais : il n'y aurait
+  /// plus une seule case à toucher pour revenir dessus.
+  final bool ralliementsTouchables;
 
   /// Côté d'une case, en pixels.
   final double cellSize;
@@ -140,11 +148,13 @@ final class BoardGeometry {
     final index = (relY / cellSize).floor().clamp(0, kExtRows - 1);
     final row = indexToRow(index);
 
-    // Hors du plateau, la case n'existe que si elle rallie — ou si l'on est
-    // en train de choisir la zone de ce camp.
+    // Hors du plateau, la case n'existe que si elle rallie — ou si sa rangée
+    // est ouverte : celle qu'on est en train de choisir, ou les deux dans le
+    // composeur.
     if (row < 0 || row >= kRows) {
       final camp = campDeLaRangee(row);
-      if (camp != rangeeOuverte && !rall.contient(camp, col)) return null;
+      final ouverte = ralliementsTouchables || camp == rangeeOuverte;
+      if (!ouverte && !rall.contient(camp, col)) return null;
     }
     return Cell(col, row);
   }

@@ -214,31 +214,43 @@ final class BoardBackgroundPainter extends CustomPainter {
     }
     final mot = motRalliement;
     if (mot == null || mot.isEmpty) return;
-    final rects = g.rallyRects(row);
-    if (rects.isEmpty) return;
-    // Sur le plus large des morceaux : c'est celui qui a la place de le lire.
-    final cible = rects.reduce((a, b) => a.width >= b.width ? a : b);
+    // SUR TOUTE LA RANGÉE, et pas seulement sur la bande peinte. Une zone
+    // d'une seule case n'a pas la largeur du mot, et une zone VIDE n'a pas
+    // de bande du tout — il faut pourtant pouvoir y revenir.
+    final rangee = Rect.fromLTWH(
+      g.colToX(0) < g.colToX(kCols - 1) ? g.colToX(0) : g.colToX(kCols - 1),
+      g.rowToY(row),
+      g.cellSize * kCols,
+      g.cellSize,
+    );
     final peintre = TextPainter(
       text: TextSpan(
         text: mot,
         style: TextStyle(
-          color: camp == Camp.blanc
-              ? const Color(0xDD000000)
-              : const Color(0xFFFFFFFF),
+          color: const Color(0xFFFFFFFF),
           fontSize: g.cellSize * 0.34,
           fontWeight: FontWeight.bold,
+          // Un liseré sombre : le mot passe sur la bande claire des Blancs
+          // comme sur le fond du plateau là où la zone s'arrête.
+          shadows: const [
+            Shadow(color: Color(0xCC000000), blurRadius: 3),
+            Shadow(color: Color(0xCC000000), blurRadius: 6),
+          ],
         ),
       ),
       maxLines: 1,
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: cible.width);
-    peintre.paint(
-      canvas,
-      Offset(
-        cible.center.dx - peintre.width / 2,
-        cible.center.dy - peintre.height / 2,
-      ),
-    );
+    )..layout();
+    // Il RÉTRÉCIT plutôt que d'être coupé : « Modifier » est plus long dans
+    // d'autres langues, et une rangée fait sept cases, pas davantage.
+    final echelle = peintre.width > rangee.width * 0.9
+        ? rangee.width * 0.9 / peintre.width
+        : 1.0;
+    canvas.save();
+    canvas.translate(rangee.center.dx, rangee.center.dy);
+    canvas.scale(echelle);
+    peintre.paint(canvas, Offset(-peintre.width / 2, -peintre.height / 2));
+    canvas.restore();
   }
 
   @override
