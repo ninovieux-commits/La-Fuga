@@ -10,6 +10,7 @@ library;
 import 'dart:ui';
 
 import '../../engine/board.dart';
+import '../../engine/piece.dart';
 
 /// Conversion entre cases de jeu et pixels écran.
 ///
@@ -22,13 +23,27 @@ import '../../engine/board.dart';
 /// joueur Noir), le plateau est tourné à 180° comme aux échecs : colonnes
 /// **et** rangées sont inversées.
 final class BoardGeometry {
-  BoardGeometry({required this.size, required this.flipped})
-    : cellSize = size.width / kCols,
-      originX = 0,
-      originY = (size.height - (size.width / kCols) * kExtRows) / 2;
+  BoardGeometry({
+    required this.size,
+    required this.flipped,
+    this.rall = Ralliements.standard,
+    this.rangeeOuverte,
+  }) : cellSize = size.width / kCols,
+       originX = 0,
+       originY = (size.height - (size.width / kCols) * kExtRows) / 2;
 
   final Size size;
   final bool flipped;
+
+  /// Les zones de ralliement de la position dessinée. Elles ne sont plus les
+  /// mêmes d'une partie à l'autre, et la géométrie doit savoir où elles sont
+  /// pour les peindre et pour savoir ce qu'un doigt touche.
+  final Ralliements rall;
+
+  /// Le camp dont on choisit la zone : toute sa rangée répond au doigt, y
+  /// compris les colonnes qui ne rallient pas encore. Sans cela, on ne
+  /// pourrait qu'en RETIRER.
+  final Camp? rangeeOuverte;
 
   /// Côté d'une case, en pixels.
   final double cellSize;
@@ -83,12 +98,31 @@ final class BoardGeometry {
   /// Centre écran d'une case.
   Offset cellCenter(int col, int row) => cellRect(col, row).center;
 
-  /// Rectangle écran de la zone de ralliement d'un camp
+  /// Le camp dont la zone de ralliement occupe cette rangée.
+  static Camp campDeLaRangee(int row) => row >= kRows ? Camp.blanc : Camp.noir;
+
+  /// Les rectangles écran de la zone de ralliement d'un camp
   /// (`row == 8` pour les Blancs, `row == -1` pour les Noirs).
-  Rect rallyRect(int row) {
-    final cols = kRally.toList()..sort();
-    final left = colToX(flipped ? cols.first : cols.last);
-    return Rect.fromLTWH(left, rowToY(row), cellSize * cols.length, cellSize);
+  ///
+  /// UN PAR BLOC DE COLONNES CONTIGUËS, et non un seul : une zone choisie
+  /// peut être trouée — « rr-----  --r-r-- » — et un rectangle unique
+  /// peindrait le vide entre les deux morceaux.
+  List<Rect> rallyRects(int row) {
+    final cols = rall.colonnes(campDeLaRangee(row));
+    final rects = <Rect>[];
+    var i = 0;
+    while (i < cols.length) {
+      var j = i;
+      while (j + 1 < cols.length && cols[j + 1] == cols[j] + 1) {
+        j++;
+      }
+      final gauche = colToX(flipped ? cols[i] : cols[j]);
+      rects.add(
+        Rect.fromLTWH(gauche, rowToY(row), cellSize * (j - i + 1), cellSize),
+      );
+      i = j + 1;
+    }
+    return rects;
   }
 
   /// Case correspondant à un point de l'écran, ou `null` en dehors.
@@ -106,8 +140,12 @@ final class BoardGeometry {
     final index = (relY / cellSize).floor().clamp(0, kExtRows - 1);
     final row = indexToRow(index);
 
-    // Les zones de ralliement n'existent que sur les colonnes centrales.
-    if ((row < 0 || row >= kRows) && !kRally.contains(col)) return null;
+    // Hors du plateau, la case n'existe que si elle rallie — ou si l'on est
+    // en train de choisir la zone de ce camp.
+    if (row < 0 || row >= kRows) {
+      final camp = campDeLaRangee(row);
+      if (camp != rangeeOuverte && !rall.contient(camp, col)) return null;
+    }
     return Cell(col, row);
   }
 }

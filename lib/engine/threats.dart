@@ -81,7 +81,7 @@ bool _heirCanReachRally(Board board, Camp camp) {
 
   // Déplacement d'une case dans la zone de ralliement.
   for (final (dc, dr) in kAllDirs) {
-    if (Board.isFugueDest(hc + dc, hr + dr, heir)) return true;
+    if (board.isFugueDest(hc + dc, hr + dr, heir)) return true;
   }
 
   // Multisauts. Comme le générateur, l'Héritier compte pour absent de sa case
@@ -103,7 +103,7 @@ bool _heirCanReachRally(Board board, Camp camp) {
       final midIndex = onB ? mc * kRows + mr : -1;
       if (midIndex >= 0 && midIndex == last) continue;
 
-      if (Board.isFugueDest(nc, nr, heir)) {
+      if (board.isFugueDest(nc, nr, heir)) {
         if (!onB) continue;
         final jumped = _at(board, mc, mr, hc, hr);
         if (jumped != null && jumped.isRound) return true;
@@ -179,7 +179,7 @@ Threats _scanPushes(Board board, Camp camp) {
           if (!last.isHeir) continue;
 
           final oc = lc + pdc, or_ = lr + pdr;
-          final ownRally = kRally.contains(oc) && or_ == last.camp.rallyRow;
+          final ownRally = board.estCaseDeRalliement(last.camp, oc, or_);
           if (ownRally) {
             // Un Héritier poussé dans SA zone fugue : si c'est le nôtre, plus
             // rien d'autre ne compte.

@@ -409,7 +409,7 @@ void main() {
       );
       expect(
         [for (final (_, _, to) in v.slides) to],
-        contains(rallyDisplayCell(Camp.noir)),
+        contains(caseDeFugueStandard(Camp.noir)),
         reason: 'l Héritier qui fugue ne glisse pas jusqu à son ralliement',
       );
       await tester.pumpAndSettle();

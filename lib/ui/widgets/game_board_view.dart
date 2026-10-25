@@ -31,6 +31,8 @@ class GameBoardView extends StatefulWidget {
     this.boardTheme,
     this.slides = const [],
     this.slideToken = 0,
+    this.motRalliement,
+    this.ralliementEnEdition,
     this.slideDuration = Duration.zero,
   });
 
@@ -74,6 +76,13 @@ class GameBoardView extends StatefulWidget {
   /// Change à chaque nouveau glissement : c'est lui qui relance l'animation,
   /// et non le contenu de [slides], qui peut se répéter à l'identique.
   final int slideToken;
+
+  /// Mot écrit sur les zones de ralliement — « Modifier », dans le composeur.
+  final String? motRalliement;
+
+  /// Le camp dont on choisit la zone : ses SEPT cases deviennent touchables,
+  /// pas seulement celles qui rallient déjà.
+  final Camp? ralliementEnEdition;
 
   /// Durée du glissement — le réglage « Vitesse de glissée des pièces ».
   /// Nulle : les pièces se posent d'un coup, comme le mode « Instantané ».
@@ -187,7 +196,12 @@ class _GameBoardViewState extends State<GameBoardView>
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final geometry = BoardGeometry(size: size, flipped: widget.flipped);
+        final geometry = BoardGeometry(
+          size: size,
+          flipped: widget.flipped,
+          rall: widget.board.rall,
+          rangeeOuverte: widget.ralliementEnEdition,
+        );
         // Le plateau répond à la POSE du doigt, comme `on_touch_down` en
         // Kivy — pas à son relâchement. Un `Listener` ne passe par aucune
         // arène de gestes : la case part au moment exact du contact, et c'est
@@ -210,6 +224,8 @@ class _GameBoardViewState extends State<GameBoardView>
                     geometry: geometry,
                     palette: widget.palette,
                     images: _boardImages,
+                    motRalliement: widget.motRalliement,
+                    ralliementEnEdition: widget.ralliementEnEdition,
                   ),
                 ),
               ),

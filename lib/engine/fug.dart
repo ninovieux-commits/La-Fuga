@@ -37,6 +37,27 @@
 /// Noirs. Elle est en majuscule dans les deux cas : elle ne désigne pas une
 /// pièce, la règle des casses ne s'y applique pas.
 ///
+/// ## Les zones de ralliement, quand elles ne sont pas celles d'origine
+///
+/// Nino : « il faut que le code .fug contienne deux nouvelles lignes avant le
+/// N ou B qui indique qui commence. » Sept caractères chacune, `r` pour une
+/// case de ralliement et `-` pour le reste ; la première est celle des
+/// Blancs, la seconde celle des Noirs.
+///
+///     rr-----
+///     --r-r--
+///     B
+///     sgshgsg
+///     …
+///
+/// « S'il n'y a pas ces deux lignes dans un code .fug, alors il s'agit de la
+/// position originale (`--rrr--` / `--rrr--`). » Les anciens codes se lisent
+/// donc tels quels, et on n'écrit les deux lignes que lorsqu'elles disent
+/// quelque chose — un `.fug` ordinaire reste identique à ce qu'il était.
+///
+/// Les deux formes ne se confondent pas : une ligne de ralliement fait sept
+/// caractères, celle du trait en fait un.
+///
 /// Le texte se lit de bas en haut de l'écran quand les Blancs sont en bas —
 /// la première ligne est leur rangée de fond. C'est voulu : on lit `do1` en
 /// premier, comme on le dit.
@@ -88,16 +109,47 @@ enum FugErreur {
 
   /// Un caractère qui n'est ni une pièce ni une case vide.
   lettre,
+
+  /// Une ligne de ralliement contient autre chose que `r` et `-`, ou il n'y
+  /// en a qu'une : elles vont par deux.
+  ralliement,
+}
+
+/// La lettre d'une case de ralliement.
+const String kFugRallie = 'r';
+
+/// Écrit les deux lignes de ralliement, ou rien si elles sont d'origine.
+String fugEcrireRalliements(Ralliements rall) {
+  if (rall.estStandard) return '';
+  final out = StringBuffer();
+  for (final camp in [Camp.blanc, Camp.noir]) {
+    for (var c = 0; c < kCols; c++) {
+      out.write(rall.contient(camp, c) ? kFugRallie : kFugVide);
+    }
+    out.write('\n');
+  }
+  return out.toString();
+}
+
+/// Lit une ligne de ralliement, ou `null` si ce n'en est pas une.
+int? _masqueDeLigne(String ligne) {
+  if (ligne.length != kCols) return null;
+  var masque = 0;
+  for (var c = 0; c < kCols; c++) {
+    final ch = ligne[c].toLowerCase();
+    if (ch == kFugRallie) {
+      masque |= 1 << c;
+    } else if (ch != kFugVide) {
+      return null;
+    }
+  }
+  return masque;
 }
 
 /// Pourquoi une position ne peut pas servir de départ à une partie.
 enum FugRefus {
   /// Un camp n'a pas d'Héritier, ou en a plusieurs. Il en faut un, et un seul.
   heritier,
-
-  /// Un camp a plus d'un Chevalier. Il n'en existe qu'un par camp — en avoir
-  /// zéro est permis, en avoir deux ne l'est pas.
-  chevalier,
 
   /// Un camp n'a aucune pièce carrée capable de bouger. La position serait
   /// nulle d'entrée : une carrée ne bouge que si elle touche une autre carrée.
@@ -116,7 +168,8 @@ typedef FugLecture = ({FugPosition? position, FugErreur? erreur, int? ligne});
 
 /// Écrit une position au format `.fug`.
 String fugEcrire(Board board, Camp turn) {
-  final out = StringBuffer(turn == Camp.blanc ? 'B' : 'N');
+  final out = StringBuffer(fugEcrireRalliements(board.rall));
+  out.write(turn == Camp.blanc ? 'B' : 'N');
   for (var r = 0; r < kRows; r++) {
     out.write('\n');
     for (var c = 0; c < kCols; c++) {
@@ -146,6 +199,23 @@ FugLecture fugLire(String texte) {
     return (position: null, erreur: FugErreur.vide, ligne: null);
   }
 
+  // LES DEUX LIGNES DE RALLIEMENT, s'il y en a. Une ligne de sept caractères
+  // en tête ne peut être que cela : celle du trait en fait un.
+  var rall = Ralliements.standard;
+  final premier = _masqueDeLigne(lignes.first);
+  if (premier != null) {
+    final second = lignes.length >= 2 ? _masqueDeLigne(lignes[1]) : null;
+    if (second == null) {
+      // Elles vont par deux : une seule ne dit pas qui rallie où.
+      return (position: null, erreur: FugErreur.ralliement, ligne: 2);
+    }
+    rall = Ralliements(blanc: premier, noir: second);
+    lignes.removeRange(0, 2);
+    if (lignes.isEmpty) {
+      return (position: null, erreur: FugErreur.traitInconnu, ligne: 3);
+    }
+  }
+
   final trait = switch (lignes.first.toUpperCase()) {
     'B' => Camp.blanc,
     'N' => Camp.noir,
@@ -160,7 +230,7 @@ FugLecture fugLire(String texte) {
     return (position: null, erreur: FugErreur.rangees, ligne: null);
   }
 
-  final board = Board.empty();
+  final board = Board.empty(rall: rall);
   for (var i = 0; i < kRows; i++) {
     final ligne = rangees[i];
     if (ligne.length != kCols) {
@@ -230,24 +300,20 @@ int fugCasesVides(Board board) {
 /// Pourquoi cette position ne peut pas servir de départ — ou `null` si elle le
 /// peut.
 ///
-/// Les règles de Nino, et elles seules : un Héritier par camp, un Chevalier au
-/// plus par camp, des carrées qui peuvent bouger des deux côtés, et au moins
-/// [kFugVidesMin] cases libres. Pour le reste on ne juge rien — dix Gardes d'un
-/// côté, c'est permis.
+/// Les règles de Nino, et elles seules : un Héritier par camp, des carrées qui
+/// peuvent bouger des deux côtés, et au moins [kFugVidesMin] cases libres.
+/// Pour le reste on ne juge rien — dix Gardes d'un côté, c'est permis.
 ///
-/// Le Chevalier est ici parce que le lecteur `.fug` doit refuser un code qui en
-/// porte deux. Le composeur ne peut pas en poser un second — il déplace celui
-/// qui est là — mais un code collé à la main, lui, peut en contenir autant qu'il
-/// veut. La règle doit donc exister quelque part de vérifiable, et elle vit où
-/// vivent les autres.
+/// LE CHEVALIER ÉTAIT COMPTÉ, lui aussi : il n'en existait qu'un par camp.
+/// Nino : « enlève la contrainte sur le nombre de chevalier, que l'on puisse
+/// en mettre plusieurs comme les autres pièces. Seul l'héritier conserve la
+/// règle de "un seul". »
+///
+/// Rien n'est dit des zones de ralliement : un camp qui n'en a aucune ne peut
+/// pas fuguer, mais il peut encore mater, et la position se joue.
 FugRefus? fugRefus(Board board) {
   for (final camp in Camp.values) {
     if (fugHeritiers(board, camp) != 1) return FugRefus.heritier;
-  }
-  for (final camp in Camp.values) {
-    if (fugCompte(board, PieceType.chevalier, camp) > 1) {
-      return FugRefus.chevalier;
-    }
   }
   for (final camp in Camp.values) {
     if (!fugCarreeMobile(board, camp)) return FugRefus.carreesBloquees;

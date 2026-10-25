@@ -517,7 +517,6 @@
   "Temps écoulé": "Tempo scaduto",
   "Trait aux": "Muove",
   "Trêve : plus aucune pièce carrée ne peut bouger": "Tregua: nessun pezzo quadrato può più muoversi",
-  "Un camp a plus d'un Chevalier.": "Uno schieramento ha più di un Cavaliere.",
   "Un camp n'a aucune pièce carrée capable de bouger.": "Uno schieramento non ha alcun pezzo quadrato in grado di muoversi.",
   "Valider la position": "Conferma la posizione",
   "Vider": "Svuota",
@@ -529,8 +528,6 @@
   "vous défie !": "ti sfida!",
   "À %s de jouer": "Tocca a %s",
   "Écris ta devise…": "Scrivi il tuo motto…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Una posizione giocabile richiede:\n\n• un Erede per schieramento, né più né meno;\n• al massimo un Cavaliere per schieramento — zero è permesso;\n• in ogni schieramento, almeno un pezzo quadrato che ne tocchi un altro;\n• almeno tre caselle libere.",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Una posizione giocabile richiede:\n\n• un Erede per schieramento, né più né meno;\n• al massimo un Cavaliere per schieramento — zero è permesso;\n• in ogni schieramento, almeno un pezzo quadrato che ne tocchi un altro — un quadrato isolato non può muoversi, e la partita sarebbe patta in partenza;\n• almeno tre caselle libere: una scacchiera piena non lascia dove andare.",
   "Message rapide": "Messaggio rapido",
   "Message non envoyé.": "Messaggio non inviato.",
   "Abandonner ou proposer la nulle ?": "Abbandonare o offrire patta?",
@@ -548,5 +545,9 @@
   "Copier la position": "Copia la posizione",
   "Copier la partie": "Copia la partita",
   "Lire la partie": "Riproduci la partita",
-  "Arrêter la lecture": "Ferma la riproduzione"
+  "Arrêter la lecture": "Ferma la riproduzione",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Una posizione giocabile richiede:\n\n• un Erede per schieramento, né più né meno;\n• in ogni schieramento, almeno un pezzo quadrato che ne tocchi un altro;\n• almeno tre caselle libere.",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Una posizione giocabile richiede:\n\n• un Erede per schieramento, né più né meno;\n• in ogni schieramento, almeno un pezzo quadrato che ne tocchi un altro — un quadrato isolato non può muoversi, e la partita sarebbe patta in partenza;\n• almeno tre caselle libere: una scacchiera piena non lascia dove andare.",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "Le due righe di raduno vanno in coppia: prima il Bianco, poi il Nero, sette case di r e trattini.",
+  "Modifier": "Modifica"
 }

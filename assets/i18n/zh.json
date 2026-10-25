@@ -517,7 +517,6 @@
   "Temps écoulé": "超时",
   "Trait aux": "轮到",
   "Trêve : plus aucune pièce carrée ne peut bouger": "休战：方形棋子已无法移动",
-  "Un camp a plus d'un Chevalier.": "有一方拥有不止一个骑士。",
   "Un camp n'a aucune pièce carrée capable de bouger.": "有一方没有能移动的方形棋子。",
   "Valider la position": "确认局面",
   "Vider": "清空",
@@ -529,8 +528,6 @@
   "vous défie !": "向你发起挑战！",
   "À %s de jouer": "轮到 %s",
   "Écris ta devise…": "写下你的格言…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方最多一个骑士，可以没有；\n• 每方至少有一个方形棋子与另一个方形棋子相接；\n• 至少三个空格。",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方最多一个骑士，可以没有；\n• 每方至少有一个方形棋子与另一个方形棋子相接——孤立的方形棋子无法移动，开局即和棋；\n• 至少三个空格：棋盘填满就无处可走。",
   "Message rapide": "快速消息",
   "Message non envoyé.": "消息未发送。",
   "Abandonner ou proposer la nulle ?": "认输还是提和？",
@@ -548,5 +545,9 @@
   "Copier la position": "复制局面",
   "Copier la partie": "复制棋局",
   "Lire la partie": "播放棋局",
-  "Arrêter la lecture": "停止播放"
+  "Arrêter la lecture": "停止播放",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方至少有一个方形棋子与另一个方形棋子相接；\n• 至少三个空格。",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "可开局的局面需要：\n\n• 每方恰好一个继承人；\n• 每方至少有一个方形棋子与另一个方形棋子相接——孤立的方形棋子无法移动，开局即和棋；\n• 至少三个空格：棋盘填满就无处可走。",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "两行集结区成对出现：先白后黑，七格由 r 和短横线组成。",
+  "Modifier": "修改"
 }

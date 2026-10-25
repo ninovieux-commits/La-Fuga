@@ -517,7 +517,6 @@
   "Temps écoulé": "시간 종료",
   "Trait aux": "차례",
   "Trêve : plus aucune pièce carrée ne peut bouger": "휴전: 사각 말이 더 이상 움직일 수 없습니다",
-  "Un camp a plus d'un Chevalier.": "한쪽에 기사가 둘 이상 있습니다.",
   "Un camp n'a aucune pièce carrée capable de bouger.": "한쪽에 움직일 수 있는 사각 말이 없습니다.",
   "Valider la position": "배치 확정",
   "Vider": "비우기",
@@ -529,8 +528,6 @@
   "vous défie !": "님이 도전합니다!",
   "À %s de jouer": "%s 차례",
   "Écris ta devise…": "좌우명을 쓰세요…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 기사는 최대 하나 — 없어도 됩니다;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상;\n• 빈 칸이 세 개 이상.",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 기사는 최대 하나 — 없어도 됩니다;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상 — 외톨이 사각 말은 움직일 수 없어 처음부터 무승부가 됩니다;\n• 빈 칸이 세 개 이상: 꽉 찬 보드에는 갈 곳이 없습니다.",
   "Message rapide": "빠른 메시지",
   "Message non envoyé.": "메시지를 보내지 못했습니다.",
   "Abandonner ou proposer la nulle ?": "기권 또는 무승부 제안?",
@@ -548,5 +545,9 @@
   "Copier la position": "국면 복사",
   "Copier la partie": "기보 복사",
   "Lire la partie": "기보 재생",
-  "Arrêter la lecture": "재생 중지"
+  "Arrêter la lecture": "재생 중지",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상;\n• 빈 칸이 세 개 이상.",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상 — 외톨이 사각 말은 움직일 수 없어 처음부터 무승부가 됩니다;\n• 빈 칸이 세 개 이상: 꽉 찬 보드에는 갈 곳이 없습니다.",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "집결 구역 두 줄은 짝으로 씁니다. 백이 먼저, 흑이 다음, r 과 하이픈으로 일곱 칸.",
+  "Modifier": "변경"
 }

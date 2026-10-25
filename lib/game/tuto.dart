@@ -505,8 +505,10 @@ class TutoController {
       // Sortie du plateau.
       if (piece.type != PieceType.heritier) continue;
       won = true;
+      // Le tuto se joue toujours sur les zones d'origine : ses étapes sont
+      // écrites pour elles.
       final rallied =
-          kRally.contains(to.col) &&
+          kRallyStandard.contains(to.col) &&
           ((piece.camp == Camp.blanc && to.row >= kRows) ||
               (piece.camp == Camp.noir && to.row < 0));
       if (rallied) _fugued.add((cell: to, camp: piece.camp));

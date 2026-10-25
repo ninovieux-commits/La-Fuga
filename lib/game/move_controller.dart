@@ -303,7 +303,7 @@ class MoveController {
     int dr,
     Piece piece,
   ) {
-    final isRally = Board.isFugueDest(cell.col, cell.row, piece);
+    final isRally = board.isFugueDest(cell.col, cell.row, piece);
     if (!cell.onBoard && !isRally) return null;
     if (cell.onBoard && board.atCell(cell) != null) return null;
     if (piece.isRound && !board.hasRoundNeighbour(from.col, from.row)) {
@@ -342,7 +342,7 @@ class MoveController {
     final jumped = board.atCell(middle);
     if (jumped == null || !jumped.isRound) return null;
 
-    final isRally = Board.isFugueDest(cell.col, cell.row, piece);
+    final isRally = board.isFugueDest(cell.col, cell.row, piece);
     if (!cell.onBoard && !isRally) return null;
     if (cell.onBoard && board.atCell(cell) != null) return null;
 
@@ -466,7 +466,7 @@ class MoveController {
         continue;
       }
       // Sortie du plateau.
-      final ownRally = kRally.contains(dest.col) && dest.row == p.camp.rallyRow;
+      final ownRally = board.estCaseDeRalliement(p.camp, dest.col, dest.row);
       if (p.isHeir && ownRally) {
         fugueBy = p.camp;
       } else {
@@ -633,7 +633,7 @@ class MoveController {
     final slides = [
       for (final (piece, from, to) in slidesBruts)
         if (piece.isHeir && !to.onBoard && to.row == camp.rallyRow)
-          (piece, from, rallyDisplayCell(camp))
+          (piece, from, board.caseDeFugueAffichee(camp))
         else
           (piece, from, to),
     ];

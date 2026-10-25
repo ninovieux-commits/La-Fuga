@@ -77,7 +77,7 @@ void main() {
       test('les zones de ralliement (flipped=$flipped)', () {
         final g = BoardGeometry(size: size, flipped: flipped);
         for (final row in [8, -1]) {
-          for (final col in kRally) {
+          for (final col in kRallyStandard) {
             expect(
               g.pixelToCell(g.cellCenter(col, row)),
               Cell(col, row),

@@ -99,7 +99,7 @@ PushOutcome applyPushes(
         board.set(nc, nr, p);
         totalPushed++;
       } else {
-        final ownRally = kRally.contains(nc) && nr == p.camp.rallyRow;
+        final ownRally = board.estCaseDeRalliement(p.camp, nc, nr);
         if (p.isHeir && ownRally) {
           fugueBy = p.camp;
         } else {
@@ -167,7 +167,7 @@ void _generateRoundMoves(
 
     // La fugue se teste AVANT l'appartenance au plateau : la case de
     // ralliement est hors plateau.
-    if (p.isHeir && Board.isFugueDest(nc, nr, p)) {
+    if (p.isHeir && board.isFugueDest(nc, nr, p)) {
       final nb = board.clone();
       nb.set(c, r, null);
       moves.add(
@@ -226,7 +226,7 @@ void _generateRoundMoves(
       if (midIndex >= 0 && midIndex == lastJumped) continue;
 
       // Fugue par saut (Héritier seulement).
-      if (p.isHeir && Board.isFugueDest(nc, nr, p)) {
+      if (p.isHeir && board.isFugueDest(nc, nr, p)) {
         final jumped = Board.onBoard(mc, mr) ? simBoard.at(mc, mr) : null;
         if (jumped != null && jumped.isRound) {
           final nb = board.clone();
@@ -441,7 +441,7 @@ bool playerHasAnyMove(Board board, Camp camp) {
         for (final (dc, dr) in kAllDirs) {
           final nc = c + dc, nr = r + dr;
           if (Board.onBoard(nc, nr) && board.at(nc, nr) == null) return true;
-          if (Board.isFugueDest(nc, nr, p)) return true;
+          if (board.isFugueDest(nc, nr, p)) return true;
         }
       } else if (p.isSquare) {
         if (!board.hasSquareNeighbour(c, r)) continue;

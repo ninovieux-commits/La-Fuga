@@ -517,7 +517,6 @@
   "Temps écoulé": "Zeit abgelaufen",
   "Trait aux": "Am Zug",
   "Trêve : plus aucune pièce carrée ne peut bouger": "Waffenruhe: keine quadratische Figur kann sich mehr bewegen",
-  "Un camp a plus d'un Chevalier.": "Eine Seite hat mehr als einen Ritter.",
   "Un camp n'a aucune pièce carrée capable de bouger.": "Eine Seite hat keine bewegliche quadratische Figur.",
   "Valider la position": "Stellung bestätigen",
   "Vider": "Leeren",
@@ -529,8 +528,6 @@
   "vous défie !": "fordert dich heraus!",
   "À %s de jouer": "%s ist am Zug",
   "Écris ta devise…": "Schreibe deinen Wahlspruch…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• höchstens einen Ritter pro Seite — null ist erlaubt;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt;\n• mindestens drei freie Felder.",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• höchstens einen Ritter pro Seite — null ist erlaubt;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt — eine einzelne Quadratfigur kann sich nicht bewegen, und die Partie wäre von Anfang an remis;\n• mindestens drei freie Felder: ein volles Brett lässt keinen Platz zum Ziehen.",
   "Message rapide": "Schnellnachricht",
   "Message non envoyé.": "Nachricht nicht gesendet.",
   "Abandonner ou proposer la nulle ?": "Aufgeben oder Remis anbieten?",
@@ -548,5 +545,9 @@
   "Copier la position": "Stellung kopieren",
   "Copier la partie": "Partie kopieren",
   "Lire la partie": "Partie abspielen",
-  "Arrêter la lecture": "Wiedergabe stoppen"
+  "Arrêter la lecture": "Wiedergabe stoppen",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt;\n• mindestens drei freie Felder.",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Eine spielbare Stellung verlangt:\n\n• einen Erben pro Seite, nicht mehr und nicht weniger;\n• auf jeder Seite mindestens eine quadratische Figur, die eine andere berührt — eine einzelne Quadratfigur kann sich nicht bewegen, und die Partie wäre von Anfang an remis;\n• mindestens drei freie Felder: ein volles Brett lässt keinen Platz zum Ziehen.",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "Die beiden Sammelzonen-Zeilen gehen zu zweit: zuerst Weiß, dann Schwarz, sieben Felder aus r und Bindestrichen.",
+  "Modifier": "Ändern"
 }

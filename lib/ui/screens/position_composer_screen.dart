@@ -28,6 +28,7 @@ import '../scale.dart';
 import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/board_geometry.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/piece_tile.dart';
@@ -38,12 +39,15 @@ const Color kGrisMedian = Color.fromRGBO(128, 128, 128, 1);
 
 /// Les pièces qu'on ne peut avoir qu'en UN SEUL exemplaire par camp.
 ///
-/// L'Héritier parce qu'une position sans lui — ou avec deux — ne se joue pas ;
-/// le Chevalier parce qu'il n'en existe qu'un par camp. En poser un second ne
-/// doit donc pas ajouter une pièce : cela DÉPLACE celle qui est déjà là. En
-/// mettre est facultatif pour le Chevalier, obligatoire pour l'Héritier — mais
-/// c'est la validation qui le dit, pas la pose.
-const Set<PieceType> kPiecesUniques = {PieceType.heritier, PieceType.chevalier};
+/// L'Héritier, et lui seul : une position sans lui — ou avec deux — ne se
+/// joue pas. En poser un second ne doit donc pas ajouter une pièce : cela
+/// DÉPLACE celui qui est déjà là.
+///
+/// Le Chevalier y était aussi, parce qu'il n'en existait qu'un par camp.
+/// Nino : « j'aimerais aussi enlever la contrainte sur le nombre de
+/// chevalier, que l'on puisse en mettre plusieurs comme les autres pièces.
+/// Seul l'héritier conserve la règle de "un seul". »
+const Set<PieceType> kPiecesUniques = {PieceType.heritier};
 
 /// L'ordre de la ligne de pièces : du plus lourd au plus léger.
 const List<PieceType> kOrdreDesPieces = [
@@ -85,7 +89,30 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
     super.dispose();
   }
 
+  /// Le camp dont on choisit la zone de ralliement, ou `null`.
+  ///
+  /// Nino : « quand on clique dessus, ça encadre les 7 zones possibles et on
+  /// peut choisir entre 0 et 7 cases possibles pour le ralliement (si 0
+  /// cases, fugue impossible (logique)). »
+  Camp? _zoneEnEdition;
+
   void _toucheCase(Cell cell) {
+    // LES DEUX RANGÉES DE RALLIEMENT, au-dessus et au-dessous du plateau.
+    if (cell.surUneRangeeDeRalliement) {
+      final camp = BoardGeometry.campDeLaRangee(cell.row);
+      setState(() {
+        if (_zoneEnEdition != camp) {
+          // Premier appui : on ouvre la rangée de ce camp.
+          _zoneEnEdition = camp;
+          return;
+        }
+        // Ensuite, chaque appui met ou retire une case.
+        _board = _board.avecRalliements(_board.rall.bascule(camp, cell.col));
+      });
+      return;
+    }
+    // Un appui sur le plateau referme le choix : on est revenu aux pièces.
+    if (_zoneEnEdition != null) setState(() => _zoneEnEdition = null);
     if (!cell.onBoard) return;
     setState(() {
       final enMain = _enMain;
@@ -138,6 +165,10 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
       'La première ligne dit qui est au trait : B pour les Blancs, N pour les '
       'Noirs.',
     ),
+    FugErreur.ralliement => T(
+      'Les deux lignes de ralliement vont par deux : celle des Blancs, '
+      'puis celle des Noirs, sept cases de r et de tirets.',
+    ),
     FugErreur.rangees => T('Il faut huit rangées, une par ligne.'),
     FugErreur.colonnes => T('Chaque rangée compte sept cases.'),
     FugErreur.lettre => T(
@@ -176,7 +207,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                 // Le composeur ne sait pas poser deux Chevaliers du même camp
                 // — il déplace celui qui est là. Un code COLLÉ, lui, peut en
                 // contenir deux.
-                FugRefus.chevalier => T('Un camp a plus d\'un Chevalier.'),
                 FugRefus.carreesBloquees => T(
                   'Un camp n\'a aucune pièce carrée capable de bouger.',
                 ),
@@ -195,7 +225,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
               T(
                 'Une position jouable demande :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
-                '• un Chevalier au plus par camp — zéro est permis ;\n'
                 '• dans chaque camp, au moins une pièce carrée qui touche une '
                 'autre pièce carrée — une carrée isolée ne peut pas bouger, et '
                 'la partie serait nulle d\'entrée ;\n'
@@ -255,6 +284,8 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                         onTapCell: _toucheCase,
                         pieceTheme: axes.pieces,
                         boardTheme: axes.board,
+                        motRalliement: T('Modifier'),
+                        ralliementEnEdition: _zoneEnEdition,
                       ),
                     ),
                     SizedBox(height: S(8)),

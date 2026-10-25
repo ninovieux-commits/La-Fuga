@@ -189,7 +189,7 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
     return LastMove(
       camp: leaving.camp,
       from: from,
-      to: {rallyDisplayCell(leaving.camp)},
+      to: {after.caseDeFugueAffichee(leaving.camp)},
     );
   }
 

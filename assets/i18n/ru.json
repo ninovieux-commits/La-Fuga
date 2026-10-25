@@ -517,7 +517,6 @@
   "Temps écoulé": "Время вышло",
   "Trait aux": "Ход",
   "Trêve : plus aucune pièce carrée ne peut bouger": "Перемирие: ни одна квадратная фигура не может ходить",
-  "Un camp a plus d'un Chevalier.": "У одной из сторон больше одного Рыцаря.",
   "Un camp n'a aucune pièce carrée capable de bouger.": "У одной из сторон нет подвижной квадратной фигуры.",
   "Valider la position": "Подтвердить позицию",
   "Vider": "Очистить",
@@ -529,8 +528,6 @@
   "vous défie !": "вызывает вас!",
   "À %s de jouer": "Ход: %s",
   "Écris ta devise…": "Напишите девиз…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• не более одного Рыцаря с каждой стороны — ноль допустим;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой;\n• не менее трёх свободных клеток.",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• не более одного Рыцаря с каждой стороны — ноль допустим;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой — одинокая квадратная фигура не может ходить, и партия сразу была бы ничьей;\n• не менее трёх свободных клеток: на полной доске некуда ходить.",
   "Message rapide": "Быстрое сообщение",
   "Message non envoyé.": "Сообщение не отправлено.",
   "Abandonner ou proposer la nulle ?": "Сдаться или предложить ничью?",
@@ -548,5 +545,9 @@
   "Copier la position": "Копировать позицию",
   "Copier la partie": "Копировать партию",
   "Lire la partie": "Воспроизвести партию",
-  "Arrêter la lecture": "Остановить воспроизведение"
+  "Arrêter la lecture": "Остановить воспроизведение",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой;\n• не менее трёх свободных клеток.",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Играбельная позиция требует:\n\n• по одному Наследнику с каждой стороны, не больше и не меньше;\n• с каждой стороны хотя бы одна квадратная фигура, касающаяся другой — одинокая квадратная фигура не может ходить, и партия сразу была бы ничьей;\n• не менее трёх свободных клеток: на полной доске некуда ходить.",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "Две строки зоны сбора идут парой: сначала белые, затем чёрные, семь клеток из r и дефисов.",
+  "Modifier": "Изменить"
 }

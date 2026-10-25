@@ -112,7 +112,7 @@ List<(Piece, Cell, Cell)> fugueSlide(Board before, Board after, Camp camp) {
       final p = before.at(c, r);
       if (p == null || !p.isHeir || p.camp != camp) continue;
       if (after.at(c, r) == p) continue;
-      return [(p, Cell(c, r), rallyDisplayCell(camp))];
+      return [(p, Cell(c, r), before.caseDeFugueAffichee(camp))];
     }
   }
   return const [];

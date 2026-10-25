@@ -280,12 +280,12 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
     });
 
-    testWidgets('deux Chevaliers du même camp : refusé', (tester) async {
+    testWidgets('deux Chevaliers du même camp : permis', (tester) async {
+      // La règle du « un seul » ne vaut plus que pour l Héritier.
       final r = [...bonnes];
       r[1] = 'c--c---';
       await lire(tester, fug('B', r));
-      expect(find.byType(GameScreen), findsNothing);
-      expect(find.textContaining('plus d\'un Chevalier'), findsOneWidget);
+      expect(find.byType(GameScreen), findsOneWidget);
     });
 
     testWidgets('un seul Chevalier passe, et zéro aussi', (tester) async {
@@ -352,10 +352,11 @@ void main() {
     testWidgets('le refus RAPPELLE les règles, il ne dit pas juste non', (
       tester,
     ) async {
+      // Un plateau sans Héritier noir : le refus doit rappeler les règles.
       final r = [...bonnes];
-      r[1] = 'c--c---';
+      r[7] = '-------';
       await lire(tester, fug('B', r));
-      expect(find.textContaining('Chevalier au plus par camp'), findsOneWidget);
+      expect(find.textContaining('Héritier dans chaque camp'), findsWidgets);
       expect(find.textContaining('trois cases libres'), findsWidgets);
       expect(find.textContaining('pièce carrée'), findsWidgets);
     });

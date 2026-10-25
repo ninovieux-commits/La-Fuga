@@ -26,6 +26,8 @@ final class BoardBackgroundPainter extends CustomPainter {
     required this.geometry,
     required this.palette,
     this.images,
+    this.motRalliement,
+    this.ralliementEnEdition,
   });
 
   final BoardGeometry geometry;
@@ -33,6 +35,18 @@ final class BoardBackgroundPainter extends CustomPainter {
 
   /// Images du thème, quand il en a.
   final LoadedThemeImages? images;
+
+  /// Mot écrit SUR les zones de ralliement — « Modifier », dans le composeur.
+  ///
+  /// Nino : « ce serait bien qu'il y ait écrit "modifier" sur les zones de
+  /// ralliement. » Nulle part ailleurs : en partie, elles ne se touchent pas.
+  final String? motRalliement;
+
+  /// Le camp dont on est en train de choisir la zone.
+  ///
+  /// Sa rangée montre alors ses SEPT cases possibles, encadrées — celles qui
+  /// rallient sont déjà peintes, les autres sont vides et attendent le doigt.
+  final Camp? ralliementEnEdition;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -42,27 +56,29 @@ final class BoardBackgroundPainter extends CustomPainter {
     // Zones de ralliement : chaque camp a la sienne, à sa couleur d'accent.
     // Arrondies vers l'extérieur, droites du côté du plateau.
     for (final row in [8, -1]) {
-      final rect = g.rallyRect(row);
       final isTop = g.rowToIndex(row) == 0;
-      final rrect = RRect.fromRectAndCorners(
-        rect,
-        topLeft: isTop ? radius : Radius.zero,
-        topRight: isTop ? radius : Radius.zero,
-        bottomLeft: isTop ? Radius.zero : radius,
-        bottomRight: isTop ? Radius.zero : radius,
-      );
-      canvas.drawRRect(
-        rrect,
-        Paint()..color = row == 8 ? palette.clair : palette.fonce,
-      );
-      // Contour foncé : le débordement dans les cadres info doit paraître net.
-      canvas.drawRRect(
-        rrect,
-        Paint()
-          ..color = const Color(0xFF1A1A1A)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = S(2),
-      );
+      for (final rect in g.rallyRects(row)) {
+        final rrect = RRect.fromRectAndCorners(
+          rect,
+          topLeft: isTop ? radius : Radius.zero,
+          topRight: isTop ? radius : Radius.zero,
+          bottomLeft: isTop ? Radius.zero : radius,
+          bottomRight: isTop ? Radius.zero : radius,
+        );
+        canvas.drawRRect(
+          rrect,
+          Paint()..color = row == 8 ? palette.clair : palette.fonce,
+        );
+        // Contour foncé : le débordement dans les cadres info doit paraître net.
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..color = const Color(0xFF1A1A1A)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = S(2),
+        );
+      }
+      _motEtCadres(canvas, g, row);
     }
 
     // Plateau.
@@ -177,10 +193,61 @@ final class BoardBackgroundPainter extends CustomPainter {
     painter.paint(canvas, offset);
   }
 
+  /// Le mot « Modifier » sur la bande, et les sept cases encadrées quand on
+  /// choisit la zone de ce camp.
+  void _motEtCadres(Canvas canvas, BoardGeometry g, int row) {
+    final camp = BoardGeometry.campDeLaRangee(row);
+    if (ralliementEnEdition == camp) {
+      // LES SEPT CASES POSSIBLES. Celles qui rallient sont déjà peintes de la
+      // couleur du camp ; le cadre dit où l'on peut appuyer, pas ce qui est
+      // déjà choisi.
+      for (var c = 0; c < kCols; c++) {
+        canvas.drawRect(
+          g.cellRect(c, row).deflate(S(1)),
+          Paint()
+            ..color = const Color(0xFFFFFFFF)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = S(2),
+        );
+      }
+      return;
+    }
+    final mot = motRalliement;
+    if (mot == null || mot.isEmpty) return;
+    final rects = g.rallyRects(row);
+    if (rects.isEmpty) return;
+    // Sur le plus large des morceaux : c'est celui qui a la place de le lire.
+    final cible = rects.reduce((a, b) => a.width >= b.width ? a : b);
+    final peintre = TextPainter(
+      text: TextSpan(
+        text: mot,
+        style: TextStyle(
+          color: camp == Camp.blanc
+              ? const Color(0xDD000000)
+              : const Color(0xFFFFFFFF),
+          fontSize: g.cellSize * 0.34,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: cible.width);
+    peintre.paint(
+      canvas,
+      Offset(
+        cible.center.dx - peintre.width / 2,
+        cible.center.dy - peintre.height / 2,
+      ),
+    );
+  }
+
   @override
   bool shouldRepaint(BoardBackgroundPainter old) =>
       old.palette != palette ||
       old.images != images ||
+      old.motRalliement != motRalliement ||
+      old.ralliementEnEdition != ralliementEnEdition ||
+      old.geometry.rall != geometry.rall ||
       old.geometry.cellSize != geometry.cellSize ||
       old.geometry.flipped != geometry.flipped;
 }
@@ -294,7 +361,7 @@ final class BoardPiecesPainter extends CustomPainter {
       // couche des pièces en vol qui le dessine : le dessiner ici aussi le
       // ferait apparaître en double, arrivé avant d'être parti.
       if (flying.any((c) => !c.onBoard && c.row == camp.rallyRow)) continue;
-      final cell = rallyDisplayCell(camp);
+      final cell = board.caseDeFugueAffichee(camp);
       paintPiece(
         canvas,
         g.cellRect(cell.col, cell.row),
@@ -316,7 +383,14 @@ final class BoardPiecesPainter extends CustomPainter {
     void frame(Cell cell, Color color, double width) {
       // Les zones de ralliement sont à l'écran : un Héritier qui vient d'y
       // entrer s'encadre comme n'importe quelle case d'arrivée.
-      if (!cell.onBoard && !cell.inRally) return;
+      if (!cell.onBoard &&
+          !board.estCaseDeRalliement(
+            BoardGeometry.campDeLaRangee(cell.row),
+            cell.col,
+            cell.row,
+          )) {
+        return;
+      }
       canvas.drawRect(
         g.cellRect(cell.col, cell.row).deflate(width / 2),
         Paint()

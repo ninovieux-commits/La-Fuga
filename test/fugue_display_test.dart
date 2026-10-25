@@ -46,9 +46,9 @@ void main() {
 
   group('Où l Héritier s affiche', () {
     test('le milieu est bien la médiane de la zone de ralliement', () {
-      final cols = kRally.toList()..sort();
+      final cols = kRallyStandard.toList()..sort();
       expect(
-        kRallyMiddle,
+        kRallyMilieuStandard,
         cols[cols.length ~/ 2],
         reason: 'la colonne du milieu ne tombe plus dans le ralliement',
       );
@@ -56,11 +56,17 @@ void main() {
     });
 
     test('chaque camp a sa rangée, et la colonne du milieu', () {
-      expect(rallyDisplayCell(Camp.blanc), const Cell(kRallyMiddle, 8));
-      expect(rallyDisplayCell(Camp.noir), const Cell(kRallyMiddle, -1));
+      expect(
+        caseDeFugueStandard(Camp.blanc),
+        const Cell(kRallyMilieuStandard, 8),
+      );
+      expect(
+        caseDeFugueStandard(Camp.noir),
+        const Cell(kRallyMilieuStandard, -1),
+      );
       // Hors du plateau de jeu : c'est bien une case de ralliement.
-      expect(rallyDisplayCell(Camp.blanc).onBoard, isFalse);
-      expect(rallyDisplayCell(Camp.noir).onBoard, isFalse);
+      expect(caseDeFugueStandard(Camp.blanc).onBoard, isFalse);
+      expect(caseDeFugueStandard(Camp.noir).onBoard, isFalse);
     });
   });
 
@@ -265,13 +271,13 @@ void main() {
     }
 
     testWidgets('l Héritier est peint au MILIEU du ralliement', (tester) async {
-      final colonnes = kRally.toList()..sort();
+      final colonnes = kRallyStandard.toList()..sort();
       final compte = await pixelsDe(
         tester,
         fugued: {Camp.blanc},
         zones: [for (final c in colonnes) geometry.cellRect(c, 8)],
       );
-      final milieu = colonnes.indexOf(kRallyMiddle);
+      final milieu = colonnes.indexOf(kRallyMilieuStandard);
       expect(
         compte[milieu],
         greaterThan(0),
@@ -297,7 +303,7 @@ void main() {
       final compte = await pixelsDe(
         tester,
         fugued: const {},
-        zones: [for (final c in kRally) geometry.cellRect(c, 8)],
+        zones: [for (final c in kRallyStandard) geometry.cellRect(c, 8)],
       );
       expect(
         compte.every((n) => n == 0),
@@ -311,8 +317,8 @@ void main() {
         tester,
         fugued: {Camp.noir},
         zones: [
-          geometry.cellRect(kRallyMiddle, -1),
-          geometry.cellRect(kRallyMiddle, 8),
+          geometry.cellRect(kRallyMilieuStandard, -1),
+          geometry.cellRect(kRallyMilieuStandard, 8),
         ],
       );
       expect(
@@ -342,7 +348,7 @@ void main() {
       avant.set(3, 7, Piece.blancHeritier);
       final apres = applyNotationLiterally(avant, 'Fa8*').board;
       final last = lastMoveFromNotation('Fa8*', avant, apres)!;
-      final zone = [geometry.cellRect(kRallyMiddle, 8)];
+      final zone = [geometry.cellRect(kRallyMilieuStandard, 8)];
 
       final sansCadre = await pixelsDe(
         tester,
@@ -384,7 +390,7 @@ void main() {
 
       // Le coup légal qui fait sortir l Héritier par son ralliement.
       final fugue = generateMoves(game.board, Camp.blanc).firstWhere(
-        (m) => m.to.row == 8 && kRally.contains(m.to.col),
+        (m) => m.to.row == 8 && kRallyStandard.contains(m.to.col),
         orElse: () =>
             throw StateError('aucune fugue possible : test sans objet'),
       );
@@ -417,7 +423,7 @@ void main() {
         (m) =>
             m.from == const Cell(2, 7) &&
             m.to.row == 8 &&
-            m.to.col != kRallyMiddle,
+            m.to.col != kRallyMilieuStandard,
         orElse: () => throw StateError(
           'aucune fugue hors du milieu : le test ne prouve rien',
         ),
@@ -432,7 +438,7 @@ void main() {
       final arrivees = [for (final (_, _, to) in result.slides) to];
       expect(
         arrivees,
-        contains(rallyDisplayCell(Camp.blanc)),
+        contains(caseDeFugueStandard(Camp.blanc)),
         reason: 'la glissée ne vise pas la case où l Héritier se posera',
       );
       expect(
@@ -465,7 +471,7 @@ void main() {
       expect(last, isNotNull);
       expect(
         last!.to,
-        {rallyDisplayCell(Camp.blanc)},
+        {caseDeFugueStandard(Camp.blanc)},
         reason:
             'la fugue était le seul coup montré à moitié : le départ '
             'encadré, l arrivée nulle part',
@@ -533,7 +539,7 @@ void main() {
         contains((
           Piece.blancHeritier,
           const Cell(2, 7),
-          rallyDisplayCell(Camp.blanc),
+          caseDeFugueStandard(Camp.blanc),
         )),
         reason: 'l Héritier ne glisse pas jusqu à son ralliement',
       );
@@ -570,7 +576,7 @@ void main() {
           for (final (piece, _, to) in result.slides)
             if (piece.isHeir) to,
         ],
-        contains(rallyDisplayCell(Camp.blanc)),
+        contains(caseDeFugueStandard(Camp.blanc)),
         reason: 'un Héritier poussé dehors ne glisse pas jusqu à sa zone',
       );
     });
@@ -594,7 +600,7 @@ void main() {
 
       final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
       final fugue = generateMoves(view.board, Camp.blanc).firstWhere(
-        (m) => m.to.row == 8 && kRally.contains(m.to.col),
+        (m) => m.to.row == 8 && kRallyStandard.contains(m.to.col),
         orElse: () =>
             throw StateError('aucune fugue jouable : le test ne prouve rien'),
       );

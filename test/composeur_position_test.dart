@@ -322,7 +322,12 @@ void main() {
       expect(t.ou.single, const Cell(4, 3), reason: 'il a suivi le doigt');
     });
 
-    testWidgets('le Chevalier aussi', (tester) async {
+    testWidgets('mais PAS le Chevalier : on peut en poser plusieurs', (
+      tester,
+    ) async {
+      // Nino : « enlève la contrainte sur le nombre de chevalier, que l'on
+      // puisse en mettre plusieurs comme les autres pièces. Seul l'héritier
+      // conserve la règle de "un seul". »
       await ouvrir(tester);
       await choisir(tester, PieceType.chevalier);
       vue(tester).onTapCell(const Cell(1, 1));
@@ -331,8 +336,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final t = cherche(tester, Piece.blancChevalier);
-      expect(t.combien, 1, reason: 'il n existe qu un Chevalier par camp');
-      expect(t.ou.single, const Cell(5, 6));
+      expect(t.combien, 2, reason: 'le second ne déplace plus le premier');
+      expect(t.ou, containsAll(const [Cell(1, 1), Cell(5, 6)]));
     });
 
     testWidgets('mais chaque camp garde LE SIEN', (tester) async {

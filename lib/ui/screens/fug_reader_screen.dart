@@ -88,7 +88,6 @@ class _FugReaderScreenState extends State<FugReaderScreen>
   Future<void> _refus(FugRefus refus) {
     final quoi = switch (refus) {
       FugRefus.heritier => T('Il manque un Héritier, ou il y en a plusieurs.'),
-      FugRefus.chevalier => T('Un camp a plus d\'un Chevalier.'),
       FugRefus.carreesBloquees => T(
         'Un camp n\'a aucune pièce carrée capable de bouger.',
       ),
@@ -121,7 +120,6 @@ class _FugReaderScreenState extends State<FugReaderScreen>
               T(
                 'Une position jouable demande :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
-                '• un Chevalier au plus par camp — zéro est permis ;\n'
                 '• dans chaque camp, au moins une pièce carrée qui touche une '
                 'autre pièce carrée ;\n'
                 '• au moins trois cases libres.',
@@ -148,6 +146,10 @@ class _FugReaderScreenState extends State<FugReaderScreen>
       FugErreur.traitInconnu => T(
         'La première ligne dit qui est au trait : B pour les Blancs, N pour '
         'les Noirs.',
+      ),
+      FugErreur.ralliement => T(
+        'Les deux lignes de ralliement vont par deux : celle des Blancs, '
+        'puis celle des Noirs, sept cases de r et de tirets.',
       ),
       FugErreur.rangees => T('Il faut huit rangées, une par ligne.'),
       FugErreur.colonnes => T('Chaque rangée compte sept cases.'),

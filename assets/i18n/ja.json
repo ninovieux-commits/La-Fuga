@@ -517,7 +517,6 @@
   "Temps écoulé": "時間切れ",
   "Trait aux": "手番",
   "Trêve : plus aucune pièce carrée ne peut bouger": "休戦：四角い駒はもう動けません",
-  "Un camp a plus d'un Chevalier.": "一方に騎士が二つ以上あります。",
   "Un camp n'a aucune pièce carrée capable de bouger.": "一方に動ける四角い駒がありません。",
   "Valider la position": "配置を確定",
   "Vider": "クリア",
@@ -529,8 +528,6 @@
   "vous défie !": "があなたに挑戦！",
   "À %s de jouer": "%s の手番",
   "Écris ta devise…": "モットーを書く…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に騎士は多くても一つ（ゼロでも可）。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。\n• 空きマスが三つ以上。",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に騎士は多くても一つ（ゼロでも可）。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。孤立した四角い駒は動けず、初手から引き分けになります。\n• 空きマスが三つ以上。盤が埋まっていると行き場がありません。",
   "Message rapide": "クイックメッセージ",
   "Message non envoyé.": "メッセージを送信できませんでした。",
   "Abandonner ou proposer la nulle ?": "投了、それとも引き分けの申し出？",
@@ -548,5 +545,9 @@
   "Copier la position": "局面をコピー",
   "Copier la partie": "棋譜をコピー",
   "Lire la partie": "棋譜を再生",
-  "Arrêter la lecture": "再生を止める"
+  "Arrêter la lecture": "再生を止める",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。\n• 空きマスが三つ以上。",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。孤立した四角い駒は動けず、初手から引き分けになります。\n• 空きマスが三つ以上。盤が埋まっていると行き場がありません。",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "集結ゾーンの2行は対で書きます。先に白、次に黒、r とハイフンで7マス。",
+  "Modifier": "変更"
 }

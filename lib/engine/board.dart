@@ -14,26 +14,103 @@ const int kRows = 8;
 /// Rangées affichées : 8 jouables + 2 zones de ralliement.
 const int kExtRows = 10;
 
-/// Colonnes sur lesquelles existent les zones de ralliement.
-const Set<int> kRally = {2, 3, 4};
-
-/// Colonne du MILIEU d'une zone de ralliement.
+/// La colonne du MILIEU des zones d'origine.
 ///
-/// Un test vérifie qu'elle est bien la médiane de [kRally] : changer le
-/// ralliement sans la changer ferait sortir l'Héritier de sa zone.
-const int kRallyMiddle = 3;
+/// Elle ne sert plus qu'à ce qui se joue forcément sur les zones d'origine —
+/// le tuto, dont les étapes sont écrites pour elles. Une partie, elle, lit la
+/// médiane de SA zone : `board.caseDeFugueAffichee`.
+const int kRallyMilieuStandard = 3;
 
-/// Case où s'affiche l'Héritier d'un camp qui a rejoint son ralliement.
+/// La case d'affichage d'une fugue sur les zones d'ORIGINE.
+Cell caseDeFugueStandard(Camp camp) =>
+    Cell(kRallyMilieuStandard, camp.rallyRow);
+
+/// Les colonnes de ralliement d'origine : les trois du milieu, `--rrr--`.
+const Set<int> kRallyStandard = {2, 3, 4};
+
+/// LES ZONES DE RALLIEMENT D'UNE POSITION, un camp après l'autre.
 ///
-/// **Toujours le milieu**, quelle que soit la colonne par laquelle il est
-/// sorti. Le `.nmc` ne l'écrit pas : « Mi7* » dit d'où l'Héritier part, pas
-/// vers laquelle des trois cases du ralliement il va. Le milieu est donc le
-/// seul choix qui donne la même image en direct et en relecture — et c'est ce
-/// qui compte, puisque la même partie est vue des deux façons.
-Cell rallyDisplayCell(Camp camp) => Cell(kRallyMiddle, camp.rallyRow);
+/// Elles valaient `--rrr--` pour tout le monde et pour toujours. Nino :
+/// « en personnalisé […] on peut choisir entre 0 et 7 cases possibles pour le
+/// ralliement (si 0 cases, fugue impossible (logique)). » Elles font donc
+/// maintenant partie de la POSITION, et voyagent avec elle dans le `.fug`.
+///
+/// Un masque de sept bits par camp, le bit 0 étant la colonne « do ». Un
+/// plateau se clone des milliers de fois dans la recherche de l'IA : deux
+/// entiers partagés par référence n'y coûtent rien, là où deux ensembles
+/// recopiés coûteraient à chaque nœud.
+final class Ralliements {
+  const Ralliements({required this.blanc, required this.noir});
+
+  /// Celles de toujours, et ce qu'on lit d'un `.fug` qui n'en dit rien.
+  static const Ralliements standard = Ralliements(
+    blanc: _masqueStandard,
+    noir: _masqueStandard,
+  );
+
+  static const int _masqueStandard = 1 << 2 | 1 << 3 | 1 << 4;
+
+  final int blanc;
+  final int noir;
+
+  int masque(Camp camp) => camp == Camp.blanc ? blanc : noir;
+
+  /// Vrai si [col] est une case de ralliement de [camp].
+  bool contient(Camp camp, int col) =>
+      col >= 0 && col < kCols && (masque(camp) >> col) & 1 == 1;
+
+  /// Les colonnes de ralliement de [camp], de gauche à droite.
+  List<int> colonnes(Camp camp) => [
+    for (var c = 0; c < kCols; c++)
+      if (contient(camp, c)) c,
+  ];
+
+  /// Vrai si [camp] ne peut pas fuguer : il n'a aucune case où aller.
+  bool estFerme(Camp camp) => masque(camp) == 0;
+
+  bool get estStandard => blanc == _masqueStandard && noir == _masqueStandard;
+
+  /// La MÉDIANE des colonnes de ralliement de [camp], ou `null` s'il n'en a
+  /// aucune.
+  ///
+  /// C'est là que s'affiche un Héritier qui a fugué, quelle que soit la
+  /// colonne par laquelle il est sorti. Le `.nmc` ne l'écrit pas — « Mi7* »
+  /// dit d'où l'Héritier part, pas vers quelle case il va — et une seule
+  /// case possible est donc le seul choix qui donne la même image en direct
+  /// et en relecture.
+  int? milieu(Camp camp) {
+    final cols = colonnes(camp);
+    return cols.isEmpty ? null : cols[cols.length ~/ 2];
+  }
+
+  /// Avec la zone de [camp] remplacée.
+  Ralliements avec(Camp camp, int masque) => Camp.blanc == camp
+      ? Ralliements(blanc: masque, noir: noir)
+      : Ralliements(blanc: blanc, noir: masque);
+
+  /// La zone de [camp], avec [col] mise ou retirée.
+  Ralliements bascule(Camp camp, int col) =>
+      avec(camp, masque(camp) ^ (1 << col));
+
+  @override
+  bool operator ==(Object other) =>
+      other is Ralliements && other.blanc == blanc && other.noir == noir;
+
+  @override
+  int get hashCode => blanc * 128 + noir;
+
+  @override
+  String toString() =>
+      'Ralliements(${blanc.toRadixString(2)}, '
+      '${noir.toRadixString(2)})';
+}
 
 /// Une case du plateau. Les zones de ralliement ont `row == 8` (Blanc) ou
 /// `row == -1` (Noir) et ne sont donc pas « sur le plateau ».
+///
+/// Savoir si une case EST une case de ralliement demande la position : les
+/// zones ne sont plus les mêmes d'une partie à l'autre. C'est donc
+/// [Board.estCaseDeRalliement] qui le dit, et non la case elle-même.
 final class Cell {
   const Cell(this.col, this.row);
 
@@ -42,9 +119,9 @@ final class Cell {
 
   bool get onBoard => col >= 0 && col < kCols && row >= 0 && row < kRows;
 
-  /// Dans l'une des deux zones de ralliement : hors du plateau de jeu, mais
-  /// bien à l'écran, et donc encadrable.
-  bool get inRally => kRally.contains(col) && (row == 8 || row == -1);
+  /// Sur l'une des deux RANGÉES de ralliement — celles qu'on voit au-dessus
+  /// et au-dessous du plateau. Dit où est la case, pas si elle rallie.
+  bool get surUneRangeeDeRalliement => row == 8 || row == -1;
 
   @override
   bool operator ==(Object other) =>
@@ -82,17 +159,21 @@ const List<(int, int)> kGardePushDirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
 /// moteur reste ligne à ligne vérifiable. Les pièces étant immuables, cloner
 /// un plateau ne copie que la structure des colonnes.
 final class Board {
-  Board._(this._cols);
+  Board._(this._cols, this.rall);
 
   final List<List<Piece?>> _cols;
 
+  /// Les zones de ralliement de CETTE position.
+  final Ralliements rall;
+
   /// Plateau vide.
-  factory Board.empty() => Board._(
+  factory Board.empty({Ralliements rall = Ralliements.standard}) => Board._(
     List.generate(
       kCols,
       (_) => List<Piece?>.filled(kRows, null),
       growable: false,
     ),
+    rall,
   );
 
   /// Position de départ standard (`_setup_pieces`).
@@ -140,8 +221,18 @@ final class Board {
   Board clone() {
     final copy = Board._(
       List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
+      rall,
     );
     copy._key = _key; // même contenu : la clé déjà calculée reste valable.
+    return copy;
+  }
+
+  /// Le même plateau, avec d'autres zones de ralliement.
+  Board avecRalliements(Ralliements autres) {
+    final copy = Board._(
+      List.generate(kCols, (c) => List<Piece?>.of(_cols[c]), growable: false),
+      autres,
+    );
     return copy;
   }
 
@@ -220,12 +311,26 @@ final class Board {
     return seen;
   }
 
+  /// Vrai si (c,r) est une case de ralliement de [camp] — Héritier ou non.
+  bool estCaseDeRalliement(Camp camp, int c, int r) =>
+      r == camp.rallyRow && rall.contient(camp, c);
+
   /// Vrai si (c,r) est une case de fugue valide pour `piece`.
-  static bool isFugueDest(int c, int r, Piece piece) {
-    if (!piece.isHeir) return false;
-    if (!kRally.contains(c)) return false;
-    return r == piece.camp.rallyRow;
-  }
+  ///
+  /// Seul l'Héritier fugue, et seulement vers SA zone. Un camp dont la zone
+  /// est vide ne fugue pas du tout — c'est ce que Nino appelle « si 0 cases,
+  /// fugue impossible (logique) », et ça tombe tout seul : aucune colonne
+  /// n'est dans le masque.
+  bool isFugueDest(int c, int r, Piece piece) =>
+      piece.isHeir && estCaseDeRalliement(piece.camp, c, r);
+
+  /// Où s'affiche l'Héritier de [camp] une fois qu'il a fugué.
+  ///
+  /// La médiane de sa zone. Un camp sans zone ne fugue jamais : on rend
+  /// alors la colonne du milieu du plateau, pour n'avoir nulle part à se
+  /// demander ce que vaut une case qui n'existe pas.
+  Cell caseDeFugueAffichee(Camp camp) =>
+      Cell(rall.milieu(camp) ?? kCols ~/ 2, camp.rallyRow);
 
   /// Clé compacte de la position (`_dg_board_key`) : 56 caractères.
   ///
@@ -255,7 +360,12 @@ final class Board {
         }
       }
     }
-    return String.fromCharCodes(codes, 0, n);
+    final plateau = String.fromCharCodes(codes, 0, n);
+    // LES ZONES NE S'ÉCRIVENT QUE SI ELLES SORTENT DE L'ORDINAIRE. Elles font
+    // partie de la position — deux plateaux identiques aux zones différentes
+    // ne se jouent pas pareil, et la mémoire de l'IA survit aux parties. Les
+    // taire quand elles sont standard garde intactes les clés déjà apprises.
+    return rall.estStandard ? plateau : '$plateau|${rall.blanc}:${rall.noir}';
   }
 
   /// Clé incluant le camp au trait (anti-répétition).

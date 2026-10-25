@@ -517,7 +517,6 @@
   "Temps écoulé": "Tiempo agotado",
   "Trait aux": "Juegan",
   "Trêve : plus aucune pièce carrée ne peut bouger": "Tregua: ninguna pieza cuadrada puede moverse ya",
-  "Un camp a plus d'un Chevalier.": "Un bando tiene más de un Caballero.",
   "Un camp n'a aucune pièce carrée capable de bouger.": "Un bando no tiene ninguna pieza cuadrada capaz de moverse.",
   "Valider la position": "Validar la posición",
   "Vider": "Vaciar",
@@ -529,8 +528,6 @@
   "vous défie !": "¡te desafía!",
   "À %s de jouer": "Juega %s",
   "Écris ta devise…": "Escribe tu lema…",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Una posición jugable requiere:\n\n• un Heredero en cada bando, ni más ni menos;\n• como máximo un Caballero por bando — cero está permitido;\n• en cada bando, al menos una pieza cuadrada que toque otra pieza cuadrada;\n• al menos tres casillas libres.",
-  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• un Chevalier au plus par camp — zéro est permis ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Una posición jugable requiere:\n\n• un Heredero en cada bando, ni más ni menos;\n• como máximo un Caballero por bando — cero está permitido;\n• en cada bando, al menos una pieza cuadrada que toque otra pieza cuadrada — una cuadrada aislada no puede moverse, y la partida serían tablas de entrada;\n• al menos tres casillas libres: un tablero lleno no deja a dónde ir.",
   "Message rapide": "Mensaje rápido",
   "Message non envoyé.": "Mensaje no enviado.",
   "Abandonner ou proposer la nulle ?": "¿Abandonar u ofrecer tablas?",
@@ -548,5 +545,9 @@
   "Copier la position": "Copiar la posición",
   "Copier la partie": "Copiar la partida",
   "Lire la partie": "Reproducir la partida",
-  "Arrêter la lecture": "Detener la reproducción"
+  "Arrêter la lecture": "Detener la reproducción",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée ;\n• au moins trois cases libres.": "Una posición jugable requiere:\n\n• un Heredero en cada bando, ni más ni menos;\n• en cada bando, al menos una pieza cuadrada que toque otra pieza cuadrada;\n• al menos tres casillas libres.",
+  "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Una posición jugable requiere:\n\n• un Heredero en cada bando, ni más ni menos;\n• en cada bando, al menos una pieza cuadrada que toque otra pieza cuadrada — una cuadrada aislada no puede moverse, y la partida serían tablas de entrada;\n• al menos tres casillas libres: un tablero lleno no deja a dónde ir.",
+  "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "Las dos líneas de reunión van en pareja: primero las Blancas, luego las Negras, siete casillas de r y guiones.",
+  "Modifier": "Modificar"
 }

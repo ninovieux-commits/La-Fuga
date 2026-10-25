@@ -95,7 +95,7 @@ LiteralMove _simpleOrPush(Board board, String s) {
       ok: true,
       fugued: {leaving.camp},
       // Il glisse jusqu'au milieu de son ralliement, là où il s'affichera.
-      slides: [(leaving, start, rallyDisplayCell(leaving.camp))],
+      slides: [(leaving, start, board.caseDeFugueAffichee(leaving.camp))],
     );
   }
 
@@ -306,12 +306,15 @@ void _push(
     }
     // La pièce quitte le plateau. Un Héritier poussé dans SON ralliement n'est
     // pas éjecté : il fugue. Même test qu'en partie (`MoveController`).
-    final ownRally =
-        kRally.contains(landing.col) && landing.row == piece.camp.rallyRow;
+    final ownRally = board.estCaseDeRalliement(
+      piece.camp,
+      landing.col,
+      landing.row,
+    );
     if (piece.isHeir && ownRally) {
       fugued?.add(piece.camp);
       // Il glisse jusqu'au milieu de son ralliement, comme en partie.
-      slides?.add((piece, cell, rallyDisplayCell(piece.camp)));
+      slides?.add((piece, cell, board.caseDeFugueAffichee(piece.camp)));
     }
     // Une pièce éjectée ne glisse pas : elle est prise.
   }
