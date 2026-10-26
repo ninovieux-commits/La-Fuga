@@ -85,10 +85,12 @@ class MessageBubble extends StatelessWidget {
 
   /// La photo, au sens de `ProfilePhoto`, qui dessine [piece] dans le thème
   /// de celui qui lit.
-  static String _photoDe(Piece piece) {
-    final theme = Settings.instance.themeAxes.general;
+  /// [theme] vient du jeton quand il en nomme un ; sinon c'est celui de
+  /// celui qui lit — les messages d'avant n'en nommaient pas.
+  static String _photoDe(Piece piece, String? theme) {
+    final choisi = theme ?? Settings.instance.themeAxes.general;
     final noir = piece.camp == Camp.noir ? '|${Camp.noir.wire}' : '';
-    return '$theme|${piece.type.wire}$noir';
+    return '$choisi|${piece.type.wire}$noir';
   }
 
   /// Le message en morceaux : du texte, et des pièces dessinées.
@@ -102,7 +104,10 @@ class MessageBubble extends StatelessWidget {
       if (m.piece != null)
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: ProfilePhoto(photo: _photoDe(m.piece!), size: taille * 1.25),
+          child: ProfilePhoto(
+            photo: _photoDe(m.piece!, m.theme),
+            size: taille * 1.25,
+          ),
         )
       else
         TextSpan(text: m.texte),
@@ -128,7 +133,7 @@ class MessageBubble extends StatelessWidget {
           children: [
             for (final m in decoupeMessage(texte))
               if (m.piece != null)
-                ProfilePhoto(photo: _photoDe(m.piece!), size: taille),
+                ProfilePhoto(photo: _photoDe(m.piece!, m.theme), size: taille),
           ],
         ),
       );

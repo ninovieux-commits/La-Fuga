@@ -32,26 +32,48 @@ const List<PieceType> kPiecesEnvoyables = [
 
 /// Le jeton d'une pièce, tel qu'il voyage dans le texte du message.
 ///
-/// Le camp blanc n'est pas écrit : c'est le cas courant, et « [Soldat] » se
-/// lit mieux que « [Soldat Blanc] » sur un client qui ne sait pas le dessiner.
-String jetonPiece(PieceType type, Camp camp) =>
-    camp == Camp.blanc ? '[${type.wire}]' : '[${type.wire} ${camp.wire}]';
+/// Avec son THÈME, quand on en a choisi un. Nino : « ça doit donner accès aux
+/// pièces de TOUS les thèmes, pas d'un seul. » Choisir la pièce d'un thème et
+/// la voir arriver dans un autre n'aurait pas de sens : le jeton porte donc
+/// celui qu'on a pris, et il s'écrit comme une photo de profil —
+/// `[foret|Soldat|Noir]`, le même mot que `ProfilePhoto` sait déjà dessiner.
+///
+/// Sans thème, la forme courte reste lisible : `[Soldat]`, `[Soldat Noir]`.
+/// C'est ce qu'écrivaient les messages d'avant, et chaque appareil les dessine
+/// alors avec SON thème. Le camp blanc ne s'y écrit pas : c'est le cas
+/// courant, et « [Soldat] » se lit mieux que « [Soldat Blanc] » sur un client
+/// qui ne sait pas le dessiner.
+String jetonPiece(PieceType type, Camp camp, {String? theme}) {
+  if (theme == null) {
+    return camp == Camp.blanc
+        ? '[${type.wire}]'
+        : '[${type.wire} ${camp.wire}]';
+  }
+  final noir = camp == Camp.noir ? '|${camp.wire}' : '';
+  return '[$theme|${type.wire}$noir]';
+}
 
 /// Le motif des jetons, construit depuis les pièces elles-mêmes : renommer
 /// une pièce ne peut pas laisser le motif en arrière.
+/// Le thème n'est pas énuméré — n'importe quel mot en minuscules passe, et
+/// c'est `ProfilePhoto` qui retombe sur le thème d'origine s'il ne le connaît
+/// pas. Lister les thèmes ici ferait d'un thème ajouté demain un jeton
+/// illisible aujourd'hui.
 final RegExp _motifJeton = RegExp(
-  r'\[(' +
+  r'\[(?:([a-z]+)\|)?(' +
       kPiecesEnvoyables.map((p) => RegExp.escape(p.wire)).join('|') +
-      r')(?: (' +
+      r')(?:[ |](' +
       Camp.values.map((c) => RegExp.escape(c.wire)).join('|') +
       r'))?\]',
 );
 
 /// Un morceau de message : du texte, ou une pièce.
 ///
-/// L'un des deux est toujours nul. On découpe plutôt que de remplacer parce
-/// qu'une pièce se DESSINE : elle ne peut pas vivre dans une chaîne.
-typedef MorceauMessage = ({String? texte, Piece? piece});
+/// [texte] et [piece] s'excluent — on découpe plutôt que de remplacer parce
+/// qu'une pièce se DESSINE, et qu'elle ne peut pas vivre dans une chaîne.
+/// [theme] n'accompagne qu'une pièce, et vaut `null` quand le jeton n'en
+/// nomme pas : à celui qui lit d'employer le sien.
+typedef MorceauMessage = ({String? texte, Piece? piece, String? theme});
 
 /// Découpe un message en texte et en pièces, dans l'ordre.
 ///
@@ -65,20 +87,25 @@ List<MorceauMessage> decoupeMessage(String texte) {
       morceaux.add((
         texte: texte.substring(curseur, trouve.start),
         piece: null,
+        theme: null,
       ));
     }
-    morceaux.add((texte: null, piece: _pieceDe(trouve)));
+    morceaux.add((
+      texte: null,
+      piece: _pieceDe(trouve),
+      theme: trouve.group(1),
+    ));
     curseur = trouve.end;
   }
   if (curseur < texte.length) {
-    morceaux.add((texte: texte.substring(curseur), piece: null));
+    morceaux.add((texte: texte.substring(curseur), piece: null, theme: null));
   }
   return morceaux;
 }
 
 Piece _pieceDe(RegExpMatch trouve) {
-  final type = kPiecesEnvoyables.firstWhere((p) => p.wire == trouve.group(1));
-  final camp = trouve.group(2) == Camp.noir.wire ? Camp.noir : Camp.blanc;
+  final type = kPiecesEnvoyables.firstWhere((p) => p.wire == trouve.group(2));
+  final camp = trouve.group(3) == Camp.noir.wire ? Camp.noir : Camp.blanc;
   return Piece(type, camp);
 }
 

@@ -14,11 +14,11 @@ import 'package:http/testing.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
-import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/pieces_emoji.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/message_bubble.dart';
@@ -39,10 +39,23 @@ void main() {
   tearDown(resetScale);
 
   group('Le jeton', () {
-    test('le blanc ne dit pas son camp, le noir si', () {
+    test('sans thème, le blanc ne dit pas son camp, le noir si', () {
       expect(jetonPiece(PieceType.soldat, Camp.blanc), '[Soldat]');
       expect(jetonPiece(PieceType.soldat, Camp.noir), '[Soldat Noir]');
       expect(jetonPiece(PieceType.heritier, Camp.blanc), '[Héritier]');
+    });
+
+    test('avec un thème, il s écrit comme une photo de profil', () {
+      // Nino : « ça doit donner accès aux pièces de TOUS les thèmes, pas d un
+      // seul. » Le jeton porte donc celui qu on a pris.
+      expect(
+        jetonPiece(PieceType.soldat, Camp.blanc, theme: 'foret'),
+        '[foret|Soldat]',
+      );
+      expect(
+        jetonPiece(PieceType.garde, Camp.noir, theme: 'volcan'),
+        '[volcan|Garde|Noir]',
+      );
     });
 
     test('il se lit tout seul sur un client qui l ignore', () {
@@ -69,6 +82,17 @@ void main() {
       expect(contientUnePiece('bien joué !'), isFalse);
     });
 
+    test('un jeton à thème se lit, et rend son thème', () {
+      final m = decoupeMessage('voilà [volcan|Garde|Noir] !');
+      expect(m[1].piece!.type, PieceType.garde);
+      expect(m[1].piece!.camp, Camp.noir);
+      expect(m[1].theme, 'volcan');
+    });
+
+    test('un jeton sans thème n en rend aucun : à chacun le sien', () {
+      expect(decoupeMessage('[Soldat]').single.theme, isNull);
+    });
+
     test('la pièce se détache du texte, dans l ordre', () {
       final m = decoupeMessage('ton [Garde Noir] est perdu');
       expect(m.map((e) => e.texte).toList(), ['ton ', null, ' est perdu']);
@@ -88,7 +112,13 @@ void main() {
     });
 
     test('ce qui ressemble à un jeton sans en être reste du texte', () {
-      for (final faux in ['[Roi]', '[soldat]', '[Soldat Vert]', '[Soldat']) {
+      for (final faux in [
+        '[Roi]',
+        '[soldat]',
+        '[Soldat Vert]',
+        '[Soldat',
+        '[Foret|Soldat]',
+      ]) {
         expect(
           contientUnePiece(faux),
           isFalse,
@@ -164,13 +194,29 @@ void main() {
       expect(find.byType(ProfilePhoto), findsNWidgets(3));
     });
 
-    testWidgets('la pièce suit le thème de CELUI QUI LIT', (tester) async {
+    testWidgets('sans thème, la pièce suit celui de CELUI QUI LIT', (
+      tester,
+    ) async {
       await Settings.instance.setTheme('ocean');
       await pose(tester, '[Soldat]');
       expect(
         tester.widget<ProfilePhoto>(find.byType(ProfilePhoto)).photo,
         startsWith('ocean|'),
         reason: 'le jeton ne porte pas de thème : chacun dessine avec le sien',
+      );
+    });
+
+    testWidgets('avec un thème, elle garde CELUI QU ON A CHOISI', (
+      tester,
+    ) async {
+      await Settings.instance.setTheme('ocean');
+      await pose(tester, '[volcan|Garde|Noir]');
+      expect(
+        tester.widget<ProfilePhoto>(find.byType(ProfilePhoto)).photo,
+        'volcan|Garde|Noir',
+        reason:
+            'choisir la pièce d un thème et la voir arriver dans un autre '
+            'n aurait pas de sens',
       );
     });
   });
@@ -244,7 +290,64 @@ void main() {
       expect(logo.photo, 'logo|volcan');
     });
 
+    testWidgets('elle se tient ENTRE les deux visages', (tester) async {
+      // Nino : « le bouton doit apparaître entre nos deux images de profil,
+      // pas dessous. » Les deux photos du bas sont les plus grandes de
+      // l écran : on les reconnaît à leur taille.
+      await ouvrir(tester, clavier: true);
+      final visages = tester
+          .widgetList<ProfilePhoto>(find.byType(ProfilePhoto))
+          .where((p) => p.size == kAvatarBasConversation)
+          .toList();
+      expect(visages, hasLength(2), reason: 'les deux grandes photos du bas');
+
+      final places = find
+          .byWidgetPredicate(
+            (w) => w is ProfilePhoto && w.size == kAvatarBasConversation,
+          )
+          .evaluate()
+          .map((e) => tester.getRect(find.byWidget(e.widget)))
+          .toList();
+      final touche = tester.getRect(laTouche());
+      expect(touche.center.dx, greaterThan(places[0].right));
+      expect(touche.center.dx, lessThan(places[1].left));
+      expect(
+        (touche.center.dy - places[0].center.dy).abs(),
+        lessThan(places[0].height),
+        reason: 'sur la même rangée qu elles, et non dessous',
+      );
+    });
+
+    testWidgets('la grille offre les pièces de TOUS les thèmes', (
+      tester,
+    ) async {
+      await ouvrir(tester, clavier: true);
+      await tester.tap(laTouche());
+      await tester.pumpAndSettle();
+
+      final photos = tester
+          .widgetList<ProfilePhoto>(find.byType(ProfilePhoto))
+          .map((p) => p.photo)
+          .whereType<String>()
+          .toSet();
+      for (final theme in kThemeOrder) {
+        expect(
+          photos.any((p) => p.startsWith('$theme|')),
+          isTrue,
+          reason: 'le thème « $theme » n est pas proposé',
+        );
+      }
+      expect(
+        photos.where((p) => p.startsWith('${kThemeOrder.first}|')),
+        hasLength(kPiecesEnvoyables.length * 2),
+        reason: 'cinq pièces, deux camps, pour chaque thème',
+      );
+    });
+
     testWidgets('elle insère le jeton à l endroit du curseur', (tester) async {
+      // La grille s ouvre sur le thème qu on porte : c est sa première
+      // rangée, donc la première pièce trouvée.
+      final theme = Settings.instance.themeAxes.general;
       await ouvrir(tester, clavier: true);
       await tester.enterText(find.byType(TextField), 'ton  est perdu');
       // Curseur après « ton  ».
@@ -257,10 +360,11 @@ void main() {
       await tester.tap(find.byTooltip(PieceType.garde.wire).first);
       await tester.pumpAndSettle();
 
-      expect(champ.controller!.text, 'ton [Garde] est perdu');
+      final attendu = jetonPiece(PieceType.garde, Camp.blanc, theme: theme);
+      expect(champ.controller!.text, 'ton $attendu est perdu');
       expect(
         champ.controller!.selection.baseOffset,
-        'ton [Garde]'.length,
+        'ton $attendu'.length,
         reason: 'le curseur reste derrière la pièce, pas au bout du message',
       );
     });

@@ -781,6 +781,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             size: kAvatarBasConversation,
           ),
         ),
+        _toucheDesPieces(palette),
         GestureDetector(
           onTap: () => unawaited(_fiche(widget.online.pseudo ?? '', palette)),
           child: ProfilePhoto(
@@ -819,40 +820,37 @@ class _ConversationScreenState extends State<ConversationScreen>
     if (jeton != null) _inserer(jeton);
   }
 
-  /// La touche qui ouvre les pièces, au-dessus de la saisie.
+  /// La touche qui ouvre les pièces, ENTRE LES DEUX VISAGES.
   ///
-  /// Nino : « au milieu […] uniquement lorsque [le clavier] est déployé. Ça
-  /// doit faire la taille d'une touche de clavier mais carré pas rectangle,
-  /// et à l'effigie du logo (correspondant au thème choisi). »
+  /// Nino : « le bouton doit apparaître entre nos deux images de profil, pas
+  /// dessous. » Elle y trouve sa place sans rien pousser : les deux photos
+  /// sont aux deux bouts d'une rangée, et un enfant de plus au milieu ne les
+  /// déplace pas d'un pixel.
   ///
+  /// Elle ne paraît que CLAVIER DÉPLOYÉ, comme il l'avait demandé d'abord.
   /// Le clavier se reconnaît à la place qu'il prend : `viewInsets.bottom`
-  /// vaut sa hauteur quand il est là, et zéro sinon. Clavier rangé, la
-  /// touche s'en va — elle n'a rien à faire au-dessus d'un champ qu'on ne
-  /// remplit pas.
+  /// vaut sa hauteur quand il est là, et zéro sinon.
   Widget _toucheDesPieces(ThemePalette palette) {
     if (MediaQuery.viewInsetsOf(context).bottom <= 0) {
       return const SizedBox.shrink();
     }
     final cote = touchHeight();
-    return Padding(
-      padding: EdgeInsets.only(bottom: S(6)),
-      child: Center(
-        child: Tooltip(
-          message: T('Envoyer une pièce'),
-          child: Material(
-            color: Colors.black38,
+    return Center(
+      child: Tooltip(
+        message: T('Envoyer une pièce'),
+        child: Material(
+          color: Colors.black38,
+          borderRadius: BorderRadius.circular(S(10)),
+          child: InkWell(
             borderRadius: BorderRadius.circular(S(10)),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(S(10)),
-              onTap: () => unawaited(_ouvrirLesPieces(palette)),
-              child: SizedBox(
-                width: cote,
-                height: cote,
-                child: Center(
-                  child: ProfilePhoto(
-                    photo: 'logo|${Settings.instance.themeAxes.general}',
-                    size: cote * 0.72,
-                  ),
+            onTap: () => unawaited(_ouvrirLesPieces(palette)),
+            child: SizedBox(
+              width: cote,
+              height: cote,
+              child: Center(
+                child: ProfilePhoto(
+                  photo: 'logo|${Settings.instance.themeAxes.general}',
+                  size: cote * 0.72,
                 ),
               ),
             ),
@@ -868,7 +866,6 @@ class _ConversationScreenState extends State<ConversationScreen>
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _toucheDesPieces(palette),
         Row(
           children: [
             Expanded(

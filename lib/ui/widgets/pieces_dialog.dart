@@ -26,45 +26,63 @@ import 'profile_photo.dart';
 double get kCotePieceChoix => touchHeight();
 
 /// Ouvre la grille et rend le JETON de la pièce choisie, ou `null`.
+///
+/// TOUS LES THÈMES, et pas seulement celui qu'on porte. Nino : « ça doit
+/// donner accès aux pièces de TOUS les thèmes, pas d'un seul. » C'est le même
+/// catalogue que la galerie des photos de profil, dans le même ordre — le
+/// sien d'abord, puisque c'est celui qu'il cherchera le plus souvent.
 Future<String?> choisirPieceEmoji(
   BuildContext context, {
   required ThemePalette palette,
 }) {
-  final theme = Settings.instance.themeAxes.general;
+  final sien = Settings.instance.themeAxes.general;
+  final themes = [sien, ...kThemeOrder.where((t) => t != sien)];
+
+  Widget rangee(String theme, Camp camp) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      for (final type in kPiecesEnvoyables)
+        Padding(
+          padding: EdgeInsets.all(S(3)),
+          child: Tooltip(
+            message: type.wire,
+            child: InkWell(
+              onTap: () => Navigator.of(
+                context,
+              ).pop(jetonPiece(type, camp, theme: theme)),
+              child: ProfilePhoto(
+                photo:
+                    '$theme|${type.wire}'
+                    '${camp == Camp.noir ? '|${Camp.noir.wire}' : ''}',
+                size: kCotePieceChoix,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
 
   return showFugaPopup<String>(
     context,
-    widthFactor: 0.86,
-    heightFactor: 0.62,
+    widthFactor: 0.90,
+    heightFactor: 0.72,
     dismissible: true,
     rows: [
-      (0.18, popupText(T('Envoyer une pièce'), size: 17)),
-      for (final camp in Camp.values)
+      (0.14, popupText(T('Envoyer une pièce'), size: 17)),
+      // LE CATALOGUE DÉFILE. Seize thèmes de dix pièces ne tiennent sur aucun
+      // écran ; le popup s'arrête à son plafond et laisse glisser le reste.
+      for (final theme in themes) ...[
         (
           0,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final type in kPiecesEnvoyables)
-                Padding(
-                  padding: EdgeInsets.all(S(4)),
-                  child: Tooltip(
-                    message: type.wire,
-                    child: InkWell(
-                      onTap: () =>
-                          Navigator.of(context).pop(jetonPiece(type, camp)),
-                      child: ProfilePhoto(
-                        photo:
-                            '$theme|${type.wire}'
-                            '${camp == Camp.noir ? '|${Camp.noir.wire}' : ''}',
-                        size: kCotePieceChoix,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          popupText(
+            kThemeLabels[theme] ?? theme,
+            size: 12,
+            color: const Color.fromRGBO(190, 190, 190, 1),
           ),
         ),
+        (0, rangee(theme, Camp.blanc)),
+        (0, rangee(theme, Camp.noir)),
+      ],
       (
         kTouchRow,
         FugaButton(
