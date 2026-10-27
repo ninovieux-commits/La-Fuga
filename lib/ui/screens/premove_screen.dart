@@ -210,6 +210,7 @@ class _PremoveScreenState extends State<PremoveScreen>
       // deux modes. » Ici le coup en cours est celui qu'on compose à la
       // main ; l'annuler rend la position d'avant, sans toucher aux
       // variantes déjà rangées.
+      avecAnnuler: true,
       onAnnuler: _jeu.canValidate ? _annulerLeCoup : null,
     );
   }

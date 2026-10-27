@@ -11,10 +11,12 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'game_top_bar.dart';
+import 'picto_touche.dart';
 
 class MoveStrip extends StatefulWidget {
   const MoveStrip({
@@ -126,7 +128,9 @@ class _MoveStripState extends State<MoveStrip> {
           // Jusqu'à la position de départ : un demi-coup à la fois, et le
           // dernier pas ramène avant le premier coup.
           _arrow(
+            'assets/images/fleche_gauche.webp',
             '<',
+            T('Coup précédent'),
             moves.isEmpty || active < 0
                 ? null
                 : () => widget.onSelect(active - 1),
@@ -157,7 +161,9 @@ class _MoveStripState extends State<MoveStrip> {
             ),
           ),
           _arrow(
+            'assets/images/fleche_droite.webp',
             '>',
+            T('Coup suivant'),
             widget.activeIndex == null
                 ? null
                 : () => widget.onSelect(active + 1),
@@ -185,26 +191,41 @@ class _MoveStripState extends State<MoveStrip> {
 
   /// Flèche ronde, carrée : sa largeur suit la hauteur du bandeau.
   ///
+  /// Son DESSIN suit le thème, comme la boule, l'avion et le drapeau : un
+  /// fichier blanc sur fond transparent, teinté ici. Le chevron écrit « < »
+  /// reste en secours, si l'image venait à manquer.
+  ///
   /// Sans geste, elle PÂLIT — de la pâleur commune à toutes les touches
   /// éteintes de l'application. Elle a porté des hachures le temps d'un
   /// essai ; Nino, les ayant vues en vrai, a demandé qu'on revienne à ceci.
-  Widget _arrow(String label, VoidCallback? onPressed) => Opacity(
+  Widget _arrow(
+    String asset,
+    String secours,
+    String infobulle,
+    VoidCallback? onPressed,
+  ) => Opacity(
     opacity: onPressed == null ? kOpaciteEteinte : 1,
-    child: AspectRatio(
-      aspectRatio: 1,
-      child: Material(
-        color: kBarButtonDark,
-        borderRadius: BorderRadius.circular(S(20)),
-        child: InkWell(
+    // L'infobulle est DANS la pâleur, et non autour : c'est ce qui permet de
+    // lire l'une en partant de l'autre. Et une flèche dessinée, sans mot,
+    // doit pouvoir dire son nom.
+    child: Tooltip(
+      message: infobulle,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Material(
+          color: kBarButtonDark,
           borderRadius: BorderRadius.circular(S(20)),
-          onTap: onPressed,
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: SF(25),
-                fontWeight: FontWeight.bold,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(S(20)),
+            onTap: onPressed,
+            child: Center(
+              child: PictoTouche(
+                asset: asset,
+                // LA COULEUR FONCÉE. Nino : « les deux flèches de navigation
+                // tout en bas aussi […] doivent utiliser la couleur
+                // foncée. »
+                couleur: widget.palette.fonce,
+                secours: secours,
               ),
             ),
           ),

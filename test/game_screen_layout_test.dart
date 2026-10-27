@@ -130,7 +130,7 @@ void main() {
     await open(tester);
 
     final before = tester.widget<GameBoardView>(find.byType(GameBoardView));
-    await tester.tap(find.text('< >'));
+    await tester.tap(find.byTooltip(T('Retourner le plateau')));
     await tester.pumpAndSettle();
 
     final after = tester.widget<GameBoardView>(find.byType(GameBoardView));
@@ -195,7 +195,7 @@ void main() {
     final presentKey = present.board.key;
 
     // Reculer d'un coup montre la position d'avant.
-    await tester.tap(find.text('<'));
+    await tester.tap(find.byTooltip(T('Coup précédent')));
     await tester.pumpAndSettle();
     final past = tester.widget<GameBoardView>(find.byType(GameBoardView));
     expect(past.board.key, isNot(presentKey));
@@ -206,7 +206,7 @@ void main() {
     );
 
     // Revenir au présent.
-    await tester.tap(find.text('>'));
+    await tester.tap(find.byTooltip(T('Coup suivant')));
     await tester.pumpAndSettle();
     expect(
       tester.widget<GameBoardView>(find.byType(GameBoardView)).board.key,

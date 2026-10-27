@@ -51,6 +51,7 @@ class BandeauPrises extends StatelessWidget {
     required this.prisesBas,
     required this.palette,
     required this.hautEstBlanc,
+    this.avecAnnuler = false,
     this.onAnnuler,
   });
 
@@ -65,7 +66,17 @@ class BandeauPrises extends StatelessWidget {
   /// Quel camp occupe la ligne du haut : il donne sa couleur de fond.
   final bool hautEstBlanc;
 
-  /// Annuler le coup en cours. Nulle = il n'y en a pas.
+  /// Cet écran a-t-il une touche d'annulation ? L'analyse n'en a pas ; les
+  /// pré-coups, si.
+  ///
+  /// Séparé de [onAnnuler] parce que la touche NE DISPARAÎT PLUS quand il
+  /// n'y a rien à annuler : elle s'éteint. Nino : « le bouton annulation de
+  /// coup ne doit plus disparaître lorsqu'il n'est pas cliquable, il doit
+  /// faire comme les autres touches quand elles ne sont pas cliquables. »
+  final bool avecAnnuler;
+
+  /// Annuler le coup en cours. Nulle = il n'y a rien à annuler, et la touche
+  /// est éteinte.
   final VoidCallback? onAnnuler;
 
   /// Ce que le bloc entier occupe en hauteur.
@@ -87,7 +98,7 @@ class BandeauPrises extends StatelessWidget {
         _ligne(prisesBas, blanc: !hautEstBlanc),
       ],
     );
-    if (onAnnuler == null) return lignes;
+    if (!avecAnnuler) return lignes;
     // Hauteur donnée EXPLICITEMENT : la touche s'étire sur les deux lignes,
     // et une rangée qui s'étire dans une page qui défile n'a aucune hauteur
     // à quoi s'étirer. Le bloc en impose donc une, qu'il connaît.
@@ -100,15 +111,17 @@ class BandeauPrises extends StatelessWidget {
           Tooltip(
             message: T('Annuler'),
             child: Material(
-              color: kFugaGrey,
+              color: onAnnuler == null
+                  ? Color.lerp(kFugaGrey, palette.menu, 0.6)!
+                  : kFugaGrey,
               child: InkWell(
                 onTap: onAnnuler,
                 child: SizedBox(
                   width: hauteur(),
                   child: Center(
-                    child: Text(
-                      '↶',
-                      style: TextStyle(color: Colors.white, fontSize: SF(16)),
+                    child: Opacity(
+                      opacity: onAnnuler == null ? kOpaciteEteinte : 1,
+                      child: glypheAnnuler(palette),
                     ),
                   ),
                 ),

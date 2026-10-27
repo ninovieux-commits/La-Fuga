@@ -184,7 +184,7 @@ Future<void> showOnlineContinueDialog(
             SizedBox(height: S(8)),
             FugaButton(
               text: T('Quitter le match'),
-              color: kFugaGreyFonce,
+              color: kGrisTouche,
               fontSize: SF(14),
               onPressed: () {
                 Navigator.of(context).pop();

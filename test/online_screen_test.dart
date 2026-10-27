@@ -81,9 +81,9 @@ void main() {
   ) async {
     await open(tester);
 
-    expect(find.text('< >'), findsOneWidget);
+    expect(find.byTooltip(T('Retourner le plateau')), findsOneWidget);
     expect(find.byTooltip('Pause'), findsOneWidget);
-    expect(find.text('Chat'), findsOneWidget);
+    expect(find.byTooltip(T('Chat')), findsOneWidget);
     expect(find.text('Analyser'), findsNothing);
     expect(find.text('Deep Grey'), findsNothing);
     expect(find.text('Rapide'), findsNothing);
@@ -122,7 +122,7 @@ void main() {
   ) async {
     await open(tester);
 
-    await tester.tap(find.text('Chat'));
+    await tester.tap(find.byTooltip(T('Chat')));
     await tester.pumpAndSettle();
 
     // La même boîte que depuis le menu : l'écran de conversation, au nom de

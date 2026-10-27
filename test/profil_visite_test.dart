@@ -520,7 +520,7 @@ void main() {
         reason: 'la partie est rendue de SON point de vue, son nom en bas',
       );
       expect(
-        find.text('Chat'),
+        find.byTooltip(T('Chat')),
         findsNothing,
         reason: 'sa conversation avec son adversaire ne nous regarde pas',
       );

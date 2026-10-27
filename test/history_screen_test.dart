@@ -132,11 +132,11 @@ void main() {
     expect(find.text('Deep Grey'), findsOneWidget);
 
     // On avance d'un coup, puis on recule jusqu'avant le premier.
-    await tester.tap(find.text('>'));
+    await tester.tap(find.byTooltip(T('Coup suivant')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('<'));
+    await tester.tap(find.byTooltip(T('Coup précédent')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('<'));
+    await tester.tap(find.byTooltip(T('Coup précédent')));
     await tester.pumpAndSettle();
   });
 }

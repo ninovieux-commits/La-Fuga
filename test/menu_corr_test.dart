@@ -333,9 +333,9 @@ void main() {
     await tapVisible(tester, find.byType(CorrSlot).first);
 
     // `_update_action_buttons` : chat ET analyse en correspondance.
-    expect(find.text('< >'), findsOneWidget);
+    expect(find.byTooltip(T('Retourner le plateau')), findsOneWidget);
     expect(find.byTooltip('Pause'), findsOneWidget);
-    expect(find.text('Chat'), findsOneWidget);
+    expect(find.byTooltip(T('Chat')), findsOneWidget);
     expect(find.byTooltip('Analyser ou préparer ses coups ?'), findsOneWidget);
     expect(find.text('Deep Grey'), findsNothing);
     expect(find.text('Rapide'), findsNothing);

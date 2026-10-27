@@ -104,22 +104,31 @@ void main() {
 
     testWidgets('sans coup joué, les DEUX pâlissent', (tester) async {
       await bandeau(tester, coups: const [], actif: null);
-      expect(paleurAutourDe(tester, find.text('<')), kOpaciteEteinte);
-      expect(paleurAutourDe(tester, find.text('>')), kOpaciteEteinte);
+      expect(
+        paleurAutourDe(tester, find.byTooltip(T('Coup précédent'))),
+        kOpaciteEteinte,
+      );
+      expect(
+        paleurAutourDe(tester, find.byTooltip(T('Coup suivant'))),
+        kOpaciteEteinte,
+      );
     });
 
     testWidgets('au présent, seule la droite pâlit', (tester) async {
       // On peut reculer, on ne peut pas avancer : `activeIndex` nul dit
       // qu'on est au dernier coup.
       await bandeau(tester, coups: const ['Do2-Do3', 'Do7-Do6'], actif: null);
-      expect(paleurAutourDe(tester, find.text('>')), kOpaciteEteinte);
-      expect(paleurAutourDe(tester, find.text('<')), 1);
+      expect(
+        paleurAutourDe(tester, find.byTooltip(T('Coup suivant'))),
+        kOpaciteEteinte,
+      );
+      expect(paleurAutourDe(tester, find.byTooltip(T('Coup précédent'))), 1);
     });
 
     testWidgets('en revoyant un coup, les deux sont pleines', (tester) async {
       await bandeau(tester, coups: const ['Do2-Do3', 'Do7-Do6'], actif: 1);
-      expect(paleurAutourDe(tester, find.text('<')), 1);
-      expect(paleurAutourDe(tester, find.text('>')), 1);
+      expect(paleurAutourDe(tester, find.byTooltip(T('Coup précédent'))), 1);
+      expect(paleurAutourDe(tester, find.byTooltip(T('Coup suivant'))), 1);
     });
 
     testWidgets('et c est la MÊME pâleur que celle des touches', (

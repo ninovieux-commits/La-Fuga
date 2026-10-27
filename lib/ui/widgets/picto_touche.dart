@@ -20,10 +20,23 @@
 /// dessin changerait d'un téléphone à l'autre, et la forme avec elle.
 library;
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 /// Part de la touche qu'occupe le dessin — le reste est le carré qu'on voit.
 const double kPartPicto = 0.58;
+
+/// Épaisseur du trait noir qui détache le dessin du fond de la touche.
+///
+/// Nino : « mets un fin trait de tracé noir qui fait la séparation entre le
+/// symbole et le fond de la touche, ça rendra tout plus lisible, et réglera
+/// le souci avec le thème deepgrey. »
+///
+/// Il règle en effet le cas limite : deepgrey peint ses deux couleurs en
+/// `RGB(128, 128, 128)`, c'est-à-dire exactement le gris des touches — son
+/// dessin y était invisible, et c'est le trait qui le fait exister.
+const double kTraitPicto = 1.6;
 
 class PictoTouche extends StatelessWidget {
   const PictoTouche({
@@ -43,20 +56,39 @@ class PictoTouche extends StatelessWidget {
   /// plus une touche.
   final String secours;
 
+  /// Le dessin, teinté de [teinte].
+  Widget _dessin(Color teinte) => Image.asset(
+    asset,
+    color: teinte,
+    fit: BoxFit.contain,
+    errorBuilder: (context, error, stack) => FittedBox(
+      child: Text(
+        secours,
+        style: TextStyle(color: teinte, fontWeight: FontWeight.bold),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => FractionallySizedBox(
     widthFactor: kPartPicto,
     heightFactor: kPartPicto,
-    child: Image.asset(
-      asset,
-      color: couleur,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stack) => FittedBox(
-        child: Text(
-          secours,
-          style: TextStyle(color: couleur, fontWeight: FontWeight.bold),
+    // LE TRAIT NOIR EST LE MÊME DESSIN, ÉLARGI ET PEINT EN NOIR, posé
+    // DERRIÈRE : ce qui dépasse tout autour fait le contour. Un pictogramme
+    // n'est qu'une forme pleine, il n'a pas de tracé à épaissir ; c'est la
+    // forme elle-même qu'on dilate.
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          imageFilter: ui.ImageFilter.dilate(
+            radiusX: kTraitPicto,
+            radiusY: kTraitPicto,
+          ),
+          child: _dessin(Colors.black),
         ),
-      ),
+        _dessin(couleur),
+      ],
     ),
   );
 }

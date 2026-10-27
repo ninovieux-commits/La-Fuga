@@ -1014,15 +1014,13 @@ class _GameScreenState extends State<GameScreen>
                   )
                 else
                   const Spacer(),
-                if (_game.canValidate)
-                  ToucheAction(
-                    tooltip: T('Annuler'),
-                    onPressed: _cancelMove,
-                    palette: palette,
-                    enfant: glypheAnnuler(),
-                  )
-                else
-                  SizedBox(width: place),
+                ToucheAction(
+                  tooltip: T('Annuler'),
+                  onPressed: _game.canValidate ? _cancelMove : () {},
+                  enabled: _game.canValidate,
+                  palette: palette,
+                  enfant: glypheAnnuler(palette),
+                ),
                 // Les places du message rapide et du drapeau.
                 SizedBox(width: place),
                 SizedBox(width: place),

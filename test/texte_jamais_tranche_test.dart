@@ -133,9 +133,9 @@ void main() {
     await tester.pumpAndSettle();
     // Toutes les touches LARGES du bandeau à la fois : c'est leur largeur
     // fixe qui les expose, et les dix langues ne font pas la même longueur.
+    // « Chat » n'en est plus une : elle porte les deux bulles dessinées.
     for (final libelle in [
       T('Retour au menu'),
-      T('Chat'),
       T('Profond'),
       T('Copier'),
       'Deep Grey',

@@ -18,6 +18,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/game_layout.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
@@ -147,6 +148,53 @@ void main() {
       moreOrLessEquals(ecran.width - enPartie.right, epsilon: 0.5),
       reason: 'les places du message rapide et du drapeau restent prises',
     );
+  });
+
+  testWidgets('elle reste là, éteinte, quand il n y a rien à annuler', (
+    tester,
+  ) async {
+    // Nino : « le bouton annulation de coup ne doit plus disparaître
+    // lorsqu'il n'est pas cliquable, il doit faire comme les autres touches
+    // quand elles ne sont pas cliquables. »
+    tester.view.physicalSize = ecran;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    setScaleSize(ecran);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GameScreen(aiCamp: null, analysis: true, initialFlipped: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final touche = find.byTooltip(T('Annuler'));
+    expect(touche, findsOneWidget, reason: 'aucun coup n est en cours');
+    final repos = tester.getRect(touche);
+
+    // Son dessin est pâli tant qu'elle ne sert à rien.
+    Opacity paleur() => tester.widget<Opacity>(
+      find.descendant(of: touche, matching: find.byType(Opacity)).first,
+    );
+    expect(paleur().opacity, kOpaciteEteinte);
+
+    // Un coup composé la rallume, SANS la déplacer.
+    final view = tester.widget<GameBoardView>(find.byType(GameBoardView));
+    final coup = generateMoves(
+      view.board,
+      Camp.blanc,
+    ).firstWhere((m) => m.movedCells.length == 1 && m.movedCells.first.onBoard);
+    view.onTapCell(coup.from);
+    await tester.pump();
+    view.onTapCell(coup.movedCells.first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: touche, matching: find.byType(Opacity)),
+      findsNothing,
+      reason: 'rallumée, elle ne pâlit plus',
+    );
+    expect(tester.getRect(touche), repos, reason: 'elle n a pas bougé');
   });
 
   testWidgets('elle est carrée, et à la taille des touches de l appli', (

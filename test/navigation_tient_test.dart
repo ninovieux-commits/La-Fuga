@@ -95,7 +95,7 @@ void main() {
     expect(actif(), isNull, reason: 'on ouvre au présent');
 
     // Je recule de deux coups avec la flèche gauche.
-    final gauche = find.text('<');
+    final gauche = find.byTooltip(T('Coup précédent'));
     await tester.tap(gauche);
     await tester.pumpAndSettle();
     await tester.tap(gauche);
@@ -113,7 +113,7 @@ void main() {
     );
 
     // Et le coup est bien arrivé : la flèche droite le montre maintenant.
-    final droite = find.text('>');
+    final droite = find.byTooltip(T('Coup suivant'));
     for (var i = 0; i < 4; i++) {
       await tester.tap(droite);
       await tester.pumpAndSettle();

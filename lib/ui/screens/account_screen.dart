@@ -167,7 +167,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
         actions: [
           FugaButton(
             text: T('Plus tard'),
-            color: kFugaGreyFonce,
+            color: kGrisTouche,
             fontSize: SF(15),
             onPressed: () => Navigator.of(context).pop(),
           ),

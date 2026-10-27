@@ -101,7 +101,7 @@ class ToucheAction extends StatelessWidget {
     required this.onPressed,
     required this.enfant,
     required this.palette,
-    this.color = kFugaGrey,
+    this.color = kGrisTouche,
     this.enabled = true,
     this.onBlocked,
   });
@@ -151,7 +151,15 @@ class ToucheAction extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),
               onTap: enabled ? onPressed : onBlocked,
-              child: Center(child: enfant),
+              // Éteinte, le DESSIN pâlit avec le fond — la même pâleur que
+              // partout ailleurs dans l'appli. Le libellé le faisait de
+              // lui-même tant que ces touches portaient des lettres ; elles
+              // portent maintenant des dessins, qui n'en savent rien.
+              child: Center(
+                child: enabled
+                    ? enfant
+                    : Opacity(opacity: kOpaciteEteinte, child: enfant),
+              ),
             ),
           ),
         ),
@@ -160,14 +168,15 @@ class ToucheAction extends StatelessWidget {
   );
 }
 
-/// Le glyphe de la touche d'annulation, à la taille des rangées d'action.
-Widget glypheAnnuler() => Text(
-  '↶',
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: SF(18),
-    fontWeight: FontWeight.bold,
-  ),
+/// Le dessin de la touche d'annulation : la flèche qui revient en arrière.
+///
+/// Comme la boule, l'avion et le drapeau : un fichier blanc sur fond
+/// transparent, teinté par le thème, qui prend la part d'une lettre pour
+/// laisser voir le carré de la touche. Le ↶ reste en secours.
+Widget glypheAnnuler(ThemePalette palette) => PictoTouche(
+  asset: 'assets/images/annuler.webp',
+  couleur: palette.clair,
+  secours: '↶',
 );
 
 /// Le panneau d'un joueur.
@@ -483,11 +492,20 @@ class PlayerPanel extends StatelessWidget {
       // rapide. »
       //
       // Les prises occupent tout ce qui reste à gauche : le groupe de
-      // touches est donc collé à DROITE, et une touche qui paraît en tête du
-      // groupe ne pousse personne — c'est la bande des prises qui se
-      // resserre. Le ↶ va et vient au fil du coup qu'on compose ; le message
-      // rapide et le drapeau, eux, ne bougent plus jamais.
-      if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
+      // touches est donc collé à DROITE.
+      //
+      // ELLE NE DISPARAÎT PLUS. Nino : « le bouton annulation de coup ne
+      // doit plus disparaître lorsqu'il n'est pas cliquable, il doit faire
+      // comme les autres touches quand elles ne sont pas cliquables. » Sans
+      // coup à annuler, elle s'éteint donc au lieu de s'en aller — comme le
+      // drapeau quand la nulle est fermée. C'est aussi ce qui tient la
+      // rangée immobile sans avoir à la ranger dans un ordre particulier.
+      _carre(
+        T('Annuler'),
+        onUndo ?? () {},
+        enabled: onUndo != null,
+        enfant: glypheAnnuler(palette),
+      ),
       // LE MESSAGE RAPIDE, ensuite. Nino l'a dessiné là, à gauche du geste
       // qui termine la partie : la place la plus éloignée de l'abandon.
       //
@@ -501,7 +519,9 @@ class PlayerPanel extends StatelessWidget {
           onMessageRapide!,
           enfant: PictoTouche(
             asset: 'assets/images/avion.webp',
-            couleur: palette.clair,
+            // L'AUTRE COULEUR DU THÈME, pour équilibrer la rangée : le
+            // drapeau et l'annulation en clair, l'avion en foncé.
+            couleur: palette.fonce,
             secours: '✈',
           ),
         ),
@@ -538,31 +558,6 @@ class PlayerPanel extends StatelessWidget {
           ),
         ),
     ],
-  );
-
-  /// Touche carrée de la rangée d'actions, portant un LIBELLÉ.
-  Widget _button(
-    String label,
-    String tooltip,
-    VoidCallback onPressed, {
-    Color color = kFugaGrey,
-    double? fontSize,
-    bool enabled = true,
-    VoidCallback? onBlocked,
-  }) => _carre(
-    tooltip,
-    onPressed,
-    color: color,
-    enabled: enabled,
-    onBlocked: onBlocked,
-    enfant: Text(
-      label,
-      style: TextStyle(
-        color: enabled ? Colors.white : Colors.white54,
-        fontSize: fontSize ?? SF(18),
-        fontWeight: FontWeight.bold,
-      ),
-    ),
   );
 
   /// Touche carrée de la rangée d'actions : chez Kivy elle occupe 85 % de la

@@ -126,7 +126,7 @@ void main() {
       expect(viewOf(tester).lastMove!.framedCells, contains(secondVers));
 
       // Un pas en arrière : on regarde le PREMIER coup.
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
 
       final vu = viewOf(tester).lastMove;
@@ -154,7 +154,7 @@ void main() {
       await tester.pumpAndSettle();
       await joue(tester, Camp.blanc);
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(viewOf(tester).lastMove, isNull);
     });
@@ -169,9 +169,9 @@ void main() {
       await joue(tester, Camp.blanc);
       final (_, secondVers) = await joue(tester, Camp.noir);
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
 
       final vu = viewOf(tester).lastMove;

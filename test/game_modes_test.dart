@@ -80,7 +80,7 @@ void main() {
     testWidgets('bandeau : retourner et pause, rien de plus', (tester) async {
       await open(tester);
 
-      expect(find.text('< >'), findsOneWidget);
+      expect(find.byTooltip(T('Retourner le plateau')), findsOneWidget);
       expect(find.byTooltip('Pause'), findsOneWidget);
       expect(find.text('<<'), findsNothing);
       expect(find.text('Retour au menu'), findsNothing);
@@ -88,7 +88,7 @@ void main() {
       expect(find.text('Profond'), findsNothing);
       expect(find.text('Deep Grey'), findsNothing);
       expect(find.text('Analyser'), findsNothing);
-      expect(find.text('Chat'), findsNothing);
+      expect(find.byTooltip(T('Chat')), findsNothing);
     });
 
     testWidgets('les deux joueurs ont ↶ et le drapeau', (tester) async {
@@ -133,7 +133,7 @@ void main() {
 
       expect(find.text('Rapide'), findsOneWidget);
       expect(find.text('Analyser'), findsNothing);
-      expect(find.text('Chat'), findsNothing);
+      expect(find.byTooltip(T('Chat')), findsNothing);
       expect(
         find.text('Deep Grey'),
         findsOneWidget,
@@ -265,7 +265,10 @@ void main() {
 
       expect(find.byTooltip('Proposer nulle'), findsNothing);
       expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsNothing);
-      expect(find.byTooltip('Annuler'), findsNothing);
+      // L'annulation, elle, EST un geste d'analyse : on y défait ce qu'on
+      // vient d'essayer. Elle est là, éteinte tant qu'il n'y a rien à
+      // défaire.
+      expect(find.byTooltip('Annuler'), findsOneWidget);
     });
 
     testWidgets('la touche d annuler est en BAS, comme en partie', (
@@ -278,17 +281,14 @@ void main() {
       final vue = tester.widget<GameBoardView>(find.byType(GameBoardView));
 
       expect(
-        tester.widget<BandeauPrises>(find.byType(BandeauPrises)).onAnnuler,
-        isNull,
+        tester.widget<BandeauPrises>(find.byType(BandeauPrises)).avecAnnuler,
+        isFalse,
         reason: 'elle ne vit plus dans la bande des prises',
       );
-      expect(
-        find.byTooltip(T('Annuler')),
-        findsNothing,
-        reason: 'rien à annuler',
-      );
+      // Elle ne disparaît plus : elle attend, éteinte, sous le plateau.
+      expect(find.byTooltip(T('Annuler')), findsOneWidget);
 
-      // On commence un coup : la touche paraît, et sous le plateau.
+      // On commence un coup : la touche s'allume, et sous le plateau.
       vue.onTapCell(const Cell(2, 1));
       await tester.pumpAndSettle();
       vue.onTapCell(const Cell(2, 2));

@@ -215,7 +215,7 @@ Future<bool> confirmerFuga(
             Expanded(
               child: FugaButton(
                 text: T('Non'),
-                color: kFugaGreyFonce,
+                color: kGrisTouche,
                 fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(false),
               ),

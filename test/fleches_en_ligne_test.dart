@@ -107,7 +107,7 @@ void main() {
       expect(affiche(tester), p.positions[3]);
       expect(bandeau(tester).activeIndex, isNull, reason: 'on est au présent');
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(
         affiche(tester),
@@ -116,13 +116,13 @@ void main() {
       );
       expect(bandeau(tester).activeIndex, 1);
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[1]);
       expect(bandeau(tester).activeIndex, 0);
 
       // Le dernier pas mène AVANT le premier coup.
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[0]);
       expect(bandeau(tester).activeIndex, -1);
@@ -131,20 +131,20 @@ void main() {
     testWidgets('la flèche droite redescend jusqu au présent', (tester) async {
       final p = await ouvre(tester, coups: 3);
       for (var i = 0; i < 3; i++) {
-        await tester.tap(find.text('<'));
+        await tester.tap(find.byTooltip(T('Coup précédent')));
         await tester.pumpAndSettle();
       }
       expect(affiche(tester), p.positions[0]);
 
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[1]);
 
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[2]);
 
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[3]);
       expect(
@@ -166,7 +166,7 @@ void main() {
       tester,
     ) async {
       final p = await ouvre(tester);
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(affiche(tester), p.positions[0]);
       expect(bandeau(tester).activeIndex, isNull);
@@ -176,7 +176,7 @@ void main() {
       tester,
     ) async {
       await ouvre(tester, coups: 2);
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       final v = vue(tester);
       expect(v.selected, isNull);
@@ -209,7 +209,7 @@ void main() {
 
     testWidgets('pendant la revue, le doigt ne joue pas', (tester) async {
       final p = await ouvre(tester, coups: 2);
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
 
       final avant = p.jeu.game.history.length;
@@ -234,7 +234,7 @@ void main() {
       // La pendule tourne : rester sur une position passée, c est perdre au
       // temps en regardant ailleurs.
       final p = await ouvre(tester, coups: 2);
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(bandeau(tester).activeIndex, 0);
 
@@ -260,7 +260,7 @@ void main() {
       await joueAuDoigt(tester, p.jeu);
       expect(p.jeu.game.history.length, 1, reason: 'un coup a bien été joué');
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(bandeau(tester).activeIndex, -1);
       expect(
@@ -288,9 +288,9 @@ void main() {
       final p = await ouvre(tester, coups: 2, randomCode: code);
       expect(bandeau(tester).randomCode, code);
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(bandeau(tester).activeIndex, -1);
       expect(
@@ -305,7 +305,7 @@ void main() {
   group('La partie suivante du match', () {
     testWidgets('repart sur ses propres coups', (tester) async {
       final p = await ouvre(tester, coups: 3);
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(
         bandeau(tester).activeIndex,
@@ -352,7 +352,7 @@ void main() {
         'notation': notationOn(p.jeu.game.board, move),
       });
       await tester.pumpAndSettle();
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
       expect(affiche(tester), depart);
       expect(bandeau(tester).activeIndex, -1);

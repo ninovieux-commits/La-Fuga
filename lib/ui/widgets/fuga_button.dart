@@ -12,20 +12,21 @@ import '../scale.dart';
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 
-/// Le gris FONCÉ des touches du bandeau fin du haut, en partie.
+/// Le gris de TOUTES les touches : pile à mi-chemin entre le noir et le
+/// blanc.
 ///
-/// C'est la couleur d'une touche posée SUR UN POPUP. Le fond d'un popup est
-/// `kFugaGrey`, et une touche qui garde la couleur par défaut y peint un
-/// rectangle exactement de la couleur de ce qu'il y a derrière : une touche
-/// n'a ni contour ni ombre, elle n'existe à l'œil que par son rectangle. Il
-/// ne restait donc que les lettres blanches, et le popup paraissait n'avoir
-/// qu'une seule touche — celle qui, elle, nomme sa couleur.
+/// Les deux couleurs d'un thème ne sont pas faites pour se faire contraste :
+/// la claire est faite pour ressortir, la foncée pour servir de fond. Posées
+/// en dessin, l'une s'effaçait sur le presque noir des touches du bandeau
+/// fin, l'autre sur le gris du bandeau large. Nino : « utilise un gris qui
+/// est pile à mi-chemin entre le noir et le blanc pour toutes les touches. »
+/// Un même fond pour toutes, et les deux couleurs s'y posent de la même
+/// façon.
 ///
-/// Nino : « corrige ça en utilisant le gris foncé des touches du bandeau fin
-/// du haut en partie. » C'est la même valeur, et c'est volontairement la
-/// même constante : `kBarButtonDark` pointe ici, pour que les deux ne
-/// puissent jamais se séparer.
-const Color kFugaGreyFonce = Color.fromRGBO(38, 38, 38, 1);
+/// « TOUTES » est à prendre au mot : les touches des deux bandeaux, les
+/// flèches du bas, et les touches secondaires des popups, qui avaient un
+/// gris à elles le temps d'une étape.
+const Color kGrisTouche = Color.fromRGBO(128, 128, 128, 1);
 
 /// Opacité d'une touche HORS SERVICE — le signe, partout dans l'application.
 ///

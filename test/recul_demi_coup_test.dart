@@ -137,7 +137,7 @@ void main() {
 
       final fleche = find.descendant(
         of: find.byType(MoveStrip),
-        matching: find.text('<'),
+        matching: find.byTooltip(T('Coup précédent')),
       );
       // Un appui par demi-coup : on doit tous les traverser, et finir sur la
       // position de départ.
@@ -156,7 +156,7 @@ void main() {
       await ouvrir(tester);
       final fleche = find.descendant(
         of: find.byType(MoveStrip),
-        matching: find.text('<'),
+        matching: find.byTooltip(T('Coup précédent')),
       );
       await tester.tap(fleche);
       await tester.pumpAndSettle();

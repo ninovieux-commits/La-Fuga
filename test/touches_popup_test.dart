@@ -19,7 +19,6 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/fuga_popup.dart';
-import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/pause_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -75,11 +74,16 @@ void main() {
     };
   }
 
-  test('le gris foncé des popups EST celui du bandeau du haut', () {
-    // La même constante, et pas deux valeurs qui se ressemblent : elles ne
-    // peuvent donc pas se séparer au fil des retouches.
-    expect(kFugaGreyFonce, kBarButtonDark);
-    expect(kFugaGreyFonce, isNot(kFugaGrey));
+  test('le gris des popups se distingue de leur fond', () {
+    // Il valait celui des touches du bandeau du haut, et c'était la même
+    // constante. Les touches des bandeaux sont passées au gris médian —
+    // Nino : « utilise un gris qui est pile à mi-chemin entre le noir et le
+    // blanc pour toutes les touches » — et les popups, eux, ont gardé le
+    // gris foncé : c'est celui qu'on a vu à l'écran et retenu. Les deux ne
+    // sont donc plus la même valeur, et ce test dit ce qui compte vraiment :
+    // une touche de popup ne se confond pas avec le fond du popup.
+    expect(kGrisTouche, isNot(kFugaGrey));
+    expect(kGrisTouche, isNot(kFugaGrey));
   });
 
   testWidgets('la confirmation : « Non » se voit autant que « Oui »', (
@@ -99,7 +103,7 @@ void main() {
         reason: 'la touche « ${e.key} » serait de la couleur du fond',
       );
     }
-    expect(couleurs[T('Non')], kFugaGreyFonce);
+    expect(couleurs[T('Non')], kGrisTouche);
   });
 
   testWidgets('la pause : aucune de ses touches ne disparaît', (tester) async {
@@ -116,7 +120,7 @@ void main() {
         reason: 'la touche « ${e.key} » serait de la couleur du fond',
       );
     }
-    expect(couleurs[T('Continuer')] ?? kFugaGreyFonce, kFugaGreyFonce);
-    expect(couleurs[T('Réglages')], kFugaGreyFonce);
+    expect(couleurs[T('Continuer')] ?? kGrisTouche, kGrisTouche);
+    expect(couleurs[T('Réglages')], kGrisTouche);
   });
 }

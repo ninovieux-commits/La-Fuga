@@ -35,9 +35,12 @@ import 'unread_dot.dart';
 const double kTrouCamera = 96;
 
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
-/// Le gris foncé des touches de ce bandeau — défini avec les touches, et
-/// repris par les popups pour leurs touches secondaires.
-const Color kBarButtonDark = kFugaGreyFonce;
+/// Le gris des touches de ce bandeau : celui de TOUTES les touches des
+/// bandeaux, à mi-chemin du noir et du blanc (cf. [kGrisTouche]).
+///
+/// Le nom reste le sien, il est lu d'un bout à l'autre du portage ; c'est sa
+/// valeur qui a changé.
+const Color kBarButtonDark = kGrisTouche;
 
 class GameTopBar extends StatelessWidget {
   const GameTopBar({
@@ -151,11 +154,18 @@ class GameTopBar extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              _round(
-                '< >',
+              // LES DEUX FLÈCHES QUI TOURNENT, et non plus « < > ».
+              //
+              // LES DEUX COULEURS DU THÈME S'ALTERNENT d'une touche à
+              // l'autre. Nino : « toutes les touches utilisent une seule des
+              // deux couleurs système du thème. Je voudrais équilibrer. »
+              // Dans ce bandeau : la pause et le retournement en clair, la
+              // boule et le chat en foncé.
+              _rondImage(
+                'assets/images/flip.webp',
                 onFlip,
-                fontSize: SF(21),
                 tooltip: T('Retourner le plateau'),
+                secours: '< >',
               ),
               // LE « PLUS » DU LECTEUR, JUSTE À DROITE DU RETOURNEMENT.
               // Nino : « on met un bouton "plus" juste à droite du bouton
@@ -203,11 +213,13 @@ class GameTopBar extends StatelessWidget {
                 // un message de l'adversaire de cette partie.
                 UnreadDot(
                   show: unreadChat > 0,
-                  child: _round(
-                    T('Chat'),
+                  // LES DEUX BULLES, et non plus le mot « Chat ».
+                  child: _rondImage(
+                    'assets/images/chat.webp',
                     onChat!,
-                    fontSize: SF(14),
                     tooltip: T('Chat'),
+                    secours: '…',
+                    couleur: palette.fonce,
                   ),
                 ),
               ],
@@ -285,6 +297,7 @@ class GameTopBar extends StatelessWidget {
                       )
                       ? T('Analyser')
                       : T('Analyser ou préparer ses coups ?'),
+                  couleur: palette.fonce,
                 ),
                 SizedBox(width: S(6)),
               ],
@@ -348,11 +361,15 @@ class GameTopBar extends StatelessWidget {
   /// blanc sur fond transparent, teinté ici. Il n'occupe que la part d'une
   /// lettre — c'est ce qui laisse voir le carré de la touche (cf.
   /// [PictoTouche]). Sans dessin, le libellé de secours la garde utilisable.
+  /// [couleur] équilibre les deux couleurs du thème d'une touche à l'autre.
+  /// Nino : « toutes les touches utilisent une seule des deux couleurs
+  /// système du thème. Je voudrais équilibrer. » Par défaut, la claire.
   Widget _rondImage(
     String asset,
     VoidCallback onPressed, {
     required String tooltip,
     String secours = '?',
+    Color? couleur,
   }) => Tooltip(
     message: tooltip,
     child: AspectRatio(
@@ -366,7 +383,7 @@ class GameTopBar extends StatelessWidget {
           child: Center(
             child: PictoTouche(
               asset: asset,
-              couleur: palette.clair,
+              couleur: couleur ?? palette.clair,
               secours: secours,
             ),
           ),
@@ -547,15 +564,20 @@ final class _PausePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final barWidth = size.width * 0.32;
     final paint = Paint()..color = couleur;
+    // LE MÊME TRAIT NOIR QUE LES PICTOGRAMMES, pour que la pause se détache
+    // comme ses voisines du fond de sa touche.
+    final trait = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = kTraitPicto;
     final radius = Radius.circular(barWidth / 2);
     for (final left in [0.0, size.width - barWidth]) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, 0, barWidth, size.height),
-          radius,
-        ),
-        paint,
+      final barre = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left, 0, barWidth, size.height),
+        radius,
       );
+      canvas.drawRRect(barre, paint);
+      canvas.drawRRect(barre, trait);
     }
   }
 

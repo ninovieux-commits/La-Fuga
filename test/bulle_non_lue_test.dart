@@ -103,7 +103,7 @@ void main() {
   /// La pastille de la touche « Chat » est-elle allumée ?
   bool pastilleAllumee(WidgetTester tester) {
     final dot = find.ancestor(
-      of: find.text('Chat'),
+      of: find.byTooltip(T('Chat')),
       matching: find.byType(UnreadDot),
     );
     expect(dot, findsOneWidget, reason: 'la touche Chat a perdu sa pastille');
@@ -190,7 +190,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(pastilleAllumee(tester), isTrue);
 
-      await tester.tap(find.text('Chat'));
+      await tester.tap(find.byTooltip(T('Chat')));
       await tester.pumpAndSettle();
       expect(find.byType(ConversationScreen), findsOneWidget);
       expect(chemins, contains('/mark_read'), reason: 'la boîte, elle, le dit');
@@ -299,7 +299,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(pastilleAllumee(tester), isTrue);
 
-      await tester.tap(find.text('Chat'));
+      await tester.tap(find.byTooltip(T('Chat')));
       await tester.pumpAndSettle();
       expect(find.byType(ConversationScreen), findsOneWidget);
       expect(chemins, contains('/mark_read'));

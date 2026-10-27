@@ -98,14 +98,19 @@ void main() {
       Rect place(String tooltip) => tester.getRect(find.byTooltip(tooltip));
       final message = place(T('Message rapide'));
       final drapeau = place(T('Abandonner ou proposer la nulle ?'));
-      expect(
-        find.byTooltip(T('Annuler')),
-        findsNothing,
-        reason: 'sans coup en cours, il n y a rien à annuler',
-      );
+      // ELLE NE DISPARAÎT PLUS : sans coup en cours elle s'éteint, comme
+      // les autres touches hors d'usage. Nino : « le bouton annulation de
+      // coup ne doit plus disparaître lorsqu'il n'est pas cliquable. »
+      expect(find.byTooltip(T('Annuler')), findsOneWidget);
+      final eteinte = place(T('Annuler'));
 
       await pose(tester, panneau(annulable: true));
       expect(find.byTooltip(T('Annuler')), findsOneWidget);
+      memePlace(
+        place(T('Annuler')),
+        eteinte,
+        'le ↶ n a pas bougé en redevenant cliquable',
+      );
       memePlace(
         place(T('Message rapide')),
         message,
@@ -211,7 +216,7 @@ void main() {
       await pose(tester, bandeau(prejouable: true));
       final boule = find.byTooltip(T('Analyser ou préparer ses coups ?'));
       final placeBoule = tester.getRect(boule);
-      final placeChat = tester.getRect(find.text(T('Chat')));
+      final placeChat = tester.getRect(find.byTooltip(T('Chat')));
 
       await pose(tester, bandeau(prejouable: false));
       expect(
@@ -221,7 +226,7 @@ void main() {
       );
       memePlace(tester.getRect(boule), placeBoule, 'la boule a bougé');
       memePlace(
-        tester.getRect(find.text(T('Chat'))),
+        tester.getRect(find.byTooltip(T('Chat'))),
         placeChat,
         'le voisinage de la boule a bougé avec elle',
       );
@@ -234,26 +239,32 @@ void main() {
     // pictogramme est cadré sur son sujet : posé avec la marge d'un texte il
     // remplit la touche et en avale la forme — la boule, ronde, faisait lire
     // un disque. Il prend donc la part d'une lettre, et pas plus.
+    /// TOUTES les touches à dessin de l'écran, et pas une seule : le bandeau
+    /// en porte plusieurs depuis que le retournement et le chat sont dessinés
+    /// eux aussi.
     void mesure(WidgetTester tester) {
-      final dessin = tester.getSize(find.byType(PictoTouche));
-      final touche = tester.getSize(
-        find.ancestor(
-          of: find.byType(PictoTouche),
-          matching: find.byType(AspectRatio),
-        ),
-      );
-      expect(
-        touche.width,
-        moreOrLessEquals(touche.height, epsilon: 0.5),
-        reason: 'la touche elle-même doit être carrée',
-      );
-      expect(
-        dessin.width / touche.width,
-        moreOrLessEquals(kPartPicto, epsilon: 0.02),
-        reason:
-            'le dessin occupe ${(dessin.width / touche.width * 100).round()} % '
-            'de la touche : il en avale la forme, et on ne voit plus le carré',
-      );
+      final dessins = find.byType(PictoTouche);
+      expect(dessins, findsWidgets);
+      for (final e in dessins.evaluate()) {
+        final lui = find.byWidget(e.widget);
+        final dessin = tester.getSize(lui);
+        final touche = tester.getSize(
+          find.ancestor(of: lui, matching: find.byType(AspectRatio)).first,
+        );
+        expect(
+          touche.width,
+          moreOrLessEquals(touche.height, epsilon: 0.5),
+          reason: 'la touche elle-même doit être carrée',
+        );
+        expect(
+          dessin.width / touche.width,
+          moreOrLessEquals(kPartPicto, epsilon: 0.02),
+          reason:
+              'le dessin occupe '
+              '${(dessin.width / touche.width * 100).round()} % de la '
+              'touche : il en avale la forme, et on ne voit plus le carré',
+        );
+      }
     }
 
     testWidgets('la boule, dans le bandeau fin', (tester) async {

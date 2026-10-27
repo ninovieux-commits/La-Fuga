@@ -228,7 +228,7 @@ void main() {
       await tester.pumpAndSettle();
       final jeton = vue(tester).slideToken;
 
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pump();
 
       expect(
@@ -243,11 +243,11 @@ void main() {
     testWidgets('reculer aussi', (tester) async {
       await tester.pumpWidget(MaterialApp(home: ReplayScreen(nmc: partie())));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
       final jeton = vue(tester).slideToken;
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pump();
 
       expect(vue(tester).slides, isNotEmpty, reason: 'reculer n anime rien');
@@ -279,7 +279,7 @@ void main() {
       }
 
       final jeton = vue(tester).slideToken;
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pump();
 
       expect(
@@ -422,7 +422,7 @@ void main() {
       final finale = vue(tester).board.render();
 
       // La flèche « précédent » : les flèches ne faisaient RIEN.
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
 
       expect(
@@ -440,9 +440,9 @@ void main() {
       await tester.pumpAndSettle();
       final finale = vue(tester).board.render();
 
-      await tester.tap(find.text('<'));
+      await tester.tap(find.byTooltip(T('Coup précédent')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('>'));
+      await tester.tap(find.byTooltip(T('Coup suivant')));
       await tester.pumpAndSettle();
 
       expect(
