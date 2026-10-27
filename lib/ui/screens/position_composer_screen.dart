@@ -21,6 +21,7 @@ import 'package:flutter/services.dart';
 import '../../engine/board.dart';
 import '../../engine/fug.dart';
 import '../../engine/piece.dart';
+import '../../engine/random_fuga.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -298,6 +299,11 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                     SizedBox(height: S(8)),
                     _cadreDeCollage(palette),
                     SizedBox(height: S(10)),
+                    // TROIS POINTS DE DÉPART, à égalité de largeur. Nino :
+                    // « le bouton "position standard" devient juste
+                    // "standard". On réduit la taille des touches "vider"
+                    // et "standard" et on rajoute une touche "random" à
+                    // droite de celles ci. »
                     Row(
                       children: [
                         Expanded(
@@ -311,10 +317,17 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                         SizedBox(width: S(8)),
                         Expanded(
                           child: FugaButton(
-                            text: T('Position standard'),
+                            text: T('Standard'),
                             onPressed: () => setState(() {
                               _board = Board.initial();
                             }),
+                          ),
+                        ),
+                        SizedBox(width: S(8)),
+                        Expanded(
+                          child: FugaButton(
+                            text: T('Random'),
+                            onPressed: _tirerUneRandom,
                           ),
                         ),
                       ],
@@ -334,6 +347,27 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
         ),
       ),
     );
+  }
+
+  /// Tire une position de Random Fuga, et une autre à chaque appui.
+  ///
+  /// Nino : « quand on clique sur "random", ça tire une random de façon
+  /// aléatoire. Si on reclique, ça tire une autre random. » Les 3 500
+  /// positions de la variante ont toutes le matériel de la position
+  /// standard : on part donc d'une position jouable, qu'on retouche ensuite
+  /// à la main si on veut.
+  ///
+  /// Un tirage qui retomberait sur la position affichée ne se verrait pas :
+  /// on retire alors, quelques fois, plutôt que de laisser l'appui sans
+  /// effet.
+  void _tirerUneRandom() {
+    for (var essai = 0; essai < 8; essai++) {
+      final tiree = buildRandomFugaBoard(randomFugaCode());
+      if (tiree == null) continue;
+      if (fugEcrire(tiree, _trait) == fugEcrire(_board, _trait)) continue;
+      setState(() => _board = tiree);
+      return;
+    }
   }
 
   /// La ligne de pièces et la bascule de couleur.

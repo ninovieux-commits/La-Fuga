@@ -75,6 +75,83 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  group('Les trois points de départ', () {
+    // Nino : « le bouton "position standard" devient juste "standard". On
+    // réduit la taille des touches "vider" et "standard" et on rajoute une
+    // touche "random" à droite de celles ci. Quand on clique sur "random",
+    // ça tire une random de façon aléatoire. Si on reclique, ça tire une
+    // autre random. »
+    testWidgets('trois touches de même largeur, dans l ordre', (tester) async {
+      await ouvrir(tester);
+
+      expect(find.text('Position standard'), findsNothing);
+      for (final mot in ['Vider', 'Standard', 'Random']) {
+        expect(find.text(mot), findsOneWidget, reason: 'la touche « $mot »');
+      }
+
+      final vider = tester.getRect(find.text('Vider'));
+      final standard = tester.getRect(find.text('Standard'));
+      final random = tester.getRect(find.text('Random'));
+
+      expect(standard.center.dx, greaterThan(vider.center.dx));
+      expect(random.center.dx, greaterThan(standard.center.dx));
+      expect(
+        standard.center.dy,
+        moreOrLessEquals(vider.center.dy, epsilon: 0.5),
+        reason: 'les trois sur la même ligne',
+      );
+      expect(random.center.dy, moreOrLessEquals(vider.center.dy, epsilon: 0.5));
+    });
+
+    testWidgets('« Random » tire une position, puis une AUTRE', (tester) async {
+      await ouvrir(tester);
+      expect(
+        vue(tester).board.positionKey(Camp.blanc),
+        Board.empty().positionKey(Camp.blanc),
+      );
+
+      await appuyer(tester, 'Random');
+      final premiere = vue(tester).board.positionKey(Camp.blanc);
+      expect(
+        premiere,
+        isNot(Board.empty().positionKey(Camp.blanc)),
+        reason: 'le plateau n est plus vide',
+      );
+
+      // Le tirage est aléatoire : sur 3 500 positions, deux appuis de suite
+      // peuvent retomber sur la même. On regarde donc s'il CHANGE, en
+      // quelques appuis, au lieu d'exiger un changement à chaque fois.
+      var change = false;
+      for (var i = 0; i < 6 && !change; i++) {
+        await appuyer(tester, 'Random');
+        change = vue(tester).board.positionKey(Camp.blanc) != premiere;
+      }
+      expect(change, isTrue, reason: 'recliquer tire une autre position');
+    });
+
+    testWidgets('une position tirée est valide telle quelle', (tester) async {
+      await ouvrir(tester);
+      await appuyer(tester, 'Random');
+      await appuyer(tester, 'Valider la position');
+
+      expect(
+        find.byType(AlertDialog),
+        findsNothing,
+        reason: 'le matériel d une random est celui de la position standard',
+      );
+    });
+
+    testWidgets('« Standard » pose la position de départ', (tester) async {
+      await ouvrir(tester);
+      await appuyer(tester, 'Standard');
+
+      expect(
+        vue(tester).board.positionKey(Camp.blanc),
+        Board.initial().positionKey(Camp.blanc),
+      );
+    });
+  });
+
   group('Poser des pièces', () {
     testWidgets('on part d un plateau vide', (tester) async {
       await ouvrir(tester);

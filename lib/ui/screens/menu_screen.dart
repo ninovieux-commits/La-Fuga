@@ -1153,6 +1153,9 @@ class MenuScreenState extends State<MenuScreen>
       aiCamp: null,
       themeName: _axes.general,
       analysis: true,
+      // Elle seule part d'une position quelconque : c'est donc la seule qui
+      // offre d'en composer une autre.
+      avecComposeur: true,
     ),
   );
 

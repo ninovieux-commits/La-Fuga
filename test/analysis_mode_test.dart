@@ -13,7 +13,9 @@ import 'package:lafuga/engine/move_generator.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
+import 'package:lafuga/ui/screens/position_composer_screen.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:lafuga/ui/widgets/bandeau_prises.dart';
@@ -167,6 +169,66 @@ void main() {
       reason: 'le deuxième coup n est plus celui d avant ($autre)',
     );
     expect(stripOf(tester).activeIndex, isNull, reason: 'on est au présent');
+  });
+
+  group('Personnaliser, depuis le menu seulement', () {
+    // Nino : « en analyse depuis le menu, il faut ajouter un bouton
+    // "personnaliser" sous le plateau qui permet d'accéder au plateau de
+    // personnalisation. »
+    Future<void> ouvrir(WidgetTester tester, {required bool duMenu}) async {
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      setScaleSize(const Size(393, 851));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameScreen(aiCamp: null, analysis: true, avecComposeur: duMenu),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('elle est là, sous le plateau', (tester) async {
+      await ouvrir(tester, duMenu: true);
+      expect(find.text(T('Personnaliser')), findsOneWidget);
+
+      final plateau = tester.getRect(find.byType(GameBoardView));
+      final touche = tester.getRect(find.text(T('Personnaliser')));
+      expect(
+        touche.center.dy,
+        greaterThan(plateau.center.dy),
+        reason: 'sous le plateau, pas dans la barre du haut',
+      );
+    });
+
+    testWidgets('venant d ailleurs, elle n y est pas', (tester) async {
+      await ouvrir(tester, duMenu: false);
+      expect(
+        find.text(T('Personnaliser')),
+        findsNothing,
+        reason: 'on y analyse une position précise, pas une position au choix',
+      );
+    });
+
+    testWidgets('elle ouvre le composeur sur la position affichée', (
+      tester,
+    ) async {
+      await ouvrir(tester, duMenu: true);
+      final avant = viewOf(tester).board;
+
+      await tester.tap(find.text(T('Personnaliser')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PositionComposerScreen), findsOneWidget);
+      final composeur = tester.widget<PositionComposerScreen>(
+        find.byType(PositionComposerScreen),
+      );
+      expect(
+        composeur.depart?.positionKey(Camp.blanc),
+        avant.positionKey(Camp.blanc),
+        reason: 'on retouche ce qu on regarde, on ne repart pas de rien',
+      );
+    });
   });
 
   testWidgets('hors analyse, reculer ne laisse pas jouer', (tester) async {

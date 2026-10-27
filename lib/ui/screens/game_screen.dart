@@ -49,6 +49,9 @@ import '../widgets/slide_animation.dart';
 import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
+import '../scale.dart';
+import '../widgets/fuga_button.dart';
+import 'position_composer_screen.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -66,6 +69,7 @@ class GameScreen extends StatefulWidget {
     this.randomCode,
     this.analysis = false,
     this.analysisFromCorr = false,
+    this.avecComposeur = false,
     this.objectif = 'partie',
     this.initialFlipped,
     this.aiPause = _tempsDeDeepGrey,
@@ -139,6 +143,16 @@ class GameScreen extends StatefulWidget {
   /// une partie par correspondance. » C'est son jeu, et il joue contre des
   /// gens qu'il connaît : la garde-fou n'était pas la sienne.
   final bool analysisFromCorr;
+
+  /// L'analyse ouverte DEPUIS LE MENU, celle qui part d'une position
+  /// standard et ne vient d'aucune partie.
+  ///
+  /// Elle seule offre « Personnaliser ». Nino : « en analyse depuis le
+  /// menu, il faut ajouter un bouton "personnaliser" sous le plateau qui
+  /// permet d'accéder au plateau de personnalisation. » Venant d'une partie
+  /// ou d'un `.fug`, on analyse une position PRÉCISE : la remplacer par une
+  /// autre n'aurait pas de sens.
+  final bool avecComposeur;
 
   /// `partie` pour une partie unique, sinon le nombre de points du match.
   final String objectif;
@@ -979,9 +993,27 @@ class _GameScreenState extends State<GameScreen>
             child: Row(
               children: [
                 // La bande des prises, en partie : ici elle n'a rien à
-                // montrer, mais c'est elle qui pousse le groupe de touches
-                // à droite.
-                const Spacer(),
+                // montrer, et c'est elle qui pousse le groupe de touches à
+                // droite. L'analyse du menu y loge sa touche
+                // « Personnaliser » : la place est libre, et elle est sous
+                // le plateau, là où Nino l'a demandée.
+                if (widget.avecComposeur)
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: S(150),
+                        height: rangee,
+                        child: FugaButton(
+                          text: T('Personnaliser'),
+                          fontSize: SF(14),
+                          onPressed: _personnaliser,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
                 if (_game.canValidate)
                   ToucheAction(
                     tooltip: T('Annuler'),
@@ -999,6 +1031,38 @@ class _GameScreenState extends State<GameScreen>
           ),
           const Spacer(),
         ],
+      ),
+    );
+  }
+
+  /// Ouvre le composeur, et REPREND l'analyse sur la position composée.
+  ///
+  /// Le composeur part de ce qui est à l'écran : on retouche une position
+  /// plutôt que de la refaire. Et c'est un REMPLACEMENT, non un empilement :
+  /// le « << » de la barre doit continuer de rendre la main au menu, et
+  /// non à l'analyse précédente.
+  Future<void> _personnaliser() async {
+    final composee = await Navigator.of(context)
+        .push<({Board board, Camp turn})>(
+          MaterialPageRoute<({Board board, Camp turn})>(
+            builder: (_) => PositionComposerScreen(
+              depart: _shownBoard.clone(),
+              turn: _game.turn,
+            ),
+          ),
+        );
+    if (composee == null || !mounted) return;
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => GameScreen(
+          cadence: Cadence.zen,
+          aiCamp: null,
+          themeName: widget.themeName,
+          analysis: true,
+          avecComposeur: true,
+          initialBoard: composee.board,
+          initialTurn: composee.turn,
+        ),
       ),
     );
   }
