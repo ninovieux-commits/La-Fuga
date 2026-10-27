@@ -128,6 +128,13 @@ class ToucheAction extends StatelessWidget {
   /// carrée et remplit la rangée, donc son côté EST cette hauteur.
   static double hauteurRangee() => S(kLignePrises) * 1.2;
 
+  /// Place qu'une touche prend dans la rangée, son écart de gauche compris.
+  ///
+  /// Une rangée qui n'a pas toutes les touches réserve la place des
+  /// absentes : c'est ce qui tient les touches à la même abscisse d'un
+  /// écran à l'autre.
+  static double largeur(double rangee) => S(6) + rangee;
+
   @override
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
@@ -280,6 +287,18 @@ class PlayerPanel extends StatelessWidget {
   /// N'appartient qu'à MON panneau : on n'écrit pas à sa propre place.
   final VoidCallback? onMessageRapide;
 
+  /// Épaisseur de la rangée d'actions dans un bandeau de [hauteurBandeau].
+  ///
+  /// L'analyse s'en sert pour poser SA touche d'annulation à la même taille
+  /// et à la même place : même formule, même bandeau, même touche.
+  static double hauteurActions(double hauteurBandeau) =>
+      math.min(touchHeight(), (hauteurBandeau - 2 * margeV()) * 0.55);
+
+  /// Marges du bandeau, qu'un autre écran doit reprendre pour aligner ses
+  /// touches sur les siennes.
+  static double margeH() => S(10);
+  static double margeV() => S(4);
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -291,7 +310,7 @@ class PlayerPanel extends StatelessWidget {
       // ligne d'identité. Ses touches faisaient jusqu'ici 45 là où le reste de
       // l'appli en fait 51.
       final actions = box.maxHeight.isFinite
-          ? math.min(touchHeight(), (box.maxHeight - 2 * S(4)) * 0.55)
+          ? hauteurActions(box.maxHeight)
           : S(32);
       final rows = box.maxHeight.isFinite
           ? [
@@ -311,7 +330,10 @@ class PlayerPanel extends StatelessWidget {
       // l'écran comme les bandeaux fins le font. »
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
+        padding: EdgeInsets.symmetric(
+          horizontal: margeH(),
+          vertical: margeV(),
+        ),
         color: palette.menu,
         child: Row(
           children: [

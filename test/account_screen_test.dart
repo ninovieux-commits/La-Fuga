@@ -292,13 +292,17 @@ void main() {
     expect(choices, contains('dragon|Héritier'));
     expect(choices, contains('dragon|Héritier|Noir'));
 
-    // « L'image de profil de deep grey doit être rangée tout à la fin, avec
-    // les images du thème deepgrey. »
-    expect(choices.last, 'deepgrey');
+    // « L'image de profil de deepgrey peut logiquement aller à gauche de la
+    // rangée de pièces noires de deepgrey, comme ça on est logiques. »
     expect(
-      choices[choices.length - 2],
-      startsWith('$kThemeDeepGrey|'),
-      reason: 'elle ferme la section de son thème',
+      choices[choices.length - 1 - kProfilePieces.length],
+      kDeepGreyPhoto,
+      reason: 'elle ouvre la rangée noire de son thème',
+    );
+    expect(
+      choices.last,
+      '$kThemeDeepGrey|${kProfilePieces.last.wire}|Noir',
+      reason: 'et la rangée noire de deepgrey ferme le catalogue',
     );
     expect(
       choices.toSet().length,

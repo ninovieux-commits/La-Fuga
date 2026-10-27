@@ -41,6 +41,28 @@ const int kPartsBandeauJoueur = 12;
 double hauteurBandeauJoueur() =>
     screenHeight * kPartsBandeauJoueur / kPartsEcran;
 
+/// Hauteur d'un bandeau de joueur EN PARTIE, le retrait compris.
+///
+/// [hauteurBandeauJoueur] donne les douze parts brutes ; celle-ci donne ce
+/// qu'il RESTE au bandeau une fois qu'il a cédé au plateau ce qui lui
+/// manquait (voir le calcul du `build`, qui aboutit au même nombre).
+///
+/// L'analyse en a besoin : sa touche d'annulation doit tomber exactement là
+/// où elle est en partie, à la même taille, et sa taille se déduit de la
+/// hauteur du bandeau. Nino : « il doit être LE MÊME et placé AU MÊME
+/// ENDROIT qu'en partie. »
+double hauteurBandeauEnPartie(Size ecran) {
+  final unit = ecran.height / kPartsEcran;
+  final bandeau = unit * kPartsBandeauJoueur;
+  final deux = 2 * bandeau;
+  final naturel = ecran.width * kExtRows / kCols;
+  final manque = deux + naturel - (ecran.height - 2 * (unit * 7));
+  if (manque > 0 && manque <= deux * kBandeauRetraitMax) {
+    return bandeau - bandeau * (manque / deux);
+  }
+  return bandeau;
+}
+
 class GameLayout extends StatelessWidget {
   const GameLayout({
     super.key,

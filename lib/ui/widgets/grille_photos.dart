@@ -7,10 +7,19 @@
 /// être rangées comme sur l'image précédente ». Elles ne sont donc plus
 /// rangées qu'ICI, et les deux écrans montrent la même chose.
 ///
-/// Un thème donne son logo, ses cinq pièces blanches et ses cinq noires. Le
-/// portrait de Deep Grey ferme la marche, dans la section du thème qui porte
-/// son nom : « l'image de profil de deep grey doit être rangée tout à la
-/// fin, avec les images du thème deepgrey ».
+/// Un thème donne son logo, ses cinq pièces blanches et ses cinq noires.
+///
+/// ## La colonne de gauche est celle des images qui ne sont pas des pièces
+///
+/// Nino : « les logos doivent être rangés avec les pièces (à gauche de la
+/// rangée de pièces blanches à chaque fois). L'image de profil de deepgrey
+/// peut logiquement aller à gauche de la rangée de pièces noires de
+/// deepgrey, comme ça on est logiques. »
+///
+/// Chaque rangée commence donc par une case de plus que les cinq pièces :
+/// le logo sur la rangée blanche, le portrait de Deep Grey sur la rangée
+/// noire de son thème, et rien ailleurs. Les pièces restent ainsi alignées
+/// en colonnes d'une rangée à l'autre et d'un thème à l'autre.
 library;
 
 import 'package:flutter/material.dart';
@@ -27,13 +36,15 @@ const String kThemeDeepGrey = 'deepgrey';
 typedef SectionPhotos = ({
   String theme,
   String label,
+
+  /// En tête de la rangée blanche.
   String logo,
   List<String> blanches,
-  List<String> noires,
 
-  /// Ce qui ne tient dans aucune rangée de pièces : le portrait de Deep Grey,
-  /// à la toute fin de sa section.
-  List<String> fin,
+  /// En tête de la rangée noire : le portrait de Deep Grey dans sa section,
+  /// et rien ailleurs.
+  String? enTeteNoire,
+  List<String> noires,
 });
 
 /// Le catalogue, section par section.
@@ -54,9 +65,7 @@ List<SectionPhotos> cataloguePhotos({String? dabord}) {
         noires: [
           for (final p in kProfilePieces) '$theme|${p.wire}|${Camp.noir.wire}',
         ],
-        fin: theme == kThemeDeepGrey
-            ? const [kDeepGreyPhoto]
-            : const <String>[],
+        enTeteNoire: theme == kThemeDeepGrey ? kDeepGreyPhoto : null,
       ),
   ];
 }
@@ -66,8 +75,8 @@ List<String> photosDuCatalogue({String? dabord}) => [
   for (final s in cataloguePhotos(dabord: dabord)) ...[
     s.logo,
     ...s.blanches,
+    if (s.enTeteNoire != null) s.enTeteNoire!,
     ...s.noires,
-    ...s.fin,
   ],
 ];
 
@@ -115,22 +124,25 @@ class GrilleDesPhotos extends StatelessWidget {
     ),
   );
 
-  Widget _rangee(List<String> photos) => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [for (final p in photos) _image(p)],
-  );
-
-  /// Le nom du thème, précédé de son logo — qui s'envoie comme le reste.
-  Widget _entete(SectionPhotos s) => Row(
+  /// Une rangée : la case de tête, puis les cinq pièces.
+  ///
+  /// La case de tête garde sa place même vide, sans quoi les pièces d'une
+  /// rangée à l'autre ne tomberaient plus dans les mêmes colonnes.
+  Widget _rangee(String? enTete, List<String> photos) => Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      _image(s.logo, taille: cote * 0.72),
-      SizedBox(width: S(6)),
-      Text(
-        s.label,
-        style: TextStyle(fontSize: SF(12), color: couleurDuNom),
-      ),
+      if (enTete == null)
+        SizedBox(width: cote + 2 * S(3), height: cote + 2 * S(3))
+      else
+        _image(enTete),
+      for (final p in photos) _image(p),
     ],
+  );
+
+  /// Le nom du thème, seul au-dessus de ses deux rangées.
+  Widget _entete(SectionPhotos s) => Text(
+    s.label,
+    style: TextStyle(fontSize: SF(12), color: couleurDuNom),
   );
 
   @override
@@ -139,9 +151,8 @@ class GrilleDesPhotos extends StatelessWidget {
     children: [
       for (final s in cataloguePhotos(dabord: themeDabord)) ...[
         _entete(s),
-        _rangee(s.blanches),
-        _rangee(s.noires),
-        if (s.fin.isNotEmpty) _rangee(s.fin),
+        _rangee(s.logo, s.blanches),
+        _rangee(s.enTeteNoire, s.noires),
       ],
     ],
   );

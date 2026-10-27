@@ -38,7 +38,6 @@ import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/bandeau_prises.dart';
-import '../scale.dart';
 import '../widgets/game_layout.dart';
 import '../../engine/fug.dart';
 import '../widgets/end_dialogs.dart';
@@ -859,92 +858,150 @@ class _GameScreenState extends State<GameScreen>
       // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
         top: false,
-        child: GameLayout(
-          topBar: _topBar(palette, topCamp),
-          // En analyse, le bandeau se réduit à ce qu'il a d'utile : le
-          // matériel mangé. Ni nom, ni chrono, ni touches — on explore une
-          // position, on ne joue pas contre quelqu'un — mais les prises
-          // restent, parce que c'est justement ce qu'on regarde.
-          topPanel: widget.analysis
-              ? BandeauPrises(
-                  prisesHaut: _game.captured[topCamp.opposite] ?? const [],
-                  prisesBas: _game.captured[bottomCamp.opposite] ?? const [],
-                  palette: palette,
-                  hautEstBlanc: topCamp == Camp.blanc,
-                )
-              : _tickingPanel(palette, topCamp, mirrored: false),
-          // Les deux lignes de prises tiennent dans la hauteur d'une pièce :
-          // inutile de leur donner celle d'un bandeau de joueur.
-          topHeight: widget.analysis ? BandeauPrises.hauteur() : null,
-          board: GameBoardView(
-            board: _shownBoard,
-            palette: palette,
-            flipped: flipped,
-            onTapCell: _onTapCell,
-            selected: _isViewing ? null : _game.selected,
-            groupSelection: _isViewing ? const {} : _game.groupSelection,
-            highlighted: _isViewing
-                ? const {}
-                : _game.availablePushCells.toSet(),
-            lastMove: _shownLastMove,
-            // En revoyant un coup passé, l'Héritier n'a pas encore fugué : la
-            // fugue clôt la partie, elle est donc toujours au dernier coup.
-            fuguedHeirs: _isViewing ? const <Camp, Cell>{} : _game.casesDeFugue,
-            pieceTheme: axes.pieces,
-            boardTheme: axes.board,
-            slides: slides,
-            slideJumpPath: slideJumpPath,
-            slideToken: slideToken,
-            slideDuration: slideDuration,
-          ),
-          // En analyse, les prises sont toutes les deux EN HAUT : « fais
-          // les deux lignes de pièces au-dessus du plateau ». Deux lignes
-          // voisines se comparent mieux que deux bandes séparées par tout
-          // le plateau, et celui-ci récupère la place du bas.
-          // EN ANALYSE, LA TOUCHE D'ANNULATION EST EN BAS À DROITE, là où
-          // elle est en partie, et c'est le même widget. Nino : « le bouton
-          // d'annulation de coup en analyse doit être identique et au même
-          // endroit qu'en partie. » Elle était au bout de la bande des
-          // prises, en haut de l'écran : loin du pouce, et d'une autre
-          // forme.
-          bottomPanel: widget.analysis
-              ? _rangeeAnnuler(palette)
-              : _tickingPanel(palette, bottomCamp, mirrored: true),
-          bottomHeight: widget.analysis ? ToucheAction.hauteurRangee() : null,
-          moveStrip: MoveStrip(
-            moves: _game.history,
-            activeIndex: _viewingIndex,
-            color: _campColor(palette, bottomCamp),
-            palette: palette,
-            randomCode: widget.randomCode,
-            onSelect: _viewMove,
-          ),
+        // LA TOUCHE D'ANNULATION EN ANALYSE DOIT ÊTRE LA MÊME, AU MÊME
+        // ENDROIT. Sa taille se déduit de la hauteur du bandeau de joueur,
+        // qu'il faut donc connaître AVANT de bâtir la mise en page : d'où
+        // cette mesure prise ici, sur les mêmes contraintes que `GameLayout`.
+        child: LayoutBuilder(
+          builder: (context, place) {
+            final bandeau = hauteurBandeauEnPartie(
+              Size(place.maxWidth, place.maxHeight),
+            );
+            final rangee = PlayerPanel.hauteurActions(bandeau);
+            return GameLayout(
+              topBar: _topBar(palette, topCamp),
+              // En analyse, le bandeau se réduit à ce qu'il a d'utile : le
+              // matériel mangé. Ni nom, ni chrono, ni touches — on explore une
+              // position, on ne joue pas contre quelqu'un — mais les prises
+              // restent, parce que c'est justement ce qu'on regarde.
+              topPanel: widget.analysis
+                  ? BandeauPrises(
+                      prisesHaut: _game.captured[topCamp.opposite] ?? const [],
+                      prisesBas:
+                          _game.captured[bottomCamp.opposite] ?? const [],
+                      palette: palette,
+                      hautEstBlanc: topCamp == Camp.blanc,
+                    )
+                  : _tickingPanel(palette, topCamp, mirrored: false),
+              // Les deux lignes de prises tiennent dans la hauteur d'une pièce :
+              // inutile de leur donner celle d'un bandeau de joueur.
+              topHeight: widget.analysis ? BandeauPrises.hauteur() : null,
+              board: GameBoardView(
+                board: _shownBoard,
+                palette: palette,
+                flipped: flipped,
+                onTapCell: _onTapCell,
+                selected: _isViewing ? null : _game.selected,
+                groupSelection: _isViewing ? const {} : _game.groupSelection,
+                highlighted: _isViewing
+                    ? const {}
+                    : _game.availablePushCells.toSet(),
+                lastMove: _shownLastMove,
+                // En revoyant un coup passé, l'Héritier n'a pas encore fugué : la
+                // fugue clôt la partie, elle est donc toujours au dernier coup.
+                fuguedHeirs: _isViewing
+                    ? const <Camp, Cell>{}
+                    : _game.casesDeFugue,
+                pieceTheme: axes.pieces,
+                boardTheme: axes.board,
+                slides: slides,
+                slideJumpPath: slideJumpPath,
+                slideToken: slideToken,
+                slideDuration: slideDuration,
+              ),
+              // En analyse, les prises sont toutes les deux EN HAUT : « fais
+              // les deux lignes de pièces au-dessus du plateau ». Deux lignes
+              // voisines se comparent mieux que deux bandes séparées par tout
+              // le plateau, et celui-ci récupère la place du bas.
+              // EN ANALYSE, LA TOUCHE D'ANNULATION EST EN BAS À DROITE, là où
+              // elle est en partie, et c'est le même widget. Nino : « le bouton
+              // d'annulation de coup en analyse doit être identique et au même
+              // endroit qu'en partie. » Elle était au bout de la bande des
+              // prises, en haut de l'écran : loin du pouce, et d'une autre
+              // forme.
+              bottomPanel: widget.analysis
+                  ? _rangeeAnnuler(palette, rangee)
+                  : _tickingPanel(palette, bottomCamp, mirrored: true),
+              // LA MÊME HAUTEUR QU'UN BANDEAU DE JOUEUR, et c'est le prix à
+              // payer. La rangée d'actions d'un bandeau du BAS est en HAUT
+              // de celui-ci — « la rangée près du plateau ». Lui donner une
+              // bande plus courte posait donc la touche plus BAS, les deux
+              // bandes finissant sur la même ligne : pour que la touche
+              // tombe où elle tombe en partie, la bande doit commencer où
+              // elle commence en partie.
+              bottomHeight: widget.analysis ? bandeau : null,
+              moveStrip: MoveStrip(
+                moves: _game.history,
+                activeIndex: _viewingIndex,
+                color: _campColor(palette, bottomCamp),
+                palette: palette,
+                randomCode: widget.randomCode,
+                onSelect: _viewMove,
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  /// La rangée du bas en analyse : rien d'autre que la touche d'annulation,
-  /// collée à droite comme dans un bandeau de joueur.
+  /// La rangée du bas en analyse : la touche d'annulation, et RIEN D'AUTRE —
+  /// mais à la place exacte qu'elle occupe en partie.
   ///
-  /// Elle ne paraît que s'il y a un coup à annuler, comme en partie — et la
-  /// rangée garde sa hauteur quand elle n'est pas là, sinon le plateau
-  /// bougerait à chaque coup commencé.
-  Widget _rangeeAnnuler(ThemePalette palette) => Padding(
-    padding: EdgeInsets.only(right: S(6)),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        if (_game.canValidate)
-          ToucheAction(
-            tooltip: T('Annuler'),
-            onPressed: _cancelMove,
-            palette: palette,
-            enfant: glypheAnnuler(),
+  /// Nino : « tu trouves pas que le bouton d'annulation de coup en analyse
+  /// est bien trop petit et mal placé ? Il doit être LE MÊME et placé AU
+  /// MÊME ENDROIT qu'en partie. » Il l'était déjà — c'est le même widget —
+  /// mais dans une rangée deux fois plus mince, et collée au bord : une
+  /// touche carrée prend la hauteur de sa rangée, elle était donc deux fois
+  /// plus petite, et elle tombait là où le drapeau tombe en partie.
+  ///
+  /// Deux choses la remettent en place : la rangée reçoit l'épaisseur
+  /// qu'elle a dans un bandeau de joueur, et les touches ABSENTES — le
+  /// message rapide, le drapeau — gardent leur place vide à sa droite. Nino,
+  /// déjà : « chaque bouton sur les écrans de jeux doit être fixé, ne
+  /// jamais changer de place. »
+  ///
+  /// La touche elle-même ne paraît que s'il y a un coup à annuler, comme en
+  /// partie ; sa place, elle, reste prise.
+  Widget _rangeeAnnuler(ThemePalette palette, double rangee) {
+    final place = ToucheAction.largeur(rangee);
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: PlayerPanel.margeH(),
+        vertical: PlayerPanel.margeV(),
+      ),
+      // En HAUT de la bande, comme dans un bandeau du bas : la rangée
+      // d'actions y est celle qui touche le plateau.
+      child: Column(
+        children: [
+          SizedBox(
+            height: rangee,
+            child: Row(
+              children: [
+                // La bande des prises, en partie : ici elle n'a rien à
+                // montrer, mais c'est elle qui pousse le groupe de touches
+                // à droite.
+                const Spacer(),
+                if (_game.canValidate)
+                  ToucheAction(
+                    tooltip: T('Annuler'),
+                    onPressed: _cancelMove,
+                    palette: palette,
+                    enfant: glypheAnnuler(),
+                  )
+                else
+                  SizedBox(width: place),
+                // Les places du message rapide et du drapeau.
+                SizedBox(width: place),
+                SizedBox(width: place),
+              ],
+            ),
           ),
-      ],
-    ),
-  );
+          const Spacer(),
+        ],
+      ),
+    );
+  }
 
   /// Couleur d'un camp, vive quand il a le trait — `vif` / `terne` de
   /// `_refresh_ui_no_board`.
