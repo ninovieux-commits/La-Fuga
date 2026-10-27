@@ -20,6 +20,7 @@ import 'package:lafuga/ui/widgets/champ_pieces.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/mesure_emoji.dart';
 import 'package:lafuga/ui/pieces_emoji.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/message_bubble.dart';
@@ -188,6 +189,17 @@ void main() {
         greaterThan(dansLaPhrase.size * 2),
         reason: 'comme un émoji seul : elle sort de sa bulle et grandit',
       );
+    });
+
+    testWidgets('dans une phrase, elle fait la taille d un émoji', (
+      tester,
+    ) async {
+      // Nino : « taille smiley ». Et cette taille se MESURE : un émoji
+      // déborde la taille de police qu'on lui donne, et de combien dépend de
+      // la police qui le dessine.
+      await pose(tester, 'ton [Garde] est perdu');
+      final piece = tester.widget<ProfilePhoto>(find.byType(ProfilePhoto));
+      expect(piece.size, tailleDUnEmoji(SF(16)));
     });
 
     testWidgets('trois pièces se dessinent toutes les trois', (tester) async {

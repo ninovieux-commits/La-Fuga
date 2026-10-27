@@ -45,6 +45,7 @@ import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
+import '../mesure_emoji.dart';
 import '../pieces_emoji.dart';
 import '../scale.dart';
 import '../texte_emoji.dart';
@@ -95,10 +96,9 @@ class MessageBubble extends StatelessWidget {
 
   /// Le message en morceaux : du texte, et des pièces dessinées.
   ///
-  /// Une pièce est un peu plus haute que la lettre qui l'entoure — un dessin
-  /// a besoin de place là où une lettre n'a qu'un trait — et posée sur la
-  /// ligne de base plutôt qu'au milieu, pour ne pas sautiller d'un mot à
-  /// l'autre.
+  /// Une pièce occupe la place d'un ÉMOJI — Nino : « taille smiley » — et
+  /// cette place se mesure au lieu de se deviner : un émoji déborde la taille
+  /// de police qu'on lui donne, et de combien dépend de la police du système.
   static List<InlineSpan> _morceaux(String texte, double taille) => [
     for (final m in decoupeMessage(texte))
       if (m.piece != null)
@@ -106,7 +106,7 @@ class MessageBubble extends StatelessWidget {
           alignment: PlaceholderAlignment.middle,
           child: ProfilePhoto(
             photo: _photoDe(m.piece!, m.theme),
-            size: taille * 1.25,
+            size: tailleDUnEmoji(taille),
           ),
         )
       else
@@ -119,13 +119,15 @@ class MessageBubble extends StatelessWidget {
     // exactement comme un émoji seul.
     final pieces = comptePiecesSeules(texte);
     if (pieces > 0 && pieces <= kEmojiMaxGrossi && !echoue) {
-      final taille =
-          SF(16) *
-          switch (pieces) {
-            1 => 3.0,
-            2 => 2.4,
-            _ => 2.0,
-          };
+      // Les mêmes tailles qu'un émoji seul, mesurées de la même façon.
+      final taille = tailleDUnEmoji(
+        SF(16) *
+            switch (pieces) {
+              1 => 3.0,
+              2 => 2.4,
+              _ => 2.0,
+            },
+      );
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
         child: Row(

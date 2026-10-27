@@ -21,6 +21,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../mesure_emoji.dart';
 import '../pieces_emoji.dart';
 import 'profile_photo.dart';
 
@@ -84,7 +85,9 @@ class ControleurAvecPieces extends TextEditingController {
         withComposing: withComposing,
       );
     }
-    final taille = (style?.fontSize ?? 16) * 1.25;
+    // La place d'un émoji, mesurée : la pièce se pose dans la ligne
+    // comme un smiley, sans la déformer.
+    final taille = tailleDUnEmoji(style?.fontSize ?? 16);
     final morceaux = <InlineSpan>[];
     final tampon = StringBuffer();
     void vide() {
