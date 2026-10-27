@@ -54,6 +54,7 @@ class GameLayout extends StatelessWidget {
     this.topOverlay,
     this.topPanelDevant = false,
     this.topHeight,
+    this.bottomHeight,
   });
 
   final Widget topBar;
@@ -107,6 +108,11 @@ class GameLayout extends StatelessWidget {
   /// qui loge un nom, un chrono et des touches.
   final double? topHeight;
 
+  /// Hauteur imposée au bandeau du BAS, comme [topHeight] pour celui du
+  /// haut. L'analyse n'y met qu'une touche : lui laisser les douze parts
+  /// d'un bandeau de joueur mangerait le plateau pour rien.
+  final double? bottomHeight;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -117,7 +123,9 @@ class GameLayout extends StatelessWidget {
       var top = topPanel == null
           ? 0.0
           : (topHeight ?? unit * kPartsBandeauJoueur);
-      var bottom = bottomPanel == null ? 0.0 : unit * bottomParts;
+      var bottom = bottomPanel == null
+          ? 0.0
+          : (bottomHeight ?? unit * bottomParts);
 
       // LES BANDEAUX CÈDENT CE QUI MANQUE AU PLATEAU.
       //
@@ -135,7 +143,7 @@ class GameLayout extends StatelessWidget {
       // prorata de ce qu'ils occupent, et sans jamais perdre plus de
       // [kBandeauRetraitMax] de leur hauteur, pour que le nom, le chrono et
       // les touches y tiennent encore.
-      if (topHeight == null && top + bottom > 0) {
+      if (topHeight == null && bottomHeight == null && top + bottom > 0) {
         final naturel = box.maxWidth * kExtRows / kCols;
         final manque = top + bottom + naturel - (box.maxHeight - 2 * bar);
         // ET SEULEMENT SI CELA SUFFIT. Sur une tablette, large, le plateau

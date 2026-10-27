@@ -38,6 +38,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/bandeau_prises.dart';
+import '../scale.dart';
 import '../widgets/game_layout.dart';
 import '../../engine/fug.dart';
 import '../widgets/end_dialogs.dart';
@@ -870,9 +871,6 @@ class _GameScreenState extends State<GameScreen>
                   prisesBas: _game.captured[bottomCamp.opposite] ?? const [],
                   palette: palette,
                   hautEstBlanc: topCamp == Camp.blanc,
-                  // La touche d'annulation ne paraît que s'il y a un coup à
-                  // annuler, comme en partie.
-                  onAnnuler: _game.canValidate ? _cancelMove : null,
                 )
               : _tickingPanel(palette, topCamp, mirrored: false),
           // Les deux lignes de prises tiennent dans la hauteur d'une pièce :
@@ -903,9 +901,16 @@ class _GameScreenState extends State<GameScreen>
           // les deux lignes de pièces au-dessus du plateau ». Deux lignes
           // voisines se comparent mieux que deux bandes séparées par tout
           // le plateau, et celui-ci récupère la place du bas.
+          // EN ANALYSE, LA TOUCHE D'ANNULATION EST EN BAS À DROITE, là où
+          // elle est en partie, et c'est le même widget. Nino : « le bouton
+          // d'annulation de coup en analyse doit être identique et au même
+          // endroit qu'en partie. » Elle était au bout de la bande des
+          // prises, en haut de l'écran : loin du pouce, et d'une autre
+          // forme.
           bottomPanel: widget.analysis
-              ? null
+              ? _rangeeAnnuler(palette)
               : _tickingPanel(palette, bottomCamp, mirrored: true),
+          bottomHeight: widget.analysis ? ToucheAction.hauteurRangee() : null,
           moveStrip: MoveStrip(
             moves: _game.history,
             activeIndex: _viewingIndex,
@@ -918,6 +923,28 @@ class _GameScreenState extends State<GameScreen>
       ),
     );
   }
+
+  /// La rangée du bas en analyse : rien d'autre que la touche d'annulation,
+  /// collée à droite comme dans un bandeau de joueur.
+  ///
+  /// Elle ne paraît que s'il y a un coup à annuler, comme en partie — et la
+  /// rangée garde sa hauteur quand elle n'est pas là, sinon le plateau
+  /// bougerait à chaque coup commencé.
+  Widget _rangeeAnnuler(ThemePalette palette) => Padding(
+    padding: EdgeInsets.only(right: S(6)),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (_game.canValidate)
+          ToucheAction(
+            tooltip: T('Annuler'),
+            onPressed: _cancelMove,
+            palette: palette,
+            enfant: glypheAnnuler(),
+          ),
+      ],
+    ),
+  );
 
   /// Couleur d'un camp, vive quand il a le trait — `vif` / `terne` de
   /// `_refresh_ui_no_board`.

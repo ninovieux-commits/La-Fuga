@@ -29,6 +29,10 @@ import 'package:lafuga/state/ai_memory.dart';
 import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/engine/board.dart';
+import 'package:lafuga/ui/widgets/bandeau_prises.dart';
+import 'package:lafuga/ui/widgets/game_layout.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -262,6 +266,53 @@ void main() {
       expect(find.byTooltip('Proposer nulle'), findsNothing);
       expect(find.byTooltip('Abandonner ou proposer la nulle ?'), findsNothing);
       expect(find.byTooltip('Annuler'), findsNothing);
+    });
+
+    testWidgets('la touche d annuler est en BAS, comme en partie', (
+      tester,
+    ) async {
+      // Nino : « le bouton d'annulation de coup en analyse doit être
+      // identique et au même endroit qu'en partie. » Elle était au bout de
+      // la bande des prises, en haut de l'écran.
+      await open(tester, analysis: true);
+      final vue = tester.widget<GameBoardView>(find.byType(GameBoardView));
+
+      expect(
+        tester.widget<BandeauPrises>(find.byType(BandeauPrises)).onAnnuler,
+        isNull,
+        reason: 'elle ne vit plus dans la bande des prises',
+      );
+      expect(
+        find.byTooltip(T('Annuler')),
+        findsNothing,
+        reason: 'rien à annuler',
+      );
+
+      // On commence un coup : la touche paraît, et sous le plateau.
+      vue.onTapCell(const Cell(2, 1));
+      await tester.pumpAndSettle();
+      vue.onTapCell(const Cell(2, 2));
+      await tester.pumpAndSettle();
+
+      final touche = find.byTooltip(T('Annuler'));
+      expect(touche, findsOneWidget);
+      expect(
+        find.byType(ToucheAction),
+        findsOneWidget,
+        reason: 'le MÊME widget qu en partie, pas un dessin qui lui ressemble',
+      );
+      final place = tester.getRect(touche);
+      final plateau = tester.getRect(find.byType(GameBoardView));
+      expect(
+        place.top,
+        greaterThanOrEqualTo(plateau.bottom - 1),
+        reason: 'sous le plateau, comme la rangée d actions d une partie',
+      );
+      expect(
+        place.center.dx,
+        greaterThan(tester.getSize(find.byType(GameLayout)).width / 2),
+        reason: 'à droite, comme en partie',
+      );
     });
 
     testWidgets('venue d une correspondance, Deep Grey est là aussi', (

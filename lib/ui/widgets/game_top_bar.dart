@@ -36,9 +36,6 @@ const double kTrouCamera = 96;
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
 const Color kBarButtonDark = Color.fromRGBO(38, 38, 38, 1);
 
-/// Fond de la touche « Deep Grey » — `(0.30, 0.30, 0.34)`.
-const Color kBarButtonDeepGrey = Color.fromRGBO(77, 77, 87, 1);
-
 class GameTopBar extends StatelessWidget {
   const GameTopBar({
     super.key,
@@ -183,7 +180,11 @@ class GameTopBar extends StatelessWidget {
                     'Deep Grey',
                     onDeepGrey!,
                     width: S(130),
-                    color: kBarButtonDeepGrey,
+                    // La même couleur que ses voisines. Kivy lui donnait un
+                    // gris à part — Nino : « le bouton deepgrey doit être de
+                    // la même couleur que les trois autres boutons de la
+                    // ligne ».
+                    color: kBarButtonDark,
                   ),
                 ),
               ],

@@ -25,6 +25,7 @@ import 'etoile_favori.dart';
 import 'drapeau_dialog.dart';
 import 'fuga_button.dart';
 import 'picto_touche.dart';
+import 'bandeau_prises.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
 
@@ -85,6 +86,82 @@ class _CapturesPainter extends CustomPainter {
   bool shouldRepaint(_CapturesPainter old) =>
       old.pieces.length != pieces.length || old.palette != palette;
 }
+
+/// La touche carrée des rangées d'action — ↶, message rapide, drapeau.
+///
+/// Elle vivait en privé dans le panneau du joueur. L'analyse a la sienne, et
+/// Nino : « le bouton d'annulation de coup en analyse doit être identique et
+/// au même endroit qu'en partie. » Identique veut dire le même widget, pas
+/// deux dessins qui se ressemblent : c'est la seule façon qu'ils ne divergent
+/// plus jamais.
+class ToucheAction extends StatelessWidget {
+  const ToucheAction({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.enfant,
+    required this.palette,
+    this.color = kFugaGrey,
+    this.enabled = true,
+    this.onBlocked,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Widget enfant;
+  final ThemePalette palette;
+  final Color color;
+
+  /// Éteinte, la touche se fond à moitié dans le panneau et son libellé
+  /// pâlit : elle reste lisible, mais visiblement hors d'usage. Elle a porté
+  /// des hachures le temps d'un essai ; Nino, les ayant vues en vrai, a
+  /// demandé qu'on revienne à ceci.
+  final bool enabled;
+
+  /// Elle reste touchable éteinte : c'est lui qui dit ce qui manque, au
+  /// moment où l'on se pose la question.
+  final VoidCallback? onBlocked;
+
+  /// Hauteur d'une rangée qui ne porte que des touches d'action.
+  ///
+  /// Celle qu'elles occupent dans un bandeau de joueur : la touche y est
+  /// carrée et remplit la rangée, donc son côté EST cette hauteur.
+  static double hauteurRangee() => S(kLignePrises) * 1.2;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip,
+    child: Padding(
+      padding: EdgeInsets.only(left: S(6)),
+      child: FractionallySizedBox(
+        // La rangée est déjà à la bonne épaisseur : la touche la remplit.
+        heightFactor: 1,
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Material(
+            color: enabled ? color : Color.lerp(color, palette.menu, 0.6)!,
+            borderRadius: BorderRadius.circular(S(16)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(S(16)),
+              onTap: enabled ? onPressed : onBlocked,
+              child: Center(child: enfant),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Le glyphe de la touche d'annulation, à la taille des rangées d'action.
+Widget glypheAnnuler() => Text(
+  '↶',
+  style: TextStyle(
+    color: Colors.white,
+    fontSize: SF(18),
+    fontWeight: FontWeight.bold,
+  ),
+);
 
 /// Le panneau d'un joueur.
 class PlayerPanel extends StatelessWidget {
@@ -470,33 +547,13 @@ class PlayerPanel extends StatelessWidget {
     Color color = kFugaGrey,
     bool enabled = true,
     VoidCallback? onBlocked,
-  }) => Tooltip(
-    message: tooltip,
-    child: Padding(
-      padding: EdgeInsets.only(left: S(6)),
-      child: FractionallySizedBox(
-        // La rangée est déjà à la bonne épaisseur : la touche la remplit.
-        heightFactor: 1,
-        child: AspectRatio(
-          aspectRatio: 1,
-          // Éteinte, la touche se fond à moitié dans le panneau et son
-          // libellé pâlit : elle reste lisible, mais visiblement hors
-          // d'usage. Elle a porté des hachures le temps d'un essai ; Nino,
-          // les ayant vues en vrai, a demandé qu'on revienne à ceci.
-          //
-          // Elle reste touchable : c'est `onBlocked` qui dit ce qui manque,
-          // au moment où l'on se pose la question.
-          child: Material(
-            color: enabled ? color : Color.lerp(color, palette.menu, 0.6)!,
-            borderRadius: BorderRadius.circular(S(16)),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(S(16)),
-              onTap: enabled ? onPressed : onBlocked,
-              child: Center(child: enfant),
-            ),
-          ),
-        ),
-      ),
-    ),
+  }) => ToucheAction(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    enfant: enfant,
+    palette: palette,
+    color: color,
+    enabled: enabled,
+    onBlocked: onBlocked,
   );
 }
