@@ -17,6 +17,8 @@ import '../scale.dart';
 import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/game_layout.dart';
+import '../widgets/game_top_bar.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/tuto_overlay.dart';
@@ -69,7 +71,7 @@ class _TutoScreenState extends State<TutoScreen>
             // Les deux bandes de touches prennent la hauteur d'une touche —
             // la même que sur le menu — et le reste se partage comme chez
             // Kivy, 66 pour le plateau et 17 pour le texte.
-            _topBar(),
+            _topBar(palette),
             Expanded(
               flex: 66,
               child: banner == null ? _board(palette, axes) : _banner(banner),
@@ -82,28 +84,32 @@ class _TutoScreenState extends State<TutoScreen>
     );
   }
 
-  Widget _topBar() => Padding(
-    padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
-    child: Row(
-      children: [
-        SizedBox(
-          width: S(95),
-          child: FugaButton(
-            text: T('Pause'),
-            fontSize: SF(15),
-            onPressed: _openPause,
+  /// La rangée du haut : la pause à gauche, la progression à droite.
+  ///
+  /// LA MÊME TOUCHE DE PAUSE QU'EN PARTIE. Nino : « dans le tuto, la touche
+  /// pause doit être la même qu'en partie. » C'était une large touche grise
+  /// portant le mot « Pause », qui ne ressemblait à rien de ce qu'on trouve
+  /// sur un écran de jeu. C'est maintenant [ToucheDePause], le carré sombre
+  /// aux deux barres dessinées — et pour qu'elle ait la même TAILLE, la
+  /// rangée prend l'épaisseur d'un bandeau fin de partie, marges comprises.
+  Widget _topBar(ThemePalette palette) => SizedBox(
+    height: hauteurBarre(),
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(2)),
+      child: Row(
+        children: [
+          ToucheDePause(palette: palette, onPause: _openPause),
+          const Spacer(),
+          Text(
+            '${_tuto.index + 1} / ${_tuto.stepCount}',
+            style: TextStyle(
+              fontSize: SF(15),
+              fontWeight: FontWeight.bold,
+              color: const Color.fromRGBO(38, 38, 38, 1),
+            ),
           ),
-        ),
-        const Spacer(),
-        Text(
-          '${_tuto.index + 1} / ${_tuto.stepCount}',
-          style: TextStyle(
-            fontSize: SF(15),
-            fontWeight: FontWeight.bold,
-            color: const Color.fromRGBO(38, 38, 38, 1),
-          ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 

@@ -33,6 +33,16 @@ const double kBandeauRetraitMax = 0.2;
 /// Parts prises par un bandeau de joueur.
 const int kPartsBandeauJoueur = 12;
 
+/// Parts prises par un bandeau FIN — celui des touches, en haut, et celui
+/// des coups, en bas.
+const int kPartsBarre = 7;
+
+/// Hauteur d'un bandeau fin, en pixels logiques.
+///
+/// Le tuto s'en sert pour que sa rangée du haut ait l'épaisseur de celle
+/// d'une partie, et donc sa touche de pause la même taille.
+double hauteurBarre() => screenHeight * kPartsBarre / kPartsEcran;
+
 /// Hauteur d'un bandeau de joueur, en pixels logiques.
 ///
 /// C'est une mesure que les autres écrans empruntent : le profil s'en sert
@@ -56,7 +66,7 @@ double hauteurBandeauEnPartie(Size ecran) {
   final bandeau = unit * kPartsBandeauJoueur;
   final deux = 2 * bandeau;
   final naturel = ecran.width * kExtRows / kCols;
-  final manque = deux + naturel - (ecran.height - 2 * (unit * 7));
+  final manque = deux + naturel - (ecran.height - 2 * (unit * kPartsBarre));
   if (manque > 0 && manque <= deux * kBandeauRetraitMax) {
     return bandeau - bandeau * (manque / deux);
   }
@@ -141,7 +151,7 @@ class GameLayout extends StatelessWidget {
       // 7 + 12 + 66 + 12 + 7 = 104 parts. Sans les bandeaux, leurs 12 parts
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / kPartsEcran;
-      final bar = unit * 7;
+      final bar = unit * kPartsBarre;
       var top = topPanel == null
           ? 0.0
           : (topHeight ?? unit * kPartsBandeauJoueur);

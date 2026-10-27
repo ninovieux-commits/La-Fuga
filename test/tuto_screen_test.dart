@@ -9,7 +9,10 @@ import 'package:lafuga/game/tuto.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
+import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/screens/game_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/game_top_bar.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -92,6 +95,50 @@ void main() {
 
     await tapCell(tester, tuto.step.dests.first);
     expect(find.textContaining('valider'), findsOneWidget);
+  });
+
+  testWidgets('la pause est LA MÊME touche qu en partie', (tester) async {
+    // Nino : « dans le tuto, la touche pause doit être la même qu'en
+    // partie. » C'était une large touche grise portant le mot « Pause ».
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    setScaleSize(const Size(393, 851));
+
+    await open(tester);
+    expect(
+      find.text(T('Pause')),
+      findsNothing,
+      reason: 'plus de touche écrite : c est le carré aux deux barres',
+    );
+    expect(find.byType(ToucheDePause), findsOneWidget);
+    final auTuto = tester.getRect(find.byType(ToucheDePause));
+    expect(
+      auTuto.width,
+      moreOrLessEquals(auTuto.height, epsilon: 0.5),
+      reason: 'carrée, comme en partie',
+    );
+
+    // Et la même, à la même place, que sur un écran de jeu.
+    await tester.pumpWidget(
+      const MaterialApp(home: GameScreen(aiCamp: null, initialFlipped: false)),
+    );
+    await tester.pumpAndSettle();
+    final enPartie = tester.getRect(find.byType(ToucheDePause));
+
+    expect(
+      auTuto.size.width,
+      moreOrLessEquals(enPartie.size.width, epsilon: 1),
+    );
+    expect(
+      auTuto.size.height,
+      moreOrLessEquals(enPartie.size.height, epsilon: 1),
+    );
+    expect(
+      auTuto.center.dy,
+      moreOrLessEquals(enPartie.center.dy, epsilon: 1),
+      reason: 'sur la même ligne : la rangée a l épaisseur d un bandeau fin',
+    );
   });
 
   testWidgets('la bannière remplace le plateau', (tester) async {

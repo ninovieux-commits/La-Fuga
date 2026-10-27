@@ -327,32 +327,7 @@ class GameTopBar extends StatelessWidget {
                   ),
                 )
               else if (pauseLabel == '| |')
-                Tooltip(
-                  message: T('Pause'),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Material(
-                      color: kBarButtonDark,
-                      borderRadius: BorderRadius.circular(S(20)),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(S(20)),
-                        onTap: onPause,
-                        // Deux barres dessinées plutôt que le texte « | | » : à
-                        // cette taille, le glyphe débordait de la touche et
-                        // tombait de travers.
-                        child: Center(
-                          child: FractionallySizedBox(
-                            widthFactor: 0.30,
-                            heightFactor: 0.40,
-                            child: CustomPaint(
-                              painter: _PausePainter(palette.clair),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
+                ToucheDePause(palette: palette, onPause: onPause)
               else
                 _round(
                   pauseLabel,
@@ -518,6 +493,49 @@ class GameTopBar extends StatelessWidget {
 }
 
 /// Les deux barres de la pause, centrées à coup sûr.
+/// La touche de pause des écrans de jeu : un carré sombre où deux barres
+/// sont DESSINÉES, à la couleur claire du thème.
+///
+/// Elle vit ici, avec le bandeau qui la porte, mais le tuto s'en sert aussi :
+/// il avait une large touche grise portant le mot « Pause », qui ne
+/// ressemblait à rien de ce qu'on trouve en partie. Nino : « dans le tuto,
+/// la touche pause doit être la même qu'en partie. »
+///
+/// Elle est CARRÉE et prend la hauteur qu'on lui donne : c'est à la rangée
+/// qui la contient de dire son épaisseur, comme pour toutes les touches des
+/// bandeaux.
+class ToucheDePause extends StatelessWidget {
+  const ToucheDePause({super.key, required this.palette, this.onPause});
+
+  final ThemePalette palette;
+  final VoidCallback? onPause;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: T('Pause'),
+    child: AspectRatio(
+      aspectRatio: 1,
+      child: Material(
+        color: kBarButtonDark,
+        borderRadius: BorderRadius.circular(S(20)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(S(20)),
+          onTap: onPause,
+          // Deux barres dessinées plutôt que le texte « | | » : à cette
+          // taille, le glyphe débordait de la touche et tombait de travers.
+          child: Center(
+            child: FractionallySizedBox(
+              widthFactor: 0.30,
+              heightFactor: 0.40,
+              child: CustomPaint(painter: _PausePainter(palette.clair)),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 final class _PausePainter extends CustomPainter {
   const _PausePainter(this.couleur);
 
