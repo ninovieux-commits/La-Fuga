@@ -1,6 +1,18 @@
 /// Étapes du tuto — **fichier généré**, ne pas modifier à la main.
 ///
 /// Produit par `tool/gen_tuto_steps.py` depuis `_build_tuto_steps` (main.py).
+///
+/// ## UNE ÉTAPE A DIVERGÉ DE KIVY, à la main et volontairement
+///
+/// « La règle de contact ». La Nurse noire y était en **mi7**, juste
+/// au-dessus de la blanche : les deux pièces se touchaient par un côté, et
+/// rien ne disait que la diagonale compte aussi. Nino : « mets la nurse
+/// noire en ré 7, qu'on comprenne que ça marche aussi quand elles se
+/// touchent en diagonale. » Elle est donc en **ré7**, et l'encadré vert la
+/// suit.
+///
+/// Relancer le générateur l'écraserait. Il n'y a rien à en régénérer : le
+/// portage Kivy n'est plus la référence sur ce point, ce fichier l'est.
 library;
 
 /// Les étapes, au format JSON du client Kivy.
@@ -356,7 +368,7 @@ const String kTutoStepsJson = r'''
     "Blanc"
    ],
    [
-    "mi",
+    "ré",
     7,
     "Nurse",
     "Noir"
@@ -392,7 +404,7 @@ const String kTutoStepsJson = r'''
     6
    ],
    [
-    "mi",
+    "ré",
     7
    ],
    [

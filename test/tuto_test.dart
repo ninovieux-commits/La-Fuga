@@ -296,4 +296,43 @@ void main() {
       }
     });
   });
+
+  group('La règle de contact', () {
+    /// L'étape qui montre en vert ce qui peut bouger et en rouge ce qui est
+    /// bloqué.
+    TutoStep etape() => TutoController().steps.firstWhere(
+      (e) => e.title == 'La règle de contact',
+    );
+
+    test('les deux Nurses se touchent EN DIAGONALE', () {
+      // Nino : « mets la nurse noire en ré 7, qu on comprenne que ça marche
+      // aussi quand elles se touchent en diagonale. » Côte à côte, l étape
+      // ne montrait que le contact par un côté.
+      final b = etape().board();
+      final noire = b.at(1, 6);
+      final blanche = b.at(2, 5);
+      expect(noire?.type, PieceType.nurse);
+      expect(noire?.camp, Camp.noir);
+      expect(blanche?.type, PieceType.nurse);
+      expect(blanche?.camp, Camp.blanc);
+    });
+
+    test('et l encadré vert suit la Nurse qui a bougé', () {
+      final cadres = etape().framedOk;
+      expect(
+        cadres,
+        contains(const Cell(1, 6)),
+        reason: 'la Nurse noire est en ré7 : c est elle qu on encadre',
+      );
+      expect(cadres, isNot(contains(const Cell(2, 6))));
+    });
+
+    test('les bloquées restent bloquées', () {
+      // Les deux de la colonne sol n ont toujours personne de leur forme à
+      // côté : le rouge ne bouge pas.
+      final cadres = etape().framed;
+      expect(cadres, contains(const Cell(4, 3)));
+      expect(cadres, contains(const Cell(4, 4)));
+    });
+  });
 }
