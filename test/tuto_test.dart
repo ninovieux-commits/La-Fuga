@@ -1,4 +1,4 @@
-/// Tutoriel : les 22 étapes, et la machine à phases des étapes interactives.
+/// Tutoriel : les 21 étapes, et la machine à phases des étapes interactives.
 library;
 
 import 'package:lafuga/engine/board.dart';
@@ -15,13 +15,32 @@ int indexWhere(TutoController t, bool Function(TutoStep) test) =>
 
 void main() {
   group('Chargement', () {
-    test('les 22 étapes sont là, dans l ordre', () {
+    test('les 21 étapes sont là, dans l ordre', () {
       final steps = loadTutoSteps();
 
-      expect(steps, hasLength(22));
+      expect(steps, hasLength(21));
       expect(steps.first.title, 'Le but du jeu');
       expect(steps[1].title, 'Le déplacement');
-      expect(steps.last.title, 'Fin : abandon, temps, déco');
+      expect(steps.last.title, 'Fin : la répétition');
+    });
+
+    test('ce qui coule de source n est plus enseigné', () {
+      final steps = loadTutoSteps();
+
+      expect(
+        steps.map((s) => s.title),
+        isNot(contains('Fin : abandon, temps, déco')),
+        reason: 'abandon, temps et déco se devinent',
+      );
+      expect(
+        steps.expand((s) => s.mockUi).map((m) => m.text),
+        isNot(contains('½')),
+        reason: 'la touche nulle n existe plus dans l app',
+      );
+      expect(
+        steps.map((s) => s.text).join(' '),
+        isNot(contains('proposer la nulle')),
+      );
     });
 
     test('chaque étape a un texte à afficher', () {
@@ -253,6 +272,140 @@ void main() {
     });
   });
 
+  group('Glissées', () {
+    test('un déplacement dit quelle pièce va où', () {
+      final t = TutoController();
+      t.goTo(1);
+
+      final depart = t.step.move!;
+      final piece = t.board.at(depart.col, depart.row)!;
+      final arrivee = t.step.dests.first;
+
+      // Sélectionner ne déplace rien.
+      t.tap(depart);
+      expect(t.glissees, isEmpty);
+
+      t.tap(arrivee);
+      expect(t.glissees, hasLength(1));
+      final (bougee, de, vers) = t.glissees.single;
+      expect(bougee.type, piece.type);
+      expect(bougee.camp, piece.camp);
+      expect(de, depart);
+      expect(vers, arrivee);
+
+      // Valider ne rebouge rien : le plateau ne doit pas rejouer le coup.
+      t.tap(arrivee);
+      expect(t.glissees, isEmpty);
+    });
+
+    test('un saut glisse case par case', () {
+      final t = TutoController();
+      t.goTo(indexWhere(t, (s) => s.sequence.length > 1));
+
+      t.tap(t.step.move!);
+      var depart = t.step.move!;
+      for (final saut in t.step.sequence) {
+        t.tap(saut.dest);
+        expect(t.glissees.map((g) => (g.$2, g.$3)), [
+          (depart, saut.dest),
+        ], reason: 'le saut vers ${saut.dest}');
+        depart = saut.dest;
+      }
+    });
+
+    test('la manœuvre fait glisser tout le groupe', () {
+      final t = TutoController();
+      t.goTo(indexWhere(t, (s) => s.isManeuver));
+
+      final leader = t.step.leader!;
+      final group = t.step.groupAdd;
+      final moveTo = t.step.moveTo!;
+      final dc = moveTo.col - leader.col;
+      final dr = moveTo.row - leader.row;
+
+      t.tap(leader);
+      for (final g in group) {
+        t.tap(g);
+      }
+      t.tap(moveTo);
+
+      expect(t.glissees, hasLength(group.length + 1));
+      for (final depart in [leader, ...group]) {
+        expect(
+          t.glissees.any(
+            (g) =>
+                g.$2 == depart &&
+                g.$3 == Cell(depart.col + dc, depart.row + dr),
+          ),
+          isTrue,
+          reason: 'la pièce de $depart a suivi le groupe',
+        );
+      }
+    });
+
+    test('la poussée glisse le pousseur puis la ligne', () {
+      final t = TutoController();
+      t.goTo(indexWhere(t, (s) => s.isPush && s.pushes.isEmpty));
+
+      final leader = t.step.leader!;
+      final moveTo = t.step.moveTo!;
+      final pushTo = t.step.pushTo!;
+
+      t.tap(leader);
+      t.tap(moveTo);
+      expect(t.glissees.map((g) => (g.$2, g.$3)), [(leader, moveTo)]);
+
+      // La poussée est un second geste : le pousseur reste où il est, et
+      // seule la ligne recule. Chaque tap n'anime que ce qu'il a fait.
+      final dc = pushTo.col - moveTo.col;
+      final dr = pushTo.row - moveTo.row;
+      t.tap(pushTo);
+      expect(
+        t.glissees.map((g) => (g.$2, g.$3)),
+        contains((pushTo, Cell(pushTo.col + dc, pushTo.row + dr))),
+        reason: 'la pièce poussée recule d une case',
+      );
+      expect(
+        t.glissees.every((g) => g.$2 != moveTo),
+        isTrue,
+        reason: 'le pousseur a déjà glissé au tap précédent',
+      );
+      for (final (_, de, vers) in t.glissees) {
+        expect(
+          (vers.col - de.col, vers.row - de.row),
+          (dc, dr),
+          reason: 'toute la ligne recule du même pas',
+        );
+      }
+    });
+
+    test('la fugue marchée glisse jusqu au ralliement', () {
+      final t = TutoController();
+      t.goTo(indexWhere(t, (s) => s.title == 'Fuguer en sautant'));
+
+      t.tap(t.step.move!);
+      for (final s in t.step.sequence) {
+        t.tap(s.dest);
+      }
+
+      final sortie = t.fugued.single.cell;
+      expect(t.glissees, hasLength(1));
+      expect(t.glissees.single.$1.type, PieceType.heritier);
+      expect(t.glissees.single.$3, sortie, reason: 'elle finit dans la zone');
+    });
+
+    test('changer d étape oublie la glissée précédente', () {
+      final t = TutoController();
+      t.goTo(1);
+      t.tap(t.step.move!);
+      t.tap(t.step.dests.first);
+      expect(t.glissees, isNotEmpty);
+
+      t.goTo(2);
+      expect(t.glissees, isEmpty);
+    });
+  });
+
   group('Annotations', () {
     test('une étape d illustration montre ses encadrés', () {
       final t = TutoController();
@@ -285,10 +438,13 @@ void main() {
       expect(t.steps[i].banner, contains('FIN DE PARTIE'));
     });
 
-    test('les fins de partie illustrées ont leurs faux boutons', () {
-      final withMock = loadTutoSteps().where((s) => s.mockUi.isNotEmpty);
-      expect(withMock, isNotEmpty);
-      for (final s in withMock) {
+    test('plus aucune étape ne dessine de faux bouton', () {
+      // Les deux seules qui en montraient — la touche « ½ » et l'étape
+      // abandon / temps / déco — ont été retirées : montrer une touche que
+      // l'app n'a plus enseignait un geste impossible. Le mécanisme reste,
+      // et doit rester valide le jour où une étape s'en resservira.
+      for (final s in loadTutoSteps()) {
+        expect(s.mockUi, isEmpty, reason: 'étape « ${s.title} »');
         for (final m in s.mockUi) {
           expect(m.fw, greaterThan(0));
           expect(m.text, isNotEmpty);

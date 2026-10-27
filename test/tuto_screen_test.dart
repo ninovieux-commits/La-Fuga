@@ -46,7 +46,7 @@ void main() {
     await open(tester);
 
     expect(find.byType(GameBoardView), findsOneWidget);
-    expect(find.text('1 / 22'), findsOneWidget);
+    expect(find.text('1 / 21'), findsOneWidget);
     expect(find.textContaining('Bienvenue'), findsOneWidget);
     expect(find.text('Suivant >'), findsOneWidget);
   });
@@ -103,8 +103,60 @@ void main() {
     expect(find.textContaining('FIN DE PARTIE'), findsOneWidget);
   });
 
+  testWidgets('les pièces glissent, elles ne se téléportent pas', (
+    tester,
+  ) async {
+    final tuto = await open(tester, step: 1);
+    GameBoardView board() =>
+        tester.widget<GameBoardView>(find.byType(GameBoardView));
+
+    expect(board().slides, isEmpty, reason: 'rien n a encore bougé');
+    final jetonDepart = board().slideToken;
+
+    final depart = tuto.step.move!;
+    await tapCell(tester, depart);
+    expect(
+      board().slideToken,
+      jetonDepart,
+      reason: 'une sélection ne fait rien glisser',
+    );
+
+    final arrivee = tuto.step.dests.first;
+    await tapCell(tester, arrivee);
+    expect(board().slideToken, greaterThan(jetonDepart));
+    expect(board().slides.map((g) => (g.$2, g.$3)), [(depart, arrivee)]);
+    expect(
+      board().slideDuration,
+      greaterThan(Duration.zero),
+      reason: 'la durée vient des réglages, comme en partie',
+    );
+  });
+
+  testWidgets('l Héritier qui fugue glisse jusqu à son ralliement', (
+    tester,
+  ) async {
+    final steps = loadTutoSteps();
+    final i = steps.indexWhere((s) => s.title == 'Fuguer en sautant');
+    final tuto = await open(tester, step: i);
+    GameBoardView board() =>
+        tester.widget<GameBoardView>(find.byType(GameBoardView));
+
+    await tapCell(tester, tuto.step.move!);
+    for (final saut in tuto.step.sequence) {
+      await tapCell(tester, saut.dest);
+    }
+
+    final sortie = tuto.fugued.single;
+    expect(
+      board().fuguedHeirs,
+      {sortie.camp: sortie.cell},
+      reason: 'c est le plateau qui le pose, avec les pièces du thème',
+    );
+    expect(board().slides.single.$3, sortie.cell);
+  });
+
   testWidgets('la dernière étape renvoie au menu', (tester) async {
-    await open(tester, step: 21);
+    await open(tester, step: loadTutoSteps().length - 1);
     expect(find.text('Le menu >'), findsOneWidget);
   });
 }

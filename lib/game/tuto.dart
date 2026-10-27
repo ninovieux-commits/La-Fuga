@@ -1,6 +1,6 @@
 /// Tutoriel — portage de `TutoScreen` (main.py).
 ///
-/// Dart pur : les 22 étapes et leur machine à phases se testent sans écran.
+/// Dart pur : les 21 étapes et leur machine à phases se testent sans écran.
 /// Le principe de Kivy est conservé : une étape interactive rejoue le **vrai**
 /// mécanisme du jeu (sélectionner, déplacer, valider), mais seul le coup prévu
 /// est possible, et le texte change à chaque phase.
@@ -215,7 +215,7 @@ double _double(Object? v) => (v as num?)?.toDouble() ?? 0;
   return (_double(l[0]), _double(l[1]), _double(l[2]));
 }
 
-/// Les 22 étapes, lues une fois.
+/// Les 21 étapes, lues une fois.
 List<TutoStep> loadTutoSteps([String json = kTutoStepsJson]) => [
   for (final s in jsonDecode(json) as List)
     TutoStep(Map<String, dynamic>.from(s as Map)),
@@ -245,6 +245,13 @@ class TutoController {
   /// Héritiers dessinés dans leur zone de ralliement, après une fugue.
   final List<({Cell cell, Camp camp})> _fugued = [];
 
+  /// Ce que le dernier `tap` a fait bouger : (pièce, départ, arrivée).
+  ///
+  /// Le tuto bouge ses pièces lui-même, case par case, sans passer par le
+  /// contrôleur de coups : il doit donc dire lui aussi qui est allé où, sans
+  /// quoi l'écran n'a rien à faire glisser et les pièces se téléportent.
+  final List<(Piece, Cell, Cell)> _glissees = [];
+
   int get index => _index;
   int get stepCount => steps.length;
   TutoStep get step => steps[_index];
@@ -255,6 +262,7 @@ class TutoController {
   Cell? get selected => _selected;
   Set<Cell> get groupSelected => Set.unmodifiable(_groupSelected);
   List<({Cell cell, Camp camp})> get fugued => List.unmodifiable(_fugued);
+  List<(Piece, Cell, Cell)> get glissees => List.unmodifiable(_glissees);
 
   bool get atFirst => _index == 0;
   bool get atLast => _index == steps.length - 1;
@@ -275,6 +283,7 @@ class TutoController {
     _groupIndex = 0;
     _pushIndex = 0;
     _fugued.clear();
+    _glissees.clear();
   }
 
   bool goTo(int index) {
@@ -291,6 +300,7 @@ class TutoController {
   /// Le joueur touche une case. Renvoie vrai si quelque chose a changé.
   bool tap(Cell cell) {
     if (!step.interactive || _stepDone) return false;
+    _glissees.clear();
     if (step.isManeuver) return _tapManeuver(cell);
     if (step.isPush) return _tapPush(cell);
     return _tapMove(cell);
@@ -346,12 +356,14 @@ class TutoController {
 
     if (!to.onBoard) {
       _fugued.add((cell: to, camp: piece.camp));
+      _glissees.add((piece, from, to));
       _selected = null;
       _movedTo = null;
       return _finishStep();
     }
 
     _board.set(to.col, to.row, piece);
+    _glissees.add((piece, from, to));
     _selected = to;
     _movedTo = to;
 
@@ -417,7 +429,9 @@ class TutoController {
       _board.set(c.col, c.row, null);
     }
     for (final e in pieces.entries) {
-      _board.set(e.key.col + dc, e.key.row + dr, e.value);
+      final arrivee = Cell(e.key.col + dc, e.key.row + dr);
+      _board.set(arrivee.col, arrivee.row, e.value);
+      if (e.value != null) _glissees.add((e.value!, e.key, arrivee));
     }
 
     _selected = Cell(leader.col + dc, leader.row + dr);
@@ -449,6 +463,7 @@ class TutoController {
         if (piece == null) return false;
         _board.set(from.col, from.row, null);
         _board.set(cell.col, cell.row, piece);
+        _glissees.add((piece, from, cell));
         _selected = cell;
         _phase = TutoPhase.push;
         return true;
@@ -500,6 +515,7 @@ class TutoController {
 
       if (to.onBoard) {
         _board.set(to.col, to.row, piece);
+        _glissees.add((piece, cell, to));
         continue;
       }
       // Sortie du plateau.
@@ -511,7 +527,12 @@ class TutoController {
           kRallyStandard.contains(to.col) &&
           ((piece.camp == Camp.blanc && to.row >= kRows) ||
               (piece.camp == Camp.noir && to.row < 0));
-      if (rallied) _fugued.add((cell: to, camp: piece.camp));
+      // Une pièce éjectée disparaît sans glisser — comme en partie, où seule
+      // la fugue a une arrivée à rejoindre.
+      if (rallied) {
+        _fugued.add((cell: to, camp: piece.camp));
+        _glissees.add((piece, cell, to));
+      }
     }
 
     _movedTo = pusher;

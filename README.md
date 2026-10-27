@@ -51,7 +51,7 @@ test ; les tests Dart rejouent les mêmes positions et comparent coup par coup.
 | Partie en ligne | coups, horloges, nulle, abandon, chat, match |
 | Correspondance | lecture des parties, rejeu, atomicité du coup final |
 | Images de thème | fichiers existants, dix pièces par thème, pubspec à jour |
-| Tuto | les 22 étapes, phases guidées, multisaut, manœuvre, poussée |
+| Tuto | les 21 étapes, phases guidées, multisaut, manœuvre, poussée, glissée |
 | Matchs | score, alternance des couleurs, règle de l'ultime partie |
 | Défis | envoi, annulation, refus, réception, raisons d'échec |
 | Compte et messagerie | profil, notifications, favoris, blocages, conversations |
@@ -108,7 +108,7 @@ Compilation en mode release : onglet *Actions* → *Compiler l'APK Android* →
 - [x] Deep Grey apprend : poids affinés et livre d'ouvertures
 - [x] Compte : profil, photo, description, e-mail, notifications, favoris, blocages
 - [x] Messagerie : conversations, messages, non-lus
-- [x] Tuto : les 22 étapes, dont 9 interactives
+- [x] Tuto : les 21 étapes, dont 9 interactives
 - [x] Défis en direct, recherche de joueur, favoris
 - [x] Analyse, Random Fuga hors ligne, lecteur `.nmc`, soutien aux devs
 - [x] Matchs en plusieurs points hors ligne, abandon, nulle par accord

@@ -7,6 +7,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../engine/board.dart';
+import '../../engine/piece.dart';
 import '../../game/tuto.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
@@ -16,6 +18,7 @@ import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
+import '../widgets/slide_animation.dart';
 import '../widgets/tuto_overlay.dart';
 import 'settings_screen.dart';
 
@@ -29,8 +32,28 @@ class TutoScreen extends StatefulWidget {
   State<TutoScreen> createState() => _TutoScreenState();
 }
 
-class _TutoScreenState extends State<TutoScreen> with SuitLesReglages {
+class _TutoScreenState extends State<TutoScreen>
+    with SuitLesReglages, SlideAnimation {
   late final TutoController _tuto = widget.controller ?? TutoController();
+
+  /// Les pièces glissent dans le tuto comme en partie.
+  ///
+  /// Le tuto n'a pas de contrôleur de coups : c'est `TutoController` qui
+  /// déplace ses pièces, et qui dit maintenant ce qui a bougé. Sans cela le
+  /// plateau sautait d'une position à l'autre — on apprenait un geste qu'on
+  /// ne voyait pas se faire.
+  void _toucheCase(Cell cell) {
+    if (!_tuto.tap(cell)) return;
+    rememberSlides(_tuto.glissees);
+    setState(() {});
+  }
+
+  /// Les Héritiers qui ont fugué, au format du plateau : il les dessine dans
+  /// leur ralliement avec les pièces du thème, et sait les effacer tant que la
+  /// glissée les y emmène encore.
+  Map<Camp, Cell> get _casesDeFugue => {
+    for (final h in _tuto.fugued) h.camp: h.cell,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -123,13 +146,15 @@ class _TutoScreenState extends State<TutoScreen> with SuitLesReglages {
         board: _tuto.board,
         palette: palette,
         flipped: true,
-        onTapCell: (cell) {
-          if (_tuto.tap(cell)) setState(() {});
-        },
+        onTapCell: _toucheCase,
         selected: _tuto.selected,
         groupSelection: _tuto.groupSelected,
         pieceTheme: axes.pieces,
         boardTheme: axes.board,
+        fuguedHeirs: _casesDeFugue,
+        slides: slides,
+        slideToken: slideToken,
+        slideDuration: slideDuration,
       ),
       // Les annotations se posent par-dessus, sans toucher au plateau du jeu :
       // c'est bien le VRAI plateau qu'on montre.
@@ -137,7 +162,6 @@ class _TutoScreenState extends State<TutoScreen> with SuitLesReglages {
         child: CustomPaint(
           painter: TutoOverlayPainter(
             annotations: _tuto.annotations,
-            fugued: _tuto.fugued,
             mockUi: _tuto.step.mockUi,
             palette: palette,
           ),

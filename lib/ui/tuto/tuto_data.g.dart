@@ -2,7 +2,7 @@
 ///
 /// Produit par `tool/gen_tuto_steps.py` depuis `_build_tuto_steps` (main.py).
 ///
-/// ## UNE ÉTAPE A DIVERGÉ DE KIVY, à la main et volontairement
+/// ## DES ÉTAPES ONT DIVERGÉ DE KIVY, à la main et volontairement
 ///
 /// « La règle de contact ». La Nurse noire y était en **mi7**, juste
 /// au-dessus de la blanche : les deux pièces se touchaient par un côté, et
@@ -11,7 +11,25 @@
 /// touchent en diagonale. » Elle est donc en **ré7**, et l'encadré vert la
 /// suit.
 ///
-/// Relancer le générateur l'écraserait. Il n'y a rien à en régénérer : le
+/// « Fin : la double fugue ». Le texte promettait aux Noirs « un DERNIER
+/// coup pour égaliser », alors que la nulle est AUTOMATIQUE : dès que les
+/// Blancs fuguent et que les Noirs POURRAIENT fuguer, la partie est nulle
+/// sans qu'un coup de plus soit joué (`_fugueFaitNulle`, move_controller).
+/// Nino : « ce match nul est automatique ». Le texte le dit maintenant.
+///
+/// « Fin : la guillotine ». La parenthèse qui détaillait la fugue adverse
+/// (« son Héritier fa1, mobile grâce à sa Nurse… ») noyait le coup à
+/// comprendre ; Nino l'a fait retirer.
+///
+/// « Fin : nulle par accord » est devenue « Fin : la répétition ». La
+/// proposition de nulle y était montrée par un faux bouton « ½ » que l'app
+/// n'a plus. Nino : « la nulle par accord coule de source, le joueur le
+/// découvrira » — le faux bouton et sa phrase sont partis, la répétition reste.
+///
+/// « Fin : abandon, temps, déco » a été RETIRÉE, pour la même raison : « tout
+/// ça coule de source ». Le tuto compte donc 21 étapes, et non 22.
+///
+/// Relancer le générateur les écraserait. Il n'y a rien à en régénérer : le
 /// portage Kivy n'est plus la référence sur ce point, ce fichier l'est.
 library;
 
@@ -1171,7 +1189,7 @@ const String kTutoStepsJson = r'''
     ]
    ]
   ],
-  "text": "DOUBLE FUGUE (0 point). Quand les Blancs fuguent, les Noirs ont droit à un DERNIER coup pour égaliser. Si les deux Héritiers rejoignent leur ralliement, la partie est nulle. Ici, c'est aux Blancs de jouer, et les deux Héritiers peuvent fuguer (flèches)."
+  "text": "DOUBLE FUGUE (0 point). Les Blancs commencent : quand ils fuguent, les Noirs ont joué un coup de moins. Si les Noirs peuvent fuguer eux aussi, la partie est aussitôt déclarée nulle. Ici, c'est aux Blancs de jouer, et les deux Héritiers peuvent fuguer (flèches)."
  },
  {
   "title": "Fin : le mat",
@@ -1321,7 +1339,7 @@ const String kTutoStepsJson = r'''
     ]
    ]
   ],
-  "text": "GUILLOTINE. L'adversaire va fuguer (son Héritier fa1, mobile grâce à sa Nurse, atteint son ralliement en bas : +2 pour lui). Pour limiter la casse, ton Garde (si6 vers la7) pousse TON PROPRE Héritier (la8) hors du plateau : c'est un mat sur toi-même, l'adversaire ne prend que +1 au lieu de +2."
+  "text": "GUILLOTINE. L'adversaire va fuguer. Pour limiter la casse, ton Garde (si6 vers la7) pousse TON PROPRE Héritier (la8) hors du plateau : c'est un mat sur toi-même, l'adversaire ne prend que +1 au lieu de +2."
  },
  {
   "title": "Fin : la papatte",
@@ -1452,7 +1470,7 @@ const String kTutoStepsJson = r'''
   "text": "TRÊVE (0 point). Quand plus AUCUN joueur n'a de carrée qui peut bouger (peu importe à qui c'est de jouer), la partie est nulle : sans carrée mobile, plus aucune poussée n'est possible. Ici, les deux carrées (encadrées) sont isolées."
  },
  {
-  "title": "Fin : nulle par accord",
+  "title": "Fin : la répétition",
   "pieces": [
    [
     "mi",
@@ -1503,117 +1521,7 @@ const String kTutoStepsJson = r'''
     "Blanc"
    ]
   ],
-  "mock_ui": [
-   {
-    "text": "½",
-    "fx": 0.5,
-    "fy": 0.09,
-    "fw": 0.11,
-    "fh": 0.055,
-    "bg": [
-     0.2,
-     0.45,
-     0.75
-    ],
-    "circle": true
-   }
-  ],
-  "text": "NULLE PAR ACCORD (0 point). Pendant une partie, tu peux proposer la nulle avec le bouton « ½ » (entouré) ; si l'adversaire accepte, la partie est nulle. RÉPÉTITION : si la même position revient 4 fois, la nulle est automatique."
- },
- {
-  "title": "Fin : abandon, temps, déco",
-  "pieces": [
-   [
-    "mi",
-    4,
-    "Héritier",
-    "Blanc"
-   ],
-   [
-    "fa",
-    5,
-    "Nurse",
-    "Blanc"
-   ],
-   [
-    "sol",
-    4,
-    "Héritier",
-    "Noir"
-   ],
-   [
-    "ré",
-    5,
-    "Nurse",
-    "Noir"
-   ],
-   [
-    "la",
-    3,
-    "Garde",
-    "Blanc"
-   ],
-   [
-    "do",
-    6,
-    "Soldat",
-    "Noir"
-   ],
-   [
-    "fa",
-    3,
-    "Chevalier",
-    "Blanc"
-   ],
-   [
-    "si",
-    5,
-    "Chevalier",
-    "Noir"
-   ]
-  ],
-  "mock_ui": [
-   {
-    "text": "0:00",
-    "fx": 0.19,
-    "fy": 0.93,
-    "fw": 0.17,
-    "fh": 0.06,
-    "bg": [
-     0.55,
-     0.12,
-     0.12
-    ],
-    "circle": true
-   },
-   {
-    "text": "Joueur 1 deconnecte",
-    "fx": 0.63,
-    "fy": 0.93,
-    "fw": 0.5,
-    "fh": 0.06,
-    "bg": [
-     0.2,
-     0.22,
-     0.28
-    ],
-    "circle": true
-   },
-   {
-    "text": "X",
-    "fx": 0.3,
-    "fy": 0.07,
-    "fw": 0.11,
-    "fh": 0.055,
-    "bg": [
-     0.6,
-     0.2,
-     0.2
-    ],
-    "circle": true
-   }
-  ],
-  "text": "ABANDON / TEMPS / DÉCONNEXION (+2 points chacun). Trois façons de gagner sans jouer : si l'adversaire ABANDONNE (le bouton « X »), si son TEMPS tombe à 0:00 (la pendule), ou s'il se DÉCONNECTE. Dans les trois cas, tu gagnes +2 points."
+  "text": "RÉPÉTITION (0 point). Si la même position revient 4 fois, la nulle est automatique."
  }
 ]
 ''';

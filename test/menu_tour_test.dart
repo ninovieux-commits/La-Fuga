@@ -171,7 +171,8 @@ void main() {
                 MaterialPageRoute<bool>(
                   builder: (_) => TutoScreen(
                     // Directement à la dernière étape.
-                    controller: TutoController()..goTo(21),
+                    controller: TutoController()
+                      ..goTo(loadTutoSteps().length - 1),
                   ),
                 ),
               );

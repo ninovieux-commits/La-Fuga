@@ -11,11 +11,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
-import '../../engine/piece.dart';
 import '../../game/tuto.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
-import 'piece_painter.dart';
 
 /// Les couleurs des encadrés, reprises de Kivy.
 const Color kTutoFramed = Color(0xFFD93A3A);
@@ -26,14 +24,12 @@ const Color kTutoFramedSelected = Color(0xFFF2B01E);
 class TutoOverlayPainter extends CustomPainter {
   const TutoOverlayPainter({
     required this.annotations,
-    required this.fugued,
     required this.mockUi,
     required this.palette,
     this.flipped = true,
   });
 
   final TutoAnnotations annotations;
-  final List<({Cell cell, Camp camp})> fugued;
   final List<TutoMockElement> mockUi;
   final ThemePalette palette;
   final bool flipped;
@@ -42,15 +38,9 @@ class TutoOverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final g = BoardGeometry(size: size, flipped: flipped);
 
-    for (final h in fugued) {
-      paintPiece(
-        canvas,
-        g.cellRect(h.cell.col, h.cell.row),
-        Piece(PieceType.heritier, h.camp),
-        palette,
-      );
-    }
-
+    // Les Héritiers qui ont fugué ne sont plus dessinés ici : c'est le plateau
+    // qui les pose dans leur ralliement, avec les pièces du thème, et qui les
+    // efface tant que la glissée les y emmène encore.
     for (final link in annotations.links) {
       _links(canvas, g, link);
     }
@@ -189,7 +179,6 @@ class TutoOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(TutoOverlayPainter old) =>
       old.annotations != annotations ||
-      old.fugued != fugued ||
       old.mockUi != mockUi ||
       old.palette != palette ||
       old.flipped != flipped;
