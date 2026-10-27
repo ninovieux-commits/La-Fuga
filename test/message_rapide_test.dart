@@ -84,31 +84,34 @@ void main() {
   group('La touche à bulle', () {
     testWidgets('elle est là, sur MON bandeau', (tester) async {
       await montre(tester, panneau(ecrire: () {}));
-      expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
+      expect(find.byTooltip(T('Message rapide')), findsOneWidget);
     });
 
     testWidgets('et pas sur celui de l adversaire', (tester) async {
       // On n'écrit pas à sa propre place : le bandeau d'en face ne la reçoit
       // pas, comme il ne reçoit ni le ½ ni le X.
       await montre(tester, panneau());
-      expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
+      expect(find.byTooltip(T('Message rapide')), findsNothing);
     });
 
     testWidgets('elle est À GAUCHE des autres gestes', (tester) async {
       // Nino l'a dessinée là : la place libre de la rangée, et la plus
       // éloignée de l'abandon — qui vit maintenant derrière le drapeau.
       await montre(tester, panneau(ecrire: () {}, abandonner: () {}));
-      final bulle = tester.getRect(find.byIcon(Icons.chat_bubble_outline));
+      final bulle = tester.getRect(find.byTooltip(T('Message rapide')));
       final drapeau = tester.getRect(
         find.byTooltip('Abandonner ou proposer la nulle ?'),
       );
-      expect(bulle.right, lessThan(drapeau.left));
+      // Les deux touches se touchent : leurs bords coïncident, et c est
+      // leur CENTRE qui dit laquelle est à gauche.
+      expect(bulle.center.dx, lessThan(drapeau.center.dx));
+      expect(bulle.right, lessThanOrEqualTo(drapeau.left));
     });
 
     testWidgets('la toucher appelle le composeur', (tester) async {
       var ouvert = 0;
       await montre(tester, panneau(ecrire: () => ouvert++));
-      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.tap(find.byTooltip(T('Message rapide')));
       await tester.pumpAndSettle();
       expect(ouvert, 1);
     });
@@ -358,7 +361,7 @@ void main() {
       tester,
     ) async {
       await partie(tester);
-      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.tap(find.byTooltip(T('Message rapide')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'bien joué');
       await tester.tap(find.text(T('Envoyer')));
@@ -376,7 +379,7 @@ void main() {
 
     testWidgets('et il paraît aussitôt dans la bande', (tester) async {
       await partie(tester);
-      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.tap(find.byTooltip(T('Message rapide')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'bien joué');
       await tester.tap(find.text(T('Envoyer')));
@@ -391,7 +394,7 @@ void main() {
 
     testWidgets('renoncer n envoie rien', (tester) async {
       await partie(tester);
-      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.tap(find.byTooltip(T('Message rapide')));
       await tester.pumpAndSettle();
       // On referme la feuille sans rien écrire.
       await tester.tapAt(const Offset(196, 40));
@@ -468,9 +471,9 @@ void main() {
 
     testWidgets('la touche est là, et le message part', (tester) async {
       await ouvre(tester);
-      expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
+      expect(find.byTooltip(T('Message rapide')), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.chat_bubble_outline));
+      await tester.tap(find.byTooltip(T('Message rapide')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'à toi de jouer');
       await tester.tap(find.text(T('Envoyer')));
@@ -488,7 +491,7 @@ void main() {
       // jouer deux autres personnes, on ne s invite pas dans leur
       // conversation.
       await ouvre(tester, visiteur: true);
-      expect(find.byIcon(Icons.chat_bubble_outline), findsNothing);
+      expect(find.byTooltip(T('Message rapide')), findsNothing);
     });
   });
 }

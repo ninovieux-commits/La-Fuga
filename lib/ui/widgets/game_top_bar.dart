@@ -337,11 +337,13 @@ class GameTopBar extends StatelessWidget {
                         // Deux barres dessinées plutôt que le texte « | | » : à
                         // cette taille, le glyphe débordait de la touche et
                         // tombait de travers.
-                        child: const Center(
+                        child: Center(
                           child: FractionallySizedBox(
                             widthFactor: 0.30,
                             heightFactor: 0.40,
-                            child: CustomPaint(painter: _PausePainter()),
+                            child: CustomPaint(
+                              painter: _PausePainter(palette.clair),
+                            ),
                           ),
                         ),
                       ),
@@ -514,12 +516,16 @@ class GameTopBar extends StatelessWidget {
 
 /// Les deux barres de la pause, centrées à coup sûr.
 final class _PausePainter extends CustomPainter {
-  const _PausePainter();
+  const _PausePainter(this.couleur);
+
+  /// Le clair du thème, comme la boule, le drapeau et l'avion. Nino : « le
+  /// bouton pause (||) doit aussi s'accorder au thème. »
+  final Color couleur;
 
   @override
   void paint(Canvas canvas, Size size) {
     final barWidth = size.width * 0.32;
-    final paint = Paint()..color = Colors.white;
+    final paint = Paint()..color = couleur;
     final radius = Radius.circular(barWidth / 2);
     for (final left in [0.0, size.width - barWidth]) {
       canvas.drawRRect(
@@ -533,5 +539,5 @@ final class _PausePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PausePainter old) => false;
+  bool shouldRepaint(_PausePainter old) => old.couleur != couleur;
 }

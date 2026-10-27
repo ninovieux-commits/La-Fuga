@@ -468,14 +468,19 @@ class PlayerPanel extends StatelessWidget {
       if (onUndo != null) _button('↶', T('Annuler'), onUndo!),
       // LE MESSAGE RAPIDE, ensuite. Nino l'a dessiné là, à gauche du geste
       // qui termine la partie : la place la plus éloignée de l'abandon.
+      //
+      // L'AVION EN PAPIER, et non plus une bulle de dialogue de Material :
+      // « accordé au thème comme le bouton boule de voyance et le bouton
+      // drapeau ». Même recette que les deux autres — blanc sur fond
+      // transparent, teinté par la palette (cf. [PictoTouche]).
       if (onMessageRapide != null)
         _carre(
           T('Message rapide'),
           onMessageRapide!,
-          enfant: Icon(
-            Icons.chat_bubble_outline,
-            color: Colors.white,
-            size: SF(18),
+          enfant: PictoTouche(
+            asset: 'assets/images/avion.webp',
+            couleur: palette.clair,
+            secours: '✈',
           ),
         ),
       // LE DRAPEAU remplace le ½ et le X. Nino : « le bouton abandonner et

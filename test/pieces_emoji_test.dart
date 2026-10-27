@@ -16,6 +16,7 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
+import 'package:lafuga/ui/widgets/champ_pieces.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
@@ -360,13 +361,24 @@ void main() {
       await tester.tap(find.byTooltip(PieceType.garde.wire).first);
       await tester.pumpAndSettle();
 
-      final attendu = jetonPiece(PieceType.garde, Camp.blanc, theme: theme);
-      expect(champ.controller!.text, 'ton $attendu est perdu');
+      // DANS LE CHAMP, la pièce n est qu UN caractère — celui qui la
+      // dessine. Nino : « quand on sélectionne une icône, ça doit l afficher
+      // directement avant l envoi plutôt que d afficher son nom. »
+      final controleur = champ.controller! as ControleurAvecPieces;
       expect(
-        champ.controller!.selection.baseOffset,
-        'ton $attendu'.length,
+        controleur.text.length,
+        'ton  est perdu'.length + 1,
+        reason: 'le jeton ne doit pas s écrire en toutes lettres',
+      );
+      expect(
+        controleur.selection.baseOffset,
+        'ton '.length + 1,
         reason: 'le curseur reste derrière la pièce, pas au bout du message',
       );
+
+      // ET C EST LE JETON QUI PART, pas le caractère privé.
+      final attendu = jetonPiece(PieceType.garde, Camp.blanc, theme: theme);
+      expect(controleur.texteEnvoyable(), 'ton $attendu est perdu');
     });
   });
 }

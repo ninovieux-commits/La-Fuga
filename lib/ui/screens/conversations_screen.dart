@@ -29,6 +29,7 @@ import '../widgets/message_bubble.dart';
 import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
+import '../widgets/champ_pieces.dart';
 import '../widgets/pieces_dialog.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
@@ -276,7 +277,7 @@ class ConversationScreen extends StatefulWidget {
 
 class _ConversationScreenState extends State<ConversationScreen>
     with SuitLesReglages {
-  final TextEditingController _input = TextEditingController();
+  final ControleurAvecPieces _input = ControleurAvecPieces();
   final ScrollController _scroll = ScrollController();
 
   /// Ce qu'on affichait la dernière fois, tout de suite — et la relecture
@@ -558,7 +559,7 @@ class _ConversationScreenState extends State<ConversationScreen>
   }
 
   Future<void> _send() async {
-    final text = _input.text.trim();
+    final text = _input.texteEnvoyable().trim();
     if (text.isEmpty) return;
     _input.clear();
 
@@ -796,28 +797,9 @@ class _ConversationScreenState extends State<ConversationScreen>
     ),
   );
 
-  /// Insère [jeton] à l'endroit du curseur, et rend le curseur après.
-  ///
-  /// Et pas « à la fin » : on écrit souvent la pièce au milieu d'une phrase,
-  /// et la renvoyer au bout ferait reculer la main à chaque fois.
-  void _inserer(String jeton) {
-    final avant = _input.value;
-    final debut = avant.selection.isValid
-        ? avant.selection.start
-        : avant.text.length;
-    final fin = avant.selection.isValid
-        ? avant.selection.end
-        : avant.text.length;
-    final texte = avant.text.replaceRange(debut, fin, jeton);
-    _input.value = TextEditingValue(
-      text: texte,
-      selection: TextSelection.collapsed(offset: debut + jeton.length),
-    );
-  }
-
   Future<void> _ouvrirLesPieces(ThemePalette palette) async {
     final jeton = await choisirPieceEmoji(context, palette: palette);
-    if (jeton != null) _inserer(jeton);
+    if (jeton != null) _input.insererPiece(jeton);
   }
 
   /// La touche qui ouvre les pièces, ENTRE LES DEUX VISAGES.
