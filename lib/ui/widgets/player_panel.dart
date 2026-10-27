@@ -330,10 +330,7 @@ class PlayerPanel extends StatelessWidget {
       // l'écran comme les bandeaux fins le font. »
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          horizontal: margeH(),
-          vertical: margeV(),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: margeH(), vertical: margeV()),
         color: palette.menu,
         child: Row(
           children: [

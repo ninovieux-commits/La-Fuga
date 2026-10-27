@@ -22,6 +22,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import 'boule_dialog.dart';
 import 'picto_touche.dart';
 import 'unread_dot.dart';
@@ -34,7 +35,9 @@ import 'unread_dot.dart';
 const double kTrouCamera = 96;
 
 /// Fond des touches rondes du bandeau — le `(0.15, 0.15, 0.15)` de Kivy.
-const Color kBarButtonDark = Color.fromRGBO(38, 38, 38, 1);
+/// Le gris foncé des touches de ce bandeau — défini avec les touches, et
+/// repris par les popups pour leurs touches secondaires.
+const Color kBarButtonDark = kFugaGreyFonce;
 
 class GameTopBar extends StatelessWidget {
   const GameTopBar({

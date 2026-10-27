@@ -12,6 +12,21 @@ import '../scale.dart';
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 
+/// Le gris FONCÉ des touches du bandeau fin du haut, en partie.
+///
+/// C'est la couleur d'une touche posée SUR UN POPUP. Le fond d'un popup est
+/// `kFugaGrey`, et une touche qui garde la couleur par défaut y peint un
+/// rectangle exactement de la couleur de ce qu'il y a derrière : une touche
+/// n'a ni contour ni ombre, elle n'existe à l'œil que par son rectangle. Il
+/// ne restait donc que les lettres blanches, et le popup paraissait n'avoir
+/// qu'une seule touche — celle qui, elle, nomme sa couleur.
+///
+/// Nino : « corrige ça en utilisant le gris foncé des touches du bandeau fin
+/// du haut en partie. » C'est la même valeur, et c'est volontairement la
+/// même constante : `kBarButtonDark` pointe ici, pour que les deux ne
+/// puissent jamais se séparer.
+const Color kFugaGreyFonce = Color.fromRGBO(38, 38, 38, 1);
+
 /// Opacité d'une touche HORS SERVICE — le signe, partout dans l'application.
 ///
 /// Nino : « effet pâlissant comme les autres touches. » C'est celui des

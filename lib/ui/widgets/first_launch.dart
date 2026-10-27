@@ -56,6 +56,7 @@ Future<void> askFirstLanguage(BuildContext context) async {
                                 child: i < pair.length
                                     ? FugaButton(
                                         text: pair[i].value,
+                                        color: kFugaGreyFonce,
                                         fontSize: SF(17),
                                         onPressed: () => Navigator.of(
                                           context,

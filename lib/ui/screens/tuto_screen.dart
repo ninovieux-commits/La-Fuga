@@ -120,6 +120,7 @@ class _TutoScreenState extends State<TutoScreen>
           children: [
             FugaButton(
               text: T('Réglages'),
+              color: kFugaGreyFonce,
               fontSize: SF(16),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),

@@ -63,6 +63,7 @@ Future<bool> showPauseDialog(
         Builder(
           builder: (context) => FugaButton(
             text: T('Réglages'),
+            color: kFugaGreyFonce,
             fontSize: SF(16),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -136,6 +137,7 @@ Future<bool> confirmCancelMatch(
             Expanded(
               child: FugaButton(
                 text: T('Continuer'),
+                color: kFugaGreyFonce,
                 fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(false),
               ),
