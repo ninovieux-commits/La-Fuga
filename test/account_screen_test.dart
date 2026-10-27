@@ -11,10 +11,12 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/photo_picker.dart';
 import 'package:lafuga/ui/widgets/bulle_devise.dart';
+import 'package:lafuga/ui/widgets/grille_photos.dart';
 import 'package:lafuga/ui/widgets/entete_profil.dart';
 import 'package:lafuga/ui/widgets/profile_photo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -262,10 +264,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PhotoPickerScreen), findsOneWidget);
+    // La galerie s'ouvre sur le premier thème, et son logo ouvre la marche.
     await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
 
-    expect(server.bodyOf('/set_photo')['photo'], 'deepgrey');
+    expect(server.bodyOf('/set_photo')['photo'], 'logo|${kThemeOrder.first}');
   });
 
   testWidgets('un profil introuvable le dit', (tester) async {
@@ -275,13 +278,28 @@ void main() {
     expect(find.text('Profil indisponible.'), findsOneWidget);
   });
 
-  test('la galerie propose Deep Grey, les logos, puis les pièces', () {
+  test('la galerie range les photos par thème, Deep Grey à la fin', () {
     final choices = photoChoices();
 
-    expect(choices.first, 'deepgrey');
-    expect(choices[1], startsWith('logo|'));
+    // Nino : « les images doivent être rangées comme sur l'image
+    // précédente » — un bloc par thème, logo en tête.
+    expect(choices.first, 'logo|${kThemeOrder.first}');
+    expect(
+      choices.sublist(1, 1 + kProfilePieces.length),
+      [for (final p in kProfilePieces) '${kThemeOrder.first}|${p.wire}'],
+      reason: 'puis ses pièces blanches, dans l ordre',
+    );
     expect(choices, contains('dragon|Héritier'));
     expect(choices, contains('dragon|Héritier|Noir'));
+
+    // « L'image de profil de deep grey doit être rangée tout à la fin, avec
+    // les images du thème deepgrey. »
+    expect(choices.last, 'deepgrey');
+    expect(
+      choices[choices.length - 2],
+      startsWith('$kThemeDeepGrey|'),
+      reason: 'elle ferme la section de son thème',
+    );
     expect(
       choices.toSet().length,
       choices.length,

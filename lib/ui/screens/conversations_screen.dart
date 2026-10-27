@@ -30,7 +30,8 @@ import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/champ_pieces.dart';
-import '../widgets/pieces_dialog.dart';
+import '../pieces_emoji.dart';
+import '../widgets/panneau_pieces.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
 class ConversationsScreen extends StatefulWidget {
@@ -278,6 +279,9 @@ class ConversationScreen extends StatefulWidget {
 class _ConversationScreenState extends State<ConversationScreen>
     with SuitLesReglages {
   final ControleurAvecPieces _input = ControleurAvecPieces();
+
+  /// Le panneau des images est-il ouvert ?
+  bool _pieces = false;
   final ScrollController _scroll = ScrollController();
 
   /// Ce qu'on affichait la dernière fois, tout de suite — et la relecture
@@ -562,6 +566,8 @@ class _ConversationScreenState extends State<ConversationScreen>
     final text = _input.texteEnvoyable().trim();
     if (text.isEmpty) return;
     _input.clear();
+    // Le message parti, le panneau n'a plus rien à garnir.
+    _fermerLesPieces();
 
     // Affichage optimiste : le message apparaît tout de suite, comme en Kivy.
     //
@@ -685,31 +691,20 @@ class _ConversationScreenState extends State<ConversationScreen>
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
-                // LA ROUE NE CACHE JAMAIS UN MESSAGE. Dès qu'il y a
-                // quelque chose à montrer — la conversation, ou seulement ce
-                // qu'on vient d'écrire — c'est la liste qui passe, chargement
-                // ou pas. Sinon on pouvait écrire et envoyer sans RIEN voir,
-                // le champ et la touche étant, eux, toujours là.
-                child: _messages.isNotEmpty || _enVol.isNotEmpty
-                    ? ListView.builder(
-                        controller: _scroll,
-                        padding: EdgeInsets.all(S(10)),
-                        itemCount: _messages.length + _enVol.length,
-                        itemBuilder: (context, i) => _bubble(
-                          i < _messages.length
-                              ? _messages[i]
-                              : _enVol[i - _messages.length].commeMessage,
-                          palette,
-                          mienne,
-                        ),
-                      )
-                    : _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null
-                    ? Center(child: Text(_error!))
-                    : Center(
-                        child: Text(T('Aucun message. Écrivez le premier !')),
+                // LE PANNEAU DES IMAGES SE POSE PAR-DESSUS LA LISTE, et non
+                // par-dessus la page : la saisie garde le focus, donc le
+                // clavier reste déployé, et le doigt qui se pose sur la
+                // conversation le referme.
+                child: Stack(
+                  children: [
+                    _conversation(palette, mienne),
+                    if (_pieces)
+                      PanneauDesPieces(
+                        onChoisie: _poserUneImage,
+                        onFermer: _fermerLesPieces,
                       ),
+                  ],
+                ),
               ),
               _visages(palette),
               _composer(palette),
@@ -718,6 +713,32 @@ class _ConversationScreenState extends State<ConversationScreen>
         ),
       ),
     );
+  }
+
+  /// La conversation elle-même, ou ce qui en tient lieu.
+  ///
+  /// LA ROUE NE CACHE JAMAIS UN MESSAGE. Dès qu'il y a quelque chose à
+  /// montrer — la conversation, ou seulement ce qu'on vient d'écrire —
+  /// c'est la liste qui passe, chargement ou pas. Sinon on pouvait écrire et
+  /// envoyer sans RIEN voir, le champ et la touche étant, eux, toujours là.
+  Widget _conversation(ThemePalette palette, ThemePalette mienne) {
+    if (_messages.isNotEmpty || _enVol.isNotEmpty) {
+      return ListView.builder(
+        controller: _scroll,
+        padding: EdgeInsets.all(S(10)),
+        itemCount: _messages.length + _enVol.length,
+        itemBuilder: (context, i) => _bubble(
+          i < _messages.length
+              ? _messages[i]
+              : _enVol[i - _messages.length].commeMessage,
+          palette,
+          mienne,
+        ),
+      );
+    }
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return Center(child: Text(_error!));
+    return Center(child: Text(T('Aucun message. Écrivez le premier !')));
   }
 
   /// LA fiche du joueur, la même que partout ailleurs — et le défi qu'elle
@@ -797,9 +818,15 @@ class _ConversationScreenState extends State<ConversationScreen>
     ),
   );
 
-  Future<void> _ouvrirLesPieces(ThemePalette palette) async {
-    final jeton = await choisirPieceEmoji(context, palette: palette);
-    if (jeton != null) _input.insererPiece(jeton);
+  /// Pose l'image choisie dans le message, SANS fermer le panneau.
+  ///
+  /// Nino : « quand on clique sur l'une des images, le popup ne doit pas
+  /// partir, ainsi on peut mettre plusieurs images d'affilée sans avoir à
+  /// rouvrir le popup. »
+  void _poserUneImage(String photo) => _input.insererPiece(jetonDePhoto(photo));
+
+  void _fermerLesPieces() {
+    if (_pieces) setState(() => _pieces = false);
   }
 
   /// La touche qui ouvre les pièces, ENTRE LES DEUX VISAGES.
@@ -825,7 +852,7 @@ class _ConversationScreenState extends State<ConversationScreen>
           borderRadius: BorderRadius.circular(S(10)),
           child: InkWell(
             borderRadius: BorderRadius.circular(S(10)),
-            onTap: () => unawaited(_ouvrirLesPieces(palette)),
+            onTap: () => setState(() => _pieces = !_pieces),
             child: SizedBox(
               width: cote,
               height: cote,

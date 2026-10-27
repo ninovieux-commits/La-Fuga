@@ -21,6 +21,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../theme/themes.dart';
 import '../mesure_emoji.dart';
 import '../pieces_emoji.dart';
 import 'profile_photo.dart';
@@ -119,9 +120,8 @@ class ControleurAvecPieces extends TextEditingController {
   }
 
   /// La photo que ce jeton décrit, au sens de [ProfilePhoto].
-  static String _photoDe(String jeton) {
-    final m = decoupeMessage(jeton).firstWhere((e) => e.piece != null);
-    final noir = m.piece!.camp.wire == 'Noir' ? '|Noir' : '';
-    return '${m.theme ?? 'original'}|${m.piece!.type.wire}$noir';
-  }
+  static String _photoDe(String jeton) => photoDuMorceau(
+    decoupeMessage(jeton).firstWhere((e) => e.texte == null),
+    kDefaultTheme,
+  );
 }

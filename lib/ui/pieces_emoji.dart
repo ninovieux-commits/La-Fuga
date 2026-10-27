@@ -1,4 +1,4 @@
-/// Les pièces du jeu, envoyées dans un message comme des émojis.
+/// Les images du jeu, envoyées dans un message comme des émojis.
 ///
 /// Nino : « je voudrais pouvoir envoyer les images des pièces par messages
 /// comme si c'était des emojis (ils sont déjà tous listés dans le choix de
@@ -6,10 +6,18 @@
 ///
 /// ## Un mot, pas une image
 ///
-/// Rien ne part en pièce jointe : le message reste du texte, et une pièce y
+/// Rien ne part en pièce jointe : le message reste du texte, et une image y
 /// est un JETON — `[Soldat]`, `[Soldat Noir]`. Chaque appareil le redessine
 /// avec son propre thème, exactement comme une photo de profil, qui est déjà
 /// un mot (`thème|Type|Noir`) et non un fichier.
+///
+/// ## Tout le catalogue des photos, pas seulement les pièces
+///
+/// Nino : « là, il manque les logos », puis « la photo de profil de deep grey
+/// doit aussi être envoyable dans les messages ». Un jeton est donc le mot
+/// d'une PHOTO, entre crochets : `[logo|foret]`, `[deepgrey]`,
+/// `[volcan|Garde|Noir]`. C'est le même vocabulaire que `ProfilePhoto`, et
+/// rien d'autre n'a eu à apparaître pour les deux nouvelles images.
 ///
 /// Le jeton est écrit pour se lire tout seul, et c'est voulu : un client qui
 /// ne le connaît pas — une ancienne version sur le téléphone d'en face —
@@ -20,6 +28,13 @@
 library;
 
 import '../engine/piece.dart';
+
+/// Le jeton d'une photo, quelle qu'elle soit : `[logo|foret]`,
+/// `[deepgrey]`, `[volcan|Garde|Noir]`.
+///
+/// Le mot entre crochets est celui de `ProfilePhoto`, sans rien y changer :
+/// ce qui se choisit dans la galerie s'envoie donc tel quel.
+String jetonDePhoto(String photo) => '[$photo]';
 
 /// Les pièces qu'on peut envoyer, dans l'ordre de la galerie des photos.
 const List<PieceType> kPiecesEnvoyables = [
@@ -53,27 +68,58 @@ String jetonPiece(PieceType type, Camp camp, {String? theme}) {
   return '[$theme|${type.wire}$noir]';
 }
 
-/// Le motif des jetons, construit depuis les pièces elles-mêmes : renommer
-/// une pièce ne peut pas laisser le motif en arrière.
+/// Les noms que le motif épelle, pris aux pièces elles-mêmes : renommer une
+/// pièce ne peut pas laisser le motif en arrière.
+final String _lesTypes = kPiecesEnvoyables
+    .map((p) => RegExp.escape(p.wire))
+    .join('|');
+final String _lesCamps = Camp.values
+    .map((c) => RegExp.escape(c.wire))
+    .join('|');
+
+/// Le motif des jetons : un logo, le portrait de Deep Grey, ou une pièce.
+///
 /// Le thème n'est pas énuméré — n'importe quel mot en minuscules passe, et
 /// c'est `ProfilePhoto` qui retombe sur le thème d'origine s'il ne le connaît
 /// pas. Lister les thèmes ici ferait d'un thème ajouté demain un jeton
 /// illisible aujourd'hui.
 final RegExp _motifJeton = RegExp(
-  r'\[(?:([a-z]+)\|)?(' +
-      kPiecesEnvoyables.map((p) => RegExp.escape(p.wire)).join('|') +
-      r')(?:[ |](' +
-      Camp.values.map((c) => RegExp.escape(c.wire)).join('|') +
-      r'))?\]',
+  '\\[(?:'
+  'logo\\|(?<logo>[a-z]+)'
+  '|(?<deepgrey>deepgrey)'
+  '|(?:(?<theme>[a-z]+)\\|)?(?<type>$_lesTypes)'
+  '(?:[ |](?<camp>$_lesCamps))?'
+  ')\\]',
 );
 
-/// Un morceau de message : du texte, ou une pièce.
+/// Un morceau de message : du texte, ou une image.
 ///
-/// [texte] et [piece] s'excluent — on découpe plutôt que de remplacer parce
-/// qu'une pièce se DESSINE, et qu'elle ne peut pas vivre dans une chaîne.
+/// [texte] et l'image s'excluent — on découpe plutôt que de remplacer parce
+/// qu'une image se DESSINE, et qu'elle ne peut pas vivre dans une chaîne.
+/// Un morceau sans [texte] est donc une image : une [piece], le [logo] d'un
+/// thème, ou le portrait de Deep Grey ([deepGrey]).
+///
 /// [theme] n'accompagne qu'une pièce, et vaut `null` quand le jeton n'en
 /// nomme pas : à celui qui lit d'employer le sien.
-typedef MorceauMessage = ({String? texte, Piece? piece, String? theme});
+typedef MorceauMessage = ({
+  String? texte,
+  Piece? piece,
+  String? theme,
+  String? logo,
+  bool deepGrey,
+});
+
+/// La photo — au sens de `ProfilePhoto` — que ce morceau dessine.
+///
+/// [themeDuLecteur] ne sert qu'aux vieux jetons sans thème (`[Soldat]`) :
+/// eux se dessinent dans le thème de celui qui LIT, comme avant.
+String photoDuMorceau(MorceauMessage m, String themeDuLecteur) {
+  if (m.deepGrey) return 'deepgrey';
+  if (m.logo != null) return 'logo|${m.logo}';
+  final piece = m.piece!;
+  final noir = piece.camp == Camp.noir ? '|${Camp.noir.wire}' : '';
+  return '${m.theme ?? themeDuLecteur}|${piece.type.wire}$noir';
+}
 
 /// Découpe un message en texte et en pièces, dans l'ordre.
 ///
@@ -84,46 +130,58 @@ List<MorceauMessage> decoupeMessage(String texte) {
   var curseur = 0;
   for (final trouve in _motifJeton.allMatches(texte)) {
     if (trouve.start > curseur) {
-      morceaux.add((
-        texte: texte.substring(curseur, trouve.start),
-        piece: null,
-        theme: null,
-      ));
+      morceaux.add(_duTexte(texte.substring(curseur, trouve.start)));
     }
-    morceaux.add((
-      texte: null,
-      piece: _pieceDe(trouve),
-      theme: trouve.group(1),
-    ));
+    morceaux.add(_deLImage(trouve));
     curseur = trouve.end;
   }
   if (curseur < texte.length) {
-    morceaux.add((texte: texte.substring(curseur), piece: null, theme: null));
+    morceaux.add(_duTexte(texte.substring(curseur)));
   }
   return morceaux;
 }
 
-Piece _pieceDe(RegExpMatch trouve) {
-  final type = kPiecesEnvoyables.firstWhere((p) => p.wire == trouve.group(2));
-  final camp = trouve.group(3) == Camp.noir.wire ? Camp.noir : Camp.blanc;
-  return Piece(type, camp);
+MorceauMessage _duTexte(String texte) =>
+    (texte: texte, piece: null, theme: null, logo: null, deepGrey: false);
+
+MorceauMessage _deLImage(RegExpMatch trouve) {
+  if (trouve.namedGroup('deepgrey') != null) {
+    return (texte: null, piece: null, theme: null, logo: null, deepGrey: true);
+  }
+  final logo = trouve.namedGroup('logo');
+  if (logo != null) {
+    return (texte: null, piece: null, theme: null, logo: logo, deepGrey: false);
+  }
+  final type = kPiecesEnvoyables.firstWhere(
+    (p) => p.wire == trouve.namedGroup('type'),
+  );
+  final camp = trouve.namedGroup('camp') == Camp.noir.wire
+      ? Camp.noir
+      : Camp.blanc;
+  return (
+    texte: null,
+    piece: Piece(type, camp),
+    theme: trouve.namedGroup('theme'),
+    logo: null,
+    deepGrey: false,
+  );
 }
 
-/// Vrai si le message contient au moins une pièce.
-bool contientUnePiece(String texte) => _motifJeton.hasMatch(texte);
+/// Vrai si le message contient au moins une image.
+bool contientUneImage(String texte) => _motifJeton.hasMatch(texte);
 
-/// Combien de pièces, si le message n'est QUE des pièces — zéro sinon.
+/// Combien d'images, si le message n'est QUE des images — zéro sinon.
 ///
 /// Comme pour les émojis : un message qui ne dit rien d'autre se montre en
 /// grand, et sans bulle autour.
-int comptePiecesSeules(String texte) {
-  var pieces = 0;
+int compteImagesSeules(String texte) {
+  var images = 0;
   for (final morceau in decoupeMessage(texte)) {
-    if (morceau.piece != null) {
-      pieces++;
+    if (morceau.texte == null) {
+      images++;
     } else if (morceau.texte!.trim().isNotEmpty) {
       return 0;
     }
   }
-  return pieces;
+  return images;
 }

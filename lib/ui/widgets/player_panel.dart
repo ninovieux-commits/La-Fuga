@@ -303,13 +303,16 @@ class PlayerPanel extends StatelessWidget {
               SizedBox(height: actions, child: _actions(context)),
             ];
 
+      // DES BORDS CARRÉS, JUSQU'AU BORD DE L'ÉCRAN. Les coins arrondis
+      // laissaient paraître le fond aux quatre angles, et le bandeau
+      // semblait flotter au-dessus de la page alors que les bandeaux fins,
+      // eux, vont d'un bord à l'autre. Nino : « les angles des bandeaux ne
+      // doivent plus être arrondis, ils doivent aller jusqu'aux bords de
+      // l'écran comme les bandeaux fins le font. »
       return Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
-        decoration: BoxDecoration(
-          color: palette.menu,
-          borderRadius: BorderRadius.circular(S(14)),
-        ),
+        color: palette.menu,
         child: Row(
           children: [
             // L'avatar de Kivy est carré et occupe TOUTE la hauteur du

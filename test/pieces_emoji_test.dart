@@ -17,6 +17,8 @@ import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/widgets/champ_pieces.dart';
+import 'package:lafuga/ui/widgets/grille_photos.dart';
+import 'package:lafuga/ui/widgets/panneau_pieces.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
@@ -81,7 +83,7 @@ void main() {
       expect(m, hasLength(1));
       expect(m.single.texte, 'bien joué !');
       expect(m.single.piece, isNull);
-      expect(contientUnePiece('bien joué !'), isFalse);
+      expect(contientUneImage('bien joué !'), isFalse);
     });
 
     test('un jeton à thème se lit, et rend son thème', () {
@@ -122,7 +124,7 @@ void main() {
         '[Foret|Soldat]',
       ]) {
         expect(
-          contientUnePiece(faux),
+          contientUneImage(faux),
           isFalse,
           reason: '« $faux » ne nomme pas une pièce du jeu',
         );
@@ -132,10 +134,10 @@ void main() {
 
   group('Un message qui n est QUE des pièces', () {
     test('se compte, comme les émojis', () {
-      expect(comptePiecesSeules('[Soldat]'), 1);
-      expect(comptePiecesSeules('[Soldat] [Garde Noir]'), 2);
-      expect(comptePiecesSeules('[Soldat] et [Garde]'), 0);
-      expect(comptePiecesSeules('bonjour'), 0);
+      expect(compteImagesSeules('[Soldat]'), 1);
+      expect(compteImagesSeules('[Soldat] [Garde Noir]'), 2);
+      expect(compteImagesSeules('[Soldat] et [Garde]'), 0);
+      expect(compteImagesSeules('bonjour'), 0);
     });
   });
 
@@ -391,6 +393,146 @@ void main() {
       // ET C EST LE JETON QUI PART, pas le caractère privé.
       final attendu = jetonPiece(PieceType.garde, Camp.blanc, theme: theme);
       expect(controleur.texteEnvoyable(), 'ton $attendu est perdu');
+    });
+
+    testWidgets('le panneau reste ouvert d une image à l autre', (
+      tester,
+    ) async {
+      // Nino : « quand on clique sur l'une des images, le popup ne doit pas
+      // partir, ainsi on peut mettre plusieurs images d'affilée sans avoir
+      // à rouvrir le popup. »
+      await ouvrir(tester, clavier: true);
+      await tester.tap(laTouche());
+      await tester.pumpAndSettle();
+      expect(find.byType(PanneauDesPieces), findsOneWidget);
+
+      final champ = tester.widget<TextField>(find.byType(TextField));
+      final controleur = champ.controller! as ControleurAvecPieces;
+
+      await tester.tap(find.byTooltip(PieceType.garde.wire).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(PanneauDesPieces), findsOneWidget);
+
+      await tester.tap(find.byTooltip(PieceType.nurse.wire).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(PanneauDesPieces), findsOneWidget);
+
+      expect(controleur.text.length, 2, reason: 'deux images d affilée');
+      final theme = Settings.instance.themeAxes.general;
+      expect(
+        controleur.texteEnvoyable(),
+        '${jetonPiece(PieceType.garde, Camp.blanc, theme: theme)}'
+        '${jetonPiece(PieceType.nurse, Camp.blanc, theme: theme)}',
+      );
+    });
+
+    testWidgets('le clavier reste déployé : la saisie garde le focus', (
+      tester,
+    ) async {
+      // Un popup de route prend le focus, et le clavier se range avec lui.
+      // Nino : « le clavier doit rester déployé ».
+      await ouvrir(tester, clavier: true);
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tester.tap(laTouche());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(PieceType.garde.wire).first);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.testTextInput.isVisible,
+        isTrue,
+        reason: 'aucune route ne s est ouverte, donc rien n a volé le focus',
+      );
+    });
+
+    testWidgets('un doigt posé à côté le referme', (tester) async {
+      await ouvrir(tester, clavier: true);
+      await tester.tap(laTouche());
+      await tester.pumpAndSettle();
+      expect(find.byType(PanneauDesPieces), findsOneWidget);
+
+      // Dans la conversation, au-dessus du panneau — qui s'arrête avant le
+      // haut pour qu'il reste justement de la place où poser le doigt.
+      final haut = tester.getRect(find.byType(PanneauDesPieces)).top;
+      final panneau = tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(PanneauDesPieces),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .top;
+      expect(panneau, greaterThan(haut), reason: 'il reste de quoi toucher');
+      await tester.tapAt(Offset(200, (haut + panneau) / 2));
+      await tester.pumpAndSettle();
+      expect(find.byType(PanneauDesPieces), findsNothing);
+    });
+
+    testWidgets('les logos et Deep Grey s envoient aussi', (tester) async {
+      // Nino : « là, il manque les logos », puis « la photo de profil de
+      // deep grey doit aussi être envoyable dans les messages ».
+      await ouvrir(tester, clavier: true);
+      await tester.tap(laTouche());
+      await tester.pumpAndSettle();
+      final champ = tester.widget<TextField>(find.byType(TextField));
+      final controleur = champ.controller! as ControleurAvecPieces;
+
+      final theme = Settings.instance.themeAxes.general;
+      await tester.tap(find.byTooltip(kThemeLabels[theme] ?? theme).first);
+      await tester.pumpAndSettle();
+      expect(controleur.texteEnvoyable(), '[logo|$theme]');
+
+      // Le portrait ferme la section du thème deepgrey, tout en bas : la
+      // colonne est entièrement bâtie, il suffit de la faire défiler jusqu'à
+      // lui.
+      // Deux images portent ce nom : le logo du thème « Deep Grey », en
+      // tête de sa section, et le portrait qui la ferme. C'est le second.
+      final portrait = find.byTooltip('Deep Grey').last;
+      await tester.ensureVisible(portrait);
+      await tester.pumpAndSettle();
+      await tester.tap(portrait);
+      await tester.pumpAndSettle();
+      expect(controleur.texteEnvoyable(), '[logo|$theme][deepgrey]');
+    });
+  });
+
+  group('Les images autres que des pièces', () {
+    test('un logo se lit et se dessine', () {
+      final m = decoupeMessage('voilà [logo|foret] !').toList();
+
+      expect(m[1].logo, 'foret');
+      expect(m[1].piece, isNull);
+      expect(photoDuMorceau(m[1], 'volcan'), 'logo|foret');
+    });
+
+    test('le portrait de Deep Grey se lit et se dessine', () {
+      final m = decoupeMessage('[deepgrey]').single;
+
+      expect(m.deepGrey, isTrue);
+      expect(photoDuMorceau(m, 'volcan'), 'deepgrey');
+    });
+
+    test('une image seule se montre en grand, comme un émoji', () {
+      expect(compteImagesSeules('[logo|foret]'), 1);
+      expect(compteImagesSeules('[deepgrey] [Soldat]'), 2);
+      expect(compteImagesSeules('[deepgrey] bonjour'), 0);
+    });
+
+    test('un jeton se construit depuis la photo, sans la retoucher', () {
+      for (final photo in photosDuCatalogue()) {
+        final m = decoupeMessage(jetonDePhoto(photo)).single;
+        expect(m.texte, isNull, reason: 'le jeton de « $photo » se relit');
+        expect(
+          photoDuMorceau(m, kDefaultTheme),
+          photo,
+          reason: 'et redonne exactement la photo choisie',
+        );
+      }
     });
   });
 }

@@ -1,39 +1,34 @@
 /// Galerie des photos de profil — portage de `_open_photo_picker` (main.py).
 ///
-/// Tout est rangé dans le même ordre qu'en Kivy : Deep Grey, puis le logo de
-/// chaque thème, puis toutes les pièces de chaque thème, blanche puis noire.
+/// ## Rangée PAR THÈME, comme le choix d'une image à envoyer
+///
+/// Kivy alignait Deep Grey, puis les dix-sept logos à la file, puis les cent
+/// soixante-dix pièces : quatre colonnes de ronds colorés où l'on ne savait
+/// plus à quel thème on en était. Nino : « les images doivent être rangées comme
+/// sur l'image précédente » — celle du panneau des messages, un bloc par
+/// thème. Les deux écrans partagent donc `GrilleDesPhotos`.
+///
+/// « L'image de profil de deep grey doit être rangée tout à la fin, avec les
+/// images du thème deepgrey » : elle ferme la dernière section.
 library;
 
 import 'package:flutter/material.dart';
 
-import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
-import '../../theme/themes.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
-import '../widgets/profile_photo.dart';
+import '../widgets/grille_photos.dart';
 
-/// Toutes les photos proposées, dans l'ordre.
-List<String> photoChoices() => [
-  kDeepGreyPhoto,
-  for (final theme in kThemeOrder) 'logo|$theme',
-  for (final theme in kThemeOrder)
-    for (final piece in kProfilePieces) ...[
-      '$theme|${piece.wire}',
-      '$theme|${piece.wire}|${Camp.noir.wire}',
-    ],
-];
+/// Toutes les photos proposées, dans l'ordre où la galerie les montre.
+List<String> photoChoices() => photosDuCatalogue();
 
 class PhotoPickerScreen extends StatelessWidget {
   const PhotoPickerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final choices = photoChoices();
-
-    // Kivy l'ouvre en popup : un titre, une grille de quatre colonnes, et
-    // « Fermer » en bas.
+    // Kivy l'ouvre en popup : un titre, la grille, et « Fermer » en bas.
     return FugaScaffold(
       body: SafeArea(
         child: Column(
@@ -50,19 +45,11 @@ class PhotoPickerScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: GridView.builder(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(S(4)),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                ),
-                itemCount: choices.length,
-                itemBuilder: (context, i) => InkWell(
-                  onTap: () => Navigator.of(context).pop(choices[i]),
-                  child: Center(
-                    child: ProfilePhoto(photo: choices[i], size: S(64)),
-                  ),
+                child: GrilleDesPhotos(
+                  cote: S(52),
+                  onChoisie: (photo) => Navigator.of(context).pop(photo),
                 ),
               ),
             ),

@@ -41,7 +41,6 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -84,30 +83,24 @@ class MessageBubble extends StatelessWidget {
   /// messages, où il demeure.
   final bool selectionnable;
 
-  /// La photo, au sens de `ProfilePhoto`, qui dessine [piece] dans le thème
-  /// de celui qui lit.
-  /// [theme] vient du jeton quand il en nomme un ; sinon c'est celui de
-  /// celui qui lit — les messages d'avant n'en nommaient pas.
-  static String _photoDe(Piece piece, String? theme) {
-    final choisi = theme ?? Settings.instance.themeAxes.general;
-    final noir = piece.camp == Camp.noir ? '|${Camp.noir.wire}' : '';
-    return '$choisi|${piece.type.wire}$noir';
-  }
-
-  /// Le message en morceaux : du texte, et des pièces dessinées.
+  /// La photo, au sens de `ProfilePhoto`, que ce morceau dessine.
   ///
-  /// Une pièce occupe la place d'un ÉMOJI — Nino : « taille smiley » — et
+  /// Le thème de celui qui LIT ne sert qu'aux vieux jetons sans thème :
+  /// les messages d'avant n'en nommaient pas.
+  static String _photoDe(MorceauMessage m) =>
+      photoDuMorceau(m, Settings.instance.themeAxes.general);
+
+  /// Le message en morceaux : du texte, et des images dessinées.
+  ///
+  /// Une image occupe la place d'un ÉMOJI — Nino : « taille smiley » — et
   /// cette place se mesure au lieu de se deviner : un émoji déborde la taille
   /// de police qu'on lui donne, et de combien dépend de la police du système.
   static List<InlineSpan> _morceaux(String texte, double taille) => [
     for (final m in decoupeMessage(texte))
-      if (m.piece != null)
+      if (m.texte == null)
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: ProfilePhoto(
-            photo: _photoDe(m.piece!, m.theme),
-            size: tailleDUnEmoji(taille),
-          ),
+          child: ProfilePhoto(photo: _photoDe(m), size: tailleDUnEmoji(taille)),
         )
       else
         TextSpan(text: m.texte),
@@ -115,14 +108,14 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Un message qui n'est QUE des pièces se montre en grand, sans bulle,
+    // Un message qui n'est QUE des images se montre en grand, sans bulle,
     // exactement comme un émoji seul.
-    final pieces = comptePiecesSeules(texte);
-    if (pieces > 0 && pieces <= kEmojiMaxGrossi && !echoue) {
+    final images = compteImagesSeules(texte);
+    if (images > 0 && images <= kEmojiMaxGrossi && !echoue) {
       // Les mêmes tailles qu'un émoji seul, mesurées de la même façon.
       final taille = tailleDUnEmoji(
         SF(16) *
-            switch (pieces) {
+            switch (images) {
               1 => 3.0,
               2 => 2.4,
               _ => 2.0,
@@ -134,8 +127,8 @@ class MessageBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final m in decoupeMessage(texte))
-              if (m.piece != null)
-                ProfilePhoto(photo: _photoDe(m.piece!, m.theme), size: taille),
+              if (m.texte == null)
+                ProfilePhoto(photo: _photoDe(m), size: taille),
           ],
         ),
       );
