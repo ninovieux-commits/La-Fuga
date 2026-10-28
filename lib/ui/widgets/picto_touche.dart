@@ -20,7 +20,7 @@
 /// dessin changerait d'un téléphone à l'autre, et la forme avec elle.
 library;
 
-import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -41,12 +41,28 @@ const double kPartPicto = 0.66;
 /// Il règle en effet le cas limite : deepgrey peint ses deux couleurs en
 /// `RGB(128, 128, 128)`, c'est-à-dire exactement le gris des touches — son
 /// dessin y était invisible, et c'est le trait qui le fait exister.
-/// Trois essais ont réglé ce nombre : 1,6 d'abord, « trop épais » ; puis 0,5,
-/// « le plus fin possible », qui était le plancher — un demi-pixel de
+/// Quatre essais ont réglé ce nombre : 1,6 d'abord, « trop épais » ; puis
+/// 0,5, « le plus fin possible », qui était le plancher — un demi-pixel de
 /// référence donne un trait d'un pixel d'écran sur un téléphone ordinaire, et
-/// on ne descend pas en dessous ; et enfin 0,8, quand Nino l'a revu sur
-/// l'appareil : « finalement le trait noir un peu plus épais ».
-const double kTraitPicto = 0.8;
+/// on ne descend pas en dessous ; puis 0,8, « finalement le trait noir un peu
+/// plus épais » ; et enfin 1,15.
+///
+/// Ce dernier saut n'est pas un goût qui change, c'est une mesure. Le carré
+/// d'avant avançait de 0,8 sur les côtés, mais de 0,8 × √2 ≈ 1,13 dans les
+/// coins : un bord en biais — et un chevron n'est fait que de biais — portait
+/// donc 1,13, pas 0,8. En passant au rond, qui avance pareil partout, le
+/// trait se mit à maigrir sur ces bords-là. Nino : « on a perdu de
+/// l'épaisseur comparé à avant. » On reprend donc le MAXIMUM de l'ancien,
+/// désormais servi partout.
+const double kTraitPicto = 1.15;
+
+/// Combien de copies forment la couronne qui fait le contour.
+///
+/// Douze : l'écart entre le cercle vrai et le douzaine-gone qu'elles
+/// dessinent vaut 3 % du trait, soit trois centièmes de pixel. Personne ne
+/// peut le voir, et chaque copie de plus est un dessin de plus à chaque
+/// image.
+const int kCopiesDuBord = 12;
 
 class PictoTouche extends StatelessWidget {
   const PictoTouche({
@@ -86,17 +102,39 @@ class PictoTouche extends StatelessWidget {
     // LE TRAIT NOIR EST LE MÊME DESSIN, ÉLARGI ET PEINT EN NOIR, posé
     // DERRIÈRE : ce qui dépasse tout autour fait le contour. Un pictogramme
     // n'est qu'une forme pleine, il n'a pas de tracé à épaissir ; c'est la
-    // forme elle-même qu'on dilate.
+    // forme elle-même qu'on élargit.
+    //
+    // ON L'ÉLARGIT EN ROND, ET C'EST TOUTE LA DIFFÉRENCE.
+    //
+    // `ImageFilter.dilate` élargit avec un CARRÉ : chaque point de la forme
+    // devient un petit carré. Là où la forme pointe — la pointe d'un chevron,
+    // l'angle d'une flèche — le contour reprenait le haut plat de ce carré.
+    // Nino, en entourant la pointe : « on voit bien que le contour noir fait
+    // plat. J'aimerais que ça reproduise fidèlement les formes des
+    // angles/arrondis. »
+    //
+    // Il n'existe pas de dilatation RONDE toute faite. On en fabrique une,
+    // et de la façon la plus simple qui soit : on pose la forme noire
+    // [kCopiesDuBord] fois, en couronne, à [kTraitPicto] du centre. Leur
+    // réunion est la forme élargie d'un disque — donc à distance CONSTANTE
+    // du bord, partout, pointes comprises.
+    //
+    // On a d'abord essayé un flou qu'on recoupait net : rond, lui aussi, mais
+    // seulement APPROCHÉ. Le flou dépend de la matière qu'il a autour, et le
+    // trait maigrissait au bout des branches. Nino : « c'est mieux mais
+    // imparfait, le trait noir devient plus fin par endroits. » Une réunion
+    // de copies, elle, ne se discute pas.
     child: Stack(
       fit: StackFit.expand,
       children: [
-        ImageFiltered(
-          imageFilter: ui.ImageFilter.dilate(
-            radiusX: kTraitPicto,
-            radiusY: kTraitPicto,
+        for (var i = 0; i < kCopiesDuBord; i++)
+          Transform.translate(
+            offset: Offset(
+              kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
+              kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
+            ),
+            child: _dessin(Colors.black),
           ),
-          child: _dessin(Colors.black),
-        ),
         _dessin(couleur),
       ],
     ),

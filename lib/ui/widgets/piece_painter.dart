@@ -389,6 +389,68 @@ void _paintPieceImage(
   }
 }
 
+/// Le seul CONTOUR d'une pièce, sans son corps.
+///
+/// Sert à la pièce CHOISIE : elle s'enfonce — on la peint dans une couche
+/// atténuée —, mais son contour, lui, garde sa pleine opacité, pour que sa
+/// forme reste franche sous la pâleur. Nino : « j'aimerais que le trait noir
+/// qui fait le tour de la pièce (ou blanc quand il s'agit des blancs) ne soit
+/// pas concerné par la transparence. »
+///
+/// Les mesures sont celles de [paintPiece], à la ligne près : un contour qui
+/// ne tomberait pas exactement sur le bord dessiné se verrait comme un
+/// doublon.
+///
+/// Un thème à IMAGES porte son contour DANS son image : il n'y a rien à
+/// repeindre, et la pièce s'atténue alors tout entière.
+void paintPieceContour(
+  Canvas canvas,
+  Rect rect,
+  Piece piece, {
+  Color? outline,
+  double outlineWidth = 2,
+  LoadedThemeImages? images,
+  String? theme,
+}) {
+  if (images?.pieceFor(piece) != null) return;
+
+  final pad = rect.width * 0.04;
+  final inner = rect.width - 2 * pad;
+  final box = Rect.fromLTWH(rect.left + pad, rect.top + pad, inner, inner);
+  final centre = rect.center;
+  final detail = piece.camp == Camp.blanc
+      ? const Color(0xFFFFFFFF)
+      : const Color(0xFF000000);
+  final trait = Paint()
+    ..color =
+        outline ??
+        (theme == 'deepgrey'
+            ? detail
+            : (piece.camp == Camp.blanc
+                  ? FugaColors.whiteOutline
+                  : FugaColors.blackOutline))
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = outlineWidth;
+
+  switch (piece.type) {
+    case PieceType.soldat:
+    case PieceType.garde:
+      canvas.drawRect(box, trait);
+    case PieceType.nurse:
+    case PieceType.heritier:
+      canvas.drawCircle(centre, inner / 2, trait);
+    case PieceType.chevalier:
+      final hOff = inner * 0.20;
+      final path = Path();
+      for (var i = 0; i < 6; i++) {
+        final p = _knightPoint(i, box, centre, hOff);
+        i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+      }
+      path.close();
+      canvas.drawPath(path, trait);
+  }
+}
+
 /// Corps gris des pièces du thème deepgrey.
 const Color kDeepGreyBody = Color(0xFF808080);
 

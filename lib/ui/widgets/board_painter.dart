@@ -394,7 +394,21 @@ final class BoardPiecesPainter extends CustomPainter {
           theme: theme,
           rainbowFraction: rainbowFractionOf(c, r),
         );
-        if (choisie) canvas.restore();
+        if (choisie) {
+          canvas.restore();
+          // LE CONTOUR N'EST PAS ATTÉNUÉ : repeint par-dessus, à pleine
+          // opacité, il garde à la pièce enfoncée une forme franche. Nino :
+          // « j'aimerais que le trait noir qui fait le tour de la pièce (ou
+          // blanc quand il s'agit des blancs) ne soit pas concerné par la
+          // transparence. »
+          paintPieceContour(
+            canvas,
+            g.cellRect(c, r),
+            p,
+            images: images,
+            theme: theme,
+          );
+        }
       }
     }
 
