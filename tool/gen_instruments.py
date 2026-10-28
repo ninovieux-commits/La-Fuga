@@ -67,6 +67,40 @@ def prepare(src, dest, rogne_au_sujet=False):
             a = 255
         alpha.append(a)
 
+    # LE PALIER DE LA FORME DOIT ÊTRE 255, SANS QUOI LE DESSIN EST SALE.
+    #
+    # Un pictogramme est une forme pleine : son intérieur est tout entier à
+    # la même opacité. Le seuil ci-dessus (229) ne la saturait que si le
+    # dessin d'origine était presque noir ; sur les neuf dessins des touches,
+    # l'intérieur tombait entre 216 et 229 et y restait. À l'écran, la touche
+    # superpose le dessin teinté sur une copie noire et dilatée qui fait le
+    # contour : un dessin à 86 % laisse passer ce noir, et la forme se salit.
+    # Nino : « le problème c'est que c'est mal fait... j'aimerais que ça soit
+    # plus net. »
+    #
+    # On remet donc le palier — l'opacité la plus répandue — à 255, par une
+    # règle de trois : le bord garde sa pente, proportionnellement. Sans
+    # palier franc, le dessin est en dégradé et on n'y touche pas : l'étirer
+    # l'abîmerait.
+    dessines = [v for v in alpha if v > 0]
+    if dessines:
+        compte = [0] * 256
+        for v in dessines:
+            compte[v] += 1
+        palier = max(range(1, 256), key=lambda v: compte[v])
+        if compte[palier] >= 0.2 * len(dessines) and palier < 255:
+            # Et on RAIDIT la pente du bord : l'agrandissement de Lanczos
+            # ci-dessus étale la transition sur plusieurs pixels, et c'est
+            # cette rampe molle que la dilatation change en halo au lieu d'un
+            # contour. Resserrée autour de la moitié, elle garde son
+            # anticrénelage et le contour redevient une ligne.
+            def net(v):
+                v = min(255, 255.0 * v / palier)
+                x = (v / 255.0 - 0.5) * 2.2 + 0.5
+                return max(0, min(255, int(round(255 * x))))
+
+            alpha = [net(v) for v in alpha]
+
     out = Image.new('RGBA', (TAILLE, TAILLE), (255, 255, 255, 0))
     out.putalpha(Image.new('L', (TAILLE, TAILLE)))
     masque = Image.new('L', (TAILLE, TAILLE))
