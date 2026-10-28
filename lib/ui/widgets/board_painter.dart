@@ -284,8 +284,10 @@ const double kOpaciteChoisie = kOpaciteEteinte;
 /// leur image : on ne peut pas le repeindre net par-dessus, et la pièce
 /// s'atténue donc tout entière, bord compris. Au tiers, elle se dissolvait
 /// dans le plateau. Nino : « pour les thèmes spéciaux, la transparence doit
-/// être moins marquée. »
-const double kOpaciteChoisieImage = 0.6;
+/// être moins marquée » — puis, six dixièmes essayés : « fais la
+/// transparence entre l'ancien et le nouveau, maintenant c'est plus assez
+/// transparent. » D'où ce milieu exact entre les deux.
+const double kOpaciteChoisieImage = 0.48;
 
 /// De combien s'atténue cette pièce-ci quand on la choisit.
 ///
