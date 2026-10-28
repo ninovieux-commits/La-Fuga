@@ -166,7 +166,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
 
     return Material(
       color: kFugaGrey,
-      borderRadius: BorderRadius.circular(S(10)),
+      shape: formeDeTouche(BorderRadius.circular(S(10))),
       child: InkWell(
         borderRadius: BorderRadius.circular(S(10)),
         onTap: () => _open(c.pseudo),
@@ -907,7 +907,10 @@ class _ConversationScreenState extends State<ConversationScreen>
             SizedBox(width: S(8)),
             FilledButton(
               onPressed: _send,
-              style: FilledButton.styleFrom(backgroundColor: palette.clair),
+              style: FilledButton.styleFrom(
+                backgroundColor: palette.clair,
+                side: kTraitDeTouche,
+              ),
               child: Text(T('Envoyer')),
             ),
           ],

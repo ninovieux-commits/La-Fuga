@@ -95,6 +95,12 @@ class CorrSlot extends StatelessWidget {
             color: background,
             borderRadius: BorderRadius.circular(S(10)),
           ),
+          // En premier plan : une bordure de fond repousserait le mini
+          // plateau de son épaisseur.
+          foregroundDecoration: BoxDecoration(
+            border: const Border.fromBorderSide(kTraitDeTouche),
+            borderRadius: BorderRadius.circular(S(10)),
+          ),
           padding: EdgeInsets.all(S(6)),
           child: Stack(
             fit: StackFit.expand,

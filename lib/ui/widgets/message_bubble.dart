@@ -53,6 +53,7 @@ import '../pieces_emoji.dart';
 import '../scale.dart';
 import '../texte_emoji.dart';
 import 'bulle_cri.dart';
+import 'fuga_button.dart';
 import 'profile_photo.dart';
 
 /// Part de la largeur qu'une bulle peut occuper au plus.
@@ -153,6 +154,13 @@ class MessageBubble extends StatelessWidget {
     final encre = echoue ? Colors.white : (deMoi ? Colors.black : Colors.white);
     final rayon = Radius.circular(S(18));
     final pointe = Radius.circular(S(4));
+    final coins = BorderRadius.only(
+      topLeft: rayon,
+      topRight: rayon,
+      // Le coin presque droit du côté du locuteur : c'est la pointe.
+      bottomLeft: deMoi ? rayon : pointe,
+      bottomRight: deMoi ? pointe : rayon,
+    );
 
     final affiche = echoue ? '$texte  ${T("(non envoyé)")}' : texte;
     // SelectableText, et non Text : un appui long ouvre les poignées de
@@ -201,15 +209,17 @@ class MessageBubble extends StatelessWidget {
       constraints: large,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: S(14), vertical: S(10)),
-        decoration: BoxDecoration(
-          color: fond,
-          borderRadius: BorderRadius.only(
-            topLeft: rayon,
-            topRight: rayon,
-            // Le coin presque droit du côté du locuteur : c'est la pointe.
-            bottomLeft: deMoi ? rayon : pointe,
-            bottomRight: deMoi ? pointe : rayon,
-          ),
+        decoration: BoxDecoration(color: fond, borderRadius: coins),
+        // LE MÊME TRAIT QUE LES TOUCHES, EN PREMIER PLAN. Nino : « les bulles
+        // de messages partout où il en apparaît. »
+        //
+        // En premier plan, et c'est tout l'enjeu : une bordure posée dans la
+        // décoration de FOND repousse l'enfant de son épaisseur, et la bulle
+        // grandissait de deux pixels et demi. Peinte par-dessus, elle ne
+        // pèse rien sur la mise en page.
+        foregroundDecoration: BoxDecoration(
+          border: const Border.fromBorderSide(kTraitDeTouche),
+          borderRadius: coins,
         ),
         child: contenu,
       ),

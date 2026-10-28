@@ -15,6 +15,7 @@ import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/net/avatar_photos.dart';
@@ -129,6 +130,57 @@ void main() {
     expect(find.textContaining('Ana'), findsWidgets);
     expect(find.textContaining('2 - 1'), findsOneWidget);
     expect(find.text('À vous de jouer'), findsOneWidget);
+  });
+
+  testWidgets('le trait de séparation s allume quand c est à nous', (
+    tester,
+  ) async {
+    // Nino : « j'aimerais que le trait épais de séparation s'éclaire d'une
+    // couleur claire du thème lorsqu'il y a une ou plusieurs parties dans
+    // lesquelles c'est à notre tour de jouer. » C'est un voyant : il se voit
+    // sans avoir à défiler jusqu'aux plateaux.
+    Color couleurDuTrait(WidgetTester tester) {
+      final trait = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: find.byType(FractionallySizedBox),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      return (trait.decoration! as BoxDecoration).color!;
+    }
+
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(myTurn: false)],
+    };
+    await open(tester);
+    expect(
+      couleurDuTrait(tester),
+      const Color(0xFF000000),
+      reason: 'rien ne nous attend : le trait reste noir',
+    );
+  });
+
+  testWidgets('une seule partie qui attend suffit à l allumer', (tester) async {
+    Color couleurDuTrait(WidgetTester tester) {
+      final trait = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: find.byType(FractionallySizedBox),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      return (trait.decoration! as BoxDecoration).color!;
+    }
+
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(myTurn: false), game(myTurn: true)],
+    };
+    await open(tester);
+    expect(
+      couleurDuTrait(tester),
+      paletteOf(Settings.instance.themeAxes.general).clair,
+    );
   });
 
   testWidgets('un défi reçu s affiche AVANT d être accepté', (tester) async {

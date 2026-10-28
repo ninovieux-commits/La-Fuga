@@ -50,6 +50,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../scale.dart';
+import 'picto_touche.dart';
 import '../texte_emoji.dart';
 
 /// Distance d'un sommet au suivant, le long du contour.
@@ -183,11 +184,20 @@ class PeintreBulleCri extends CustomPainter {
 
     // Une bulle plus petite que ses pics n'arrive pas — la marge fait partie
     // de son rembourrage — mais un contour vide planterait le dessin.
+    // LE TRAIT NOIR DES TOUCHES, sur le MÊME chemin que le fond : les pics
+    // le portent donc comme le reste. Il est centré sur le tracé, d'où le
+    // double — c'est le même piège que pour les mots.
+    final trait = Paint()
+      ..color = const Color(0xFF000000)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = kTraitPicto * 2
+      ..strokeJoin = StrokeJoin.round;
+
     if (boite.width <= 0 || boite.height <= 0) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, rayon),
-        peinture,
-      );
+      final secours = RRect.fromRectAndRadius(Offset.zero & size, rayon);
+      canvas
+        ..drawRRect(secours, peinture)
+        ..drawRRect(secours, trait);
       return;
     }
 
@@ -205,7 +215,14 @@ class PeintreBulleCri extends CustomPainter {
         ..clear()
         ..[cle] = chemin;
     }
-    canvas.drawPath(chemin, peinture);
+    canvas
+      ..drawPath(chemin, peinture)
+      ..save()
+      // Le tracé déborde de moitié vers l'extérieur : on le rogne à la boîte
+      // pour que la bulle ne grossisse pas d'un cheveu.
+      ..clipPath(chemin)
+      ..drawPath(chemin, trait)
+      ..restore();
   }
 
   @override

@@ -35,6 +35,7 @@ import '../suit_les_reglages.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/picto_touche.dart';
 import '../widgets/corr_mode_dialog.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
@@ -1404,6 +1405,9 @@ class MenuScreenState extends State<MenuScreen>
           ),
           SizedBox(height: SH(0.02) + S(gap)),
 
+          _separateur(palette),
+          SizedBox(height: SH(0.02)),
+
           _corrHeader(),
           SizedBox(height: S(gap)),
           _corrGrid(palette),
@@ -1449,6 +1453,13 @@ class MenuScreenState extends State<MenuScreen>
                 color: kFugaGrey,
                 borderRadius: BorderRadius.circular(S(12)),
               ),
+              // En premier plan : une bordure de fond repousserait le champ
+              // de son épaisseur, et la ligne de recherche n'aurait plus
+              // l'épaisseur d'une touche.
+              foregroundDecoration: BoxDecoration(
+                border: const Border.fromBorderSide(kTraitDeTouche),
+                borderRadius: BorderRadius.circular(S(12)),
+              ),
               child: TextField(
                 controller: _searchField,
                 focusNode: _searchFocus,
@@ -1482,6 +1493,40 @@ class MenuScreenState extends State<MenuScreen>
       ],
     ),
   );
+
+  /// Le trait qui ferme le menu et ouvre les parties par correspondance.
+  ///
+  /// Nino : « mets un trait de séparation entre le bouton "plus" et "parties
+  /// par correspondance", assez épais stp et qui ne va pas jusqu'aux bords de
+  /// l'écran. » Il s'arrête donc au même alignement que les touches, qui ne
+  /// touchent pas les bords non plus — un trait qui irait d'un bord à l'autre
+  /// couperait l'écran au lieu de séparer deux parties du menu.
+  ///
+  /// IL S'ALLUME QUAND UNE PARTIE ATTEND. Nino : « j'aimerais que le trait
+  /// épais de séparation s'éclaire d'une couleur claire du thème lorsqu'il y
+  /// a une ou plusieurs parties dans lesquelles c'est à notre tour de
+  /// jouer. » Le trait devient alors un voyant : il se voit sans qu'on ait à
+  /// défiler jusqu'aux plateaux, et il est juste au-dessus d'eux.
+  Widget _separateur(ThemePalette palette) {
+    final attend = _corrGames.any((g) => g.myTurn);
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: 0.62,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          height: S(kTraitPicto * 4),
+          decoration: BoxDecoration(
+            color: attend ? palette.clair : const Color(0xFF000000),
+            borderRadius: BorderRadius.circular(S(kTraitPicto * 2)),
+            // Le trait noir des touches, autour du voyant : allumé, il reste
+            // cerné comme tout le reste ; éteint, il ne se voit pas, puisque
+            // le trait est noir sur noir.
+            border: const Border.fromBorderSide(kTraitDeTouche),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// Le titre de la section. Plus de touche « Actualiser » à côté : la liste
   /// se tient à jour toute seule, comme sur les sites de jeu.

@@ -18,6 +18,7 @@ import '../scale.dart';
 import 'board_geometry.dart';
 import 'fuga_button.dart' show kOpaciteEteinte;
 import 'logo_painter.dart';
+import 'picto_touche.dart';
 import 'piece_painter.dart';
 import 'theme_image_cache.dart';
 
@@ -105,6 +106,32 @@ final class BoardBackgroundPainter extends CustomPainter {
     } else {
       canvas.drawRect(boardRect, Paint()..color = palette.board);
     }
+
+    // LE BORD DU PLATEAU, en haut et en bas SEULEMENT.
+    //
+    // Nino : « les bords du plateau (il y est déjà pour les zones de
+    // ralliement depuis longtemps) mais pas les bords droite et gauche qui
+    // sont contre le bord de l'écran. » Un trait collé au bord de l'écran ne
+    // sépare rien : il n'y a rien de l'autre côté.
+    //
+    // Le trait est posé À L'INTÉRIEUR du plateau, comme celui des touches :
+    // la case du bord garde sa taille.
+    final bord = Paint()
+      ..color = const Color(0xFF000000)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = S(kTraitPicto * 2);
+    final demi = bord.strokeWidth / 2;
+    canvas
+      ..drawLine(
+        Offset(boardRect.left, boardRect.top + demi),
+        Offset(boardRect.right, boardRect.top + demi),
+        bord,
+      )
+      ..drawLine(
+        Offset(boardRect.left, boardRect.bottom - demi),
+        Offset(boardRect.right, boardRect.bottom - demi),
+        bord,
+      );
 
     final gridPaint = Paint()
       ..color = palette.grid
