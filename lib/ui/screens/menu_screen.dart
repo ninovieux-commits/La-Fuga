@@ -1514,7 +1514,10 @@ class MenuScreenState extends State<MenuScreen>
         widthFactor: 0.62,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          height: S(kTraitPicto * 4),
+          // DIX FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait pas
+          // qu'elle était allumée : « c'est juste beaucoup trop fin. » Un
+          // voyant doit se voir sans qu'on le cherche.
+          height: S(kTraitPicto * 10),
           decoration: BoxDecoration(
             color: attend ? palette.clair : const Color(0xFF000000),
             borderRadius: BorderRadius.circular(S(kTraitPicto * 2)),
