@@ -17,6 +17,8 @@ import 'dart:ui';
 import '../../engine/board.dart';
 import '../../engine/piece.dart';
 import '../../theme/themes.dart';
+import '../scale.dart';
+import 'picto_touche.dart';
 import 'theme_image_cache.dart';
 
 /// Dessine une pièce dans le carré [rect].
@@ -401,8 +403,9 @@ void _paintPieceImage(
 /// ne tomberait pas exactement sur le bord dessiné se verrait comme un
 /// doublon.
 ///
-/// Un thème à IMAGES porte son contour DANS son image : il n'y a rien à
-/// repeindre, et la pièce s'atténue alors tout entière.
+/// Une pièce à IMAGE a elle aussi sa silhouette, et c'est elle qu'on trace :
+/// ces images sont des formes sur fond transparent — le décor du plateau
+/// transparaît autour —, exactement comme les dessins des touches.
 void paintPieceContour(
   Canvas canvas,
   Rect rect,
@@ -412,7 +415,56 @@ void paintPieceContour(
   LoadedThemeImages? images,
   String? theme,
 }) {
-  if (images?.pieceFor(piece) != null) return;
+  // UNE PIÈCE À IMAGE : ON TRACE LE TOUR DE SA FORME.
+  //
+  // Nino : « un trait noir qui fait parfaitement le tour des images comme on
+  // a fait avec les symboles des touches ingame. » C'est la même recette : la
+  // silhouette noire posée [kCopiesDuBord] fois en couronne, dont la réunion
+  // est la forme élargie d'un disque — donc à distance constante du bord,
+  // partout.
+  //
+  // On lui RETIRE ensuite la forme d'origine : sans cela, la réunion
+  // couvrirait aussi l'intérieur, et la pièce atténuée disparaîtrait sous une
+  // silhouette noire. Ce qui reste est l'anneau, et lui seul.
+  //
+  // Treize dessins d'image par pièce, donc — mais seulement pour les pièces
+  // CHOISIES, une à cinq, jamais quarante.
+  final themee = images?.pieceFor(piece);
+  if (themee != null) {
+    final box = rect.deflate(rect.width * 0.04);
+    final source = Rect.fromLTWH(
+      0,
+      0,
+      themee.width.toDouble(),
+      themee.height.toDouble(),
+    );
+    final noir = Paint()
+      ..filterQuality = FilterQuality.medium
+      ..colorFilter = const ColorFilter.mode(
+        Color(0xFF000000),
+        BlendMode.srcIn,
+      );
+    final rayon = S(kTraitPicto);
+    canvas.saveLayer(box.inflate(rayon * 2), Paint());
+    for (var i = 0; i < kCopiesDuBord; i++) {
+      final angle = 2 * math.pi * i / kCopiesDuBord;
+      canvas.drawImageRect(
+        themee,
+        source,
+        box.shift(Offset(rayon * math.cos(angle), rayon * math.sin(angle))),
+        noir,
+      );
+    }
+    canvas
+      ..drawImageRect(
+        themee,
+        source,
+        box,
+        Paint()..blendMode = BlendMode.dstOut,
+      )
+      ..restore();
+    return;
+  }
 
   final pad = rect.width * 0.04;
   final inner = rect.width - 2 * pad;

@@ -307,10 +307,10 @@ const double kOpaciteChoisie = kOpaciteEteinte;
 
 /// Ce qu'il reste d'une pièce choisie des thèmes à IMAGES.
 ///
-/// Ceux-là — medieval, fleur, insectes, dragon — portent leur contour DANS
-/// leur image : on ne peut pas le repeindre net par-dessus, et la pièce
-/// s'atténue donc tout entière, bord compris. Au tiers, elle se dissolvait
-/// dans le plateau. Nino : « pour les thèmes spéciaux, la transparence doit
+/// Ceux-là — medieval, fleur, insectes, dragon — sont des images, et tout ce
+/// qu'elles contiennent s'atténue : les ombres, les reliefs, les détails. Le
+/// contour, lui, est retracé net par-dessus, mais il ne suffit pas à les
+/// tenir. Au tiers, elles se dissolvaient dans le plateau. Nino : « pour les thèmes spéciaux, la transparence doit
 /// être moins marquée » — puis, six dixièmes essayés : « fais la
 /// transparence entre l'ancien et le nouveau, maintenant c'est plus assez
 /// transparent. » D'où ce milieu exact entre les deux.
