@@ -25,7 +25,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Part de la touche qu'occupe le dessin — le reste est le carré qu'on voit.
-const double kPartPicto = 0.58;
+///
+/// Deux tiers : le dessin doit remplir la touche sans la manger. Nino l'a
+/// d'abord vu à 0,58, trop timide — « les symboles peuvent être un peu plus
+/// grands dans leurs touches » — et le carré gris doit rester visible tout
+/// autour, sans quoi la touche n'a plus de forme.
+const double kPartPicto = 0.66;
 
 /// Épaisseur du trait noir qui détache le dessin du fond de la touche.
 ///
@@ -36,10 +41,12 @@ const double kPartPicto = 0.58;
 /// Il règle en effet le cas limite : deepgrey peint ses deux couleurs en
 /// `RGB(128, 128, 128)`, c'est-à-dire exactement le gris des touches — son
 /// dessin y était invisible, et c'est le trait qui le fait exister.
-/// Le plus fin possible : Nino l'a vu trop épais au premier essai, à 1,6.
-/// Un demi-pixel de référence donne un trait d'un pixel d'écran sur un
-/// téléphone ordinaire — on ne peut pas descendre en dessous.
-const double kTraitPicto = 0.5;
+/// Trois essais ont réglé ce nombre : 1,6 d'abord, « trop épais » ; puis 0,5,
+/// « le plus fin possible », qui était le plancher — un demi-pixel de
+/// référence donne un trait d'un pixel d'écran sur un téléphone ordinaire, et
+/// on ne descend pas en dessous ; et enfin 0,8, quand Nino l'a revu sur
+/// l'appareil : « finalement le trait noir un peu plus épais ».
+const double kTraitPicto = 0.8;
 
 class PictoTouche extends StatelessWidget {
   const PictoTouche({
