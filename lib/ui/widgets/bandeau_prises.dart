@@ -111,9 +111,7 @@ class BandeauPrises extends StatelessWidget {
           Tooltip(
             message: T('Annuler'),
             child: Material(
-              color: onAnnuler == null
-                  ? Color.lerp(kGrisTouche, palette.menu, 0.6)!
-                  : kGrisTouche,
+              color: onAnnuler == null ? fondEteint(kGrisTouche) : kGrisTouche,
               child: InkWell(
                 onTap: onAnnuler,
                 child: SizedBox(

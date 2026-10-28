@@ -146,7 +146,7 @@ class ToucheAction extends StatelessWidget {
         child: AspectRatio(
           aspectRatio: 1,
           child: Material(
-            color: enabled ? color : Color.lerp(color, palette.menu, 0.6)!,
+            color: enabled ? color : fondEteint(color),
             borderRadius: BorderRadius.circular(S(16)),
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),

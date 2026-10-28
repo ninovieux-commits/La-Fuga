@@ -36,6 +36,24 @@ const Color kGrisTouche = Color.fromRGBO(128, 128, 128, 1);
 /// deux touches éteintes ne pâlissent jamais différemment.
 const double kOpaciteEteinte = 0.35;
 
+/// Ce qui reste du FOND d'une touche éteinte.
+///
+/// Ce fond s'obtenait en mélangeant le gris de la touche à la couleur du
+/// bandeau. C'était une transparence FEINTE, juste tant qu'il y avait un
+/// bandeau derrière : en analyse, la touche d'annulation flotte sur le
+/// décor, et elle y portait un carré aux couleurs d'un bandeau absent. Nino :
+/// « la touche d'annulation de coup prend la couleur du bandeau lorsqu'elle
+/// essaie d'imiter la transparence, alors qu'il n'y a pas le bandeau
+/// derrière. Les touches inutilisables doivent toujours se mettre à la
+/// couleur de ce qui est derrière. »
+///
+/// Une VRAIE transparence le fait d'elle-même, quel que soit le fond, et au
+/// même poids qu'avant : quatre dixièmes, ce que laissait le mélange.
+const double kFondEteint = 0.4;
+
+/// Le fond d'une touche éteinte : le sien, rendu translucide.
+Color fondEteint(Color fond) => fond.withValues(alpha: kFondEteint);
+
 class FugaButton extends StatelessWidget {
   const FugaButton({
     super.key,

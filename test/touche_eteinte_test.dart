@@ -58,6 +58,65 @@ void main() {
         : voiles.map((o) => o.opacity).reduce((a, b) => a < b ? a : b);
   }
 
+  group('Le fond d une touche éteinte', () {
+    /// La couleur que le `Material` de la touche d'annulation porte.
+    Color fondDuAnnuler(WidgetTester tester) => tester
+        .widget<Material>(
+          find
+              .descendant(
+                of: find.byTooltip(T('Annuler')),
+                matching: find.byType(Material),
+              )
+              .first,
+        )
+        .color!;
+
+    Widget bandeau({required bool annulable}) => SizedBox(
+      height: 851 * 12 / 104,
+      child: PlayerPanel(
+        name: 'nino',
+        clock: '15:00',
+        palette: paletteOf('foret'),
+        isWhite: true,
+        isTurn: true,
+        captures: const [],
+        onUndo: annulable ? () {} : null,
+        onMessageRapide: () {},
+        onResign: () {},
+      ),
+    );
+
+    testWidgets('il est TRANSLUCIDE, et non teint en couleur de bandeau', (
+      tester,
+    ) async {
+      // Nino : « la touche d'annulation prend la couleur du bandeau
+      // lorsqu'elle essaie d'imiter la transparence, alors qu'il n'y a pas
+      // le bandeau derrière. Les touches inutilisables doivent toujours se
+      // mettre à la couleur de ce qui est derrière. » En analyse, la touche
+      // flotte sur le décor : seule une vraie transparence y convient.
+      await montre(tester, bandeau(annulable: false));
+      final eteint = fondDuAnnuler(tester);
+      expect(eteint.a, lessThan(1), reason: 'le fond doit laisser passer');
+      expect(
+        eteint.a,
+        kFondEteint,
+        reason: 'et au même poids que le mélange d avant',
+      );
+      // La teinte, elle, reste celle de la touche : c'est son propre gris
+      // qui s'efface, pas une couleur d'emprunt.
+      expect(eteint.r, kGrisTouche.r);
+      expect(eteint.g, kGrisTouche.g);
+      expect(eteint.b, kGrisTouche.b);
+    });
+
+    testWidgets('allumée, il est plein', (tester) async {
+      await montre(tester, bandeau(annulable: true));
+      final allume = fondDuAnnuler(tester);
+      expect(allume.a, 1);
+      expect(allume, kGrisTouche);
+    });
+  });
+
   group('Une touche ordinaire', () {
     testWidgets('sans geste, elle PÂLIT', (tester) async {
       await montre(tester, const FugaButton(text: 'Défier', onPressed: null));
