@@ -12,6 +12,7 @@ import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'board_painter.dart';
+import 'picto_touche.dart';
 import 'theme_image_cache.dart';
 
 class GameBoardView extends StatefulWidget {
@@ -263,6 +264,41 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
+              // LE CHEVRON DE LA MENEUSE, dans la couche des widgets.
+              //
+              // C'est un symbole de touche comme les autres — couleur du
+              // thème, trait noir, même fabrication — et `PictoTouche` est un
+              // widget : le peindre à la main dans le peintre en redonnerait
+              // une seconde version à tenir à jour. Il ne paraît que lorsque
+              // PLUSIEURS pièces sont prises : seule, il n'y a personne à
+              // mener. Nino : « quand on en sélectionne plusieurs, ce symbole
+              // apparaît sur la meneuse. »
+              if (widget.selected != null && widget.groupSelection.isNotEmpty)
+                Positioned.fromRect(
+                  rect: geometry.cellRect(
+                    widget.selected!.col,
+                    widget.selected!.row,
+                  ),
+                  child: IgnorePointer(
+                    child: PictoTouche(
+                      asset: 'assets/images/meneuse.webp',
+                      // L'autre couleur que celle de son camp : le chevron
+                      // est POSÉ sur la pièce, et la couleur de son propre
+                      // camp s'y fondrait.
+                      couleur:
+                          widget.board
+                                  .at(
+                                    widget.selected!.col,
+                                    widget.selected!.row,
+                                  )
+                                  ?.camp ==
+                              Camp.noir
+                          ? widget.palette.clair
+                          : widget.palette.fonce,
+                      secours: '^',
+                    ),
+                  ),
+                ),
               RepaintBoundary(
                 child: AnimatedBuilder(
                   animation: _slide,

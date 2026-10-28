@@ -16,6 +16,7 @@ import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'board_geometry.dart';
+import 'fuga_button.dart' show kOpaciteEteinte;
 import 'logo_painter.dart';
 import 'piece_painter.dart';
 import 'theme_image_cache.dart';
@@ -264,18 +265,18 @@ final class BoardBackgroundPainter extends CustomPainter {
       old.geometry.flipped != geometry.flipped;
 }
 
-/// Épaisseur du contour de sélection, en pixels de référence.
+/// Ce qu'il reste d'une pièce CHOISIE : elle s'enfonce au lieu de s'encadrer.
 ///
-/// Nino a choisi sur aperçu, entre 2,5, 4 et 6.
-const double kEpaisseurSelection = 4;
-
-/// Longueur d'un tiret, et du vide qui le suit, en part de la case.
+/// Un cadre coloré autour d'une pièce ne disait pas grand-chose — jaune
+/// d'abord, puis blanc sur les noires et noir sur les blanches. Nino : « la
+/// couleur de sélection ne me convient pas, c'est pas clair. Et pourquoi on
+/// mettrait pas plutôt la pièce en "enfoncée" ? Je veux dire, comme les
+/// boutons quand ils ne peuvent pas être utilisés. »
 ///
-/// Les pièces qui SUIVENT la meneuse, dans une manœuvre, portent un cadre en
-/// pointillés là où elle en porte un plein : on distingue ainsi d'un coup
-/// d'œil celle qu'on a prise d'abord. Nino : « au lieu de l'encadrer
-/// entièrement on va encadrer […] en faisant des pointillés ».
-const double kPartTiret = 0.14;
+/// C'est donc la MÊME atténuation que celle d'une touche éteinte,
+/// [kOpaciteEteinte] : le geste parle déjà le langage des touches, autant
+/// qu'il le parle partout pareil.
+const double kOpaciteChoisie = kOpaciteEteinte;
 
 /// Pièces, sélection et mise en évidence du dernier coup.
 final class BoardPiecesPainter extends CustomPainter {
@@ -364,6 +365,20 @@ final class BoardPiecesPainter extends CustomPainter {
         final cell = Cell(c, r);
         if (flying.contains(cell)) continue;
 
+        // LA PIÈCE CHOISIE S'ENFONCE. On passe par une couche plutôt que de
+        // baisser l'opacité pièce par pièce : `paintPiece` empile une image,
+        // un contour, des points de poussée — atténuer chacun séparément les
+        // laisserait transparaître les uns à travers les autres.
+        final choisie = cell == selected || groupSelection.contains(cell);
+        if (choisie) {
+          canvas.saveLayer(
+            g.cellRect(c, r).inflate(g.cellSize * 0.1),
+            Paint()
+              ..color = const Color(
+                0xFF000000,
+              ).withValues(alpha: kOpaciteChoisie),
+          );
+        }
         paintPiece(
           canvas,
           g.cellRect(c, r),
@@ -379,6 +394,7 @@ final class BoardPiecesPainter extends CustomPainter {
           theme: theme,
           rainbowFraction: rainbowFractionOf(c, r),
         );
+        if (choisie) canvas.restore();
       }
     }
 
@@ -408,52 +424,6 @@ final class BoardPiecesPainter extends CustomPainter {
     // Au premier plan : un cadre à moitié caché par une pièce voisine ou par
     // une image de thème ne se voit pas. Vers l'intérieur : le trait tient
     // entièrement dans sa case, il ne mord pas sur les voisines.
-    /// Le contour d'une pièce sélectionnée : le contraire de son camp.
-    Color couleurDeSelection(int c, int r) =>
-        FugaColors.selectionDe(noir: board.at(c, r)!.camp == Camp.noir);
-
-    /// Le cadre en pointillés des pièces qui SUIVENT la meneuse.
-    ///
-    /// Le trait est posé à l'intérieur du bord de la case, comme [frame], et
-    /// chaque côté est dessiné tiret par tiret : un `Path` fermé aurait
-    /// arrondi les coupures aux angles.
-    void cadreDuGroupe(
-      Canvas canvas,
-      BoardGeometry g,
-      Cell cell,
-      Color color,
-      double width,
-    ) {
-      if (!cell.onBoard &&
-          !board.estCaseDeRalliement(
-            BoardGeometry.campDeLaRangee(cell.row),
-            cell.col,
-            cell.row,
-          )) {
-        return;
-      }
-      final r = g.cellRect(cell.col, cell.row).deflate(width / 2);
-      final trait = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.square;
-
-      void segment(Offset a, Offset b) => canvas.drawLine(a, b, trait);
-
-      final pas = r.width * kPartTiret;
-      for (var x = r.left; x < r.right; x += 2 * pas) {
-        final fin = (x + pas).clamp(r.left, r.right);
-        segment(Offset(x, r.top), Offset(fin, r.top));
-        segment(Offset(x, r.bottom), Offset(fin, r.bottom));
-      }
-      for (var y = r.top; y < r.bottom; y += 2 * pas) {
-        final fin = (y + pas).clamp(r.top, r.bottom);
-        segment(Offset(r.left, y), Offset(r.left, fin));
-        segment(Offset(r.right, y), Offset(r.right, fin));
-      }
-    }
-
     void frame(Cell cell, Color color, double width) {
       // Les zones de ralliement sont à l'écran : un Héritier qui vient d'y
       // entrer s'encadre comme n'importe quelle case d'arrivée.
@@ -501,26 +471,17 @@ final class BoardPiecesPainter extends CustomPainter {
       }
     }
 
-    // Sélection, groupe d'une manœuvre, et pièces immobilisées. Dessinés en
-    // dernier : ce sont eux qui répondent au doigt.
+    // Pièces immobilisées, dessinées en dernier. La sélection, elle, ne
+    // s'encadre plus : la pièce choisie s'est enfoncée avec les autres.
     for (var c = 0; c < kCols; c++) {
       for (var r = 0; r < kRows; r++) {
         if (board.at(c, r) == null) continue;
         final cell = Cell(c, r);
         if (flying.contains(cell)) continue;
-        if (cell == selected) {
-          frame(cell, couleurDeSelection(c, r), S(kEpaisseurSelection));
-        } else if (groupSelection.contains(cell)) {
-          cadreDuGroupe(
-            canvas,
-            g,
-            cell,
-            couleurDeSelection(c, r),
-            S(kEpaisseurSelection),
-          );
-        } else if (board.isImmobilised(c, r)) {
-          // Même condition que la règle : une pièce au contour rouge ne peut
-          // pas bouger.
+        if (cell == selected || groupSelection.contains(cell)) continue;
+        // Même condition que la règle : une pièce au contour rouge ne peut
+        // pas bouger.
+        if (board.isImmobilised(c, r)) {
           frame(cell, FugaColors.immobile, S(3));
         }
       }

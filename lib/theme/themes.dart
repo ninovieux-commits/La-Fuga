@@ -57,17 +57,13 @@ abstract final class FugaColors {
   /// Corps des pièces noires.
   static const Color blackPiece = Color.fromRGBO(18, 18, 33, 1);
 
-  /// Contour de la pièce sélectionnée : le CONTRAIRE de son camp.
-  ///
-  /// C'était un jaune vif, le même pour tout le monde. Nino : « la couleur
-  /// de sélection de pièce ne doit plus être jaune. Elle doit être blanche
-  /// pour les noirs, et noire pour les blancs. » Le contour se lit alors sur
-  /// la pièce elle-même, quel que soit le thème, au lieu de compter sur une
-  /// couleur qui tranche avec le plateau.
-  /// Le thème ne connaît pas les pièces : on lui dit seulement de quel côté
-  /// est celle qu'on encadre.
-  static Color selectionDe({required bool noir}) =>
-      noir ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  // UNE PIÈCE CHOISIE N'A PLUS DE COULEUR À ELLE.
+  //
+  // Il y a eu ici un jaune vif, puis le contraire du camp — blanc sur les
+  // noires, noir sur les blanches. Ni l'un ni l'autre ne se lisait. Nino :
+  // « la couleur de sélection ne me convient pas, c'est pas clair. Et
+  // pourquoi on mettrait pas plutôt la pièce en "enfoncée" ? » Elle s'atténue
+  // donc comme une touche éteinte, et c'est `board_painter.dart` qui le fait.
 
   /// Contour d'une pièce immobilisée.
   static const Color immobile = Color.fromRGBO(255, 51, 51, 1);
