@@ -177,6 +177,18 @@ class _GameBoardViewState extends State<GameBoardView>
   ///
   /// Tant qu'elles ne sont pas prêtes, le rendu géométrique s'affiche : le
   /// plateau apparaît tout de suite plutôt que de rester blanc.
+  ///
+  /// UN CHARGEMENT QUI REVIENT TROP TARD N'ÉCRASE RIEN. On change de thème
+  /// plus vite que les images ne se décodent : dans le composeur, choisir un
+  /// plateau puis un autre lançait deux chargements, et c'est celui qui
+  /// finissait le dernier qui s'affichait — pas celui qu'on venait de
+  /// choisir. Le thème demandé pouvait donc revenir à l'écran après celui
+  /// d'après, et ne s'y remettait qu'au prochain passage. Nino : « le
+  /// composeur de thème foire parfois. Par exemple quand je sélectionne un
+  /// plateau différent. »
+  ///
+  /// Chaque chargement vérifie donc, à son retour, que c'est bien ENCORE son
+  /// thème qu'on attend.
   Future<void> _loadImages() async {
     final pieceTheme = widget.pieceTheme;
     final boardTheme = widget.boardTheme;
@@ -190,11 +202,15 @@ class _GameBoardViewState extends State<GameBoardView>
 
     if (pieceTheme != null && _pieceImages == null) {
       final loaded = await ThemeImageCache.load(pieceTheme);
-      if (mounted) setState(() => _pieceImages = loaded);
+      if (mounted && widget.pieceTheme == pieceTheme) {
+        setState(() => _pieceImages = loaded);
+      }
     }
     if (boardTheme != null && _boardImages == null) {
       final loaded = await ThemeImageCache.load(boardTheme);
-      if (mounted) setState(() => _boardImages = loaded);
+      if (mounted && widget.boardTheme == boardTheme) {
+        setState(() => _boardImages = loaded);
+      }
     }
   }
 
@@ -264,44 +280,6 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
-              // LE CHEVRON DE LA MENEUSE, dans la couche des widgets.
-              //
-              // C'est un symbole de touche comme les autres — couleur du
-              // thème, trait noir, même fabrication — et `PictoTouche` est un
-              // widget : le peindre à la main dans le peintre en redonnerait
-              // une seconde version à tenir à jour. Il ne paraît que lorsque
-              // PLUSIEURS pièces sont prises : seule, il n'y a personne à
-              // mener. Nino : « quand on en sélectionne plusieurs, ce symbole
-              // apparaît sur la meneuse. »
-              if (widget.selected != null && widget.groupSelection.isNotEmpty)
-                Positioned.fromRect(
-                  rect: geometry.cellRect(
-                    widget.selected!.col,
-                    widget.selected!.row,
-                  ),
-                  child: IgnorePointer(
-                    child: PictoTouche(
-                      asset: 'assets/images/meneuse.webp',
-                      // LA COULEUR DE SON CAMP, comme partout ailleurs :
-                      // l'orange des Blancs, le bleu des Noirs, dans le
-                      // thème d'origine. Il avait d'abord porté l'AUTRE, de
-                      // peur qu'il se fonde dans la pièce ; c'était inutile
-                      // — la pièce choisie est enfoncée, et le chevron,
-                      // plein et cerné de noir, s'en détache tout seul.
-                      couleur:
-                          widget.board
-                                  .at(
-                                    widget.selected!.col,
-                                    widget.selected!.row,
-                                  )
-                                  ?.camp ==
-                              Camp.noir
-                          ? widget.palette.fonce
-                          : widget.palette.clair,
-                      secours: '^',
-                    ),
-                  ),
-                ),
               RepaintBoundary(
                 child: AnimatedBuilder(
                   animation: _slide,
@@ -324,6 +302,69 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
+              // LE CHEVRON DE LA MENEUSE, dans la couche des widgets.
+              //
+              // C'est un symbole de touche comme les autres — couleur du
+              // thème, trait noir, même fabrication — et `PictoTouche` est un
+              // widget : le peindre à la main dans le peintre en redonnerait
+              // une seconde version à tenir à jour. Il ne paraît que lorsque
+              // PLUSIEURS pièces sont prises : seule, il n'y a personne à
+              // mener. Nino : « quand on en sélectionne plusieurs, ce symbole
+              // apparaît sur la meneuse. »
+              //
+              // EN DERNIER, ET IL SUIT SA PIÈCE. Posé plus haut dans la pile,
+              // il passait sous la couche des pièces en vol ; posé sur la
+              // case d'arrivée, il y attendait sa meneuse au lieu de
+              // l'accompagner — la sélection a déjà suivi le coup quand le
+              // glissement commence. Nino : « pendant une manœuvre, le
+              // symbole de meneuse doit glisser avec la pièce. »
+              if (widget.selected != null && widget.groupSelection.isNotEmpty)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: _slide,
+                      builder: (context, _) => Stack(
+                        children: [
+                          Positioned.fromRect(
+                            rect:
+                                placeEnVol(
+                                  geometry,
+                                  widget.slides,
+                                  widget.slideJumpPath,
+                                  _slide.value,
+                                  widget.selected!,
+                                ) ??
+                                geometry.cellRect(
+                                  widget.selected!.col,
+                                  widget.selected!.row,
+                                ),
+                            child: PictoTouche(
+                              asset: 'assets/images/meneuse.webp',
+                              // LA COULEUR DE SON CAMP, comme partout
+                              // ailleurs : l'orange des Blancs, le bleu des
+                              // Noirs, dans le thème d'origine. Il avait
+                              // d'abord porté l'AUTRE, de peur qu'il se fonde
+                              // dans la pièce ; c'était inutile — la pièce
+                              // choisie est enfoncée, et le chevron, plein et
+                              // cerné de noir, s'en détache tout seul.
+                              couleur:
+                                  widget.board
+                                          .at(
+                                            widget.selected!.col,
+                                            widget.selected!.row,
+                                          )
+                                          ?.camp ==
+                                      Camp.noir
+                                  ? widget.palette.fonce
+                                  : widget.palette.clair,
+                              secours: '^',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

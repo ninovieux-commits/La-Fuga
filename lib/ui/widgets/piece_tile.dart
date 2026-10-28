@@ -63,7 +63,11 @@ class _PieceTileState extends State<PieceTile> {
     _images = theme == null ? null : ThemeImageCache.ready(theme);
     if (theme != null && _images == null) {
       final charge = await ThemeImageCache.load(theme);
-      if (mounted) setState(() => _images = charge);
+      // Comme le plateau : un chargement qui revient après un changement de
+      // thème n'écrase pas celui qu'on attend maintenant.
+      if (mounted && widget.pieceTheme == theme) {
+        setState(() => _images = charge);
+      }
     }
   }
 

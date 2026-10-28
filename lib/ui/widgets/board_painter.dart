@@ -545,6 +545,42 @@ final class BoardPiecesPainter extends CustomPainter {
       old.lastMove != lastMove;
 }
 
+/// Où se trouve, à cet avancement, la pièce qui va vers [arrivee].
+///
+/// Nulle quand rien ne vole, ou quand aucune glissée ne va là. Le chevron de
+/// la meneuse s'en sert pour suivre sa pièce au lieu de l'attendre à
+/// l'arrivée — Nino : « pendant une manœuvre, le symbole de meneuse doit
+/// glisser avec la pièce » — et la couche des pièces en vol s'en sert pour
+/// les placer, afin qu'il n'y ait qu'un seul calcul pour les deux.
+Rect? placeEnVol(
+  BoardGeometry g,
+  List<(Piece, Cell, Cell)> slides,
+  List<Cell> jumpPath,
+  double progress,
+  Cell arrivee,
+) {
+  if (progress >= 1 || slides.isEmpty) return null;
+  // Toutes les pièces vont à la MÊME vitesse : celle qui va le plus loin
+  // occupe toute l'animation, les autres arrivent avant et s'y posent.
+  final span = slideSpan(slides, jumpPath);
+  for (final (_, from, to) in slides) {
+    if (to != arrivee) continue;
+    // Le multisaut suit ses atterrissages ; tout le reste va tout droit.
+    final etapes = slideSteps(
+      from,
+      to,
+      jumpPath,
+      isJumper: to == slides.last.$3,
+    );
+    final mienne = pathLength(etapes);
+    final avance = (mienne <= 0 || span <= 0)
+        ? 1.0
+        : (progress * span / mienne).clamp(0.0, 1.0);
+    return slidePosition(g, etapes, avance);
+  }
+  return null;
+}
+
 /// Où se trouve une pièce qui glisse, à cet avancement, le long d'un chemin.
 ///
 /// [etapes] va du départ à l'arrivée, atterrissages intermédiaires compris.
@@ -678,22 +714,8 @@ final class FlyingPiecesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (progress >= 1) return;
     final g = geometry;
-    // Toutes les pièces vont à la MÊME vitesse : celle qui va le plus loin
-    // occupe toute l'animation, les autres arrivent avant et s'y posent.
-    final span = slideSpan(slides, jumpPath);
-    for (final (piece, from, to) in slides) {
-      // Le multisaut suit ses atterrissages ; tout le reste va tout droit.
-      final etapes = slideSteps(
-        from,
-        to,
-        jumpPath,
-        isJumper: to == slides.last.$3,
-      );
-      final mienne = pathLength(etapes);
-      final avance = (mienne <= 0 || span <= 0)
-          ? 1.0
-          : (progress * span / mienne).clamp(0.0, 1.0);
-      final place = slidePosition(g, etapes, avance);
+    for (final (piece, _, to) in slides) {
+      final place = placeEnVol(g, slides, jumpPath, progress, to)!;
       final choisie = choisies.contains(to);
       if (choisie) ouvreChoisie(canvas, place, piece, images);
       paintPiece(

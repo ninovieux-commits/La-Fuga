@@ -13,6 +13,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/engine/board.dart';
+import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
@@ -36,6 +37,8 @@ void main() {
     WidgetTester tester, {
     Cell? choisie,
     Set<Cell> groupe = const {},
+    List<(Piece, Cell, Cell)> glissees = const [],
+    Duration duree = Duration.zero,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -50,12 +53,15 @@ void main() {
               onTapCell: (_) {},
               selected: choisie,
               groupSelection: groupe,
+              slides: glissees,
+              slideToken: glissees.isEmpty ? 0 : 1,
+              slideDuration: duree,
             ),
           ),
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (glissees.isEmpty) await tester.pumpAndSettle();
   }
 
   final chevron = find.byWidgetPredicate(
@@ -108,6 +114,51 @@ void main() {
       const Cell(2, 0),
       const Cell(3, 0),
     });
+  });
+
+  testWidgets('le chevron glisse avec sa meneuse', (tester) async {
+    // Nino : « pendant une manœuvre, le symbole de meneuse doit glisser avec
+    // la pièce. » La sélection a déjà suivi le coup quand le glissement
+    // commence : posé sur la case d'arrivée, le chevron y attendait sa
+    // meneuse au lieu de l'accompagner.
+    const depart = Cell(2, 0);
+    const arrivee = Cell(2, 2);
+    // Le glissement part d'un CHANGEMENT de jeton : on pose d'abord la
+    // position d'avant, comme le ferait un écran de jeu.
+    await pose(tester, choisie: depart, groupe: {const Cell(3, 0)});
+    await pose(
+      tester,
+      choisie: arrivee,
+      groupe: {const Cell(3, 2)},
+      glissees: const [
+        (Piece(PieceType.soldat, Camp.blanc), depart, arrivee),
+        (Piece(PieceType.soldat, Camp.blanc), Cell(3, 0), Cell(3, 2)),
+      ],
+      duree: const Duration(milliseconds: 300),
+    );
+
+    final g = BoardGeometry(
+      size: const Size(393, 561),
+      flipped: true,
+      rall: Board.initial().rall,
+    );
+    final deLaCase = g.cellRect(arrivee.col, arrivee.row).center;
+
+    // À mi-chemin, il est entre les deux — donc PAS encore sur l'arrivée.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    final aMiChemin = tester.getRect(chevron).center;
+    expect(
+      (aMiChemin.dy - deLaCase.dy).abs(),
+      greaterThan(4),
+      reason: 'il attend sur la case au lieu de suivre',
+    );
+
+    // Et il arrive avec elle.
+    await tester.pumpAndSettle();
+    final pose2 = tester.getRect(chevron).center;
+    expect(pose2.dx, moreOrLessEquals(deLaCase.dx, epsilon: 1));
+    expect(pose2.dy, moreOrLessEquals(deLaCase.dy, epsilon: 1));
   });
 
   testWidgets('un thème à images s efface moins', (tester) async {
