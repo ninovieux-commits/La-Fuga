@@ -10,6 +10,7 @@
 /// bulle) sur douze messages, 2 150 pixels (vingt-cinq bulles) sur soixante.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
+import 'package:lafuga/state/messages_caches.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,6 +86,87 @@ void main() {
     await tester.pumpAndSettle();
     return online;
   }
+
+  group('Dès le cache, sans attendre le serveur', () {
+    late Completer<http.Response> muet;
+    setUp(() => muet = Completer<http.Response>());
+
+    // Nino : « ça me fait apparaître tout en haut de la conversation
+    // pendant une demi-seconde, puis je suis téléporté tout en bas. Ça le
+    // faisait plus ça normalement. »
+    //
+    // Le cache pose les messages d'avant dès la première image ; rien ne
+    // descendait avant la réponse du serveur. Avant le cache, la première
+    // image était vide : il n'y avait pas de haut à voir.
+
+    /// Un cache de [combien] messages, et un serveur qui ne répond JAMAIS :
+    /// seul le cache est à l'écran.
+    Future<void> ouvreSurLeCache(WidgetTester tester, int combien) async {
+      tester.view.physicalSize = const Size(393, 851);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      SharedPreferences.setMockInitialValues({
+        'lang_chosen': true,
+        'tuto_seen': true,
+        'conv_toto': jsonEncode([
+          for (var i = 0; i < combien; i++)
+            {'t': 'message numero $i', 'm': i.isEven},
+        ]),
+      });
+      final prefs = await SharedPreferences.getInstance();
+      MessagesCaches.utilise(prefs);
+
+      // UN SERVEUR QUI SE TAIT, le temps des premières images : ce qu'on
+      // mesure ne peut alors venir que du cache. Il répondra à la fin, pour
+      // qu'aucune requête ne reste en l'air.
+      final online = OnlineService(
+        client: OnlineClient(
+          api: ApiClient(client: MockClient((req) => muet.future)),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ConversationScreen(online: online, pseudo: 'toto'),
+        ),
+      );
+      // Des images, sans avancer l'horloge : la minuterie de relecture ne
+      // doit pas se déclencher, on ne mesure que l'ouverture.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+    }
+
+    testWidgets('on ouvre en bas, et non en haut', (tester) async {
+      await ouvreSurLeCache(tester, 40);
+
+      final p = position(tester);
+      expect(
+        p.maxScrollExtent,
+        greaterThan(0),
+        reason: 'le cache a de quoi défiler',
+      );
+      expect(
+        p.pixels,
+        moreOrLessEquals(p.maxScrollExtent, epsilon: 0.5),
+        reason: 'le haut de la conversation ne doit jamais se montrer',
+      );
+      expect(souslesYeux(tester, 'message numero 39'), isTrue);
+
+      // Le serveur répond enfin, et l'écran se démonte : ni requête ni
+      // minuterie ne traînent après le test.
+      // L'écran se démonte D'ABORD : sa minuterie de relecture s'arrête, et
+      // plus aucune requête ne part. Le serveur répond ensuite à celles qui
+      // attendaient encore, pour qu'il ne reste rien en l'air.
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      muet.complete(http.Response('{}', 500));
+      // Assez loin pour que le délai maximal des requêtes soit passé : il ne
+      // reste alors plus une seule minuterie en l'air.
+      await tester.pump(const Duration(seconds: 20));
+      await tester.pumpAndSettle();
+    });
+  });
 
   group('On ouvre sur la fin', () {
     testWidgets('une conversation courte tient à l écran, rien à défiler', (

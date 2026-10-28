@@ -566,7 +566,11 @@ class PlayerPanel extends StatelessWidget {
     String tooltip,
     VoidCallback onPressed, {
     required Widget enfant,
-    Color color = kFugaGrey,
+    // LE GRIS DE TOUTES LES TOUCHES. Il avait gardé l'ancien ici, et les
+    // trois touches de la rangée étaient restées en arrière : Nino : « les
+    // trois touches du bandeau large du bas ne sont pas passées en gris
+    // médian. »
+    Color color = kGrisTouche,
     bool enabled = true,
     VoidCallback? onBlocked,
   }) => ToucheAction(

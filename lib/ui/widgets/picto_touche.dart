@@ -36,7 +36,10 @@ const double kPartPicto = 0.58;
 /// Il règle en effet le cas limite : deepgrey peint ses deux couleurs en
 /// `RGB(128, 128, 128)`, c'est-à-dire exactement le gris des touches — son
 /// dessin y était invisible, et c'est le trait qui le fait exister.
-const double kTraitPicto = 1.6;
+/// Le plus fin possible : Nino l'a vu trop épais au premier essai, à 1,6.
+/// Un demi-pixel de référence donne un trait d'un pixel d'écran sur un
+/// téléphone ordinaire — on ne peut pas descendre en dessous.
+const double kTraitPicto = 0.5;
 
 class PictoTouche extends StatelessWidget {
   const PictoTouche({

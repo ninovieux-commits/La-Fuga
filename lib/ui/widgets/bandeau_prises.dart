@@ -112,8 +112,8 @@ class BandeauPrises extends StatelessWidget {
             message: T('Annuler'),
             child: Material(
               color: onAnnuler == null
-                  ? Color.lerp(kFugaGrey, palette.menu, 0.6)!
-                  : kFugaGrey,
+                  ? Color.lerp(kGrisTouche, palette.menu, 0.6)!
+                  : kGrisTouche,
               child: InkWell(
                 onTap: onAnnuler,
                 child: SizedBox(

@@ -357,6 +357,20 @@ class _ConversationScreenState extends State<ConversationScreen>
   @override
   void initState() {
     super.initState();
+    // LA BOÎTE S'OUVRE EN BAS, DÈS LE CACHE.
+    //
+    // Les messages d'avant sont là dès la première image — c'est l'intérêt
+    // du cache — mais rien ne descendait avant l'arrivée de la liste du
+    // serveur : on voyait donc le HAUT de la conversation une demi-seconde,
+    // puis l'écran sautait en bas. Nino : « ça me fait apparaître tout en
+    // haut de la conversation pendant une demi-seconde, puis je suis
+    // téléporté tout en bas. Ça le faisait plus ça normalement. »
+    //
+    // Avant le cache, la première image n'avait aucun message : il n'y avait
+    // pas de haut à voir, et le premier affichage était déjà celui du
+    // serveur, suivi du saut. Le défaut est né avec le cache, pas avec le
+    // panneau des images.
+    if (_messages.isNotEmpty) _scrollToEnd();
     _load();
     _watch = widget.online.messages.incoming.listen(_onIncoming);
     // Son décor ou sa photo peuvent changer pendant qu'on se parle.
