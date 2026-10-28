@@ -274,6 +274,11 @@ class _ReplayScreenState extends State<ReplayScreen>
       body: SafeArea(
         top: false,
         child: GameLayout(
+          // On relit, on ne joue pas : le plateau se pousse du doigt vers le
+          // bas quand il cache le bandeau d'en haut. Nino : « on doit
+          // pouvoir faire défiler le plateau de manière à ne plus recouvrir
+          // le bandeau large du haut. »
+          plateauGlissant: true,
           topBar: GameTopBar(
             palette: palette,
             // En relecture, le bandeau prend la couleur du camp au trait.

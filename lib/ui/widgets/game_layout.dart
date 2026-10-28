@@ -73,7 +73,7 @@ double hauteurBandeauEnPartie(Size ecran) {
   return bandeau;
 }
 
-class GameLayout extends StatelessWidget {
+class GameLayout extends StatefulWidget {
   const GameLayout({
     super.key,
     required this.topBar,
@@ -87,6 +87,7 @@ class GameLayout extends StatelessWidget {
     this.topPanelDevant = false,
     this.topHeight,
     this.bottomHeight,
+    this.plateauGlissant = false,
   });
 
   final Widget topBar;
@@ -145,6 +146,37 @@ class GameLayout extends StatelessWidget {
   /// d'un bandeau de joueur mangerait le plateau pour rien.
   final double? bottomHeight;
 
+  /// Le plateau se pousse du doigt vers le bas, et ce qui est dessous le
+  /// suit.
+  ///
+  /// Un plateau est plus haut que la place qu'on lui réserve : il déborde
+  /// des deux côtés, sur le bandeau du joueur du haut comme sur celui du
+  /// bas. C'est voulu — les zones de ralliement doivent se voir — mais en
+  /// lecture automatique, où les commandes prennent le double d'un bandeau,
+  /// le débordement du haut devient assez gros pour cacher le nom et les
+  /// pièces de l'adversaire. Nino : « on doit pouvoir faire défiler le
+  /// plateau de manière à ne plus recouvrir le bandeau large du haut. »
+  ///
+  /// La course s'arrête exactement à ce débordement : au bout, le bandeau du
+  /// haut est entièrement dégagé, et pas un pixel de plus n'est donné.
+  final bool plateauGlissant;
+
+  @override
+  State<GameLayout> createState() => _GameLayoutState();
+}
+
+class _GameLayoutState extends State<GameLayout> {
+  /// De combien le plateau est descendu, en pixels logiques. Jamais négatif.
+  double _glisse = 0;
+
+  @override
+  void didUpdateWidget(GameLayout vieux) {
+    super.didUpdateWidget(vieux);
+    // L'écran qui cesse de glisser reprend sa place : sortir de la lecture
+    // automatique ne doit pas laisser le plateau à mi-chemin.
+    if (!widget.plateauGlissant && _glisse != 0) _glisse = 0;
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -152,12 +184,12 @@ class GameLayout extends StatelessWidget {
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / kPartsEcran;
       final bar = unit * kPartsBarre;
-      var top = topPanel == null
+      var top = widget.topPanel == null
           ? 0.0
-          : (topHeight ?? unit * kPartsBandeauJoueur);
-      var bottom = bottomPanel == null
+          : (widget.topHeight ?? unit * kPartsBandeauJoueur);
+      var bottom = widget.bottomPanel == null
           ? 0.0
-          : (bottomHeight ?? unit * bottomParts);
+          : (widget.bottomHeight ?? unit * widget.bottomParts);
 
       // LES BANDEAUX CÈDENT CE QUI MANQUE AU PLATEAU.
       //
@@ -175,7 +207,9 @@ class GameLayout extends StatelessWidget {
       // prorata de ce qu'ils occupent, et sans jamais perdre plus de
       // [kBandeauRetraitMax] de leur hauteur, pour que le nom, le chrono et
       // les touches y tiennent encore.
-      if (topHeight == null && bottomHeight == null && top + bottom > 0) {
+      if (widget.topHeight == null &&
+          widget.bottomHeight == null &&
+          top + bottom > 0) {
         final naturel = box.maxWidth * kExtRows / kCols;
         final manque = top + bottom + naturel - (box.maxHeight - 2 * bar);
         // ET SEULEMENT SI CELA SUFFIT. Sur une tablette, large, le plateau
@@ -192,44 +226,75 @@ class GameLayout extends StatelessWidget {
 
       final board = box.maxHeight - 2 * bar - top - bottom;
 
+      // CE QUE LE PLATEAU DÉBORDE EN HAUT, et donc la course du glissement :
+      // il dessine dix rangées pour sept de large, et il est centré dans la
+      // place qu'on lui donne.
+      final naturel = box.maxWidth * kExtRows / kCols;
+      final course = widget.plateauGlissant
+          ? ((naturel - board) / 2).clamp(0.0, double.infinity)
+          : 0.0;
+      final glisse = _glisse.clamp(0.0, course);
+
+      void pousser(DragUpdateDetails d) {
+        final vise = (_glisse + d.delta.dy).clamp(0.0, course);
+        if (vise != _glisse) setState(() => _glisse = vise);
+      }
+
       return Stack(
         clipBehavior: Clip.none,
         children: [
           Column(
             children: [
-              SizedBox(height: bar, child: topBar),
-              if (notice != null) notice!,
-              if (topPanel != null)
+              SizedBox(height: bar, child: widget.topBar),
+              if (widget.notice != null) widget.notice!,
+              if (widget.topPanel != null)
                 SizedBox(
                   height: top,
-                  child: topOverlay == null
-                      ? topPanel
+                  child: widget.topOverlay == null
+                      ? widget.topPanel
                       : ClipRect(
                           child: Stack(
-                            children: topPanelDevant
+                            children: widget.topPanelDevant
                                 ? [
-                                    Positioned.fill(child: topOverlay!),
-                                    Positioned.fill(child: topPanel!),
+                                    Positioned.fill(child: widget.topOverlay!),
+                                    Positioned.fill(child: widget.topPanel!),
                                   ]
                                 : [
-                                    Positioned.fill(child: topPanel!),
-                                    Positioned.fill(child: topOverlay!),
+                                    Positioned.fill(child: widget.topPanel!),
+                                    Positioned.fill(child: widget.topOverlay!),
                                   ],
                           ),
                         ),
                 ),
               SizedBox(height: board),
-              if (bottomPanel != null)
-                SizedBox(height: bottom, child: bottomPanel),
-              SizedBox(height: bar, child: moveStrip),
+              // Ce qui est SOUS le plateau descend avec lui : sinon le
+              // plateau viendrait manger les commandes qu'on dégage.
+              Transform.translate(
+                offset: Offset(0, glisse),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.bottomPanel != null)
+                      SizedBox(height: bottom, child: widget.bottomPanel),
+                    SizedBox(height: bar, child: widget.moveStrip),
+                  ],
+                ),
+              ),
             ],
           ),
           Positioned(
-            top: bar + top,
+            top: bar + top + glisse,
             left: 0,
             right: 0,
             height: board,
-            child: this.board,
+            child: course == 0
+                ? widget.board
+                : GestureDetector(
+                    // Le plateau n'est pas touché en lecture : le geste
+                    // vertical lui est entièrement libre.
+                    onVerticalDragUpdate: pousser,
+                    child: widget.board,
+                  ),
           ),
         ],
       );

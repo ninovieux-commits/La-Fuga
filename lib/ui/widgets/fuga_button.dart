@@ -39,16 +39,22 @@ const double kOpaciteEteinte = 0.35;
 class FugaButton extends StatelessWidget {
   const FugaButton({
     super.key,
-    required this.text,
+    this.text = '',
     required this.onPressed,
     this.color = kFugaGrey,
     this.textColor = Colors.white,
     this.height,
     this.fontSize,
     this.radius,
+    this.enfant,
   });
 
   final String text;
+
+  /// Un dessin À LA PLACE du texte, réduit de la même façon s'il est trop
+  /// large. Les touches qui portent un symbole plutôt qu'un mot s'en
+  /// servent.
+  final Widget? enfant;
   final VoidCallback? onPressed;
   final Color color;
   final Color textColor;
@@ -89,16 +95,18 @@ class FugaButton extends StatelessWidget {
             // texte ne vient jamais lécher le bord.
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: fontSize ?? SF(16),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child:
+                  enfant ??
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: fontSize ?? SF(16),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
             ),
           ),
         ),

@@ -59,17 +59,29 @@ class AutoPlayBar extends StatelessWidget {
           child: CapturesStrip(pieces: captures, palette: palette),
         ),
         _curseur(),
-        SizedBox(height: S(4)),
+        // Le curseur se prend du bout du doigt : il lui faut de l'air sous
+        // lui, sans quoi on attrape une touche en voulant le saisir. Nino :
+        // « il doit aussi être légèrement plus éloigné des boutons qui sont
+        // en dessous. »
+        SizedBox(height: S(14)),
         SizedBox(
           height: touchHeight() * 0.8,
           child: Row(
             children: [
               Expanded(
-                child: FugaButton(
-                  text: '⏮  ${T('Début')}',
-                  height: double.infinity,
-                  fontSize: SF(14),
-                  onPressed: onDebut,
+                child: Tooltip(
+                  message: T('Début'),
+                  child: FugaButton(
+                    // Le signe SEUL, et dessiné. Il était écrit « ⏮ Début » :
+                    // le caractère tombait en émoji de couleur sur Android,
+                    // à côté du « ▶ » tout noir de la touche voisine. Nino :
+                    // « dessine le comme le bouton play qui est juste à
+                    // côté, et retire le mot début, tout le monde comprend ce
+                    // signe. »
+                    enfant: GlypheDebut(taille: SF(18), couleur: Colors.white),
+                    height: double.infinity,
+                    onPressed: onDebut,
+                  ),
                 ),
               ),
               SizedBox(width: S(8)),
@@ -98,8 +110,11 @@ class AutoPlayBar extends StatelessWidget {
       Expanded(
         child: SliderTheme(
           data: SliderThemeData(
-            trackHeight: S(3),
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: S(8)),
+            trackHeight: S(5),
+            // Gros, parce qu'on le saisit avec un doigt et non avec une
+            // souris. Nino : « le bouton pour choisir le nombre de secondes
+            // doit être plus gros, là il est dur à attraper. »
+            thumbShape: RoundSliderThumbShape(enabledThumbRadius: S(14)),
             overlayShape: SliderComponentShape.noOverlay,
           ),
           child: Slider(
@@ -130,4 +145,56 @@ class AutoPlayBar extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// Le « retour au début » : un trait, puis deux triangles vers la gauche.
+///
+/// Dessiné et non écrit : le caractère ⏮ s'affiche en émoji de couleur sur
+/// Android, alors que le ▶ de la touche voisine reste un triangle plein. Les
+/// deux touches doivent se ressembler.
+class GlypheDebut extends StatelessWidget {
+  const GlypheDebut({super.key, required this.taille, required this.couleur});
+
+  /// Hauteur du signe. Sa largeur vaut autant : il est carré.
+  final double taille;
+
+  final Color couleur;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: taille,
+    height: taille,
+    child: CustomPaint(painter: _PeintreDebut(couleur)),
+  );
+}
+
+class _PeintreDebut extends CustomPainter {
+  const _PeintreDebut(this.couleur);
+
+  final Color couleur;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final encre = Paint()..color = couleur;
+    // Le trait, collé à gauche, puis les deux triangles qui le visent.
+    final largeurTrait = h * 0.16;
+    canvas.drawRect(Rect.fromLTWH(0, 0, largeurTrait, h), encre);
+    final debut = largeurTrait + h * 0.08;
+    final cote = h * 0.38;
+    for (var i = 0; i < 2; i++) {
+      final x = debut + i * cote;
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, h / 2)
+          ..lineTo(x + cote, 0)
+          ..lineTo(x + cote, h)
+          ..close(),
+        encre,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PeintreDebut vieux) => vieux.couleur != couleur;
 }

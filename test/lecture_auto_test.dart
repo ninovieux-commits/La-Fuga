@@ -14,12 +14,14 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/game/vitesse_lecture.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/widgets/auto_play_bar.dart';
+import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,13 +121,53 @@ void main() {
     testWidgets('le curseur, puis les deux touches en dessous', (tester) async {
       await ouvrirAuto(tester);
       final curseur = tester.getCenter(find.byType(Slider));
-      final debut = tester.getCenter(find.textContaining('Début'));
+      // La touche ne porte plus de mot : c'est le signe dessiné qui la
+      // désigne.
+      final debut = tester.getCenter(find.byType(GlypheDebut));
       expect(debut.dy, greaterThan(curseur.dy), reason: 'sous le curseur');
       expect(
         find.textContaining('rythmique'),
         findsNothing,
         reason: 'les danses ont été retirées',
       );
+    });
+
+    testWidgets('le plateau se pousse jusqu a degager le bandeau du haut', (
+      tester,
+    ) async {
+      // Nino : « on doit pouvoir faire défiler le plateau de manière à ne
+      // plus recouvrir le bandeau large du haut. »
+      await ouvrirAuto(tester);
+      final plateau = find.byType(GameBoardView);
+      final place = tester.getRect(plateau);
+      final hautAvant = place.top;
+      final basAvant = tester.getTopLeft(find.byType(AutoPlayBar)).dy;
+
+      // Le plateau DESSINE dix rangées pour sept de large et se centre dans
+      // la place qu'on lui donne : ce qu'il a de trop déborde par le haut,
+      // sur le bandeau de l'adversaire. C'est exactement cela qu'on dégage.
+      final recouvrement = (place.width * kExtRows / kCols - place.height) / 2;
+      expect(recouvrement, greaterThan(0), reason: 'il recouvre, au départ');
+
+      await tester.drag(plateau, const Offset(0, 400));
+      await tester.pumpAndSettle();
+
+      final hautApres = tester.getTopLeft(plateau).dy;
+      expect(
+        hautApres - hautAvant,
+        moreOrLessEquals(recouvrement, epsilon: 0.5),
+        reason: 'poussé à fond, il ne recouvre plus rien — et pas plus loin',
+      );
+      expect(
+        tester.getTopLeft(find.byType(AutoPlayBar)).dy - basAvant,
+        moreOrLessEquals(hautApres - hautAvant, epsilon: 0.5),
+        reason: 'les commandes descendent d autant : il ne les mange pas',
+      );
+
+      // Et ça remonte.
+      await tester.drag(plateau, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(plateau).dy, moreOrLessEquals(hautAvant));
     });
 
     testWidgets('et on peut les refermer', (tester) async {
