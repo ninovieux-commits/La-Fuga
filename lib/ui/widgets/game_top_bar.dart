@@ -550,10 +550,14 @@ final class _PausePainter extends CustomPainter {
     final paint = Paint()..color = couleur;
     // LE MÊME TRAIT NOIR QUE LES PICTOGRAMMES, pour que la pause se détache
     // comme ses voisines du fond de sa touche.
+    //
+    // LE DOUBLE, comme pour les mots : un tracé est centré sur la ligne qu'il
+    // suit, donc la moitié part en dedans, sous la couleur. À épaisseur
+    // égale, la pause n'en montrait que la moitié de ses voisines.
     final trait = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.stroke
-      ..strokeWidth = kTraitPicto;
+      ..strokeWidth = kTraitPicto * 2;
     final radius = Radius.circular(barWidth / 2);
     for (final left in [0.0, size.width - barWidth]) {
       final barre = RRect.fromRectAndRadius(
