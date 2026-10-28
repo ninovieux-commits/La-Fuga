@@ -13,6 +13,7 @@ import 'net/push_notifications.dart';
 import 'state/settings.dart';
 import 'ui/scale.dart';
 import 'ui/screens/menu_screen.dart';
+import 'ui/widgets/fuga_button.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -179,6 +180,18 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(minimumSize: _touchSize()),
+        ),
+        // LE TRAIT NOIR FAIT LE TOUR DE CHAQUE POPUP. Nino : « pour chaque
+        // popup je veux le trait noir qui fait le tour du popup stp. »
+        //
+        // Posé ici, dans le thème, et non sur les vingt-neuf boîtes de
+        // dialogue une par une : celles qu'on écrira demain l'auront aussi,
+        // et aucune ne peut l'oublier.
+        dialogTheme: DialogThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(S(28)),
+            side: kTraitDeTouche,
+          ),
         ),
       ),
       // Le texte doit occuper la même proportion de l'écran quel que soit le

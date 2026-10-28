@@ -103,7 +103,12 @@ class FugaPopup extends StatelessWidget {
     return Dialog(
       backgroundColor: kFugaGrey,
       insetPadding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(S(14))),
+      // Le trait noir des touches fait aussi le tour des popups. Celui-ci
+      // impose sa forme, il ne la prend donc pas du thème : on l'y remet.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(S(14)),
+        side: kTraitDeTouche,
+      ),
       child: ConstrainedBox(
         // [heightFactor] est un PLAFOND, pas une hauteur. Le popup prend ce
         // que son contenu demande et pas un pixel de plus.
