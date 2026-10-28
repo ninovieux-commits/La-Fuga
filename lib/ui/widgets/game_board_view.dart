@@ -282,9 +282,12 @@ class _GameBoardViewState extends State<GameBoardView>
                   child: IgnorePointer(
                     child: PictoTouche(
                       asset: 'assets/images/meneuse.webp',
-                      // L'autre couleur que celle de son camp : le chevron
-                      // est POSÉ sur la pièce, et la couleur de son propre
-                      // camp s'y fondrait.
+                      // LA COULEUR DE SON CAMP, comme partout ailleurs :
+                      // l'orange des Blancs, le bleu des Noirs, dans le
+                      // thème d'origine. Il avait d'abord porté l'AUTRE, de
+                      // peur qu'il se fonde dans la pièce ; c'était inutile
+                      // — la pièce choisie est enfoncée, et le chevron,
+                      // plein et cerné de noir, s'en détache tout seul.
                       couleur:
                           widget.board
                                   .at(
@@ -293,8 +296,8 @@ class _GameBoardViewState extends State<GameBoardView>
                                   )
                                   ?.camp ==
                               Camp.noir
-                          ? widget.palette.clair
-                          : widget.palette.fonce,
+                          ? widget.palette.fonce
+                          : widget.palette.clair,
                       secours: '^',
                     ),
                   ),
