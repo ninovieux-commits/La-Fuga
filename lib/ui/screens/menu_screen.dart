@@ -1514,10 +1514,12 @@ class MenuScreenState extends State<MenuScreen>
         widthFactor: 0.62,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          // DIX FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait pas
-          // qu'elle était allumée : « c'est juste beaucoup trop fin. » Un
-          // voyant doit se voir sans qu'on le cherche.
-          height: S(kTraitPicto * 10),
+          // DOUZE FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait
+          // pas qu'elle était allumée : « c'est juste beaucoup trop fin. »
+          // Un voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
+          // dix-sept thèmes — « ça se voit très bien même avec deepgrey » —
+          // puis monté à ×3, qu'il a préféré.
+          height: S(kTraitPicto * 12),
           decoration: BoxDecoration(
             color: attend ? palette.clair : const Color(0xFF000000),
             borderRadius: BorderRadius.circular(S(kTraitPicto * 2)),
