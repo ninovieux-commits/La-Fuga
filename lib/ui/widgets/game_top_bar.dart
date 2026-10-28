@@ -342,11 +342,14 @@ class GameTopBar extends StatelessWidget {
               else if (pauseLabel == '| |')
                 ToucheDePause(palette: palette, onPause: onPause)
               else
-                _round(
-                  pauseLabel,
+                // LA FLÈCHE QUI REVIENT, à la place du « << » écrit. Même
+                // place et même couleur que la pause, dont elle prend le
+                // relais sur les écrans qui ne se mettent pas en pause.
+                _rondImage(
+                  'assets/images/retour.webp',
                   onPause,
-                  fontSize: SF(25),
                   tooltip: T('Retour'),
+                  secours: pauseLabel,
                 ),
             ],
           ),
@@ -390,23 +393,6 @@ class GameTopBar extends StatelessWidget {
         ),
       ),
     ),
-  );
-
-  /// Touche ronde, carrée : la hauteur du bandeau fait sa largeur —
-  /// `bind(height=lambda b, h: setattr(b, "width", h))`.
-  Widget _round(
-    String label,
-    VoidCallback onPressed, {
-    required double fontSize,
-    required String tooltip,
-  }) => _button(
-    label,
-    onPressed,
-    width: null,
-    color: kBarButtonDark,
-    radius: S(20),
-    fontSize: fontSize,
-    tooltip: tooltip,
   );
 
   Widget _wide(
@@ -477,16 +463,14 @@ class GameTopBar extends StatelessWidget {
   /// le texte reçoit une place infinie et ne va donc jamais à la ligne tout
   /// seul. On lui impose la largeur utile de la touche, il s'y replie, et le
   /// `FittedBox` ne réduit plus que ce qui dépasse encore.
+  /// Le libellé d'une touche à MOTS, traité comme un symbole : la couleur
+  /// claire du thème, et le même fin trait noir que les dessins.
   Widget _etiquette(String label, double fontSize, double? width, int lignes) {
-    final texte = Text(
-      label,
-      textAlign: TextAlign.center,
+    final texte = MotTouche(
+      texte: label,
+      couleur: palette.clair,
       maxLines: lignes,
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: fontSize,
-        fontWeight: FontWeight.bold,
-      ),
+      style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
     );
     if (lignes <= 1 || width == null) return texte;
     return SizedBox(width: width - S(12), child: texte);

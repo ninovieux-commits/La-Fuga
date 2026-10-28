@@ -26,10 +26,14 @@
 /// maximale. Voir `bulle_cri.dart` pour la forme ; ici, on se contente de
 /// choisir le fond.
 ///
-/// ## Un émoji seul
+/// ## Que des dessins
 ///
-/// Il sort de sa bulle et s'affiche en grand, comme dans toutes les
-/// messageries : une bulle autour d'un seul dessin ne sert à rien.
+/// Un message qui n'est fait QUE d'émojis, ou QUE d'images, sort de sa bulle
+/// et s'affiche en grand, comme dans toutes les messageries : une bulle
+/// autour d'un dessin ne sert à rien. Plus il y en a, plus ils sont petits,
+/// mais ils ne redeviennent jamais de la taille du texte — Nino : « quand on
+/// envoie que des smileys ou que des images ça doit aussi le mettre en plus
+/// gros ». Voir `grossissementDe` dans `texte_emoji.dart`.
 ///
 /// ## Une pièce
 ///
@@ -109,27 +113,27 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Un message qui n'est QUE des images se montre en grand, sans bulle,
-    // exactement comme un émoji seul.
+    // exactement comme un émoji seul — et quel qu'en soit le nombre.
     final images = compteImagesSeules(texte);
-    if (images > 0 && images <= kEmojiMaxGrossi && !echoue) {
+    if (images > 0 && !echoue) {
       // Les mêmes tailles qu'un émoji seul, mesurées de la même façon.
-      final taille = tailleDUnEmoji(
-        SF(16) *
-            switch (images) {
-              1 => 3.0,
-              2 => 2.4,
-              _ => 2.0,
-            },
-      );
+      final taille = tailleDUnEmoji(SF(16) * grossissementDe(images));
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final m in decoupeMessage(texte))
-              if (m.texte == null)
-                ProfilePhoto(photo: _photoDe(m), size: taille),
-          ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
+          ),
+          // Wrap, et non Row : une pleine rangée de jetons passe à la ligne
+          // au lieu de déborder de l'écran.
+          child: Wrap(
+            alignment: deMoi ? WrapAlignment.end : WrapAlignment.start,
+            children: [
+              for (final m in decoupeMessage(texte))
+                if (m.texte == null)
+                  ProfilePhoto(photo: _photoDe(m), size: taille),
+            ],
+          ),
         ),
       );
     }

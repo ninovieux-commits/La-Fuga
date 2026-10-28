@@ -82,7 +82,8 @@ void main() {
 
       expect(find.byTooltip(T('Retourner le plateau')), findsOneWidget);
       expect(find.byTooltip('Pause'), findsOneWidget);
-      expect(find.text('<<'), findsNothing);
+      // Le « << » est devenu une flèche : on le cherche par son nom.
+      expect(find.byTooltip('Retour'), findsNothing);
       expect(find.text('Retour au menu'), findsNothing);
       expect(find.text('Rapide'), findsNothing);
       expect(find.text('Profond'), findsNothing);
@@ -253,7 +254,7 @@ void main() {
     ) async {
       await open(tester, analysis: true);
 
-      expect(find.text('<<'), findsOneWidget);
+      expect(find.byTooltip('Retour'), findsOneWidget);
       expect(find.byTooltip('Pause'), findsNothing);
       expect(find.text('Deep Grey'), findsOneWidget);
       expect(find.text('Analyser'), findsNothing, reason: 'on y est déjà');
@@ -325,7 +326,7 @@ void main() {
       await open(tester, analysis: true, analysisFromCorr: true);
 
       expect(find.text('Deep Grey'), findsOneWidget);
-      expect(find.text('<<'), findsOneWidget);
+      expect(find.byTooltip('Retour'), findsOneWidget);
     });
   });
 }

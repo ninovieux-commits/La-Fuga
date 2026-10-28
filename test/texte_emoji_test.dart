@@ -78,9 +78,29 @@ void main() {
       expect(trois, greaterThan(1.0), reason: 'trois restent plus gros');
     });
 
-    test('au-delà de trois, le message redevient ordinaire', () {
-      expect(kEmojiMaxGrossi, 3);
-      expect(grossissementEmoji('😀😀😀😀'), isNull);
+    test('au-delà de trois, ça rapetisse mais ça reste gros', () {
+      // Nino : « quand on envoie que des smileys […] ça doit aussi le mettre
+      // en plus gros ». Quatre ne redeviennent donc pas du texte.
+      final trois = grossissementEmoji('😀😀😀')!;
+      final quatre = grossissementEmoji('😀😀😀😀')!;
+      expect(quatre, lessThan(trois));
+      expect(quatre, greaterThan(1.0));
+    });
+
+    test('le plancher arrête la décroissance', () {
+      final dix = grossissementEmoji('😀' * 10)!;
+      final trente = grossissementEmoji('😀' * 30)!;
+      expect(dix, kEmojiGrossiMin);
+      expect(trente, kEmojiGrossiMin);
+      expect(kEmojiGrossiMin, greaterThan(1.0), reason: 'jamais du texte');
+    });
+
+    test('l\'escalier d\'avant est intact', () {
+      // La formule REMPLACE trois valeurs écrites à la main : elle doit
+      // rendre exactement les mêmes.
+      expect(grossissementDe(1), 3.0);
+      expect(grossissementDe(2), 2.4);
+      expect(grossissementDe(3), 2.0);
     });
 
     test('du texte ne grossit jamais', () {

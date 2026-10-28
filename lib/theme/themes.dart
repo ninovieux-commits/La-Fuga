@@ -57,14 +57,17 @@ abstract final class FugaColors {
   /// Corps des pièces noires.
   static const Color blackPiece = Color.fromRGBO(18, 18, 33, 1);
 
-  /// Contour de la pièce sélectionnée.
-  static const Color selection = Color.fromRGBO(255, 255, 0, 1);
-
-  /// Contour des pièces du groupe sélectionné : un jaune moutarde sombre.
+  /// Contour de la pièce sélectionnée : le CONTRAIRE de son camp.
   ///
-  /// Assez proche du jaune vif de la pièce maîtresse pour dire « même
-  /// coup », assez foncé pour ne pas s'y confondre.
-  static const Color groupSelection = Color.fromRGBO(184, 134, 11, 1);
+  /// C'était un jaune vif, le même pour tout le monde. Nino : « la couleur
+  /// de sélection de pièce ne doit plus être jaune. Elle doit être blanche
+  /// pour les noirs, et noire pour les blancs. » Le contour se lit alors sur
+  /// la pièce elle-même, quel que soit le thème, au lieu de compter sur une
+  /// couleur qui tranche avec le plateau.
+  /// Le thème ne connaît pas les pièces : on lui dit seulement de quel côté
+  /// est celle qu'on encadre.
+  static Color selectionDe({required bool noir}) =>
+      noir ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
 
   /// Contour d'une pièce immobilisée.
   static const Color immobile = Color.fromRGBO(255, 51, 51, 1);

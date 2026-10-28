@@ -209,6 +209,28 @@ void main() {
       expect(find.byType(ProfilePhoto), findsNWidgets(3));
     });
 
+    testWidgets('une pleine rangée reste grosse', (tester) async {
+      // Nino : « quand on envoie que des smileys ou que des images ça doit
+      // aussi le mettre en plus gros ». Sept pièces rapetissent donc par
+      // rapport à une seule, mais pas jusqu'à la taille qu'elles auraient
+      // dans une phrase.
+      await pose(tester, '[Soldat] ' * 7);
+      final photos = tester
+          .widgetList<ProfilePhoto>(find.byType(ProfilePhoto))
+          .toList();
+      expect(photos, hasLength(7));
+
+      await pose(tester, '[Soldat]');
+      final seule = tester.widget<ProfilePhoto>(find.byType(ProfilePhoto));
+
+      expect(photos.first.size, lessThan(seule.size));
+      expect(
+        photos.first.size,
+        greaterThan(tailleDUnEmoji(SF(16))),
+        reason: 'plus grosse que dans une phrase',
+      );
+    });
+
     testWidgets('sans thème, la pièce suit celui de CELUI QUI LIT', (
       tester,
     ) async {

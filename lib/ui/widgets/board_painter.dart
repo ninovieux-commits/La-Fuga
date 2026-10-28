@@ -264,6 +264,19 @@ final class BoardBackgroundPainter extends CustomPainter {
       old.geometry.flipped != geometry.flipped;
 }
 
+/// Épaisseur du contour de sélection, en pixels de référence.
+///
+/// Nino a choisi sur aperçu, entre 2,5, 4 et 6.
+const double kEpaisseurSelection = 4;
+
+/// Longueur d'un tiret, et du vide qui le suit, en part de la case.
+///
+/// Les pièces qui SUIVENT la meneuse, dans une manœuvre, portent un cadre en
+/// pointillés là où elle en porte un plein : on distingue ainsi d'un coup
+/// d'œil celle qu'on a prise d'abord. Nino : « au lieu de l'encadrer
+/// entièrement on va encadrer […] en faisant des pointillés ».
+const double kPartTiret = 0.14;
+
 /// Pièces, sélection et mise en évidence du dernier coup.
 final class BoardPiecesPainter extends CustomPainter {
   BoardPiecesPainter({
@@ -395,6 +408,52 @@ final class BoardPiecesPainter extends CustomPainter {
     // Au premier plan : un cadre à moitié caché par une pièce voisine ou par
     // une image de thème ne se voit pas. Vers l'intérieur : le trait tient
     // entièrement dans sa case, il ne mord pas sur les voisines.
+    /// Le contour d'une pièce sélectionnée : le contraire de son camp.
+    Color couleurDeSelection(int c, int r) =>
+        FugaColors.selectionDe(noir: board.at(c, r)!.camp == Camp.noir);
+
+    /// Le cadre en pointillés des pièces qui SUIVENT la meneuse.
+    ///
+    /// Le trait est posé à l'intérieur du bord de la case, comme [frame], et
+    /// chaque côté est dessiné tiret par tiret : un `Path` fermé aurait
+    /// arrondi les coupures aux angles.
+    void cadreDuGroupe(
+      Canvas canvas,
+      BoardGeometry g,
+      Cell cell,
+      Color color,
+      double width,
+    ) {
+      if (!cell.onBoard &&
+          !board.estCaseDeRalliement(
+            BoardGeometry.campDeLaRangee(cell.row),
+            cell.col,
+            cell.row,
+          )) {
+        return;
+      }
+      final r = g.cellRect(cell.col, cell.row).deflate(width / 2);
+      final trait = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.square;
+
+      void segment(Offset a, Offset b) => canvas.drawLine(a, b, trait);
+
+      final pas = r.width * kPartTiret;
+      for (var x = r.left; x < r.right; x += 2 * pas) {
+        final fin = (x + pas).clamp(r.left, r.right);
+        segment(Offset(x, r.top), Offset(fin, r.top));
+        segment(Offset(x, r.bottom), Offset(fin, r.bottom));
+      }
+      for (var y = r.top; y < r.bottom; y += 2 * pas) {
+        final fin = (y + pas).clamp(r.top, r.bottom);
+        segment(Offset(r.left, y), Offset(r.left, fin));
+        segment(Offset(r.right, y), Offset(r.right, fin));
+      }
+    }
+
     void frame(Cell cell, Color color, double width) {
       // Les zones de ralliement sont à l'écran : un Héritier qui vient d'y
       // entrer s'encadre comme n'importe quelle case d'arrivée.
@@ -450,9 +509,15 @@ final class BoardPiecesPainter extends CustomPainter {
         final cell = Cell(c, r);
         if (flying.contains(cell)) continue;
         if (cell == selected) {
-          frame(cell, FugaColors.selection, S(4));
+          frame(cell, couleurDeSelection(c, r), S(kEpaisseurSelection));
         } else if (groupSelection.contains(cell)) {
-          frame(cell, FugaColors.groupSelection, S(4));
+          cadreDuGroupe(
+            canvas,
+            g,
+            cell,
+            couleurDeSelection(c, r),
+            S(kEpaisseurSelection),
+          );
         } else if (board.isImmobilised(c, r)) {
           // Même condition que la règle : une pièce au contour rouge ne peut
           // pas bouger.

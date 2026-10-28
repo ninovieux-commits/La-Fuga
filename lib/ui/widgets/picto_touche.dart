@@ -95,3 +95,106 @@ class PictoTouche extends StatelessWidget {
     ),
   );
 }
+
+/// Un MOT sur une touche, traité comme un symbole.
+///
+/// Nino : « quand il n'y a pas de symbole mais des mots, tu mets quand même
+/// le mot en couleur de thème sur fond gris médian avec le trait noir fin en
+/// faisant comme si les lettres étaient des symboles. »
+///
+/// Le trait noir est le même qu'autour des dessins — [kTraitPicto] — mais il
+/// s'obtient autrement : une lettre a un CONTOUR, qu'on peut tracer
+/// directement (`PaintingStyle.stroke`), là où un pictogramme n'est qu'une
+/// forme pleine qu'il faut dilater. Les deux textes sont superposés : le
+/// trait dessous, les lettres pleines dessus.
+class MotTouche extends StatelessWidget {
+  const MotTouche({
+    super.key,
+    required this.texte,
+    required this.couleur,
+    required this.style,
+    this.maxLines = 1,
+  });
+
+  final String texte;
+  final Color couleur;
+
+  /// Taille et graisse ; la couleur vient de [couleur].
+  final TextStyle style;
+
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    // Le style tel que le `Text` l'aura vraiment : celui qu'on lui donne,
+    // posé sur celui que l'arbre impose. Le contour doit être dessiné avec
+    // EXACTEMENT la même police et la même taille, sans quoi il ne tombe pas
+    // sur les lettres.
+    final effectif = DefaultTextStyle.of(context).style.merge(style);
+    return CustomPaint(
+      // Un peintre peint DERRIÈRE son enfant : le contour passe donc sous
+      // les lettres pleines, comme la copie dilatée sous un picto.
+      painter: _ContourMot(
+        texte: texte,
+        style: effectif,
+        maxLines: maxLines,
+        echelle: MediaQuery.textScalerOf(context),
+      ),
+      child: Text(
+        texte,
+        textAlign: TextAlign.center,
+        maxLines: maxLines,
+        style: style.copyWith(color: couleur),
+      ),
+    );
+  }
+}
+
+/// Le contour noir d'un mot : les mêmes lettres, tracées et non remplies.
+///
+/// Un `CustomPaint` plutôt qu'un second `Text` : le mot ne doit figurer
+/// qu'UNE fois dans l'arbre, sinon chaque `find.text` du code d'essai en
+/// trouve deux, et surtout un lecteur d'écran le dirait deux fois.
+class _ContourMot extends CustomPainter {
+  const _ContourMot({
+    required this.texte,
+    required this.style,
+    required this.maxLines,
+    required this.echelle,
+  });
+
+  final String texte;
+  final TextStyle style;
+  final int maxLines;
+  final TextScaler echelle;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final peintre = TextPainter(
+      text: TextSpan(
+        text: texte,
+        style: style.copyWith(
+          foreground: Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = kTraitPicto
+            ..strokeJoin = StrokeJoin.round
+            ..color = const Color(0xFF000000),
+        ),
+      ),
+      textAlign: TextAlign.center,
+      maxLines: maxLines,
+      textDirection: TextDirection.ltr,
+      textScaler: echelle,
+    )..layout(maxWidth: size.width);
+    // La boîte est celle du `Text`, donc de la même hauteur à l'arrondi
+    // près ; on recentre pour que le contour ne glisse pas d'un pixel.
+    peintre.paint(canvas, Offset(0, (size.height - peintre.height) / 2));
+  }
+
+  @override
+  bool shouldRepaint(_ContourMot vieux) =>
+      vieux.texte != texte ||
+      vieux.style != style ||
+      vieux.maxLines != maxLines ||
+      vieux.echelle != echelle;
+}

@@ -20,8 +20,20 @@
 /// Dart pur, sans Flutter.
 library;
 
-/// Au-delà, le message redevient du texte ordinaire.
-const int kEmojiMaxGrossi = 3;
+/// Le grossissement d'un dessin seul : toute la place est pour lui.
+const double kEmojiGrossiMax = 3.0;
+
+/// Le plancher. Un message qui n'est QUE des dessins ne redevient jamais du
+/// texte ordinaire — Nino : « quand on envoie que des smileys ou que des
+/// images ça doit aussi le mettre en plus gros ». Passé une poignée, on
+/// cesse simplement de rapetisser.
+const double kEmojiGrossiMin = 1.5;
+
+/// Ce que chaque dessin supplémentaire coûte aux autres.
+///
+/// Un quart : il redonne exactement l'escalier d'avant — 3,0 pour un dessin,
+/// 2,4 pour deux, 2,0 pour trois — et le prolonge au lieu de s'arrêter net.
+const double kEmojiPasGrossi = 0.25;
 
 /// Caractères qui s'accrochent à l'émoji précédent sans en faire un nouveau.
 bool _estModificateur(int r) =>
@@ -141,17 +153,26 @@ int compteEmojisSeuls(String texte) {
   return compte;
 }
 
+/// Le multiplicateur de taille pour un message de [n] dessins.
+///
+/// Décroît avec le nombre, comme partout ailleurs : un dessin seul est le
+/// plus gros, et chaque voisin lui prend de la place. Mais il ne retombe
+/// jamais à la taille du texte — une rangee de smileys reste une rangee de
+/// smileys, pas une phrase.
+///
+/// Sert aux émojis comme aux images : ce sont les mêmes dessins pour l'œil,
+/// donc la même règle.
+double grossissementDe(int n) {
+  if (n <= 0) return 1;
+  final facteur = kEmojiGrossiMax / (1 + (n - 1) * kEmojiPasGrossi);
+  return facteur < kEmojiGrossiMin ? kEmojiGrossiMin : facteur;
+}
+
 /// Le message doit-il s'afficher en gros, et à quelle taille.
 ///
-/// Rend le multiplicateur à appliquer à la taille du texte, ou `null` quand le
-/// message s'affiche normalement. Un émoji seul est le plus gros ; deux puis
-/// trois décroissent, comme partout ailleurs.
+/// Rend le multiplicateur à appliquer à la taille du texte, ou `null` quand
+/// le message n'est pas fait QUE d'émojis.
 double? grossissementEmoji(String texte) {
   final n = compteEmojisSeuls(texte);
-  if (n == 0 || n > kEmojiMaxGrossi) return null;
-  return switch (n) {
-    1 => 3.0,
-    2 => 2.4,
-    _ => 2.0,
-  };
+  return n == 0 ? null : grossissementDe(n);
 }
