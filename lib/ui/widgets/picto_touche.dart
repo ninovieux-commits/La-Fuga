@@ -102,11 +102,18 @@ class PictoTouche extends StatelessWidget {
 /// le mot en couleur de thème sur fond gris médian avec le trait noir fin en
 /// faisant comme si les lettres étaient des symboles. »
 ///
-/// Le trait noir est le même qu'autour des dessins — [kTraitPicto] — mais il
-/// s'obtient autrement : une lettre a un CONTOUR, qu'on peut tracer
-/// directement (`PaintingStyle.stroke`), là où un pictogramme n'est qu'une
-/// forme pleine qu'il faut dilater. Les deux textes sont superposés : le
-/// trait dessous, les lettres pleines dessus.
+/// Le trait noir fait la même épaisseur VISIBLE qu'autour des dessins, mais
+/// il s'obtient autrement, et c'est là que se cache un piège.
+///
+/// Un pictogramme est une forme pleine : on le DILATE de [kTraitPicto], et ce
+/// qui dépasse tout autour — un demi-pixel entier — fait le contour. Une
+/// lettre, elle, a un contour qu'on peut tracer directement ; mais un tracé
+/// est CENTRÉ sur la ligne qu'il suit : la moitié part en dehors de la
+/// lettre, l'autre moitié en dedans, où les lettres pleines la recouvrent. À
+/// épaisseur égale, le mot ne montrait donc que la MOITIÉ du trait d'un
+/// dessin. Nino : « pourquoi pour les mots le trait noir est moins visible
+/// que pour les symboles ? » C'est pour cela que le tracé vaut le DOUBLE de
+/// [kTraitPicto] : à l'écran, les deux font la même épaisseur.
 class MotTouche extends StatelessWidget {
   const MotTouche({
     super.key,
@@ -176,7 +183,9 @@ class _ContourMot extends CustomPainter {
         style: style.copyWith(
           foreground: Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = kTraitPicto
+            // LE DOUBLE, et pour que les deux se ressemblent : voir
+            // [MotTouche]. Un tracé est centré, la moitié ne se voit pas.
+                                    ..strokeWidth = kTraitPicto * 2
             ..strokeJoin = StrokeJoin.round
             ..color = const Color(0xFF000000),
         ),
