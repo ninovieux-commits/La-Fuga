@@ -500,12 +500,21 @@ class PlayerPanel extends StatelessWidget {
       // coup à annuler, elle s'éteint donc au lieu de s'en aller — comme le
       // drapeau quand la nulle est fermée. C'est aussi ce qui tient la
       // rangée immobile sans avoir à la ranger dans un ordre particulier.
-      _carre(
-        T('Annuler'),
-        onUndo ?? () {},
-        enabled: onUndo != null,
-        enfant: glypheAnnuler(palette),
-      ),
+      //
+      // MAIS SEULEMENT DANS LE BANDEAU DE CELUI QUI JOUE. Rendue permanente,
+      // elle s'était mise à hanter le bandeau d'en face, toute seule et
+      // éteinte, là où l'avion et le drapeau, eux, s'en allaient. Nino :
+      // « pourquoi la flèche d'annulation de coup apparaît-elle également
+      // dans le bandeau adverse ? C'est stupide, elle n'a rien à y faire. »
+      // Elle suit donc la rangée : là où il y a des gestes à faire, et
+      // éteinte quand il n'y a rien à défaire.
+      if (onMessageRapide != null || onDraw != null || onResign != null)
+        _carre(
+          T('Annuler'),
+          onUndo ?? () {},
+          enabled: onUndo != null,
+          enfant: glypheAnnuler(palette),
+        ),
       // LE MESSAGE RAPIDE, ensuite. Nino l'a dessiné là, à gauche du geste
       // qui termine la partie : la place la plus éloignée de l'abandon.
       //

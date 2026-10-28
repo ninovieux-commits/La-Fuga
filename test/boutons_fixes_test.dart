@@ -92,6 +92,34 @@ void main() {
       ),
     );
 
+    testWidgets('le bandeau adverse ne porte aucune touche', (tester) async {
+      // Nino : « pourquoi la flèche d'annulation de coup apparaît-elle
+      // également dans le bandeau adverse ? C'est stupide, elle n'a rien à y
+      // faire. » Le bandeau de celui qui ne joue pas n'a ni avion ni
+      // drapeau : l'annulation, devenue permanente, y restait seule et
+      // éteinte.
+      await pose(
+        tester,
+        SizedBox(
+          height: 851 * 12 / 104,
+          child: PlayerPanel(
+            name: 'mesange',
+            clock: '15:00',
+            palette: paletteOf('foret'),
+            isWhite: false,
+            isTurn: false,
+            captures: const [Piece.blancSoldat],
+          ),
+        ),
+      );
+      expect(find.byTooltip(T('Annuler')), findsNothing);
+      expect(find.byTooltip(T('Message rapide')), findsNothing);
+      expect(
+        find.byTooltip(T('Abandonner ou proposer la nulle ?')),
+        findsNothing,
+      );
+    });
+
     testWidgets('le message rapide et le drapeau ne bougent pas quand le ↶ '
         'paraît', (tester) async {
       await pose(tester, panneau(annulable: false));
