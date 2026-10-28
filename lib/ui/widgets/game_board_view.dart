@@ -310,6 +310,11 @@ class _GameBoardViewState extends State<GameBoardView>
                     painter: FlyingPiecesPainter(
                       geometry: geometry,
                       palette: widget.palette,
+                      // Une pièce tenue reste enfoncée, même en vol.
+                      choisies: {
+                        if (widget.selected != null) widget.selected!,
+                        ...widget.groupSelection,
+                      },
                       slides: widget.slides,
                       progress: _slide.value,
                       jumpPath: widget.slideJumpPath,

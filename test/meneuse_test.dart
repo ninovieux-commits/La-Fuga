@@ -17,6 +17,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/board_geometry.dart';
+import 'package:lafuga/ui/widgets/board_painter.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/picto_touche.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -90,6 +91,31 @@ void main() {
     final posee = tester.getRect(chevron);
     expect(posee.center.dx, moreOrLessEquals(attendue.center.dx, epsilon: 1));
     expect(posee.center.dy, moreOrLessEquals(attendue.center.dy, epsilon: 1));
+  });
+
+  testWidgets('une pièce reste enfoncée même en vol', (tester) async {
+    // Nino : « la pièce doit rester enfoncée tant qu'elle est sélectionnée,
+    // y compris pendant qu'elle glisse. » La couche qui vole doit donc
+    // connaître les cases choisies, sinon la pièce reprend sa pleine
+    // couleur le temps du glissement et la perd en se posant.
+    await pose(tester, choisie: const Cell(2, 0), groupe: {const Cell(3, 0)});
+    final vol = tester.widget<CustomPaint>(
+      find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is FlyingPiecesPainter,
+      ),
+    );
+    expect((vol.painter! as FlyingPiecesPainter).choisies, {
+      const Cell(2, 0),
+      const Cell(3, 0),
+    });
+  });
+
+  testWidgets('un thème à images s efface moins', (tester) async {
+    // Ses pièces portent leur contour DANS leur image : on ne peut pas le
+    // repeindre net par-dessus, et au tiers elles se dissolvaient dans le
+    // plateau. Nino : « pour les thèmes spéciaux, la transparence doit être
+    // moins marquée. »
+    expect(kOpaciteChoisieImage, greaterThan(kOpaciteChoisie));
   });
 
   testWidgets('le chevron porte la couleur de SON camp', (tester) async {

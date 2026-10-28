@@ -278,6 +278,52 @@ final class BoardBackgroundPainter extends CustomPainter {
 /// qu'il le parle partout pareil.
 const double kOpaciteChoisie = kOpaciteEteinte;
 
+/// Ce qu'il reste d'une pièce choisie des thèmes à IMAGES.
+///
+/// Ceux-là — medieval, fleur, insectes, dragon — portent leur contour DANS
+/// leur image : on ne peut pas le repeindre net par-dessus, et la pièce
+/// s'atténue donc tout entière, bord compris. Au tiers, elle se dissolvait
+/// dans le plateau. Nino : « pour les thèmes spéciaux, la transparence doit
+/// être moins marquée. »
+const double kOpaciteChoisieImage = 0.6;
+
+/// De combien s'atténue cette pièce-ci quand on la choisit.
+///
+/// Les dessins géométriques gardent leur contour net : ils peuvent s'effacer
+/// franchement. Les images, non.
+double opaciteChoisie(Piece piece, LoadedThemeImages? images) =>
+    images?.pieceFor(piece) != null ? kOpaciteChoisieImage : kOpaciteChoisie;
+
+/// Ouvre la couche qui ENFONCE une pièce. À refermer par [refermeChoisie].
+void ouvreChoisie(
+  Canvas canvas,
+  Rect rect,
+  Piece piece,
+  LoadedThemeImages? images,
+) => canvas.saveLayer(
+  rect.inflate(rect.width * 0.1),
+  Paint()
+    ..color = const Color(
+      0xFF000000,
+    ).withValues(alpha: opaciteChoisie(piece, images)),
+);
+
+/// Referme la couche, et repose le contour NET par-dessus.
+void refermeChoisie(
+  Canvas canvas,
+  Rect rect,
+  Piece piece,
+  LoadedThemeImages? images,
+  String? theme,
+) {
+  canvas.restore();
+  // LE CONTOUR N'EST PAS ATTÉNUÉ : repeint par-dessus, à pleine opacité, il
+  // garde à la pièce enfoncée une forme franche. Nino : « j'aimerais que le
+  // trait noir qui fait le tour de la pièce (ou blanc quand il s'agit des
+  // blancs) ne soit pas concerné par la transparence. »
+  paintPieceContour(canvas, rect, piece, images: images, theme: theme);
+}
+
 /// Pièces, sélection et mise en évidence du dernier coup.
 final class BoardPiecesPainter extends CustomPainter {
   BoardPiecesPainter({
@@ -370,15 +416,7 @@ final class BoardPiecesPainter extends CustomPainter {
         // un contour, des points de poussée — atténuer chacun séparément les
         // laisserait transparaître les uns à travers les autres.
         final choisie = cell == selected || groupSelection.contains(cell);
-        if (choisie) {
-          canvas.saveLayer(
-            g.cellRect(c, r).inflate(g.cellSize * 0.1),
-            Paint()
-              ..color = const Color(
-                0xFF000000,
-              ).withValues(alpha: kOpaciteChoisie),
-          );
-        }
+        if (choisie) ouvreChoisie(canvas, g.cellRect(c, r), p, images);
         paintPiece(
           canvas,
           g.cellRect(c, r),
@@ -395,19 +433,7 @@ final class BoardPiecesPainter extends CustomPainter {
           rainbowFraction: rainbowFractionOf(c, r),
         );
         if (choisie) {
-          canvas.restore();
-          // LE CONTOUR N'EST PAS ATTÉNUÉ : repeint par-dessus, à pleine
-          // opacité, il garde à la pièce enfoncée une forme franche. Nino :
-          // « j'aimerais que le trait noir qui fait le tour de la pièce (ou
-          // blanc quand il s'agit des blancs) ne soit pas concerné par la
-          // transparence. »
-          paintPieceContour(
-            canvas,
-            g.cellRect(c, r),
-            p,
-            images: images,
-            theme: theme,
-          );
+          refermeChoisie(canvas, g.cellRect(c, r), p, images, theme);
         }
       }
     }
@@ -609,10 +635,21 @@ final class FlyingPiecesPainter extends CustomPainter {
     this.jumpPath = const [],
     this.images,
     this.theme,
+    this.choisies = const {},
   });
 
   final BoardGeometry geometry;
   final ThemePalette palette;
+
+  /// Les cases CHOISIES, à l'arrivée.
+  ///
+  /// Une pièce reste enfoncée tant qu'on la tient — y compris en vol. Sans
+  /// cela, une manœuvre reprenait sa pleine couleur le temps du glissement
+  /// et la perdait en se posant : la pièce clignotait. Nino : « la pièce doit
+  /// rester enfoncée tant qu'elle est sélectionnée, y compris pendant qu'elle
+  /// glisse. » On les reconnaît à leur ARRIVÉE : la sélection a déjà suivi le
+  /// coup quand le dessin commence.
+  final Set<Cell> choisies;
 
   /// Pièces en train de glisser : (pièce, départ, arrivée).
   final List<(Piece, Cell, Cell)> slides;
@@ -654,9 +691,12 @@ final class FlyingPiecesPainter extends CustomPainter {
       final avance = (mienne <= 0 || span <= 0)
           ? 1.0
           : (progress * span / mienne).clamp(0.0, 1.0);
+      final place = slidePosition(g, etapes, avance);
+      final choisie = choisies.contains(to);
+      if (choisie) ouvreChoisie(canvas, place, piece, images);
       paintPiece(
         canvas,
-        slidePosition(g, etapes, avance),
+        place,
         piece,
         palette,
         flipped: g.flipped,
@@ -665,6 +705,7 @@ final class FlyingPiecesPainter extends CustomPainter {
         theme: theme,
         rainbowFraction: rainbowFractionOf(to.col, to.row),
       );
+      if (choisie) refermeChoisie(canvas, place, piece, images, theme);
     }
   }
 
@@ -676,6 +717,7 @@ final class FlyingPiecesPainter extends CustomPainter {
       old.images != images ||
       old.palette != palette ||
       old.geometry.flipped != geometry.flipped ||
+      !setEquals(old.choisies, choisies) ||
       old.theme != theme;
 }
 
