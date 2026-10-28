@@ -1514,15 +1514,17 @@ class MenuScreenState extends State<MenuScreen>
         widthFactor: 0.62,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          // DOUZE FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait
-          // pas qu'elle était allumée : « c'est juste beaucoup trop fin. »
-          // Un voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
-          // dix-sept thèmes — « ça se voit très bien même avec deepgrey » —
-          // puis monté à ×3, qu'il a préféré.
-          height: S(kTraitPicto * 12),
+          // DIX FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait pas
+          // qu'elle était allumée : « c'est juste beaucoup trop fin. » Un
+          // voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
+          // dix-sept thèmes, essayé à ×3, revenu à ×2,5 : « finalement 2,5
+          // c'était pas mal. »
+          height: S(kTraitPicto * 10),
           decoration: BoxDecoration(
             color: attend ? palette.clair : const Color(0xFF000000),
-            borderRadius: BorderRadius.circular(S(kTraitPicto * 2)),
+            // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
+            // ronds, et le restent si l'épaisseur change encore.
+            borderRadius: BorderRadius.circular(S(kTraitPicto * 5)),
             // Le trait noir des touches, autour du voyant : allumé, il reste
             // cerné comme tout le reste ; éteint, il ne se voit pas, puisque
             // le trait est noir sur noir.
