@@ -185,7 +185,7 @@ class _ContourMot extends CustomPainter {
             ..style = PaintingStyle.stroke
             // LE DOUBLE, et pour que les deux se ressemblent : voir
             // [MotTouche]. Un tracé est centré, la moitié ne se voit pas.
-                                    ..strokeWidth = kTraitPicto * 2
+            ..strokeWidth = kTraitPicto * 2
             ..strokeJoin = StrokeJoin.round
             ..color = const Color(0xFF000000),
         ),
