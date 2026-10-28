@@ -49,16 +49,63 @@ void main() {
       expect(jetonPiece(PieceType.heritier, Camp.blanc), '[Héritier]');
     });
 
-    test('avec un thème, il s écrit comme une photo de profil', () {
-      // Nino : « ça doit donner accès aux pièces de TOUS les thèmes, pas d un
-      // seul. » Le jeton porte donc celui qu on a pris.
+    test('avec un thème, il s écrit COURT', () {
+      // Nino : « il suffit qu'il y ait un nouvel identifiant pour les images
+      // dans l'app. On ne garde que les initiales quoi. » Deux lettres de
+      // thème — une seule là où elle suffit —, une de pièce, un n pour les
+      // Noirs.
+      expect(jetonPiece(PieceType.soldat, Camp.blanc, theme: 'foret'), '[fs]');
+      expect(jetonPiece(PieceType.garde, Camp.noir, theme: 'volcan'), '[vgn]');
       expect(
-        jetonPiece(PieceType.soldat, Camp.blanc, theme: 'foret'),
-        '[foret|Soldat]',
+        jetonPiece(PieceType.heritier, Camp.noir, theme: 'imperial'),
+        '[imhn]',
+        reason: 'imperial garde deux lettres : insectes lui prend le i',
+      );
+    });
+
+    test('AUCUNE image ne porte le code d une autre', () {
+      // Les 188 images du catalogue, codées puis relues : chaque code ne doit
+      // appartenir qu'à une image, et ne se lire que d'une façon. Nino :
+      // « vérifie qu'aucune image n'a le même code qu'une autre. »
+      final vues = <String, String>{};
+      for (final photo in photosDuCatalogue()) {
+        final jeton = jetonDePhoto(photo);
+        expect(
+          vues[jeton],
+          isNull,
+          reason: '« $jeton » est à la fois « $photo » et « ${vues[jeton]} »',
+        );
+        vues[jeton] = photo;
+
+        // Et il se relit sur la bonne image.
+        final morceaux = decoupeMessage(jeton);
+        expect(morceaux, hasLength(1), reason: '« $jeton » ne se relit pas');
+        expect(morceaux.single.texte, isNull, reason: '« $jeton » reste texte');
+        expect(
+          photoDuMorceau(morceaux.single, 'volcan'),
+          photo,
+          reason: '« $jeton » rend une autre image que « $photo »',
+        );
+      }
+      expect(vues, hasLength(photosDuCatalogue().length));
+    });
+
+    test('les jetons d AVANT se lisent encore', () {
+      // Les messages déjà envoyés dorment sur le serveur dans l'ancienne
+      // écriture, et une version pas encore mise à jour en enverra d'autres.
+      expect(
+        photoDuMorceau(decoupeMessage('[volcan|Garde|Noir]').single, 'foret'),
+        'volcan|Garde|Noir',
       );
       expect(
-        jetonPiece(PieceType.garde, Camp.noir, theme: 'volcan'),
-        '[volcan|Garde|Noir]',
+        photoDuMorceau(decoupeMessage('[logo|foret]').single, 'volcan'),
+        'logo|foret',
+      );
+      expect(decoupeMessage('[deepgrey]').single.deepGrey, isTrue);
+      // Sans thème : il se dessine dans celui qui LIT, comme avant.
+      expect(
+        photoDuMorceau(decoupeMessage('[Soldat Noir]').single, 'hemo'),
+        'hemo|Soldat|Noir',
       );
     });
 
@@ -507,7 +554,7 @@ void main() {
       final theme = Settings.instance.themeAxes.general;
       await tester.tap(find.byTooltip(kThemeLabels[theme] ?? theme).first);
       await tester.pumpAndSettle();
-      expect(controleur.texteEnvoyable(), '[logo|$theme]');
+      expect(controleur.texteEnvoyable(), jetonDePhoto('logo|$theme'));
 
       // Le portrait ferme la section du thème deepgrey, tout en bas : la
       // colonne est entièrement bâtie, il suffit de la faire défiler jusqu'à
@@ -519,7 +566,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(portrait);
       await tester.pumpAndSettle();
-      expect(controleur.texteEnvoyable(), '[logo|$theme][deepgrey]');
+      expect(
+        controleur.texteEnvoyable(),
+        '${jetonDePhoto('logo|$theme')}${jetonDePhoto('deepgrey')}',
+      );
     });
   });
 
