@@ -25,13 +25,23 @@ import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Le gris des touches et de la barre — `kFugaGrey`, rgb(89, 89, 89).
+/// Le gris des touches et de la barre — `kFugaGrey`, rgb(89, 89, 89) — ou le
+/// TRAIT NOIR qui les borde désormais.
+///
+/// Le trait compte : il est peint à l'intérieur du bord, donc les deux ou
+/// trois pixels du haut et du bas d'une touche sont noirs au lieu d'être
+/// gris. Sans lui, la mesure rendait une touche plus mince qu'elle n'est —
+/// l'étoile tombait à 136 px au lieu de 144 — et c'est l'ÉPAISSEUR de la
+/// touche qu'on vérifie ici, pas la couleur de son remplissage.
 bool _estGris(ByteData image, int largeur, int x, int y) {
   final i = (y * largeur + x) * 4;
   if (i + 3 >= image.lengthInBytes) return false;
-  return (image.getUint8(i) - 89).abs() < 14 &&
-      (image.getUint8(i + 1) - 89).abs() < 14 &&
-      (image.getUint8(i + 2) - 89).abs() < 14;
+  final r = image.getUint8(i);
+  final g = image.getUint8(i + 1);
+  final b = image.getUint8(i + 2);
+  final noir = r < 40 && g < 40 && b < 40;
+  return noir ||
+      ((r - 89).abs() < 14 && (g - 89).abs() < 14 && (b - 89).abs() < 14);
 }
 
 /// Plus longue bande grise continue de la colonne `x`, cherchée UNIQUEMENT

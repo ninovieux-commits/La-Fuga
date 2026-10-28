@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../scale.dart';
+import 'picto_touche.dart';
 
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
@@ -35,6 +36,26 @@ const Color kGrisTouche = Color.fromRGBO(128, 128, 128, 1);
 /// le temps d'un essai, et c'est lui qui reste. Une seule valeur, pour que
 /// deux touches éteintes ne pâlissent jamais différemment.
 const double kOpaciteEteinte = 0.35;
+
+/// Le trait noir d'une touche — le MÊME que celui des symboles.
+///
+/// Nino, l'ayant vu sur aperçu : « je trouve ça joli en soi encadré », puis
+/// « fais-le dans l'app, partout, pas que le menu ». Sur un décor à image —
+/// les tourbillons de Deep Grey — les touches grises se dissolvaient dans le
+/// fond : on devinait le texte, pas la touche. Le trait leur rend un bord.
+const BorderSide kTraitDeTouche = BorderSide(
+  color: Color(0xFF000000),
+  width: kTraitPicto,
+);
+
+/// La forme d'une touche : son arrondi, avec le trait DEDANS.
+///
+/// Dedans, et c'est tout l'enjeu : `strokeAlignInside` — le défaut — pose le
+/// trait à l'intérieur du bord existant au lieu de l'ajouter autour. La
+/// silhouette et le rayon des coins ne bougent pas d'un pixel. Nino : « NE
+/// CHANGE PAS LA FORME DES TOUCHES, AJOUTE SEULEMENT LE TRAIT NOIR ! »
+ShapeBorder formeDeTouche(BorderRadius rayon) =>
+    RoundedRectangleBorder(borderRadius: rayon, side: kTraitDeTouche);
 
 /// Ce qui reste du FOND d'une touche éteinte.
 ///
@@ -95,7 +116,7 @@ class FugaButton extends StatelessWidget {
     final r = radius ?? S(18);
     final button = Material(
       color: color,
-      borderRadius: BorderRadius.circular(r),
+      shape: formeDeTouche(BorderRadius.circular(r)),
       child: InkWell(
         borderRadius: BorderRadius.circular(r),
         onTap: onPressed,

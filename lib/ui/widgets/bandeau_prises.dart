@@ -112,6 +112,7 @@ class BandeauPrises extends StatelessWidget {
             message: T('Annuler'),
             child: Material(
               color: onAnnuler == null ? fondEteint(kGrisTouche) : kGrisTouche,
+              shape: formeDeTouche(BorderRadius.zero),
               child: InkWell(
                 onTap: onAnnuler,
                 child: SizedBox(

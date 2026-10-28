@@ -214,7 +214,7 @@ class _MoveStripState extends State<MoveStrip> {
         aspectRatio: 1,
         child: Material(
           color: kBarButtonDark,
-          borderRadius: BorderRadius.circular(S(20)),
+          shape: formeDeTouche(BorderRadius.circular(S(20))),
           child: InkWell(
             borderRadius: BorderRadius.circular(S(20)),
             onTap: onPressed,

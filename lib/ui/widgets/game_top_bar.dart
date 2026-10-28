@@ -379,7 +379,7 @@ class GameTopBar extends StatelessWidget {
       aspectRatio: 1,
       child: Material(
         color: kBarButtonDark,
-        borderRadius: BorderRadius.circular(S(20)),
+        shape: formeDeTouche(BorderRadius.circular(S(20))),
         child: InkWell(
           borderRadius: BorderRadius.circular(S(20)),
           onTap: onPressed,
@@ -427,7 +427,7 @@ class GameTopBar extends StatelessWidget {
   }) {
     final Widget inner = Material(
       color: color,
-      borderRadius: BorderRadius.circular(radius),
+      shape: formeDeTouche(BorderRadius.circular(radius)),
       child: InkWell(
         borderRadius: BorderRadius.circular(radius),
         onTap: onPressed,
@@ -518,7 +518,7 @@ class ToucheDePause extends StatelessWidget {
       aspectRatio: 1,
       child: Material(
         color: kBarButtonDark,
-        borderRadius: BorderRadius.circular(S(20)),
+        shape: formeDeTouche(BorderRadius.circular(S(20))),
         child: InkWell(
           borderRadius: BorderRadius.circular(S(20)),
           onTap: onPause,

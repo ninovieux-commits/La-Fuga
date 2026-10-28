@@ -434,7 +434,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
       color: choisi
           ? palette.clair.withValues(alpha: 0.35)
           : (_campDesPieces == Camp.blanc ? kBarButtonDark : Colors.white24),
-      borderRadius: BorderRadius.circular(S(8)),
+      shape: formeDeTouche(BorderRadius.circular(S(8))),
       child: InkWell(
         borderRadius: BorderRadius.circular(S(8)),
         onTap: onTap,
@@ -445,7 +445,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
 
   Widget _toucheDuTrait() => Material(
     color: kGrisMedian,
-    borderRadius: BorderRadius.circular(S(8)),
+    shape: formeDeTouche(BorderRadius.circular(S(8))),
     child: InkWell(
       borderRadius: BorderRadius.circular(S(8)),
       onTap: () => setState(

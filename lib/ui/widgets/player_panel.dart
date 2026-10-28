@@ -147,7 +147,7 @@ class ToucheAction extends StatelessWidget {
           aspectRatio: 1,
           child: Material(
             color: enabled ? color : fondEteint(color),
-            borderRadius: BorderRadius.circular(S(16)),
+            shape: formeDeTouche(BorderRadius.circular(S(16))),
             child: InkWell(
               borderRadius: BorderRadius.circular(S(16)),
               onTap: enabled ? onPressed : onBlocked,
