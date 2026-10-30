@@ -16,6 +16,7 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/net/avatar_photos.dart';
@@ -156,9 +157,57 @@ void main() {
     await open(tester);
     expect(
       couleurDuTrait(tester),
-      const Color(0xFF000000),
-      reason: 'rien ne nous attend : le trait reste noir',
+      kFugaGrey,
+      reason: 'rien ne nous attend : la barre reste grise',
     );
+  });
+
+  testWidgets('un défi REÇU l allume aussi', (tester) async {
+    // Nino : « la barre de séparation doit également s'allumer lorsqu'on a
+    // une invitation de défi corresp. »
+    Color couleurDuTrait(WidgetTester tester) =>
+        (tester
+                    .widget<AnimatedContainer>(
+                      find.descendant(
+                        of: find.byType(FractionallySizedBox),
+                        matching: find.byType(AnimatedContainer),
+                      ),
+                    )
+                    .decoration!
+                as BoxDecoration)
+            .color!;
+
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(statut: 'defi', myTurn: false)],
+    };
+    await open(tester);
+    expect(
+      couleurDuTrait(tester),
+      paletteOf(Settings.instance.themeAxes.general).clair,
+    );
+  });
+
+  testWidgets('un défi QU ON A LANCÉ ne l allume pas', (tester) async {
+    // Il n'attend rien de nous : c'est l'autre qui doit répondre.
+    Color couleurDuTrait(WidgetTester tester) =>
+        (tester
+                    .widget<AnimatedContainer>(
+                      find.descendant(
+                        of: find.byType(FractionallySizedBox),
+                        matching: find.byType(AnimatedContainer),
+                      ),
+                    )
+                    .decoration!
+                as BoxDecoration)
+            .color!;
+
+    replies['/corr_list'] = {
+      'ok': true,
+      'games': [game(statut: 'defi', myTurn: false, isDefieur: true)],
+    };
+    await open(tester);
+    expect(couleurDuTrait(tester), kFugaGrey);
   });
 
   testWidgets('une seule partie qui attend suffit à l allumer', (tester) async {

@@ -70,6 +70,12 @@ class MenuTourOverlay extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: Container(
           width: double.infinity,
+          // LA BULLE NE MANGE JAMAIS PLUS DE LA MOITIÉ DE L'ÉCRAN : une
+          // étape bavarde (la correspondance) débordait sinon par le haut,
+          // et les deux touches sortaient de l'écran avec elle.
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+          ),
           color: const Color(0xF2171722),
           padding: EdgeInsets.fromLTRB(S(16), S(14), S(16), S(16)),
           child: SafeArea(
@@ -77,10 +83,16 @@ class MenuTourOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  T(stop.text),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: SF(14)),
+                // Si le texte ne tient pas, c'est LUI qui défile ; les
+                // touches restent là où le doigt les attend.
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      T(stop.text),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: SF(14)),
+                    ),
+                  ),
                 ),
                 SizedBox(height: S(12)),
                 // Mêmes touches que celles du tuto, d'où l'on vient.

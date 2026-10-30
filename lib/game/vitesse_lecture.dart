@@ -15,8 +15,12 @@ const double kVitesseMin = 0.5;
 const double kVitesseMax = 5.0;
 const double kVitessePas = 0.5;
 
-/// Vitesse de départ : une seconde par coup.
-const double kVitesseDefaut = 1.0;
+/// Vitesse de départ : DEUX secondes par coup.
+///
+/// Nino, après l'avoir essayée : « le temps de lecture par défaut doit être
+/// 2 sec, car c'est le réglage idéal selon mes tests. » À une seconde, une
+/// manœuvre de groupe passait avant qu'on l'ait lue.
+const double kVitesseDefaut = 2.0;
 
 /// Nombre de crans du curseur, bornes comprises.
 int get kVitesseCrans =>

@@ -48,7 +48,7 @@ const String kMenuTourJson = r'''
    "corr"
   ],
   "scroll": "corr",
-  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même."
+  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi."
  },
  {
   "targets": [

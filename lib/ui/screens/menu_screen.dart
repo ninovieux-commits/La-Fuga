@@ -1508,7 +1508,14 @@ class MenuScreenState extends State<MenuScreen>
   /// jouer. » Le trait devient alors un voyant : il se voit sans qu'on ait à
   /// défiler jusqu'aux plateaux, et il est juste au-dessus d'eux.
   Widget _separateur(ThemePalette palette) {
-    final attend = _corrGames.any((g) => g.myTurn);
+    // CE QUI L'ALLUME : une partie qui attend notre coup, ou un défi qu'on
+    // nous a envoyé et auquel on n'a pas répondu. Nino : « la barre de
+    // séparation doit également s'allumer lorsqu'on a une invitation de défi
+    // corresp. » Un défi qu'on a lancé SOI-MÊME n'attend rien de nous : il
+    // n'allume pas.
+    final attend = _corrGames.any(
+      (g) => g.myTurn || (g.status == CorrStatus.defi && !g.isChallenger),
+    );
     return Center(
       child: FractionallySizedBox(
         widthFactor: 0.62,
@@ -1521,13 +1528,15 @@ class MenuScreenState extends State<MenuScreen>
           // c'était pas mal. »
           height: S(kTraitPicto * 10),
           decoration: BoxDecoration(
-            color: attend ? palette.clair : const Color(0xFF000000),
+            // ÉTEINTE, ELLE EST GRISE COMME UNE TOUCHE, pas noire : elle
+            // appartient au menu, et seul son contour est noir — comme pour
+            // tout le reste. Nino : « la barre de séparation doit être grise
+            // comme les touches du menu. Seul le contour doit être noir. »
+            color: attend ? palette.clair : kFugaGrey,
             // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
             // ronds, et le restent si l'épaisseur change encore.
             borderRadius: BorderRadius.circular(S(kTraitPicto * 5)),
-            // Le trait noir des touches, autour du voyant : allumé, il reste
-            // cerné comme tout le reste ; éteint, il ne se voit pas, puisque
-            // le trait est noir sur noir.
+            // Le trait noir des touches, autour du voyant.
             border: const Border.fromBorderSide(kTraitDeTouche),
           ),
         ),

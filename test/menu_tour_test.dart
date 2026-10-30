@@ -58,6 +58,16 @@ void main() {
       expect(stops.last.text, contains('Bonne fugue'));
     });
 
+    // Nino : « l'utilité de la barre de séparation doit être rapidement
+    // décrite dans le tuto. Quand ça décrit la corresp, on rajoute une
+    // phrase. » C'est l'étape « corr » qui la porte, nulle part ailleurs.
+    test('l etape de la correspondance decrit la barre de separation', () {
+      final corr = loadMenuTour().firstWhere((s) => s.targets.contains('corr'));
+
+      expect(corr.text, contains('barre de séparation'));
+      expect(corr.text, contains('envoyé un défi'));
+    });
+
     test('chaque cible est un élément connu du menu', () {
       const known = {
         'cad',

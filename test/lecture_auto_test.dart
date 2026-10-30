@@ -198,12 +198,15 @@ void main() {
       );
     });
 
-    testWidgets('il part à une seconde, et affiche ce qu il vaut', (
+    // Nino, après ses essais : « le temps de lecture par défaut doit être
+    // 2 sec, car c'est le réglage idéal selon mes tests. »
+    testWidgets('il part à DEUX secondes, et affiche ce qu il vaut', (
       tester,
     ) async {
       await ouvrirAuto(tester);
+      expect(kVitesseDefaut, 2.0);
       expect(tester.widget<Slider>(find.byType(Slider)).value, kVitesseDefaut);
-      expect(find.text('1.0 s'), findsOneWidget);
+      expect(find.text('2.0 s'), findsOneWidget);
 
       barre(tester).onTempo(2.5);
       await tester.pumpAndSettle();
