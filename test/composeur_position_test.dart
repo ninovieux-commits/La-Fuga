@@ -32,6 +32,11 @@ import 'package:lafuga/ui/widgets/piece_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  /// La gomme. Son dessin est un glyphe de police plutôt qu'une `Icon`
+  /// depuis qu'elle porte le trait noir des symboles de touches.
+  final laGomme = find.text(
+    String.fromCharCode(Icons.backspace_outlined.codePoint),
+  );
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
@@ -241,7 +246,7 @@ void main() {
     testWidgets('la gomme vide une case', (tester) async {
       await ouvrir(tester, depart: Board.initial());
       expect(vue(tester).board.at(0, 0), isNotNull);
-      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.tap(laGomme);
       await tester.pumpAndSettle();
       vue(tester).onTapCell(const Cell(0, 0));
       await tester.pumpAndSettle();
@@ -455,7 +460,7 @@ void main() {
       await choisir(tester, PieceType.chevalier);
       vue(tester).onTapCell(const Cell(3, 3));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.tap(laGomme);
       await tester.pumpAndSettle();
       vue(tester).onTapCell(const Cell(3, 3));
       await tester.pumpAndSettle();

@@ -52,6 +52,15 @@ Future<void> main() async {
           ).readAsBytes().then((o) => ByteData.view(o.buffer)),
         );
       await police.load();
+      // Les dessins de touches qui viennent d'une police d'icônes — la
+      // gomme, la bascule — sortent sinon en carrés vides.
+      final icones = FontLoader('MaterialIcons')
+        ..addFont(
+          File(
+            '/opt/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+          ).readAsBytes().then((o) => ByteData.view(o.buffer)),
+        );
+      await icones.load();
     });
 
     await tester.pumpWidget(
@@ -93,5 +102,18 @@ Future<void> main() async {
     File(
       'tool/apercus/composeur.png',
     ).writeAsBytesSync(Uint8List.view(octets!.buffer));
+
+    // ET LA MÊME, GOMME EN MAIN : c'est elle qu'on veut voir s'enfoncer.
+    await tester.tap(
+      find.text(String.fromCharCode(Icons.backspace_outlined.codePoint)),
+    );
+    await tester.pumpAndSettle();
+    final octetsGomme = await tester.runAsync(() async {
+      final image = await limite.toImage(pixelRatio: 2);
+      return image.toByteData(format: ui.ImageByteFormat.png);
+    });
+    File(
+      'tool/apercus/composeur_gomme.png',
+    ).writeAsBytesSync(Uint8List.view(octetsGomme!.buffer));
   });
 }

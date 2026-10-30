@@ -32,6 +32,8 @@ import '../widgets/fuga_button.dart';
 import '../widgets/board_geometry.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/board_painter.dart';
+import '../widgets/picto_touche.dart';
 import '../widgets/piece_tile.dart';
 
 /// Gris pile entre le noir et le blanc : le fond de la touche du trait, pour
@@ -391,22 +393,37 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
           ),
         ),
       // La gomme : rien en main, et toucher une case la vide.
+      //
+      // ELLE S'ENFONCE COMME UNE PIÈCE. Nino, après les pièces : « non fais
+      // pareil pour la gomme. » Elle portait la plaque de couleur
+      // translucide de l'ancien langage de sélection ; c'est maintenant son
+      // dessin qui s'atténue, de l'exacte quantité d'une pièce choisie, et
+      // son trait noir reste net par-dessus — comme le contour d'une pièce
+      // enfoncée.
       Expanded(
         child: _carre(
-          choisi: _enMain == null,
           palette: palette,
           onTap: () => setState(() => _enMain = null),
-          child: Icon(
-            Icons.backspace_outlined,
-            color: Colors.white,
-            size: SF(18),
+          child: MotTouche(
+            // Le dessin de la gomme est un glyphe de police, comme une
+            // lettre : [MotTouche] lui donne donc le même trait noir qu'aux
+            // mots des touches, et la couleur qu'on lui passe.
+            texte: String.fromCharCode(Icons.backspace_outlined.codePoint),
+            couleur: Colors.white.withValues(
+              alpha: _enMain == null ? kOpaciteChoisie : 1,
+            ),
+            style: TextStyle(
+              fontFamily: Icons.backspace_outlined.fontFamily,
+              package: Icons.backspace_outlined.fontPackage,
+              fontSize: SF(18),
+              height: 1,
+            ),
           ),
         ),
       ),
       // La bascule de couleur de la ligne : des pièces blanches aux noires.
       Expanded(
         child: _carre(
-          choisi: false,
           palette: palette,
           onTap: () => setState(
             () => _campDesPieces = _campDesPieces == Camp.blanc
@@ -424,16 +441,13 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
   );
 
   Widget _carre({
-    required bool choisi,
     required ThemePalette palette,
     required VoidCallback onTap,
     required Widget child,
   }) => AspectRatio(
     aspectRatio: 1,
     child: Material(
-      color: choisi
-          ? palette.clair.withValues(alpha: 0.35)
-          : (_campDesPieces == Camp.blanc ? kBarButtonDark : Colors.white24),
+      color: _campDesPieces == Camp.blanc ? kBarButtonDark : Colors.white24,
       shape: formeDeTouche(BorderRadius.circular(S(8))),
       child: InkWell(
         borderRadius: BorderRadius.circular(S(8)),
