@@ -32,11 +32,13 @@ import 'package:lafuga/ui/widgets/piece_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  /// La gomme. Son dessin est un glyphe de police plutôt qu'une `Icon`
-  /// depuis qu'elle porte le trait noir des symboles de touches.
+  /// La gomme et la bascule de couleur. Leurs dessins sont des glyphes de
+  /// police plutôt que des `Icon` depuis qu'ils portent le trait noir des
+  /// symboles de touches.
   final laGomme = find.text(
     String.fromCharCode(Icons.backspace_outlined.codePoint),
   );
+  final laBascule = find.text(String.fromCharCode(Icons.swap_horiz.codePoint));
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
@@ -226,7 +228,7 @@ void main() {
             .camp,
         Camp.blanc,
       );
-      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.tap(laBascule);
       await tester.pumpAndSettle();
       expect(
         tester
@@ -428,7 +430,7 @@ void main() {
       await choisir(tester, PieceType.heritier);
       vue(tester).onTapCell(const Cell(0, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.tap(laBascule);
       await tester.pumpAndSettle();
       vue(tester).onTapCell(const Cell(6, 7));
       await tester.pumpAndSettle();
@@ -476,7 +478,7 @@ void main() {
       // l inverse qui n était tenu par aucun test.
       await ouvrir(tester);
       await choisir(tester, PieceType.heritier);
-      await tester.tap(find.byIcon(Icons.swap_horiz));
+      await tester.tap(laBascule);
       await tester.pumpAndSettle();
 
       expect(

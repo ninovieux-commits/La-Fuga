@@ -404,19 +404,10 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
         child: _carre(
           palette: palette,
           onTap: () => setState(() => _enMain = null),
-          child: MotTouche(
-            // Le dessin de la gomme est un glyphe de police, comme une
-            // lettre : [MotTouche] lui donne donc le même trait noir qu'aux
-            // mots des touches, et la couleur qu'on lui passe.
-            texte: String.fromCharCode(Icons.backspace_outlined.codePoint),
-            couleur: Colors.white.withValues(
+          child: _symbole(
+            Icons.backspace_outlined,
+            Colors.white.withValues(
               alpha: _enMain == null ? kOpaciteChoisie : 1,
-            ),
-            style: TextStyle(
-              fontFamily: Icons.backspace_outlined.fontFamily,
-              package: Icons.backspace_outlined.fontPackage,
-              fontSize: SF(18),
-              height: 1,
             ),
           ),
         ),
@@ -430,14 +421,41 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                 ? Camp.noir
                 : Camp.blanc,
           ),
-          child: Icon(
+          // LE TRAIT NOIR, COMME TOUS LES SYMBOLES DE TOUCHES. Nino : « oui
+          // ajoute le trait noir. » Sur la flèche noire — celle de la ligne
+          // des Noirs — il ne fait que l'épaissir d'un cheveu, mais la
+          // rangée n'a plus de symbole à part.
+          child: _symbole(
             Icons.swap_horiz,
-            color: _campDesPieces == Camp.blanc ? Colors.white : Colors.black,
-            size: SF(20),
+            _campDesPieces == Camp.blanc ? Colors.white : Colors.black,
           ),
         ),
       ),
     ],
+  );
+
+  /// Un symbole de touche venu d'une police d'icônes.
+  ///
+  /// Le dessin d'une icône est un glyphe, comme une lettre : [MotTouche] lui
+  /// donne donc le même fin trait noir qu'aux mots des touches, et ce trait
+  /// ne prend pas la transparence — comme le contour d'une pièce enfoncée.
+  ///
+  /// GROS COMME UN PICTO. Nino : « agrandis le symbole effacé et le symbole
+  /// bascule de couleur, ils sont trop petits au milieu de leurs touches. »
+  /// Ils tenaient une taille fixe, héritée d'une rangée plus serrée ; ils
+  /// prennent maintenant la part d'une touche que prend n'importe quel autre
+  /// dessin, [kPartPicto].
+  Widget _symbole(IconData icone, Color couleur) => LayoutBuilder(
+    builder: (context, boite) => MotTouche(
+      texte: String.fromCharCode(icone.codePoint),
+      couleur: couleur,
+      style: TextStyle(
+        fontFamily: icone.fontFamily,
+        package: icone.fontPackage,
+        fontSize: boite.maxHeight * kPartPicto,
+        height: 1,
+      ),
+    ),
   );
 
   Widget _carre({
