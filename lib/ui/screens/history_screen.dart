@@ -333,16 +333,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
           '${_two(t.hour)}:${_two(t.minute)}';
     }
 
-    // Vert si j'ai gagné, rouge si j'ai perdu, gris pour une nulle : le point
-    // de vue est celui du joueur connecté, pas celui des Blancs.
+    // Vert s'il a gagné, rouge s'il a perdu, gris sinon : le point de vue est
+    // celui du joueur DONT ON LIT L'HISTORIQUE, pas celui des Blancs.
+    final gagne = _aGagne(result, player1, player2);
     final (String sym, Color symColor) = switch (result) {
       '1-0' || '0-1' => (
         _kDoubleMethods.contains(method) ? '*' : '#',
-        _iWon(result, player2)
-            ? const Color.fromRGBO(77, 217, 77, 1)
-            : const Color.fromRGBO(255, 84, 84, 1),
+        switch (gagne) {
+          true => const Color.fromRGBO(77, 217, 77, 1),
+          false => const Color.fromRGBO(255, 84, 84, 1),
+          null => _kGrisNeutre,
+        },
       ),
-      _ => ('½', const Color.fromRGBO(191, 191, 191, 1)),
+      _ => ('½', _kGrisNeutre),
     };
 
     final carte = _card(
@@ -531,11 +534,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  bool _iWon(String result, String player2) {
-    final me = widget.online.pseudo ?? '';
-    // joueur1 tient les Blancs : « 1-0 » me fait gagner sauf si je suis le
-    // second joueur.
-    return (me.isNotEmpty && me == player2) ? result == '0-1' : result == '1-0';
+  /// Cette partie est-elle une victoire POUR CELUI DONT ON LIT L'HISTORIQUE ?
+  ///
+  /// `null` quand la question n'a pas de sens : il ne joue pas cette
+  /// partie-là, et le symbole reste gris plutôt que de prendre la couleur de
+  /// quelqu'un.
+  ///
+  /// Nino : « quand je vais sur le profil de mesange et que j'accède à son
+  /// historique, les parties affichent qu'elle a gagné. Peut-être que c'est
+  /// affiché de mon point de vue, mais du coup qui est-ce que ça considère
+  /// comme gagnant si je regarde une partie qu'elle a faite contre quelqu'un
+  /// d'autre ? » C'était le PREMIER JOUEUR, donc les Blancs : dès que je
+  /// n'étais pas dans la partie, le vert disait « les Blancs ont gagné » sans
+  /// que rien ne le dise. Depuis le profil d'un tiers, c'est SON historique
+  /// qu'on lit — donc son point de vue.
+  bool? _aGagne(String result, String player1, String player2) {
+    final cible = widget.target?.trim() ?? '';
+    final vu = cible.isNotEmpty ? cible : (widget.online.pseudo ?? '');
+    if (vu.isEmpty) return null;
+    // Le serveur ne garantit pas la casse des pseudos : elle ne compte pas,
+    // ici comme pour les favoris.
+    final lui = vu.toLowerCase();
+    // joueur1 tient les Blancs.
+    if (lui == player1.trim().toLowerCase()) return result == '1-0';
+    if (lui == player2.trim().toLowerCase()) return result == '0-1';
+    return null;
   }
 
   String _cadenceLabel(String cadence) => switch (cadence) {
@@ -550,3 +573,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
 /// Les fins qui valent deux points — elles portent l'étoile du logo.
 const Set<String> _kDoubleMethods = {'fugue', 'abandon', 'temps'};
+
+/// Le gris d'un symbole qui ne prend parti pour personne : une nulle, ou une
+/// partie où celui dont on lit l'historique n'est pas.
+const Color _kGrisNeutre = Color.fromRGBO(191, 191, 191, 1);
