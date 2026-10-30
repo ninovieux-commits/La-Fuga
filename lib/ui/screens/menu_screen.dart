@@ -788,15 +788,30 @@ class MenuScreenState extends State<MenuScreen>
                               ),
                             ),
                             SizedBox(width: S(6)),
+                            // LE DESSIN DU CHAT, celui des parties. Nino :
+                            // « il faudrait aussi que le bouton chat soit le
+                            // symbole qu'on utilise ingame. » Le mot
+                            // « Chat » disait la même chose que les deux
+                            // bulles, en moins vite et dans une seule
+                            // langue ; l'infobulle le garde pour qui le
+                            // cherche.
                             SizedBox(
                               width: kCoteActionFavori,
-                              child: FugaButton(
-                                text: T('Chat'),
-                                color: palette.clair,
-                                textColor: Colors.black,
-                                fontSize: SF(13),
-                                onPressed: () =>
-                                    choisir(f.pseudo, FavoriteAction.chat),
+                              child: Tooltip(
+                                message: T('Chat'),
+                                child: FugaButton(
+                                  enfant: SizedBox.square(
+                                    dimension: kCoteActionFavori,
+                                    child: PictoTouche(
+                                      asset: 'assets/images/chat.webp',
+                                      couleur: palette.fonce,
+                                      secours: '…',
+                                    ),
+                                  ),
+                                  color: palette.clair,
+                                  onPressed: () =>
+                                      choisir(f.pseudo, FavoriteAction.chat),
+                                ),
                               ),
                             ),
                           ],
@@ -820,37 +835,52 @@ class MenuScreenState extends State<MenuScreen>
   );
 
   /// La fiche d'un favori : son nom, son Mélo, et le relief d'une touche.
-  Widget _ficheFavori(Person f, {required VoidCallback onPressed}) => Material(
-    color: kFugaGrey,
-    // Elle se touche pour défier : elle porte donc le trait noir comme les
-    // autres touches, et comme les cartes de l'historique.
-    shape: formeDeTouche(BorderRadius.circular(S(12))),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onPressed,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(8)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              f.pseudo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: SF(15),
-                fontWeight: FontWeight.bold,
-              ),
+  ///
+  /// EXACTEMENT LA HAUTEUR DE « DÉFIER » ET DE « CHAT », ses voisines. Nino :
+  /// « il faudrait que les boutons de profil fassent la même hauteur que les
+  /// boutons défier et chat. » Elle dépassait d'un cheveu, ses deux lignes
+  /// décidant seules de sa taille, et la rangée n'était alignée nulle part.
+  Widget _ficheFavori(Person f, {required VoidCallback onPressed}) => SizedBox(
+    height: kCoteActionFavori,
+    child: Material(
+      color: kFugaGrey,
+      // Elle se touche pour défier : elle porte donc le trait noir comme les
+      // autres touches, et comme les cartes de l'historique.
+      shape: formeDeTouche(BorderRadius.circular(S(12))),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(4)),
+          // Les deux lignes se serrent plutôt que de déborder : une hauteur
+          // imposée ne pardonne pas, et un gros réglage de police peut
+          // toujours les faire grandir.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  f.pseudo,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: SF(15),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  T('Mélo : %d').replaceAll('%d', '${f.melo}'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white70, fontSize: SF(12)),
+                ),
+              ],
             ),
-            Text(
-              T('Mélo : %d').replaceAll('%d', '${f.melo}'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.white70, fontSize: SF(12)),
-            ),
-          ],
+          ),
         ),
       ),
     ),

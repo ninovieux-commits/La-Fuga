@@ -15,6 +15,7 @@ import '../../state/settings.dart';
 import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import 'piece_painter.dart';
 
 /// Encres du parchemin — les couleurs de Kivy.
@@ -122,7 +123,8 @@ class StoryView extends StatelessWidget {
               height: closeSide,
               child: Material(
                 color: _closeRed,
-                borderRadius: BorderRadius.circular(S(14)),
+                // Le trait noir des touches : la croix de sortie en est une.
+                shape: formeDeTouche(BorderRadius.circular(S(14))),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(S(14)),
                   onTap: () => Navigator.of(context).pop(),
