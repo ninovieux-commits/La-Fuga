@@ -87,7 +87,6 @@ class GameLayout extends StatefulWidget {
     this.topPanelDevant = false,
     this.topHeight,
     this.bottomHeight,
-    this.plateauGlissant = false,
   });
 
   final Widget topBar;
@@ -146,37 +145,11 @@ class GameLayout extends StatefulWidget {
   /// d'un bandeau de joueur mangerait le plateau pour rien.
   final double? bottomHeight;
 
-  /// Le plateau se pousse du doigt vers le bas, et ce qui est dessous le
-  /// suit.
-  ///
-  /// Un plateau est plus haut que la place qu'on lui réserve : il déborde
-  /// des deux côtés, sur le bandeau du joueur du haut comme sur celui du
-  /// bas. C'est voulu — les zones de ralliement doivent se voir — mais en
-  /// lecture automatique, où les commandes prennent le double d'un bandeau,
-  /// le débordement du haut devient assez gros pour cacher le nom et les
-  /// pièces de l'adversaire. Nino : « on doit pouvoir faire défiler le
-  /// plateau de manière à ne plus recouvrir le bandeau large du haut. »
-  ///
-  /// La course s'arrête exactement à ce débordement : au bout, le bandeau du
-  /// haut est entièrement dégagé, et pas un pixel de plus n'est donné.
-  final bool plateauGlissant;
-
   @override
   State<GameLayout> createState() => _GameLayoutState();
 }
 
 class _GameLayoutState extends State<GameLayout> {
-  /// De combien le plateau est descendu, en pixels logiques. Jamais négatif.
-  double _glisse = 0;
-
-  @override
-  void didUpdateWidget(GameLayout vieux) {
-    super.didUpdateWidget(vieux);
-    // L'écran qui cesse de glisser reprend sa place : sortir de la lecture
-    // automatique ne doit pas laisser le plateau à mi-chemin.
-    if (!widget.plateauGlissant && _glisse != 0) _glisse = 0;
-  }
-
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -226,20 +199,6 @@ class _GameLayoutState extends State<GameLayout> {
 
       final board = box.maxHeight - 2 * bar - top - bottom;
 
-      // CE QUE LE PLATEAU DÉBORDE EN HAUT, et donc la course du glissement :
-      // il dessine dix rangées pour sept de large, et il est centré dans la
-      // place qu'on lui donne.
-      final naturel = box.maxWidth * kExtRows / kCols;
-      final course = widget.plateauGlissant
-          ? ((naturel - board) / 2).clamp(0.0, double.infinity)
-          : 0.0;
-      final glisse = _glisse.clamp(0.0, course);
-
-      void pousser(DragUpdateDetails d) {
-        final vise = (_glisse + d.delta.dy).clamp(0.0, course);
-        if (vise != _glisse) setState(() => _glisse = vise);
-      }
-
       return Stack(
         clipBehavior: Clip.none,
         children: [
@@ -267,34 +226,17 @@ class _GameLayoutState extends State<GameLayout> {
                         ),
                 ),
               SizedBox(height: board),
-              // Ce qui est SOUS le plateau descend avec lui : sinon le
-              // plateau viendrait manger les commandes qu'on dégage.
-              Transform.translate(
-                offset: Offset(0, glisse),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.bottomPanel != null)
-                      SizedBox(height: bottom, child: widget.bottomPanel),
-                    SizedBox(height: bar, child: widget.moveStrip),
-                  ],
-                ),
-              ),
+              if (widget.bottomPanel != null)
+                SizedBox(height: bottom, child: widget.bottomPanel),
+              SizedBox(height: bar, child: widget.moveStrip),
             ],
           ),
           Positioned(
-            top: bar + top + glisse,
+            top: bar + top,
             left: 0,
             right: 0,
             height: board,
-            child: course == 0
-                ? widget.board
-                : GestureDetector(
-                    // Le plateau n'est pas touché en lecture : le geste
-                    // vertical lui est entièrement libre.
-                    onVerticalDragUpdate: pousser,
-                    child: widget.board,
-                  ),
+            child: widget.board,
           ),
         ],
       );

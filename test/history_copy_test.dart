@@ -300,9 +300,10 @@ void main() {
           reason: '« $parti » est passé derrière « Plus »',
         );
       }
-      expect(find.text('Plus'), findsOneWidget);
+      // La touche porte un gros « + » depuis que Nino l'a redessinée.
+      expect(find.text('+'), findsOneWidget);
 
-      await tester.tap(find.text('Plus'));
+      await tester.tap(find.text('+'));
       await tester.pumpAndSettle();
 
       expect(find.text('Copier la position'), findsOneWidget);

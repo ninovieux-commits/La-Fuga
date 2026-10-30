@@ -28,6 +28,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'son_coup_adverse_test.dart' show FauxSons;
 
+/// Les demi-coups de `_nmc`.
+const int _nombreDeCoups = 6;
+
 /// Six coups, assez pour voir défiler.
 const String _nmc =
     '[Date "2026-10-06"]\n'
@@ -65,11 +68,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// La lecture automatique s'ouvre par « Plus » : Nino a retiré la touche
-  /// « play » du bandeau et rangé les quatre gestes du lecteur derrière une
-  /// seule touche.
+  /// La lecture automatique s'ouvre par la touche « + » : Nino a retiré la
+  /// touche « play » du bandeau et rangé les quatre gestes du lecteur derrière
+  /// une seule touche, qui porte maintenant un gros « + ».
   Future<void> lancerLaLecture(WidgetTester tester) async {
-    await tester.tap(find.text('Plus'));
+    await tester.tap(find.text('+'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lire la partie'));
     await tester.pumpAndSettle();
@@ -77,7 +80,7 @@ void main() {
 
   /// Et elle se referme par la même touche, qui dit alors « Arrêter ».
   Future<void> arreterLaLecture(WidgetTester tester) async {
-    await tester.tap(find.text('Plus'));
+    await tester.tap(find.text('+'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Arrêter la lecture'));
     await tester.pumpAndSettle();
@@ -118,13 +121,18 @@ void main() {
       );
     });
 
-    testWidgets('le curseur, puis les deux touches en dessous', (tester) async {
+    testWidgets('les touches près du plateau, le curseur sous elles', (
+      tester,
+    ) async {
+      // LE BANDEAU DU BAS EST UN MIROIR, comme dans une partie : la rangée
+      // qui touche le plateau porte les prises et les touches, et c'est au
+      // chrono — absent en lecture — que le curseur prend sa place.
       await ouvrirAuto(tester);
       final curseur = tester.getCenter(find.byType(Slider));
       // La touche ne porte plus de mot : c'est le signe dessiné qui la
       // désigne.
       final debut = tester.getCenter(find.byType(GlypheDebut));
-      expect(debut.dy, greaterThan(curseur.dy), reason: 'sous le curseur');
+      expect(debut.dy, lessThan(curseur.dy), reason: 'au-dessus du curseur');
       expect(
         find.textContaining('rythmique'),
         findsNothing,
@@ -132,42 +140,39 @@ void main() {
       );
     });
 
-    testWidgets('le plateau se pousse jusqu a degager le bandeau du haut', (
+    testWidgets('tout tient à l écran : rien ne défile, rien ne recouvre', (
       tester,
     ) async {
-      // Nino : « on doit pouvoir faire défiler le plateau de manière à ne
-      // plus recouvrir le bandeau large du haut. »
+      // Nino : « le bandeau fin du bas ne doit pas défiler avec le reste de
+      // la page, il doit être statique » et « si on fait bien les choses,
+      // peut-être que tout peut rentrer sur l'écran et qu'il n'y aura plus
+      // besoin de défilement. Ce serait l'idéal. » Les commandes tenant
+      // maintenant dans le bandeau du joueur du bas, l'écran retrouve ses
+      // 7 + 12 + 66 + 12 + 7 : le plateau ne déborde plus sur personne.
       await ouvrirAuto(tester);
       final plateau = find.byType(GameBoardView);
       final place = tester.getRect(plateau);
-      final hautAvant = place.top;
-      final basAvant = tester.getTopLeft(find.byType(AutoPlayBar)).dy;
 
-      // Le plateau DESSINE dix rangées pour sept de large et se centre dans
-      // la place qu'on lui donne : ce qu'il a de trop déborde par le haut,
-      // sur le bandeau de l'adversaire. C'est exactement cela qu'on dégage.
       final recouvrement = (place.width * kExtRows / kCols - place.height) / 2;
-      expect(recouvrement, greaterThan(0), reason: 'il recouvre, au départ');
+      expect(
+        recouvrement,
+        lessThan(1),
+        reason: 'le plateau tient dans la place qu on lui donne',
+      );
 
+      // Les deux bandeaux larges sont là, et le plateau est entre eux.
+      final haut = tester.getRect(find.byType(PlayerPanel));
+      final bas = tester.getRect(find.byType(AutoPlayBar));
+      expect(haut.bottom, lessThanOrEqualTo(place.top + 1));
+      expect(bas.top, greaterThanOrEqualTo(place.bottom - 1));
+
+      // Le bandeau fin des coups ferme l'écran, et il ne bouge pas d'un pouce.
+      final coups = tester.getRect(find.byType(MoveStrip));
+      expect(coups.top, greaterThanOrEqualTo(bas.bottom - 1));
       await tester.drag(plateau, const Offset(0, 400));
       await tester.pumpAndSettle();
-
-      final hautApres = tester.getTopLeft(plateau).dy;
-      expect(
-        hautApres - hautAvant,
-        moreOrLessEquals(recouvrement, epsilon: 0.5),
-        reason: 'poussé à fond, il ne recouvre plus rien — et pas plus loin',
-      );
-      expect(
-        tester.getTopLeft(find.byType(AutoPlayBar)).dy - basAvant,
-        moreOrLessEquals(hautApres - hautAvant, epsilon: 0.5),
-        reason: 'les commandes descendent d autant : il ne les mange pas',
-      );
-
-      // Et ça remonte.
-      await tester.drag(plateau, const Offset(0, -400));
-      await tester.pumpAndSettle();
-      expect(tester.getTopLeft(plateau).dy, moreOrLessEquals(hautAvant));
+      expect(tester.getRect(find.byType(MoveStrip)), coups);
+      expect(tester.getRect(plateau), place);
     });
 
     testWidgets('et on peut les refermer', (tester) async {
@@ -216,6 +221,38 @@ void main() {
   });
 
   group('Ça défile, à la cadence du curseur', () {
+    // Nino : « les coups dans le bandeau fin du bas doivent défiler avec la
+    // partie. » Le bandeau ne se recalait qu'au présent : une partie lue
+    // défilait sur le plateau pendant que le bandeau restait sur ses premiers
+    // coups.
+    testWidgets('le bandeau des coups suit le coup lu', (tester) async {
+      await ouvrirAuto(tester);
+      // Au premier coup : la liste est tout à gauche.
+      barre(tester).onDebut();
+      await tester.pumpAndSettle();
+      final liste = find.descendant(
+        of: find.byType(MoveStrip),
+        matching: find.byType(Scrollable),
+      );
+      expect(tester.widget<Scrollable>(liste).controller!.offset, 0);
+
+      // On va au dernier coup : le bandeau l'a amené à l'écran.
+      for (var i = 0; i < 5; i++) {
+        barre(tester).onPlayPause();
+        barre(tester).onPlayPause();
+      }
+      tester
+          .widget<MoveStrip>(find.byType(MoveStrip))
+          .onSelect(_nombreDeCoups - 1);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<Scrollable>(liste).controller!.offset,
+        greaterThan(0),
+        reason: 'le dernier coup est loin : le bandeau a dû défiler',
+      );
+    });
+
     testWidgets('un coup par intervalle, et pas avant', (tester) async {
       await ouvrirAuto(tester);
       barre(tester).onTempo(2.0);

@@ -9,6 +9,8 @@
 /// lui, avec le bandeau des touches en haut, qui dit à qui est le tour.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
@@ -63,6 +65,36 @@ class _MoveStripState extends State<MoveStrip> {
   /// chrono.
   int _scrolledTo = -1;
 
+  /// Le coup regardé, pour l'amener à l'écran.
+  final GlobalKey _cleActif = GlobalKey();
+
+  /// Dernier coup amené à l'écran : on ne redemande pas le même défilement à
+  /// chaque reconstruction.
+  int? _montre;
+
+  /// EN RELECTURE, LE BANDEAU SUIT LE COUP REGARDÉ.
+  ///
+  /// Nino, en mode lecture : « les coups dans le bandeau fin du bas doivent
+  /// défiler avec la partie. » Le bandeau ne se recalait qu'au présent : une
+  /// partie lue défilait sur le plateau pendant que le bandeau restait sur
+  /// ses dix premiers coups.
+  void _suivreLActif(int actif) {
+    if (widget.activeIndex == null) return;
+    if (_montre == actif) return;
+    _montre = actif;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _cleActif.currentContext;
+      if (ctx == null) return;
+      // Au MILIEU du bandeau : on voit ce qui précède et ce qui suit, et le
+      // coup suivant n'arrive pas par le bord.
+      //
+      // SANS ANIMATION, d'un saut. Une lecture automatique à une demi-seconde
+      // par coup lancerait deux cents petits défilements qui se recouvrent, et
+      // la fluidité passe avant la grâce.
+      unawaited(Scrollable.ensureVisible(ctx, alignment: 0.5));
+    });
+  }
+
   /// Au présent, le bandeau montre toujours le dernier coup.
   void _scrollToEnd() {
     if (widget.activeIndex != null) return;
@@ -79,6 +111,7 @@ class _MoveStripState extends State<MoveStrip> {
     _scrollToEnd();
     final moves = widget.moves;
     final active = widget.activeIndex ?? moves.length - 1;
+    _suivreLActif(active);
 
     // Un tour, trois morceaux : son numéro, le demi-coup blanc, le demi-coup
     // noir. Chaque DEMI-COUP a sa propre touche — le bandeau n'en offrait
@@ -176,6 +209,9 @@ class _MoveStripState extends State<MoveStrip> {
   /// Un demi-coup : sa notation, touchable pour revenir dessus. Le demi-coup
   /// regardé s'écrit en noir, les autres en blanc.
   Widget _half(int index, String notation, bool actif) => TextButton(
+    // La clé ne suit QUE le coup regardé : c'est par elle qu'on l'amène à
+    // l'écran.
+    key: actif ? _cleActif : null,
     onPressed: () => widget.onSelect(index),
     style: TextButton.styleFrom(
       minimumSize: Size.zero,

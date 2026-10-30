@@ -274,11 +274,13 @@ class _ReplayScreenState extends State<ReplayScreen>
       body: SafeArea(
         top: false,
         child: GameLayout(
-          // On relit, on ne joue pas : le plateau se pousse du doigt vers le
-          // bas quand il cache le bandeau d'en haut. Nino : « on doit
-          // pouvoir faire défiler le plateau de manière à ne plus recouvrir
-          // le bandeau large du haut. »
-          plateauGlissant: true,
+          // PLUS RIEN NE DÉFILE. Les commandes de lecture tenaient le double
+          // d'un bandeau, et le plateau cachait alors le bandeau du haut : on
+          // le poussait du doigt pour le dégager. Elles sont maintenant DANS
+          // le bandeau du joueur du bas, à la place du chrono et du score, et
+          // l'écran retrouve ses 7 + 12 + 66 + 12 + 7. Nino : « si on fait
+          // bien les choses, peut-être que tout peut rentrer sur l'écran et
+          // qu'il n'y aura plus besoin de défilement. Ce serait l'idéal. »
           topBar: GameTopBar(
             palette: palette,
             // En relecture, le bandeau prend la couleur du camp au trait.
@@ -321,14 +323,17 @@ class _ReplayScreenState extends State<ReplayScreen>
             pieceTheme: axes.pieces,
             boardTheme: axes.board,
           ),
-          // En lecture automatique, les informations du joueur du bas
-          // laissent la place aux commandes — on ne garde que les pièces
-          // capturées. Et la bande s'épaissit : un curseur et deux touches ne
-          // tiennent pas dans les douze parts d'un panneau.
-          bottomParts: _auto ? 24 : 12,
+          // En lecture, le bandeau du joueur du bas garde son nom, son
+          // visage et ses prises : ce sont le chrono et le score qui cèdent
+          // la place aux commandes.
           bottomPanel: _auto
               ? AutoPlayBar(
                   palette: palette,
+                  nom: _nomDe(bottomCamp, meta),
+                  photo: AvatarPhotos.known(_nomDe(bottomCamp, meta)),
+                  favori:
+                      FavorisConnus.instance.connu(_nomDe(bottomCamp, meta)) ??
+                      false,
                   captures:
                       _replay.current.captured[bottomCamp.opposite] ?? const [],
                   secondes: _vitesse,
@@ -336,6 +341,11 @@ class _ReplayScreenState extends State<ReplayScreen>
                   onTempo: _setVitesse,
                   onDebut: _auDebut,
                   onPlayPause: _playPause,
+                  onNameTap:
+                      _online.isLoggedIn &&
+                          isRealPlayer(_nomDe(bottomCamp, meta))
+                      ? () => _fiche(_nomDe(bottomCamp, meta), palette)
+                      : null,
                 )
               : _panel(palette, bottomCamp, meta),
           moveStrip: MoveStrip(
@@ -356,24 +366,35 @@ class _ReplayScreenState extends State<ReplayScreen>
 
   /// Panneau d'un joueur, rempli avec l'en-tête du fichier : les noms, le
   /// chrono de la cadence enregistrée, et les pièces prises à cet instant.
-  Widget _panel(ThemePalette palette, Camp camp, NmcMeta meta) {
+  /// Le nom du joueur d'un camp, tel que l'en-tête du fichier le donne.
+  String _nomDe(Camp camp, NmcMeta meta) {
     final blancIsFirst = meta.blanc.isEmpty || meta.blanc == meta.player1;
-    final name = (camp == Camp.blanc) == blancIsFirst
+    final nom = (camp == Camp.blanc) == blancIsFirst
         ? meta.player1
         : meta.player2;
+    return nom.isEmpty ? T('Joueur 1') : nom;
+  }
+
+  Widget _panel(ThemePalette palette, Camp camp, NmcMeta meta) {
+    final name = _nomDe(camp, meta);
 
     return PlayerPanel(
-      name: name.isEmpty ? T('Joueur 1') : name,
+      name: name,
       // Ce que les caches savent à l'instant : vide tant que la réponse n'est
       // pas là, et le `setState` de `_visages` repasse par ici.
       photo: AvatarPhotos.known(name),
       favori: FavorisConnus.instance.connu(name) ?? false,
-      clock: _clockLabel(meta.cadence),
+      // EN LECTURE, NI CHRONO NI SCORE. Nino : « ne doivent pas contenir les
+      // infos telles que le temps ou le score, qui de toutes façons sont
+      // erronées. »
+      clock: _auto ? '' : _clockLabel(meta.cadence),
       palette: palette,
       isWhite: camp == Camp.blanc,
       isTurn: _replay.current.turn == camp,
       captures: _replay.current.captured[camp.opposite] ?? const [],
-      score: '0 / ${meta.objectif == 'partie' ? '1' : meta.objectif}',
+      score: _auto
+          ? null
+          : '0 / ${meta.objectif == 'partie' ? '1' : meta.objectif}',
       // La fiche s'ouvre sur un VRAI joueur, et seulement connecté : « Joueur
       // 1 » et Deep Grey n'ont pas de compte. Sinon, pas de geste du tout —
       // un toucher qui n'ouvre rien ne vaut pas mieux qu'aucun toucher.

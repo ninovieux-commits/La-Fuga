@@ -150,7 +150,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await appuyer(tester, find.text('Plus'));
+      await appuyer(tester, find.text('+'));
 
       expect(find.text('Copier la partie'), findsOneWidget);
       expect(find.text('Copier la position'), findsOneWidget);

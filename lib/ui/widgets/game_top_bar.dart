@@ -172,13 +172,17 @@ class GameTopBar extends StatelessWidget {
               // flip de plateau, qui ouvre un popup laissant 4 choix ».
               if (onPlus != null) ...[
                 SizedBox(width: S(6)),
-                _flex(
-                  _wide(
-                    T('Plus'),
-                    onPlus!,
-                    width: S(104),
-                    color: kBarButtonDark,
-                  ),
+                // UN GROS « + », DANS L'AUTRE COULEUR DU THÈME. Nino : « le
+                // bouton "plus" doit passer à l'autre couleur du thème et
+                // plutôt être représenté par un gros "+" (changer ce bouton
+                // "plus" également partout où il y a un plateau de jeu) ».
+                // Le mot occupait 104 de large pour dire ce qu'un signe dit
+                // mieux ; carrée, la touche rend cette largeur au bandeau.
+                _rondMot(
+                  '+',
+                  onPlus!,
+                  tooltip: T('Plus'),
+                  couleur: palette.fonce,
                 ),
               ],
               // DEEP GREY, JUSTE À DROITE DU RETOURNEMENT. Nino : « le
@@ -388,6 +392,46 @@ class GameTopBar extends StatelessWidget {
               asset: asset,
               couleur: couleur ?? palette.clair,
               secours: secours,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  /// Touche carrée portant un SIGNE écrit — le « + » du lecteur.
+  ///
+  /// Comme [_rondImage], mais le dessin vient de la police plutôt que d'un
+  /// fichier : un signe aussi simple n'a pas besoin d'image, et il garde le
+  /// trait noir de tous les symboles de touches.
+  Widget _rondMot(
+    String signe,
+    VoidCallback onPressed, {
+    required String tooltip,
+    required Color couleur,
+  }) => Tooltip(
+    message: tooltip,
+    child: AspectRatio(
+      aspectRatio: 1,
+      child: Material(
+        color: kBarButtonDark,
+        shape: formeDeTouche(BorderRadius.circular(S(20))),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(S(20)),
+          onTap: onPressed,
+          child: Center(
+            // GROS : la part d'une touche que prend un dessin, et non la
+            // taille d'un mot.
+            child: LayoutBuilder(
+              builder: (context, box) => MotTouche(
+                texte: signe,
+                couleur: couleur,
+                style: TextStyle(
+                  fontSize: box.maxHeight * kPartPicto,
+                  fontWeight: FontWeight.bold,
+                  height: 1,
+                ),
+              ),
             ),
           ),
         ),
