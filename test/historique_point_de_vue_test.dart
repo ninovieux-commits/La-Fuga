@@ -58,11 +58,13 @@ void main() {
     'date': '2026-10-24 13:36',
   };
 
-  /// Ouvre l'historique en ligne de [target] — nul : le mien.
+  /// Ouvre l'historique en ligne de [target] — nul : le mien. Avec
+  /// [opponent], c'est le « Moi contre » : mes parties contre lui.
   Future<void> ouvrir(
     WidgetTester tester,
     Map<String, dynamic> jeu, {
     String? target,
+    String? opponent,
   }) async {
     final online = OnlineService(
       client: OnlineClient(
@@ -87,7 +89,12 @@ void main() {
     await online.login('nino', 'mdp');
     await tester.pumpWidget(
       MaterialApp(
-        home: HistoryScreen(online: online, target: target),
+        home: HistoryScreen(
+          online: online,
+          target: target,
+          opponent: opponent,
+          h2hMode: opponent == null ? null : 'direct',
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -147,6 +154,18 @@ void main() {
       target: 'mesange',
     );
     expect(couleur(tester), _vert);
+  });
+
+  // Nino : « par contre quand je clique sur "moi contre" c'est normal que ça
+  // affiche de mon point de vue, laisse comme ça. » Le tête-à-tête ne dit pas
+  // de qui est l'historique : il n'a pas de cible, donc c'est le mien.
+  testWidgets('« Moi contre » reste de MON point de vue', (tester) async {
+    await ouvrir(
+      tester,
+      partie(joueur1: 'mesange', joueur2: 'nino', resultat: '0-1'),
+      opponent: 'mesange',
+    );
+    expect(couleur(tester), _vert, reason: 'c est moi qui ai gagné');
   });
 
   testWidgets('personne de connu dans la partie : le symbole reste gris', (
