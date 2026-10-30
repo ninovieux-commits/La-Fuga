@@ -384,6 +384,11 @@ class MoveController {
 
     if (!cell.onBoard) {
       moved = true;
+      // LE DERNIER ATTERRISSAGE FAIT PARTIE DU CHEMIN, même quand le bond
+      // suivant sort du plateau : sans lui, l'Héritier qui fugue au bout d'un
+      // multisaut filait tout droit vers son ralliement. Nino : « l'héritier
+      // doit effectuer le multisaut même quand il va à fugue. »
+      if (jumping) tracking.jumpPath.add(from);
       return _fugue(piece.camp, slides);
     }
 
@@ -677,6 +682,8 @@ class MoveController {
       pushableDirs: tracking.pushableDirs,
     );
     final hadEjection = tracking.hadEjection;
+    // Retenu avant `_record`, qui remet l'état du coup à zéro.
+    final jumped = List<Cell>.of(tracking.jumpPath);
 
     _clearSelection();
 
@@ -689,6 +696,7 @@ class MoveController {
         r.effect,
         notation: notation,
         slides: slides,
+        jumpPath: jumped,
         hadEjection: hadEjection,
         endReason: r.endReason,
         loser: r.loser,
@@ -704,6 +712,7 @@ class MoveController {
       r.effect,
       notation: notation,
       slides: slides,
+      jumpPath: jumped,
       hadEjection: hadEjection,
       endReason: r.endReason,
       loser: r.loser,
@@ -804,9 +813,14 @@ class MoveController {
     // retient que l'arrivée. On le reconstruit, sinon la pièce de Deep Grey
     // coupe en ligne droite au lieu de passer par ses atterrissages — ceux-là
     // mêmes où s'affichent les petits carrés du dernier coup.
-    final jumped = move.kind == MoveKind.jump
-        ? jumpPathOf(before, move.from, move.to)
-        : const <Cell>[];
+    // Une fugue n'a pas d'arrivée SUR le plateau : `jumpPathOf` n'y trouve
+    // rien, et l'Héritier de Deep Grey filait tout droit vers son ralliement.
+    // [cheminDeFugue] sait, lui, finir hors du plateau.
+    final jumped = move.kind != MoveKind.jump
+        ? const <Cell>[]
+        : (move.to.onBoard
+              ? jumpPathOf(before, move.from, move.to)
+              : (cheminDeFugue(before, move.from)?.etapes ?? const <Cell>[]));
 
     board = move.board;
     // Les prises se lisent sur la différence entre les deux positions : un

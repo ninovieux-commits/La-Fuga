@@ -15,6 +15,7 @@ import 'dart:collection';
 import '../engine/board.dart';
 import '../engine/literal_replay.dart';
 import '../engine/move.dart';
+import '../engine/move_generator.dart';
 import '../engine/notation.dart';
 import '../engine/piece.dart';
 
@@ -186,10 +187,22 @@ LastMove? lastMoveFromNotation(String notation, Board? before, Board after) {
     from.add(start);
     final leaving = before?.atCell(start);
     if (leaving == null || !leaving.isHeir) return _framed(after, from, to);
+    // LE MULTISAUT, quand un seul pas ne pouvait pas l'amener là : il passe
+    // par ses atterrissages, et il sort par où son dernier bond le dépose.
+    // Nino : « l'héritier doit effectuer le multisaut même quand il va à
+    // fugue, là on le voit sauter tout droit vers la case. »
+    final chemin = cheminDeFugue(before!, start);
     return LastMove(
       camp: leaving.camp,
       from: from,
-      to: {after.caseDeFugueAffichee(leaving.camp)},
+      // `depuis` : la même case que celle où l'Héritier se pose vraiment, et
+      // que la glissée de la relecture vise. Sans elle, le cadre d'arrivée
+      // pouvait se poser sur une autre case de la zone que la pièce.
+      to: {
+        chemin?.sortie ??
+            after.caseDeFugueAffichee(leaving.camp, depuis: start),
+      },
+      jumpPath: chemin?.etapes ?? const [],
     );
   }
 

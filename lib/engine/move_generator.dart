@@ -5,6 +5,8 @@
 /// l'`Isolate` de l'IA.
 library;
 
+import 'dart:collection';
+
 import 'board.dart';
 import 'move.dart';
 import 'notation.dart';
@@ -652,3 +654,81 @@ List<Cell> pushableCellsOf(Board before, Move move) {
 /// relecture.
 String notationOn(Board before, Move move) =>
     notationOfMove(move, pushTargets: pushTargetsOf(before, move));
+
+/// Le chemin d'un Héritier qui FUGUE EN SAUTANT, quand un seul pas ne pouvait
+/// pas l'amener dans sa zone.
+///
+/// Nino, en mode lecture : « l'héritier doit effectuer le multisaut même quand
+/// il va à fugue, là on le voit sauter tout droit vers la case. » Une partie
+/// enregistrée écrit la fugue « Mi7* » : elle dit d'où l'Héritier part, jamais
+/// par où il passe. Faute de chemin, il glissait en ligne droite jusqu'à sa
+/// case de ralliement, quelle que soit la distance.
+///
+/// On le reconstruit donc, comme [jumpPathOf] reconstruit un multisaut
+/// ordinaire : en largeur, par le moins de sauts possible, et toujours dans le
+/// même ordre de directions — la même partie doit donner la même image à
+/// chaque relecture.
+///
+/// Rend `null` quand il n'y a rien à reconstruire : ce n'est pas un Héritier,
+/// un seul pas suffisait (il a pu marcher, ou sauter une fois, et la glissée
+/// droite est alors exacte), ou aucun enchaînement de sauts ne mène à la zone.
+({List<Cell> etapes, Cell sortie})? cheminDeFugue(Board avant, Cell depart) {
+  final heritier = avant.atCell(depart);
+  if (heritier == null || !heritier.isHeir) return null;
+
+  // UN SEUL PAS SUFFISAIT : on ne devine rien. Marcher dans la zone, ou y
+  // sauter d'un bond, se montre très bien d'une glissée droite — et c'est
+  // l'interprétation la plus simple de la notation.
+  for (final (dc, dr) in _directions) {
+    final voisine = Cell(depart.col + dc, depart.row + dr);
+    // Marcher dans la zone.
+    if (avant.isFugueDest(voisine.col, voisine.row, heritier)) return null;
+    // Ou y sauter d'un bond, par-dessus cette voisine.
+    final bond = Cell(depart.col + 2 * dc, depart.row + 2 * dr);
+    final saute = voisine.onBoard ? avant.atCell(voisine) : null;
+    if (saute != null &&
+        saute.isRound &&
+        avant.isFugueDest(bond.col, bond.row, heritier)) {
+      return null;
+    }
+  }
+
+  // Le sauteur ne se saute pas lui-même.
+  final obstacles = avant.clone()..setCell(depart, null);
+  final file = Queue<List<Cell>>()..add([depart]);
+  final vus = <Cell>{depart};
+
+  while (file.isNotEmpty) {
+    final chemin = file.removeFirst();
+    final ici = chemin.last;
+    for (final (dc, dr) in _directions) {
+      final survole = Cell(ici.col + dc, ici.row + dr);
+      final bond = Cell(ici.col + 2 * dc, ici.row + 2 * dr);
+      if (!survole.onBoard) continue;
+      final saute = obstacles.atCell(survole);
+      if (saute == null || !saute.isRound) continue;
+      // SORTI : le bond atterrit dans la zone de ralliement. Les étapes sont
+      // les atterrissages du chemin, sans la case de départ.
+      if (obstacles.isFugueDest(bond.col, bond.row, heritier)) {
+        return (etapes: chemin.sublist(1), sortie: bond);
+      }
+      if (!bond.onBoard || obstacles.atCell(bond) != null) continue;
+      if (!vus.add(bond)) continue;
+      file.add([...chemin, bond]);
+    }
+  }
+  return null;
+}
+
+/// Les huit directions, toujours dans cet ordre : une reconstruction doit
+/// rendre deux fois le même chemin.
+const List<(int, int)> _directions = [
+  (-1, -1),
+  (-1, 0),
+  (-1, 1),
+  (0, -1),
+  (0, 1),
+  (1, -1),
+  (1, 0),
+  (1, 1),
+];

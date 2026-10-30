@@ -90,16 +90,21 @@ LiteralMove _simpleOrPush(Board board, String s) {
     // d'arrivée et ce qu'il poussait. Appliquée à la lettre, elle effaçait
     // le pousseur du plateau et ratait la fugue.
     if (!leaving.isHeir) return _fugueRetrouvee(board, start, leaving.camp);
+    // LE MULTISAUT, QUAND UN SEUL PAS NE POUVAIT PAS L'AMENER LÀ. Il sort
+    // alors par la case où son dernier bond le dépose, et non par la médiane
+    // de sa zone : c'est la seule qui soit au bout d'un chemin possible.
+    final chemin = cheminDeFugue(board, start);
     return LiteralMove(
       board: board.clone()..setCell(start, null),
       ok: true,
       fugued: {leaving.camp},
-      // Il glisse jusqu'au milieu de son ralliement, là où il s'affichera.
+      // Il glisse jusqu'à son ralliement, là où il s'affichera.
       slides: [
         (
           leaving,
           start,
-          board.caseDeFugueAffichee(leaving.camp, depuis: start),
+          chemin?.sortie ??
+              board.caseDeFugueAffichee(leaving.camp, depuis: start),
         ),
       ],
     );
