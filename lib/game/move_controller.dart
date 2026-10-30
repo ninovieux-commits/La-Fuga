@@ -98,6 +98,16 @@ final class MoveTracking {
   /// carrés que Kivy dessine sur le chemin du dernier coup.
   List<Cell> jumpPath = [];
 
+  /// Camp dont l'Héritier vient d'être éjecté : le mat n'est pas encore
+  /// acquis, il le sera à la validation du coup.
+  ///
+  /// Nino : « Quand on fait mat (sur soi-même comme sur l'adversaire), il
+  /// devrait falloir valider son coup. C'est bien qu'il se valide seul en cas
+  /// de fugue, car rien de meilleur n'est possible, mais pas quand on mate. »
+  /// D'où ce mat EN ATTENTE : la poussée a eu lieu, l'Héritier est sorti,
+  /// mais on peut encore annuler le coup tant qu'on ne l'a pas validé.
+  Camp? matOn;
+
   void reset() {
     start = null;
     isPush = false;
@@ -108,6 +118,7 @@ final class MoveTracking {
     hadEjection = false;
     lastJumpedRound = null;
     jumpPath = [];
+    matOn = null;
   }
 }
 
@@ -258,6 +269,13 @@ class MoveController {
         }
         return const ControllerResult(ControllerEffect.selectionChanged);
       }
+    }
+
+    // Un Héritier est dehors : le coup est fini sauf la validation. Pousser
+    // encore n'ajouterait rien à une partie déjà jouée — on retouche la pièce
+    // pour valider, ou on annule le coup.
+    if (tracking.matOn != null) {
+      return const ControllerResult(ControllerEffect.none);
     }
 
     // Poussée : après un déplacement qui l'a activée, chaque clic pousse une
@@ -494,19 +512,13 @@ class MoveController {
       // poussée.
       return _fugue(fugueBy, slides, end: selected);
     }
-    if (matOn != null) {
-      // Le coup de mat doit être ENREGISTRÉ avant la fin de partie, sinon il
-      // manque dans l'historique et dans le replay.
-      final result = endTurn(matPending: matOn);
-      return ControllerResult(
-        result.effect,
-        notation: result.notation,
-        slides: slides,
-        hadEjection: true,
-        endReason: result.endReason,
-        loser: result.loser,
-      );
-    }
+    // LE MAT ATTEND LA VALIDATION. Il se jouait tout seul, comme la fugue ;
+    // Nino ne veut ce raccourci que pour la fugue, « car rien de meilleur
+    // n'est possible ». Un mat, lui, peut se regretter : le coup reste en
+    // construction, et l'Héritier ne tombe pour de bon qu'une fois le coup
+    // validé. `??=` parce que c'est le PREMIER mat qui compte — la partie
+    // était déjà jouée à cet instant-là.
+    if (matOn != null) tracking.matOn ??= matOn;
     return ControllerResult(
       ControllerEffect.boardChanged,
       slides: slides,
@@ -531,6 +543,8 @@ class MoveController {
     if (tracking.start == null) {
       return const ControllerResult(ControllerEffect.none);
     }
+    // Lu AVANT `_record`, qui remet l'état du coup à zéro.
+    matPending ??= tracking.matOn;
 
     final notation = buildMoveNotation(
       start: tracking.start!,
