@@ -131,7 +131,7 @@ class AutoPlayBar extends StatelessWidget {
           ),
         ),
       ),
-      Expanded(flex: 60, child: _curseur()),
+      Expanded(flex: 62, child: _curseur()),
     ],
   );
 
@@ -170,8 +170,35 @@ class AutoPlayBar extends StatelessWidget {
     ],
   );
 
-  /// Le curseur de vitesse, et ce qu'il vaut.
-  Widget _curseur() => Row(
+  /// Le curseur de vitesse, et ce qu'il vaut ÉCRIT AU-DESSUS.
+  ///
+  /// Nino : « marque le temps ("2.0s") au-dessus de la barre de sélection de
+  /// temps, ainsi tu peux rallonger un peu cette barre de sélection de
+  /// temps. » Le nombre mangeait un bon quart de la rangée pour trois
+  /// caractères ; au-dessus, il ne prend que de la hauteur, et la barre
+  /// court sur toute la largeur.
+  Widget _curseur() => Column(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(
+        '${secondes.toStringAsFixed(1)} s',
+        maxLines: 1,
+        style: TextStyle(
+          color: kPanelInk,
+          fontSize: SF(13),
+          fontWeight: FontWeight.bold,
+          // Interligne serré : la rangée n'a que la hauteur que le bandeau
+          // lui laisse, et le curseur passe dessous.
+          height: 1,
+        ),
+      ),
+      _barre(),
+    ],
+  );
+
+  /// La barre elle-même, sur toute la largeur.
+  Widget _barre() => Row(
     children: [
       Expanded(
         child: SliderTheme(
@@ -193,21 +220,6 @@ class AutoPlayBar extends StatelessWidget {
             activeColor: palette.fonce,
             inactiveColor: Colors.black26,
             onChanged: onTempo,
-          ),
-        ),
-      ),
-      SizedBox(
-        // De quoi écrire « 2.0 s » en entier : à 52 le « s » se faisait
-        // couper, sans rien pour le dire.
-        width: S(64),
-        child: Text(
-          '${secondes.toStringAsFixed(1)} s',
-          textAlign: TextAlign.right,
-          maxLines: 1,
-          style: TextStyle(
-            color: kPanelInk,
-            fontSize: SF(14),
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),
