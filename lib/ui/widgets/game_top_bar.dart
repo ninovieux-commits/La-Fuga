@@ -25,6 +25,7 @@ import '../scale.dart';
 import 'fuga_button.dart';
 import 'boule_dialog.dart';
 import 'picto_touche.dart';
+import 'touche_chat.dart';
 import 'unread_dot.dart';
 
 /// Largeur laissée LIBRE au centre du bandeau.
@@ -217,14 +218,9 @@ class GameTopBar extends StatelessWidget {
                 // un message de l'adversaire de cette partie.
                 UnreadDot(
                   show: unreadChat > 0,
-                  // LES DEUX BULLES, et non plus le mot « Chat ».
-                  child: _rondImage(
-                    'assets/images/chat.webp',
-                    onChat!,
-                    tooltip: T('Chat'),
-                    secours: '…',
-                    couleur: palette.fonce,
-                  ),
+                  // LA touche chat, celle que le volet des favoris emploie
+                  // aussi : un seul widget pour les deux.
+                  child: ToucheChat(palette: palette, onPressed: onChat!),
                 ),
               ],
               if (onAutoPlay != null) ...[

@@ -36,6 +36,7 @@ import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/picto_touche.dart';
+import '../widgets/touche_chat.dart';
 import '../widgets/corr_mode_dialog.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
@@ -788,30 +789,20 @@ class MenuScreenState extends State<MenuScreen>
                               ),
                             ),
                             SizedBox(width: S(6)),
-                            // LE DESSIN DU CHAT, celui des parties. Nino :
-                            // « il faudrait aussi que le bouton chat soit le
-                            // symbole qu'on utilise ingame. » Le mot
-                            // « Chat » disait la même chose que les deux
-                            // bulles, en moins vite et dans une seule
-                            // langue ; l'infobulle le garde pour qui le
-                            // cherche.
-                            SizedBox(
-                              width: kCoteActionFavori,
-                              child: Tooltip(
-                                message: T('Chat'),
-                                child: FugaButton(
-                                  enfant: SizedBox.square(
-                                    dimension: kCoteActionFavori,
-                                    child: PictoTouche(
-                                      asset: 'assets/images/chat.webp',
-                                      couleur: palette.fonce,
-                                      secours: '…',
-                                    ),
-                                  ),
-                                  color: palette.clair,
-                                  onPressed: () =>
-                                      choisir(f.pseudo, FavoriteAction.chat),
-                                ),
+                            // LA TOUCHE CHAT DES PARTIES, à l'identique.
+                            // Nino : « il faudrait aussi que le bouton chat
+                            // soit le symbole qu'on utilise ingame », puis,
+                            // devant une touche seulement ressemblante : « la
+                            // touche chat doit être exactement la même que
+                            // ingame, ni plus ni moins ». C'est donc le même
+                            // widget, [ToucheChat] — même gris, même rond,
+                            // même dessin, même infobulle.
+                            SizedBox.square(
+                              dimension: kCoteActionFavori,
+                              child: ToucheChat(
+                                palette: palette,
+                                onPressed: () =>
+                                    choisir(f.pseudo, FavoriteAction.chat),
                               ),
                             ),
                           ],

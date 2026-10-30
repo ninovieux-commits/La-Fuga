@@ -19,6 +19,7 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/ui/widgets/touche_chat.dart';
 import 'package:lafuga/net/avatar_photos.dart';
 import 'package:lafuga/ui/widgets/corr_slot.dart';
 import 'package:lafuga/ui/widgets/unread_dot.dart';
@@ -657,6 +658,24 @@ void main() {
       find.ancestor(of: find.text('Bob'), matching: find.byType(InkWell)),
       findsOneWidget,
     );
+    // Et la touche de chat est CELLE DES PARTIES, pas une qui lui ressemble.
+    // Nino : « la touche chat doit être exactement la même que ingame, ni
+    // plus ni moins. »
+    expect(find.byType(ToucheChat), findsOneWidget);
+    expect(
+      find.text('Chat'),
+      findsNothing,
+      reason: 'le mot a cédé la place aux deux bulles',
+    );
+    // Toutes à la même hauteur : la fiche du joueur, « Défier », le chat.
+    final fiche = tester.getSize(
+      find.ancestor(of: find.text('Bob'), matching: find.byType(InkWell)),
+    );
+    final defier = tester.getSize(find.widgetWithText(FugaButton, 'Défier'));
+    final chat = tester.getSize(find.byType(ToucheChat));
+    expect(fiche.height, defier.height);
+    expect(chat.height, defier.height);
+
     await tapVisible(tester, find.text('Défier'));
 
     // Défier ne part plus tout seul : le mode se choisit ici, et la
