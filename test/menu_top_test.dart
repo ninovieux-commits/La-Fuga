@@ -70,7 +70,7 @@ void main() {
       ) async {
         await ouvrir(tester, taille, encoche);
         final attendu = SH(0.015);
-        for (final texte in ['Random', 'Compte']) {
+        for (final texte in ['Standard', 'Compte']) {
           final r = toucheNommee(tester, texte);
           expect(
             r.top,

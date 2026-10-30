@@ -1624,7 +1624,12 @@ class MenuScreenState extends State<MenuScreen>
               width: MediaQuery.sizeOf(context).width * 0.2,
               child: FugaButton(
                 key: _tourKeys['random'],
-                text: 'Random',
+                // LA TOUCHE DIT LE MODE EN COURS, pas celui qu'elle
+                // ouvrirait. Elle disait « Random » dans les deux cas, et
+                // seule sa couleur distinguait l'un de l'autre. Nino : « il
+                // doit y avoir écrit standard quand on est en mode standard,
+                // random le remplace lorsque c'est activé. »
+                text: _random ? 'Random' : T('Standard'),
                 fontSize: SF(14),
                 height: double.infinity,
                 color: _random ? palette.clair : kFugaGrey,

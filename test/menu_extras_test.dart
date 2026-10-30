@@ -83,7 +83,7 @@ void main() {
     ) async {
       await bootApp(tester);
       // L'interrupteur Random est sur le menu, comme en Kivy.
-      await tapVisible(tester, find.text('Random'));
+      await tapVisible(tester, find.text('Standard'));
       await tapVisible(tester, find.text('Jouer en local'));
 
       final screen = tester.widget<GameScreen>(find.byType(GameScreen));

@@ -54,7 +54,9 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    expect(find.text('Random'), findsOneWidget, reason: 'interrupteur Random');
+    // La touche dit le MODE EN COURS : « Standard » au repos, « Random »
+    // une fois l'interrupteur mis.
+    expect(find.text('Standard'), findsOneWidget, reason: 'interrupteur');
     expect(find.text('Compte'), findsOneWidget, reason: 'déconnecté');
   });
 

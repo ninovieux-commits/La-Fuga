@@ -177,8 +177,11 @@ class _TutoScreenState extends State<TutoScreen>
     ],
   );
 
-  /// Grand texte de transition, à la place du plateau. Le bleu est fixe chez
-  /// Kivy : `(0.13, 0.45, 0.85)`.
+  /// Grand texte de transition, à la place du plateau.
+  ///
+  /// EN NOIR. Kivy le peignait en bleu fixe — `(0.13, 0.45, 0.85)` — une
+  /// couleur qui n'appartenait à aucun thème et qui jurait sur les fonds
+  /// clairs. Nino : « ce bleu c'est moche. Mets du noir. »
   Widget _banner(String text) => Center(
     child: Padding(
       padding: EdgeInsets.all(S(24)),
@@ -186,7 +189,7 @@ class _TutoScreenState extends State<TutoScreen>
         T(text),
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: const Color.fromRGBO(33, 115, 217, 1),
+          color: const Color(0xFF000000),
           fontSize: SF(30),
           fontWeight: FontWeight.bold,
         ),

@@ -90,7 +90,7 @@ void main() {
 
     testWidgets('Random porte SON classement', (tester) async {
       await open(tester);
-      await tester.tap(find.text('Random'));
+      await tester.tap(find.text('Standard'));
       await tester.pumpAndSettle();
       expect(find.text('Jouer en ligne (1500 mélo)'), findsOneWidget);
       expect(find.text('Jouer en ligne (1600 mélo)'), findsNothing);
