@@ -157,6 +157,45 @@ final class PremovePlan {
     return null;
   }
 
+  /// Les variantes que [ligne] contredit DÉJÀ, même inachevée.
+  ///
+  /// Nino : « Ça doit nous dire immédiatement lorsque deux variantes se
+  /// contredisent en mode pré-coups. » Inutile d'attendre que la variante
+  /// soit terminée : dès qu'on répond autrement qu'ailleurs au même coup de
+  /// l'adversaire, c'est joué, et la suite n'y changera rien.
+  ///
+  /// Une ligne qui n'est pour l'instant que le DÉBUT d'une variante existante
+  /// ne contredit rien : elle peut encore bifurquer sur un coup de
+  /// l'adversaire, ou finir en doublon.
+  List<int> contredites(List<String> ligne) => [
+    for (var i = 0; i < variantes.length; i++)
+      if (_contredit(ligne, variantes[i].coups)) i,
+  ];
+
+  static bool _contredit(List<String> ligne, List<String> autre) {
+    final ecart = _premierEcart(ligne, autre);
+    return ecart != null && premoveEstANous(ecart);
+  }
+
+  /// Le plan privé des variantes [index], toutes à la fois.
+  PremovePlan sansTout(Iterable<int> index) {
+    final aRetirer = index.toSet();
+    return PremovePlan(
+      base: base,
+      variantes: [
+        for (var i = 0; i < variantes.length; i++)
+          if (!aRetirer.contains(i)) variantes[i],
+      ],
+    );
+  }
+
+  /// Le plan où [v] REMPLACE les variantes qu'elle contredit.
+  ///
+  /// La réponse de Nino au popup : « (remplacer) ». Celles qui disaient le
+  /// contraire s'en vont, la nouvelle prend leur place.
+  PremovePlan? remplacePar(PremoveVariante v) =>
+      sansTout(contredites(v.coups)).avec(v);
+
   /// Le plan avec [v] en plus, ou `null` si elle est refusée.
   PremovePlan? avec(PremoveVariante v) => refusDe(v) != null
       ? null

@@ -90,6 +90,14 @@ class _PremoveScreenState extends State<PremoveScreen>
   /// Pourquoi la dernière tentative d'enregistrement a été refusée.
   String? _refus;
 
+  /// La variante en cours contredit-elle DÉJÀ une variante préparée ?
+  ///
+  /// Nino : « Ça doit nous dire immédiatement lorsque deux variantes se
+  /// contredisent en mode pré-coups. » On le dit donc dès le demi-coup qui
+  /// contredit, sans attendre « Garder la variante ».
+  bool get _seContredit =>
+      _ligne.isNotEmpty && _plan.contredites(_ligne).isNotEmpty;
+
   /// Un envoi est en vol.
   bool _envoi = false;
 
@@ -221,26 +229,54 @@ class _PremoveScreenState extends State<PremoveScreen>
   }
 
   /// Ranger la variante en cours parmi les autres.
-  void _garder() {
+  ///
+  /// Une contradiction ne se refuse plus sèchement : Nino veut le choix.
+  /// « Quand l'App capte que la variante qu'on vient d'ajouter en contredit
+  /// une déjà présente, un popup apparaît et dit "cette variante en contredit
+  /// une déjà présente (remplacer) (annuler)". »
+  Future<void> _garder() async {
     final v = PremoveVariante(
       List<String>.of(_ligne),
       methode: _methode,
       gagnant: _gagnant,
     );
     final refus = _plan.refusDe(v);
+    if (refus == PremoveRefus.contradiction) {
+      final remplacer = await confirmerFuga(
+        context,
+        palette: paletteOf(Settings.instance.themeAxes.general),
+        titre: T('Cette variante en contredit une déjà présente.'),
+        oui: T('Remplacer'),
+        non: T('Annuler'),
+      );
+      if (!mounted) return;
+      // « Annuler » laisse la variante en cours telle quelle : on vient de la
+      // composer, ce serait cruel de l'effacer pour un refus.
+      if (!remplacer) return;
+      final remplace = _plan.remplacePar(v);
+      if (remplace == null) {
+        setState(() => _refus = _texteDuRefus(PremoveRefus.tropDeVariantes));
+        return;
+      }
+      _rangee(remplace);
+      return;
+    }
     if (refus != null) {
       setState(() => _refus = _texteDuRefus(refus));
       return;
     }
-    setState(() {
-      _plan = _plan.avec(v)!;
-      _ligne.clear();
-      _methode = null;
-      _gagnant = null;
-      _refus = null;
-      _jeu = _neuf();
-    });
+    _rangee(_plan.avec(v)!);
   }
+
+  /// La variante est rangée : on repart d'une ligne vide.
+  void _rangee(PremovePlan plan) => setState(() {
+    _plan = plan;
+    _ligne.clear();
+    _methode = null;
+    _gagnant = null;
+    _refus = null;
+    _jeu = _neuf();
+  });
 
   void _oublier(int index) => setState(() {
     _plan = _plan.sans(index);
@@ -396,7 +432,15 @@ class _PremoveScreenState extends State<PremoveScreen>
                       SizedBox(height: S(8)),
                       _ligneEnCours(palette),
                       if (_refus != null)
-                        _message(_refus!, palette, alerte: true),
+                        _message(_refus!, palette, alerte: true)
+                      else if (_seContredit)
+                        // La même phrase que le refus : elle arrive seulement
+                        // plus tôt.
+                        _message(
+                          _texteDuRefus(PremoveRefus.contradiction),
+                          palette,
+                          alerte: true,
+                        ),
                       SizedBox(height: S(8)),
                       _touches(palette),
                       SizedBox(height: S(12)),
@@ -509,7 +553,9 @@ class _PremoveScreenState extends State<PremoveScreen>
       Expanded(
         child: FugaButton(
           text: T('Garder la variante'),
-          onPressed: _enregistrable && !_envoi ? _garder : null,
+          onPressed: _enregistrable && !_envoi
+              ? () => unawaited(_garder())
+              : null,
         ),
       ),
     ],

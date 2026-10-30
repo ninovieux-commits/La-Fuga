@@ -192,11 +192,18 @@ Widget popupText(
 /// la nulle, repartir en laissant ce qu'on avait préparé. Une seule, la même
 /// partout — chaque écran avait la sienne, et deux d'entre elles étaient mot
 /// pour mot la même.
+///
+/// [oui] et [non] renomment les deux touches quand « Oui » et « Non » ne
+/// disent pas ce qu'on fait — Nino, pour les pré-coups : « un popup apparaît
+/// et dit "cette variante en contredit une déjà présente (remplacer)
+/// (annuler)" ». Les touches gardent leur place : celle qui agit à droite.
 Future<bool> confirmerFuga(
   BuildContext context, {
   required ThemePalette palette,
   required String titre,
   String message = '',
+  String? oui,
+  String? non,
 }) async {
   final ok = await showFugaPopup<bool>(
     context,
@@ -219,7 +226,7 @@ Future<bool> confirmerFuga(
           children: [
             Expanded(
               child: FugaButton(
-                text: T('Non'),
+                text: non ?? T('Non'),
                 color: kGrisTouche,
                 fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(false),
@@ -228,7 +235,7 @@ Future<bool> confirmerFuga(
             SizedBox(width: S(8)),
             Expanded(
               child: FugaButton(
-                text: T('Oui'),
+                text: oui ?? T('Oui'),
                 color: palette.fonce,
                 fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(true),

@@ -367,29 +367,89 @@ void main() {
       );
     });
 
-    testWidgets('une variante qui en contredit une autre est refusée, et dit '
-        'pourquoi', (tester) async {
-      // Déjà armé : si les Blancs jouent Mi2-Mi3, on répond Do7-Do6.
-      await composer(
-        tester,
-        plan: const PremovePlan(
-          base: 1,
-        ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6'])),
-      );
-      // On compose la même entrée, avec une AUTRE réponse.
+    /// Déjà préparé : si les Blancs jouent Mi2-Mi3, on répond Do7-Do6.
+    PremovePlan unPlan() => const PremovePlan(
+      base: 1,
+    ).avec(const PremoveVariante(['Mi2-Mi3', 'Do7-Do6']))!;
+
+    /// Compose la MÊME entrée que `unPlan`, avec une AUTRE réponse.
+    Future<void> contredire(WidgetTester tester) async {
       await jouer(tester, const Cell(2, 1), const Cell(2, 2));
       await jouer(tester, const Cell(2, 6), const Cell(2, 5));
-      await appuyer(tester, touche('Garder la variante'));
+    }
 
+    // Nino : « Ça doit nous dire immédiatement lorsque deux variantes se
+    // contredisent en mode pré-coups. »
+    testWidgets('la contradiction se dit IMMÉDIATEMENT, sans rien demander', (
+      tester,
+    ) async {
+      await composer(tester, plan: unPlan());
+
+      // Son coup : la ligne ne fait encore que suivre la variante préparée.
+      await jouer(tester, const Cell(2, 1), const Cell(2, 2));
+      expect(
+        find.textContaining('contredit'),
+        findsNothing,
+        reason: 'rien ne se contredit tant qu on n a pas répondu autrement',
+      );
+
+      // Notre réponse, différente de celle qui est préparée.
+      await jouer(tester, const Cell(2, 6), const Cell(2, 5));
       expect(
         find.textContaining('contredit'),
         findsOneWidget,
-        reason: 'rien ne doit se contredire, et il faut le dire',
+        reason: 'on doit le savoir avant même de garder la variante',
       );
+    });
+
+    testWidgets(
+      '« Annuler » laisse tout en place, variante en cours comprise',
+      (tester) async {
+        await composer(tester, plan: unPlan());
+        await contredire(tester);
+        await appuyer(tester, touche('Garder la variante'));
+
+        expect(
+          find.text('Cette variante en contredit une déjà présente.'),
+          findsOneWidget,
+          reason: 'le popup de Nino, mot pour mot',
+        );
+        await appuyer(tester, touche('Annuler'));
+
+        expect(find.textContaining('1 / 6'), findsOneWidget);
+        expect(
+          find.text('Mi7-Mi6'),
+          findsOneWidget,
+          reason: 'la réponse qu on venait de composer est toujours là',
+        );
+      },
+    );
+
+    testWidgets('« Remplacer » chasse la variante contredite', (tester) async {
+      await composer(tester, plan: unPlan());
+      await contredire(tester);
+      await appuyer(tester, touche('Garder la variante'));
+      await appuyer(tester, touche('Remplacer'));
+
       expect(
         find.textContaining('1 / 6'),
         findsOneWidget,
-        reason: 'la variante refusée a quand même été rangée',
+        reason: 'une remplace l autre : toujours une seule variante',
+      );
+      expect(
+        find.text('Mi7-Mi6'),
+        findsOneWidget,
+        reason: 'la nouvelle réponse a pris la place',
+      );
+      expect(
+        find.text('Do7-Do6'),
+        findsNothing,
+        reason: 'l ancienne réponse est partie avec sa variante',
+      );
+      expect(
+        find.textContaining('contredit'),
+        findsNothing,
+        reason: 'plus rien ne se contredit',
       );
     });
 
