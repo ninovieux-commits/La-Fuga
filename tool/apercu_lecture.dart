@@ -6,6 +6,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -13,27 +14,59 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/engine/board.dart';
+import 'package:lafuga/engine/move_generator.dart';
+import 'package:lafuga/game/move_controller.dart';
 import 'package:lafuga/game/sound_player.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/theme_assets.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
+import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Size _ecran = Size(393, 851);
 
-const String _nmc =
-    '[Date "2026-10-30"]\n'
-    '[Joueur1 "nino"]\n'
-    '[Joueur2 "celia"]\n'
-    '[Blanc "nino"]\n'
-    '[Cadence "15"]\n\n'
-    '1.Do2-Do3/Do7-Do6\n'
-    '2.Ré2-Ré3/Ré7-Ré6\n'
-    '3.Mi2-Mi3/Mi7-Mi6\n'
-    '4.Fa2-Fa3/Fa7-Fa6\n'
-    '5.Sol2-Sol3/Sol7-Sol6';
+/// Une partie AVEC DES PRISES : sans elles, les deux bandeaux montrent une
+/// rangée vide et on ne voit pas où vont les pièces mangées.
+///
+/// On la joue ici même, en préférant à chaque coup celui qui éjecte, et on
+/// écrit ses notations comme un `.nmc`.
+String _nmcAvecPrises({int demiCoups = 24}) {
+  final jeu = MoveController(board: Board.initial());
+  final hasard = math.Random(7);
+  for (var i = 0; i < demiCoups && !jeu.gameOver; i++) {
+    final coups = generateMoves(jeu.board, jeu.turn);
+    if (coups.isEmpty) break;
+    // Une fugue finirait la partie : on la laisse de côté, on veut des
+    // prises.
+    final jouables = [
+      for (final m in coups)
+        if (!m.fugue && m.fugueBy == null) m,
+    ];
+    if (jouables.isEmpty) break;
+    final mangeurs = [
+      for (final m in jouables)
+        if (m.ejected > 0) m,
+    ];
+    final choix = mangeurs.isNotEmpty
+        ? mangeurs[hasard.nextInt(mangeurs.length)]
+        : jouables[hasard.nextInt(jouables.length)];
+    jeu.applyGeneratedMove(choix);
+  }
+  final lignes = <String>[];
+  for (var i = 0; i < jeu.history.length; i += 2) {
+    final noir = i + 1 < jeu.history.length ? '/${jeu.history[i + 1]}' : '';
+    lignes.add('${i ~/ 2 + 1}.${jeu.history[i]}$noir');
+  }
+  return '[Date "2026-10-30"]\n'
+      '[Joueur1 "nino"]\n'
+      '[Joueur2 "celia"]\n'
+      '[Blanc "nino"]\n'
+      '[Cadence "15"]\n\n'
+      '${lignes.join('\n')}';
+}
 
 final GlobalKey _cadre = GlobalKey();
 
@@ -62,6 +95,7 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(_ecran);
+    final partie = _nmcAvecPrises();
     tester.view.physicalSize = _ecran;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -85,7 +119,7 @@ Future<void> main() async {
         key: _cadre,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: ReplayScreen(nmc: _nmc, sounds: SansSon()),
+          home: ReplayScreen(nmc: partie, sounds: SansSon()),
         ),
       ),
     );
@@ -113,6 +147,12 @@ Future<void> main() async {
     await tester.tap(find.text('+'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lire la partie'));
+    await tester.pumpAndSettle();
+
+    // On va au bout de la partie : c'est là que les deux bandeaux ont des
+    // pièces mangées à montrer, et que le bandeau des coups a défilé.
+    final coups = tester.widget<MoveStrip>(find.byType(MoveStrip));
+    coups.onSelect(coups.moves.length - 1);
     await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     final limite =

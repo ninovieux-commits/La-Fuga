@@ -9,9 +9,8 @@
 /// lui, avec le bandeau des touches en haut, qui dit à qui est le tour.
 library;
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
@@ -65,8 +64,16 @@ class _MoveStripState extends State<MoveStrip> {
   /// chrono.
   int _scrolledTo = -1;
 
-  /// Le coup regardé, pour l'amener à l'écran.
-  final GlobalKey _cleActif = GlobalKey();
+  /// Une clé par demi-coup, pour retrouver celui qu'on veut amener à
+  /// l'écran.
+  ///
+  /// UNE SEULE CLÉ POSÉE SUR LE COUP ACTIF NE MARCHE PAS : elle saute d'un
+  /// coup à l'autre, et au moment où l'on cherche le coup visé son contexte
+  /// est nul — le défilement ne partait jamais. Chaque coup garde donc la
+  /// sienne.
+  final Map<int, GlobalKey> _cles = {};
+
+  GlobalKey _cleDe(int index) => _cles.putIfAbsent(index, GlobalKey.new);
 
   /// Dernier coup amené à l'écran : on ne redemande pas le même défilement à
   /// chaque reconstruction.
@@ -83,15 +90,27 @@ class _MoveStripState extends State<MoveStrip> {
     if (_montre == actif) return;
     _montre = actif;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _cleActif.currentContext;
-      if (ctx == null) return;
+      final ctx = _cles[actif]?.currentContext;
+      // ignore: avoid_print
+      if (ctx == null || !_scroll.hasClients) return;
+      final boite = ctx.findRenderObject();
+      if (boite is! RenderBox) return;
       // Au MILIEU du bandeau : on voit ce qui précède et ce qui suit, et le
       // coup suivant n'arrive pas par le bord.
       //
-      // SANS ANIMATION, d'un saut. Une lecture automatique à une demi-seconde
-      // par coup lancerait deux cents petits défilements qui se recouvrent, et
-      // la fluidité passe avant la grâce.
-      unawaited(Scrollable.ensureVisible(ctx, alignment: 0.5));
+      // D'UN SAUT, sans animation : une lecture à une demi-seconde par coup
+      // lancerait deux cents petits défilements qui se recouvrent, et la
+      // fluidité passe avant la grâce.
+      //
+      // Le décalage se calcule plutôt que de passer par `ensureVisible` :
+      // celui-ci ne bougeait pas d'un pixel quand le coup visé était loin
+      // hors du cadre — exactement le cas qu'on veut traiter.
+      final cadre = RenderAbstractViewport.of(boite);
+      final cible = cadre.getOffsetToReveal(boite, 0.5).offset;
+      final position = _scroll.position;
+      _scroll.jumpTo(
+        cible.clamp(position.minScrollExtent, position.maxScrollExtent),
+      );
     });
   }
 
@@ -169,28 +188,36 @@ class _MoveStripState extends State<MoveStrip> {
                 : () => widget.onSelect(active - 1),
           ),
           Expanded(
-            child: ListView(
+            // TOUS LES COUPS SONT CONSTRUITS, pas seulement ceux qu'on voit.
+            // Un `ListView` ne bâtit que ce qui entre dans le cadre : le coup
+            // qu'on venait de lire, loin sur la droite, n'existait donc pas
+            // encore quand on cherchait à l'amener à l'écran, et le bandeau
+            // ne bougeait jamais. Un bandeau de coups n'a pas de quoi peser :
+            // ce sont quelques dizaines de petits textes.
+            child: SingleChildScrollView(
               controller: _scroll,
               scrollDirection: Axis.horizontal,
-              children: [
-                // Random Fuga : le code de la position en tête, pour pouvoir
-                // la retrouver et la vérifier.
-                if (widget.randomCode != null)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: S(8)),
-                      child: Text(
-                        widget.randomCode!,
-                        style: TextStyle(
-                          fontSize: SF(13),
-                          fontWeight: FontWeight.bold,
-                          color: widget.palette.clair,
+              child: Row(
+                children: [
+                  // Random Fuga : le code de la position en tête, pour pouvoir
+                  // la retrouver et la vérifier.
+                  if (widget.randomCode != null)
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: S(8)),
+                        child: Text(
+                          widget.randomCode!,
+                          style: TextStyle(
+                            fontSize: SF(13),
+                            fontWeight: FontWeight.bold,
+                            color: widget.palette.clair,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ...turns,
-              ],
+                  ...turns,
+                ],
+              ),
             ),
           ),
           _arrow(
@@ -209,9 +236,7 @@ class _MoveStripState extends State<MoveStrip> {
   /// Un demi-coup : sa notation, touchable pour revenir dessus. Le demi-coup
   /// regardé s'écrit en noir, les autres en blanc.
   Widget _half(int index, String notation, bool actif) => TextButton(
-    // La clé ne suit QUE le coup regardé : c'est par elle qu'on l'amène à
-    // l'écran.
-    key: actif ? _cleActif : null,
+    key: _cleDe(index),
     onPressed: () => widget.onSelect(index),
     style: TextButton.styleFrom(
       minimumSize: Size.zero,
