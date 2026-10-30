@@ -12,6 +12,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../engine/piece.dart';
+import 'board_painter.dart';
 import 'theme_image_cache.dart';
 import '../../theme/themes.dart';
 import 'piece_painter.dart';
@@ -32,7 +33,7 @@ class PieceTile extends StatefulWidget {
   /// Thème des pièces, pour que celles de la ligne soient celles du plateau.
   final String? pieceTheme;
 
-  /// Entourée quand elle est la pièce choisie.
+  /// Enfoncée quand c'est elle qu'on tient en main.
   final bool selected;
 
   final VoidCallback? onTap;
@@ -114,15 +115,20 @@ final class _TilePainter extends CustomPainter {
       cote,
       cote,
     );
-    if (selected) {
-      // La pièce choisie le reste : on pose plusieurs cases d'affilée. Il faut
-      // donc voir laquelle est en main sans avoir à s'en souvenir.
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, Radius.circular(cote * 0.14)),
-        Paint()..color = palette.clair.withValues(alpha: 0.35),
-      );
-    }
+    // LA PIÈCE EN MAIN S'ENFONCE, comme une pièce choisie sur le plateau.
+    //
+    // Elle portait une plaque de couleur translucide par-dessous : le vieux
+    // langage de sélection, que Nino avait écarté partout ailleurs — « la
+    // couleur de sélection ne me convient pas, c'est pas clair. Et pourquoi
+    // on mettrait pas plutôt la pièce en "enfoncée" ? ». Le composeur était
+    // le dernier endroit à parler l'ancien. Mêmes fonctions que le plateau,
+    // donc même atténuation, et le contour reste net.
+    //
+    // La gomme et la bascule, elles, gardent leur plaque : ce sont des
+    // touches, et une touche n'a pas de pièce à enfoncer.
+    if (selected) ouvreChoisie(canvas, rect, piece, images);
     paintPiece(canvas, rect, piece, palette, images: images, theme: theme);
+    if (selected) refermeChoisie(canvas, rect, piece, images, theme);
   }
 
   @override
