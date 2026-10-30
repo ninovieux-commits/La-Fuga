@@ -227,6 +227,37 @@ void main() {
     },
   );
 
+  // Nino, capture du profil à l'appui : « et la bulle là. Elle doit être
+  // encadrée ET recevoir les pics d'exclamation ! »
+  testWidgets('une devise qui crie hérisse sa bulle', (tester) async {
+    server.replies['/get_profile'] = profile(
+      extra: const {'description': 'fais ta prière !'},
+    );
+    await open(tester);
+
+    expect(
+      tester.widget<BulleDevise>(find.byType(BulleDevise)).crie,
+      isTrue,
+      reason: 'elle finit par « ! » : c est un cri',
+    );
+  });
+
+  testWidgets('une devise tranquille garde sa bulle lisse', (tester) async {
+    server.replies['/get_profile'] = profile();
+    await open(tester);
+
+    expect(tester.widget<BulleDevise>(find.byType(BulleDevise)).crie, isFalse);
+  });
+
+  testWidgets('sans devise, la bulle ne crie pas non plus', (tester) async {
+    // Le texte de remplacement n'est pas de nous : il ne crie jamais, quoi
+    // qu'il finisse par dire.
+    server.replies['/get_profile'] = profile(extra: const {'description': ''});
+    await open(tester);
+
+    expect(tester.widget<BulleDevise>(find.byType(BulleDevise)).crie, isFalse);
+  });
+
   testWidgets('la description s enregistre', (tester) async {
     server.replies['/get_profile'] = profile();
     await open(tester);

@@ -104,9 +104,29 @@ Path cheminBulleCri(
   required double court,
   required double pas,
   required double creux,
+}) => cheminHerisse(
+  Path()..addRRect(base),
+  haut: haut,
+  court: court,
+  pas: pas,
+  creux: creux,
+);
+
+/// Le même hérissement, autour d'un contour QUELCONQUE.
+///
+/// La bulle de la devise n'est pas un rectangle à coins ronds : elle a une
+/// pointe qui désigne la photo du joueur. Nino : « et la bulle là. Elle doit
+/// être encadrée ET recevoir les pics d'exclamation ! » Le parcours du
+/// contour ne demandait rien d'autre qu'un chemin — c'est le rectangle qui
+/// n'était qu'un cas particulier.
+Path cheminHerisse(
+  Path contour, {
+  required double haut,
+  required double court,
+  required double pas,
+  required double creux,
 }) {
-  final contour = Path()..addRRect(base);
-  final centre = base.outerRect.center;
+  final centre = contour.getBounds().center;
   final sortie = Path();
 
   for (final metrique in contour.computeMetrics()) {

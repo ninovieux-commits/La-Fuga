@@ -51,6 +51,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'bulle_cri.dart';
 import 'bulle_devise.dart';
 import 'fuga_background.dart';
 import 'etoile_favori.dart';
@@ -247,6 +248,10 @@ class EnteteProfil extends StatelessWidget {
     );
     final bulle = BulleDevise(
       couleur: palette.fonce,
+      // « fais ta prière ! » se crie, comme dans la messagerie : la bulle se
+      // hérisse. Une devise vide, elle, ne crie jamais — c'est le texte de
+      // remplacement qui s'affiche, et il n'est pas de nous.
+      crie: !vide && estUnCri(texte),
       // Le crayon est À CÔTÉ du texte, pas dessus : posé en surimpression
       // dans le coin, il masquait le premier mot de la devise.
       child: onDevise == null
