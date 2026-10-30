@@ -863,7 +863,7 @@ class _ConversationScreenState extends State<ConversationScreen>
         message: T('Envoyer une pièce'),
         child: Material(
           color: Colors.black38,
-          borderRadius: BorderRadius.circular(S(10)),
+          shape: formeDeTouche(BorderRadius.circular(S(10))),
           child: InkWell(
             borderRadius: BorderRadius.circular(S(10)),
             onTap: () => setState(() => _pieces = !_pieces),

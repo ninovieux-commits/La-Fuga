@@ -16,6 +16,7 @@ import 'package:lafuga/state/local_games.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -106,6 +107,28 @@ void main() {
     expect(find.text('*'), findsOneWidget);
     expect(find.textContaining('fugue'), findsOneWidget);
     expect(find.text('Copier'), findsOneWidget);
+  });
+
+  // Nino, capture de l'historique en ligne à l'appui : « ces boutons là aussi
+  // devraient être encadrés. » Une carte de partie se touche pour la rouvrir.
+  testWidgets('la carte d une partie porte le trait noir des touches', (
+    tester,
+  ) async {
+    await store.save(_meta, _someMoves(4), name: 'partie1');
+    await open(tester);
+
+    final carte = tester.widget<Material>(
+      find
+          .ancestor(
+            of: find.text('Nino  vs  Deep Grey'),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    final forme = carte.shape;
+    expect(forme, isA<RoundedRectangleBorder>());
+    expect((forme! as RoundedRectangleBorder).side.color, kTraitDeTouche.color);
+    expect((forme as RoundedRectangleBorder).side.width, kTraitDeTouche.width);
   });
 
   testWidgets('sans partie enregistrée, on le dit', (tester) async {

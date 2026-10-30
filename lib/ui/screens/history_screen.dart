@@ -461,7 +461,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     const secondary = Color.fromRGBO(217, 217, 217, 1);
     return Material(
       color: kFugaGrey,
-      borderRadius: BorderRadius.circular(S(10)),
+      // LE TRAIT NOIR DES TOUCHES. Nino, capture de l'historique en ligne à
+      // l'appui : « ces boutons là aussi devraient être encadrés. » Une
+      // carte de partie se touche pour la rouvrir : c'est une touche, et les
+      // cartes de la messagerie l'avaient déjà.
+      shape: formeDeTouche(BorderRadius.circular(S(10))),
       child: InkWell(
         borderRadius: BorderRadius.circular(S(10)),
         onTap: onTap,

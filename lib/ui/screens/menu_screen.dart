@@ -822,7 +822,9 @@ class MenuScreenState extends State<MenuScreen>
   /// La fiche d'un favori : son nom, son Mélo, et le relief d'une touche.
   Widget _ficheFavori(Person f, {required VoidCallback onPressed}) => Material(
     color: kFugaGrey,
-    borderRadius: BorderRadius.circular(S(12)),
+    // Elle se touche pour défier : elle porte donc le trait noir comme les
+    // autres touches, et comme les cartes de l'historique.
+    shape: formeDeTouche(BorderRadius.circular(S(12))),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onPressed,
