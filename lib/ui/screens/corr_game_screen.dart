@@ -19,6 +19,7 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../../net/avatar_photos.dart';
 import '../../net/corr_hub.dart';
+import '../../net/ecran_courant.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/decors_connus.dart';
 import '../../net/message_hub.dart';
@@ -193,6 +194,9 @@ class _CorrGameScreenState extends State<CorrGameScreen>
   @override
   void initState() {
     super.initState();
+    // La partie est SOUS LES YEUX : une notification qui l'annonce n'a rien
+    // à apprendre à personne, et c'est la seule qu'on taira.
+    EcranCourant.ouvrePartieCorr(_g.id);
     _photoAdverse = AvatarPhotos.known(_g.opponent);
     _chargerPhotoAdverse();
     _sounds.init();
@@ -290,6 +294,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
   @override
   void dispose() {
+    EcranCourant.fermePartieCorr(_g.id);
     _poll?.cancel();
     _ecouteCorr?.cancel();
     OnlineService.instance.messages.removeListener(_onMessages);

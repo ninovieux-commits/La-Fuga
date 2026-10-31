@@ -23,6 +23,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'ecran_courant.dart';
 import 'firebase_options.dart';
 import 'online_service.dart';
 
@@ -250,11 +251,50 @@ class PushNotifications {
   /// Oublie ce qui a été déclaré — à la déconnexion, et pour les tests.
   static void forgetDeclaredToken() => _declared = null;
 
+  /// Ce message annonce-t-il L'ÉCRAN OÙ L'ON EST DÉJÀ ?
+  ///
+  /// L'application ne montrait rien tant qu'elle était devant le joueur. Trop
+  /// large : Nino, réseau coupé puis rallumé pendant qu'il la regardait, « je
+  /// ne reçois pas la notif » — la push arrivait (elle tombe parfaitement
+  /// application fermée, mesuré), et l'application la jetait, fût-elle d'une
+  /// autre partie ou d'une autre personne.
+  ///
+  /// Ne se taisent donc plus que le coup d'une partie qu'on regarde et le
+  /// message d'une conversation qu'on lit. Un défi, un coup d'ailleurs, un
+  /// message d'un autre : tout cela s'affiche, application ouverte ou non.
+  ///
+  /// Rien de tout ceci ne touche au chemin de l'application FERMÉE : là, le
+  /// message porte une charge `notification` et c'est Android qui l'affiche,
+  /// sans jamais passer par ici.
+  static bool dejaSousLesYeux(RemoteMessage message) {
+    final data = message.data;
+    final type = '${data['type'] ?? ''}'.trim();
+    final partie = '${data['game_id'] ?? ''}'.trim();
+    if (type.startsWith('corr') &&
+        partie.isNotEmpty &&
+        partie == EcranCourant.partieCorr) {
+      return true;
+    }
+    // Le serveur nomme l'expéditeur `de` dans ses événements ; on accepte
+    // aussi le titre, qui porte son pseudo depuis que les notifications
+    // l'écrivent là.
+    final ouverte = EcranCourant.conversation;
+    if (ouverte == null || ouverte.isEmpty) return false;
+    final qui = [
+      '${data['de'] ?? ''}'.trim(),
+      '${data['from'] ?? ''}'.trim(),
+      '${data['pseudo'] ?? ''}'.trim(),
+      message.notification?.title?.trim() ?? '',
+      '${data['title'] ?? ''}'.trim(),
+    ];
+    return qui.any((n) => n.isNotEmpty && n == ouverte);
+  }
+
   /// Affiche une notification. Reprend l'icône, le salon et l'importance du
   /// service Java de Kivy.
   static Future<void> show(RemoteMessage message) async {
-    // Déjà dans l'application : rien à annoncer, on y est.
-    if (_auPremierPlan) return;
+    // Déjà sous les yeux : rien à annoncer, on y est.
+    if (_auPremierPlan && dejaSousLesYeux(message)) return;
     final content = contentOf(message);
     if (!hasSomethingToSay(content)) return;
     try {

@@ -17,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart';
+import 'package:lafuga/net/ecran_courant.dart';
 import 'package:lafuga/net/push_notifications.dart';
 
 /// Ce que le greffon a reçu : un appel par notification réellement posée.
@@ -164,22 +165,93 @@ void main() {
     });
     tearDown(() async {
       greffon.debrancher();
+      EcranCourant.oublie();
       await PushNotifications.setForeground(false);
     });
 
-    testWidgets('aucune notification ne s affiche', (tester) async {
+    // Nino, réseau coupé puis rallumé pendant qu'il regardait l'appli : « je
+    // te confirme que si je désactive internet sur mon téléphone et qu'on me
+    // répond dans une partie, quand mon téléphone se reconnecte à internet je
+    // ne reçois pas la notif. » La push arrivait bien — vérifié, elle tombe
+    // parfaitement application fermée — et l'application la jetait, quelle
+    // que soit la partie dont elle parlait.
+    testWidgets('elle s affiche quand même : on n est pas dans CETTE partie', (
+      tester,
+    ) async {
       await PushNotifications.setForeground(true);
       greffon.posees.clear();
-      greffon.annulations = 0;
 
       await PushNotifications.show(
-        _message(titre: 'mesange', corps: 'a joué 6.Sol1-Sol2>Fa3'),
+        _message(
+          titre: 'mesange',
+          corps: 'a joué 6.Sol1-Sol2>Fa3',
+          data: {'type': 'corr_turn', 'game_id': '42'},
+        ),
+      );
+      expect(
+        greffon.posees.length,
+        1,
+        reason: 'rien à l écran ne dit ce qui vient d arriver',
+      );
+    });
+
+    testWidgets('mais pas si c est la partie qu on regarde', (tester) async {
+      EcranCourant.ouvrePartieCorr('42');
+      await PushNotifications.setForeground(true);
+      greffon.posees.clear();
+
+      await PushNotifications.show(
+        _message(
+          titre: 'mesange',
+          corps: 'a joué 6.Sol1-Sol2>Fa3',
+          data: {'type': 'corr_turn', 'game_id': '42'},
+        ),
       );
       expect(
         greffon.posees,
         isEmpty,
-        reason: 'on est devant l écran : la notification n apprend rien',
+        reason: 'le coup se joue sous ses yeux : la carte n apprend rien',
       );
+    });
+
+    testWidgets('ni le message de la conversation qu on lit', (tester) async {
+      EcranCourant.ouvreConversation('mesange');
+      await PushNotifications.setForeground(true);
+      greffon.posees.clear();
+
+      await PushNotifications.show(
+        _message(
+          titre: 'mesange',
+          corps: 'coucou',
+          data: {'type': 'msg', 'de': 'mesange'},
+        ),
+      );
+      expect(greffon.posees, isEmpty);
+
+      // Celui d'une AUTRE personne, lui, s'affiche.
+      await PushNotifications.show(
+        _message(
+          titre: 'celia',
+          corps: 'coucou',
+          data: {'type': 'msg', 'de': 'celia'},
+        ),
+      );
+      expect(greffon.posees.length, 1);
+    });
+
+    testWidgets('un défi s affiche toujours', (tester) async {
+      EcranCourant.ouvrePartieCorr('42');
+      await PushNotifications.setForeground(true);
+      greffon.posees.clear();
+
+      await PushNotifications.show(
+        _message(
+          titre: 'celia',
+          corps: 'vous défie en correspondance !',
+          data: {'type': 'defi_corr', 'game_id': '77'},
+        ),
+      );
+      expect(greffon.posees.length, 1);
     });
 
     testWidgets('revenir dessus efface celles qui attendaient', (tester) async {

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/avatar_photos.dart';
+import '../../net/ecran_courant.dart';
 import '../../net/decors_connus.dart';
 import '../../net/profils_connus.dart';
 import '../../net/push_notifications.dart';
@@ -357,6 +358,9 @@ class _ConversationScreenState extends State<ConversationScreen>
   @override
   void initState() {
     super.initState();
+    // La conversation est SOUS LES YEUX : ses messages n'ont pas besoin
+    // d'une carte dans le volet des notifications.
+    EcranCourant.ouvreConversation(widget.pseudo);
     // LA BOÎTE S'OUVRE EN BAS, DÈS LE CACHE.
     //
     // Les messages d'avant sont là dès la première image — c'est l'intérêt
@@ -388,6 +392,7 @@ class _ConversationScreenState extends State<ConversationScreen>
 
   @override
   void dispose() {
+    EcranCourant.fermeConversation(widget.pseudo);
     _poll?.cancel();
     _watch?.cancel();
     profilsConnus.removeListener(_surProfil);
