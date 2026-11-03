@@ -34,6 +34,7 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/visionneuse_enveloppe.dart';
+import 'package:lafuga/ui/widgets/avis_enveloppe.dart';
 import 'package:lafuga/ui/widgets/choix_source_image.dart';
 import 'package:lafuga/ui/widgets/enveloppe_jeton.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
@@ -441,6 +442,60 @@ void main() {
 
       expect(find.text('Appareil photo'), findsNothing);
       expect(server.called('/env_envoyer'), isFalse);
+    });
+  });
+
+  group("L'avis dans le fil", () {
+    // Nino : « quand quelqu'un envoie une enveloppe, il doit y avoir écrit
+    // "a envoyé une enveloppe" en dessous de la dernière bulle (suivant le
+    // fil de la discussion). Ce ne doit pas être dans une bulle. Mets-le
+    // dans un petit cadre en couleur 2 de la personne qui envoie. »
+    testWidgets('le sien et le mien, chacun dans sa couleur 2', (tester) async {
+      server.replies['/env_liste'] = {'ok': true, 'enveloppes': const []};
+      server.replies['/list_conversation'] = {
+        'ok': true,
+        'messages': [
+          {'texte': 'Tu as vu le chien ?', 'de_moi': false},
+          {'texte': kJetonEnveloppe, 'de_moi': false},
+          {'texte': kJetonEnveloppe, 'de_moi': true},
+        ],
+      };
+
+      await ouvrir(tester);
+
+      expect(find.byType(AvisEnveloppe), findsNWidgets(2));
+      expect(find.text('Ana a envoyé une enveloppe'), findsOneWidget);
+      expect(find.text('Vous avez envoyé une enveloppe'), findsOneWidget);
+      expect(
+        find.text(kJetonEnveloppe),
+        findsNothing,
+        reason: 'le jeton ne doit jamais se lire tel quel',
+      );
+
+      final avis = tester.widgetList<AvisEnveloppe>(find.byType(AvisEnveloppe));
+      expect(
+        avis.firstWhere((a) => !a.deMoi).couleur,
+        couleurEnveloppe(paletteOf(kSonTheme)),
+      );
+      expect(
+        avis.firstWhere((a) => a.deMoi).couleur,
+        couleurEnveloppe(paletteOf(kMonTheme)),
+      );
+    });
+
+    testWidgets('ce n est pas une bulle', (tester) async {
+      server.replies['/env_liste'] = {'ok': true, 'enveloppes': const []};
+      server.replies['/list_conversation'] = {
+        'ok': true,
+        'messages': [
+          {'texte': kJetonEnveloppe, 'de_moi': false},
+        ],
+      };
+
+      await ouvrir(tester);
+
+      expect(find.byType(AvisEnveloppe), findsOneWidget);
+      expect(find.byType(MessageBubble), findsNothing);
     });
   });
 

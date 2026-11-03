@@ -586,5 +586,7 @@
   "Télécharger": "ダウンロード",
   "Une fois ouverte, elle disparaît de la conversation.": "一度開くと、会話から消えます。",
   "Votre texte…": "テキストを入力…",
-  "Boîte aux lettres": "郵便受け"
+  "Boîte aux lettres": "郵便受け",
+  "Vous avez envoyé une enveloppe": "封筒を送りました",
+  "a envoyé une enveloppe": "が封筒を送りました"
 }

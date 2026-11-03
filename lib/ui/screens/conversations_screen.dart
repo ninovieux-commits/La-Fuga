@@ -36,6 +36,7 @@ import '../widgets/champ_pieces.dart';
 import '../pieces_emoji.dart';
 import '../widgets/panneau_pieces.dart';
 import '../widgets/fuga_popup.dart';
+import '../widgets/avis_enveloppe.dart';
 import '../widgets/enveloppe_jeton.dart';
 import '../widgets/choix_source_image.dart';
 import '../../game/enveloppe.dart';
@@ -854,26 +855,48 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// Elle portait une petite photo à côté d'elle, répétée à chaque message.
   /// Les photos sont maintenant en bas, une seule fois et en grand : la
   /// conversation respire, et le texte gagne la place qu'elles prenaient.
-  Widget _bubble(ChatMessage m, ThemePalette sienne, ThemePalette mienne) =>
-      Padding(
+  Widget _bubble(ChatMessage m, ThemePalette sienne, ThemePalette mienne) {
+    // L'AVIS D'ENVOI SUIT LE FIL, et ce n'est pas une bulle. Nino : « quand
+    // quelqu'un envoie une enveloppe, il doit y avoir écrit "a envoyé une
+    // enveloppe" en dessous de la dernière bulle (suivant le fil de la
+    // discussion). Ce ne doit pas être dans une bulle. »
+    //
+    // Le serveur dépose ce jeton dans la conversation au moment de l'envoi :
+    // l'avis se range donc tout seul à sa place dans le fil, il y reste quand
+    // l'enveloppe s'en va, et une version qui ne le connaîtrait pas afficherait
+    // simplement le mot entre crochets.
+    if (m.text.trim() == kJetonEnveloppe) {
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: S(4)),
-        child: Row(
-          mainAxisAlignment: m.fromMe
-              ? MainAxisAlignment.end
-              : MainAxisAlignment.start,
-          children: [
-            Flexible(
-              child: MessageBubble(
-                texte: m.text,
-                deMoi: m.fromMe,
-                // Chacun les siennes.
-                palette: m.fromMe ? mienne : sienne,
-                echoue: m.pending == false,
-              ),
-            ),
-          ],
+        child: AvisEnveloppe(
+          deMoi: m.fromMe,
+          couleur: couleurEnveloppe(m.fromMe ? mienne : sienne),
+          texte: m.fromMe
+              ? T('Vous avez envoyé une enveloppe')
+              : '${widget.pseudo} ${T('a envoyé une enveloppe')}',
         ),
       );
+    }
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: S(4)),
+      child: Row(
+        mainAxisAlignment: m.fromMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: MessageBubble(
+              texte: m.text,
+              deMoi: m.fromMe,
+              // Chacun les siennes.
+              palette: m.fromMe ? mienne : sienne,
+              echoue: m.pending == false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Les deux visages, en bas : le sien à gauche, le mien à droite.
   ///
