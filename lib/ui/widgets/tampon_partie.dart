@@ -51,13 +51,26 @@ final class Tampon {
 /// Le tampon dessiné : la date au-dessus, les deux noms et leurs ronds en
 /// dessous.
 class TamponPartie extends StatelessWidget {
-  const TamponPartie({super.key, required this.tampon, required this.taille});
+  const TamponPartie({
+    super.key,
+    required this.tampon,
+    required this.taille,
+    this.encre = Colors.white,
+  });
 
   final Tampon tampon;
 
   /// La hauteur des lettres. Tout le reste en découle : le tampon se
   /// redimensionne d'un seul nombre.
   final double taille;
+
+  /// L'encre des mots. Nino, sur l'éditeur : « si on sélectionne une couleur
+  /// pendant qu'il y a un cadre bleu, ça change la couleur de l'objet en
+  /// question » — le tampon en est un.
+  ///
+  /// Les deux ronds, eux, ne changent pas : ils disent qui tient les Blancs
+  /// et qui tient les Noirs, et une autre couleur leur ôterait leur sens.
+  final Color encre;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +92,7 @@ class TamponPartie extends StatelessWidget {
           Text(
             tampon.dateEcrite,
             style: TextStyle(
-              color: Colors.white,
+              color: encre,
               fontSize: taille * 0.8,
               fontWeight: FontWeight.bold,
               height: 1.1,
@@ -89,9 +102,19 @@ class TamponPartie extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _camp(tampon.gauche, blanc: tampon.blancAGauche, rond: rond),
+              _camp(
+                tampon.gauche,
+                blanc: tampon.blancAGauche,
+                rond: rond,
+                encre: encre,
+              ),
               SizedBox(width: taille * 0.7),
-              _camp(tampon.droite, blanc: !tampon.blancAGauche, rond: rond),
+              _camp(
+                tampon.droite,
+                blanc: !tampon.blancAGauche,
+                rond: rond,
+                encre: encre,
+              ),
             ],
           ),
         ],
@@ -101,7 +124,12 @@ class TamponPartie extends StatelessWidget {
 
   /// Un nom et son rond. Le rond porte toujours un trait de l'autre couleur :
   /// sans lui, le noir disparaîtrait dans le voile sombre.
-  Widget _camp(String nom, {required bool blanc, required double rond}) => Row(
+  Widget _camp(
+    String nom, {
+    required bool blanc,
+    required double rond,
+    required Color encre,
+  }) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
       Container(
@@ -121,7 +149,7 @@ class TamponPartie extends StatelessWidget {
         nom,
         maxLines: 1,
         style: TextStyle(
-          color: Colors.white,
+          color: encre,
           fontSize: taille,
           fontWeight: FontWeight.bold,
           height: 1.1,

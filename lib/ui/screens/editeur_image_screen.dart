@@ -1,25 +1,60 @@
 /// L'ÉDITEUR : ce qu'on dessine sur une image avant de l'envoyer.
 ///
-/// Nino : « le tout avec une option pour dessiner/ajouter du texte/des emojis
-/// sur la photo avant de l'envoyer », et « en modifier, il faut ajouter un
-/// bouton [tampon] qui crée un texte automatique comprenant la date et les
-/// noms des deux joueurs. On doit pouvoir déplacer et changer la taille de ce
-/// tampon. »
+/// Nino, d'abord : « le tout avec une option pour dessiner / ajouter du texte
+/// / des emojis sur la photo avant de l'envoyer », et « un bouton [tampon]
+/// qui crée un texte automatique comprenant la date et les noms des deux
+/// joueurs ».
+///
+/// Puis, l'ayant essayé :
+///
+/// > « Le mode modification ne me convient pas. Il ne doit pas y avoir un
+/// > bouton déplacer. Ça doit plutôt marcher avec des mouvements de doigt
+/// > comme traditionnellement sur les apps qui le permettent : on ajoute un
+/// > texte ou un tampon, celui-ci apparaît dans un cadre bleu. Le cadre bleu
+/// > est un cadre de sélection qui permet de déplacer, agrandir ou rétrécir,
+/// > pivoter. »
+///
+/// ## Le cadre bleu, et rien d'autre
+///
+/// Il n'y a donc plus d'outil « déplacer ». Un objet posé est SÉLECTIONNÉ —
+/// son cadre bleu le dit — et tant qu'il l'est, le doigt le déplace, deux
+/// doigts le tournent et l'agrandissent, et la poignée de son coin fait les
+/// deux à un seul doigt. Un appui à côté le désélectionne ; le doigt revient
+/// alors au dessin. Un objet qui n'est pas sélectionné ne gêne pas le crayon :
+/// il ne prend que l'appui qui le choisit.
+///
+/// ## Une seule touche de couleur
+///
+/// > « Il doit y avoir un seul bouton couleur qui donne accès à une palette
+/// > complète. Si on sélectionne une couleur pendant qu'il y a un cadre bleu,
+/// > ça change la couleur de l'objet en question. Autrement, ça change la
+/// > couleur de nos actions suivantes (texte, tampon, dessin). »
+///
+/// La touche porte donc la couleur en main, et ce qu'on choisit dedans va à
+/// l'objet sélectionné s'il y en a un, sinon à l'encre.
+///
+/// ## Du noir autour, du blanc contre l'image
+///
+/// > « Le fond du mode modification doit être noir, ainsi notre image a très
+/// > peu de chance de se fondre dedans. Ajoute aussi un cadre blanc autour de
+/// > l'image en modification. »
+///
+/// Le cadre blanc est peint par le PARENT de la surface photographiée : il
+/// borde l'image à l'écran sans se retrouver dans le fichier envoyé.
 ///
 /// ## Ce qui sort d'ici est CE QU'ON VOIT
 ///
 /// L'image finale n'est pas recomposée à la main, trait par trait : on
 /// photographie la surface d'édition elle-même, à la résolution de l'image
-/// d'origine. Tout ce qui est posé dessus — traits, étiquettes, tampon — s'y
-/// retrouve exactement là où l'œil l'attend, sans qu'on ait à refaire deux
-/// fois le même calcul de position, une fois pour l'écran et une fois pour
-/// le fichier.
+/// d'origine. Tout ce qui est posé dessus s'y retrouve exactement là où l'œil
+/// l'attend, sans qu'on ait à refaire deux fois le même calcul de position.
 ///
 /// Puis on réencode en JPEG : le PNG d'une photo 720p pèse deux mégaoctets,
 /// le JPEG deux cents kilos, et c'est tout l'intérêt des enveloppes.
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -29,39 +64,74 @@ import 'package:image/image.dart' as img;
 
 import '../../game/enveloppe.dart';
 import '../../i18n/translations.dart';
-import '../../state/settings.dart';
-import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
-import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
+import '../widgets/palette_couleurs.dart';
 import '../widgets/tampon_partie.dart';
+
+/// Le bleu du cadre de sélection. Celui des sélections, partout : il ne
+/// désigne rien dans le jeu, donc on ne le confond avec rien.
+const Color kBleuSelection = Color(0xFF2D9CFF);
 
 /// Un trait tracé au doigt.
 final class TraitDessine {
   TraitDessine(this.couleur, this.epaisseur);
 
   final Color couleur;
+
+  /// En fraction du PLUS PETIT côté de la boîte.
   final double epaisseur;
 
   /// Les points, EN FRACTION de la boîte de l'image : l'éditeur s'affiche à
   /// une taille, le fichier en fait une autre, et un trait doit tomber au
   /// même endroit sur les deux.
   final List<Offset> points = [];
+
+  /// Ce trait passe-t-il à moins de [rayon] de ce point ? C'est la question
+  /// que pose la gomme.
+  bool toucheA(Offset f, double rayon) =>
+      points.any((p) => (p - f).distance <= rayon);
 }
 
-/// Une étiquette posée sur l'image : du texte, des émojis, ou les deux.
-final class Etiquette {
-  Etiquette(this.texte, this.position, this.taille);
+/// Un objet posé sur l'image : une étiquette de texte, ou le tampon.
+///
+/// Les deux se manipulent exactement pareil — on les déplace, on les tourne,
+/// on les grandit — donc ils ne font qu'une classe. Ce qui les distingue
+/// tient en un champ : l'un porte des mots, l'autre un tampon.
+final class ObjetPose {
+  ObjetPose.texte(
+    String this.texte, {
+    required this.position,
+    required this.taille,
+    required this.couleur,
+  }) : tampon = null;
 
-  String texte;
+  ObjetPose.tampon(
+    Tampon this.tampon, {
+    required this.position,
+    required this.taille,
+    required this.couleur,
+  }) : texte = null;
+
+  final String? texte;
+
+  /// Mutable : la petite touche qui échange les deux ronds en pose un autre.
+  Tampon? tampon;
 
   /// Le centre, en fraction de la boîte.
   Offset position;
 
   /// La hauteur des lettres, en fraction de la HAUTEUR de la boîte.
   double taille;
+
+  /// En radians, autour de son centre.
+  double angle = 0;
+
+  Color couleur;
+
+  bool get estUnTampon => tampon != null;
 }
 
 /// Ce que l'éditeur rend : les octets JPEG de l'image composée.
@@ -84,58 +154,121 @@ class EditeurImageScreen extends StatefulWidget {
   State<EditeurImageScreen> createState() => _EditeurImageScreenState();
 }
 
-/// L'outil en main.
-enum Outil { dessin, deplacer }
+/// L'outil en main. Le doigt dessine, ou il gomme — le reste se fait au
+/// cadre bleu.
+enum Outil { dessin, gomme }
 
 class _EditeurImageScreenState extends State<EditeurImageScreen>
     with SuitLesReglages {
   final GlobalKey _surface = GlobalKey();
 
   final List<TraitDessine> _traits = [];
-  final List<Etiquette> _etiquettes = [];
-  Tampon? _tampon;
-  Offset _tamponOu = const Offset(0.5, 0.86);
-  double _tamponTaille = 0.055;
+  final List<ObjetPose> _objets = [];
+
+  /// L'ordre des poses, pour défaire : chaque élément est un trait ou un
+  /// objet. Sans lui, « défaire » reprendrait toujours les objets d'abord,
+  /// même ceux posés avant le dernier trait.
+  final List<Object> _ordre = [];
 
   Outil _outil = Outil.dessin;
   Color _encre = const Color(0xFFFF2D2D);
+
+  /// L'épaisseur des PROCHAINS traits — Nino : « le mode dessin doit donner
+  /// un curseur pour gérer l'épaisseur des prochains traits ». En fraction
+  /// du petit côté, comme le trait lui-même.
+  double _epaisseur = 0.008;
+
+  /// L'objet sélectionné, celui qui porte le cadre bleu.
+  ObjetPose? _choisi;
+
   bool _travaille = false;
 
-  /// Ce qu'on est en train de déplacer : l'indice d'une étiquette, ou −1
-  /// pour le tampon. Nul : rien.
-  int? _saisi;
+  /// La forme de l'image : largeur sur hauteur.
+  ///
+  /// LA SURFACE PREND EXACTEMENT CETTE FORME, et c'est tout l'enjeu : les
+  /// objets et les traits sont rangés en fractions de leur boîte, et si
+  /// cette boîte est la place disponible plutôt que la photo, un tampon posé
+  /// « aux neuf dixièmes de la hauteur » tombe sous l'image — invisible à
+  /// l'écran, absent du fichier, puisque c'est la photo qu'on photographie.
+  /// Mesuré : le tampon atterrissait cent quatre-vingts points trop bas.
+  double? _forme;
 
-  /// Les couleurs du crayon : les deux du thème, et le noir et blanc qui se
-  /// lisent sur tout.
-  List<Color> get _encres {
-    final palette = paletteOf(Settings.instance.themeAxes.general);
-    return [
-      const Color(0xFFFF2D2D),
-      palette.clair,
-      palette.fonce,
-      Colors.white,
-      Colors.black,
-    ];
+  /// Ce qu'on retient au début d'un pincement ou d'une poignée.
+  double _tailleDepart = 0;
+  double _angleDepart = 0;
+  double _rayonDepart = 0;
+  double _directionDepart = 0;
+
+  static const double kEpaisseurMin = 0.002;
+  static const double kEpaisseurMax = 0.04;
+
+  /// Le rayon de la gomme suit l'épaisseur : on efface large quand on dessine
+  /// large. Trois fois le trait, pour n'avoir pas à viser.
+  double get _rayonGomme => math.max(_epaisseur * 3, 0.02);
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_mesureLImage());
+  }
+
+  Future<void> _mesureLImage() async {
+    try {
+      final decodee = await decodeImageFromList(widget.image);
+      if (!mounted) return;
+      setState(() => _forme = decodee.width / decodee.height);
+      decodee.dispose();
+    } catch (_) {
+      // Une image illisible n'arrivera pas jusqu'ici — le greffon l'a déjà
+      // décodée — mais un carré vaut mieux qu'un écran vide.
+      if (mounted) setState(() => _forme = 1);
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final palette = paletteOf(Settings.instance.themeAxes.general);
-    return FugaScaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            FugaHeader(
-              back: T('< Annuler'),
-              title: T('Modifier'),
-              titleSize: 22,
-              onBack: () => Navigator.of(context).pop(),
-            ),
-            Expanded(child: Center(child: _surfaceDEdition())),
-            _barreDOutils(palette),
-          ],
-        ),
+  Widget build(BuildContext context) => Scaffold(
+    // DU NOIR, ET RIEN D'AUTRE. Nino : « le fond du mode modification doit
+    // être noir, ainsi notre image a très peu de chance de se fondre
+    // dedans. » C'est le seul écran de l'application sans son décor : ici,
+    // ce qu'on regarde est la photo, et tout le reste doit s'effacer.
+    backgroundColor: Colors.black,
+    body: SafeArea(
+      child: Column(
+        children: [
+          FugaHeader(
+            back: T('< Annuler'),
+            title: T('Modifier'),
+            titleSize: 22,
+            // Le titre est noir par défaut, et le fond vient de passer au
+            // noir : sans ce blanc, le mot disparaissait.
+            titleColor: Colors.white,
+            onBack: () => Navigator.of(context).pop(),
+          ),
+          Expanded(child: Center(child: _lImageEtSonCadre())),
+          _barreDOutils(),
+        ],
       ),
+    ),
+  );
+
+  /// L'image, bordée de blanc.
+  ///
+  /// Le trait est peint ICI, hors de la surface photographiée : il borde
+  /// l'image à l'écran et ne se retrouve pas dans le fichier envoyé.
+  Widget _lImageEtSonCadre() {
+    final forme = _forme;
+    if (forme == null) {
+      return const CircularProgressIndicator(color: Colors.white);
+    }
+    return Container(
+      margin: EdgeInsets.all(S(6)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white, width: S(2)),
+      ),
+      // LA BOÎTE A LA FORME DE LA PHOTO : la surface épouse l'image, donc
+      // une fraction de la boîte est une fraction de l'image, à l'écran
+      // comme dans le fichier.
+      child: AspectRatio(aspectRatio: forme, child: _surfaceDEdition()),
     );
   }
 
@@ -144,117 +277,228 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   Widget _surfaceDEdition() => RepaintBoundary(
     key: _surface,
     child: LayoutBuilder(
-      builder: (context, boite) => GestureDetector(
-        onPanStart: (d) => _commence(d.localPosition, boite.biggest),
-        onPanUpdate: (d) => _continue(d.localPosition, boite.biggest),
-        onPanEnd: (_) => _saisi = null,
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Image.memory(widget.image, fit: BoxFit.contain),
-            Positioned.fill(
-              child: CustomPaint(painter: _PeintreDesTraits(_traits)),
+      builder: (context, contraintes) {
+        final boite = contraintes.biggest;
+        return GestureDetector(
+          // Un appui dans le vide range le cadre bleu. C'est ce qui rend le
+          // crayon au doigt sans qu'on ait à toucher une touche.
+          onTap: () => setState(() => _choisi = null),
+          onPanStart: (d) => _commence(d.localPosition, boite),
+          onPanUpdate: (d) => _continue(d.localPosition, boite),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // `fill` et non `contain` : la boîte a déjà la forme de
+              // l'image, donc les deux donnent le même dessin — mais `fill`
+              // le dit, et interdit la bande noire qu'un arrondi de pixel
+              // ferait apparaître.
+              Positioned.fill(
+                child: Image.memory(widget.image, fit: BoxFit.fill),
+              ),
+              Positioned.fill(
+                child: CustomPaint(painter: PeintreDesTraits(_traits)),
+              ),
+              for (final o in _objets) _poseLObjet(o, boite),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+
+  /// Un objet, à sa place, tourné, et dans son cadre s'il est choisi.
+  Widget _poseLObjet(ObjetPose o, Size boite) {
+    final choisi = identical(o, _choisi);
+    final enfant = o.estUnTampon
+        ? TamponPartie(
+            tampon: o.tampon!,
+            taille: o.taille * boite.height,
+            encre: o.couleur,
+          )
+        : Text(
+            o.texte!,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: o.couleur,
+              fontSize: o.taille * boite.height,
+              fontWeight: FontWeight.bold,
+              shadows: const [Shadow(blurRadius: 4, color: Color(0xCC000000))],
             ),
-            for (var i = 0; i < _etiquettes.length; i++)
-              _pose(
-                _etiquettes[i].position,
-                boite.biggest,
-                Text(
-                  _etiquettes[i].texte,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _etiquettes[i].taille * boite.maxHeight,
-                    fontWeight: FontWeight.bold,
-                    shadows: const [
-                      Shadow(blurRadius: 4, color: Color(0xCC000000)),
-                    ],
-                  ),
+          );
+
+    return Positioned(
+      left: o.position.dx * boite.width,
+      top: o.position.dy * boite.height,
+      child: FractionalTranslation(
+        translation: const Offset(-0.5, -0.5),
+        // LA PRISE EST HORS DE LA ROTATION : les déplacements qu'elle
+        // rapporte sont alors ceux de l'écran, et non ceux d'un repère
+        // tourné — sans quoi un objet penché part de travers dès qu'on le
+        // pousse.
+        child: GestureDetector(
+          onTap: () => setState(() => _choisi = o),
+          onScaleStart: choisi ? (d) => _prendLObjet(o) : null,
+          onScaleUpdate: choisi ? (d) => _bougeLObjet(o, d, boite) : null,
+          child: Transform.rotate(
+            angle: o.angle,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(S(4)),
+                  decoration: choisi
+                      ? BoxDecoration(
+                          border: Border.all(
+                            color: kBleuSelection,
+                            width: S(1.5),
+                          ),
+                        )
+                      : null,
+                  child: enfant,
                 ),
-              ),
-            if (_tampon != null)
-              _pose(
-                _tamponOu,
-                boite.biggest,
-                TamponPartie(
-                  tampon: _tampon!,
-                  taille: _tamponTaille * boite.maxHeight,
-                ),
-              ),
-          ],
+                if (choisi) ..._poignees(o, boite),
+              ],
+            ),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
-  /// Pose un morceau à une position donnée en fraction de la boîte.
-  Widget _pose(Offset ou, Size boite, Widget enfant) => Positioned(
-    left: ou.dx * boite.width,
-    top: ou.dy * boite.height,
-    child: FractionalTranslation(
-      translation: const Offset(-0.5, -0.5),
-      child: enfant,
-    ),
-  );
+  /// Les prises du cadre bleu : les trois coins qui ne font que le montrer,
+  /// et celui d'en bas à droite qui tourne et redimensionne à un seul doigt.
+  List<Widget> _poignees(ObjetPose o, Size boite) {
+    final cote = S(14);
+    Widget point({required bool vivante}) => Container(
+      width: cote,
+      height: cote,
+      decoration: BoxDecoration(
+        color: vivante ? kBleuSelection : Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: S(1.5)),
+      ),
+    );
+    return [
+      Positioned(top: -cote / 2, left: -cote / 2, child: point(vivante: false)),
+      Positioned(
+        top: -cote / 2,
+        right: -cote / 2,
+        child: point(vivante: false),
+      ),
+      Positioned(
+        bottom: -cote / 2,
+        left: -cote / 2,
+        child: point(vivante: false),
+      ),
+      Positioned(
+        bottom: -cote / 2,
+        right: -cote / 2,
+        child: GestureDetector(
+          onPanStart: (d) => _prendLaPoignee(o, d.globalPosition, boite),
+          onPanUpdate: (d) => _tireLaPoignee(o, d.globalPosition, boite),
+          child: point(vivante: true),
+        ),
+      ),
+    ];
+  }
 
-  // ── Le doigt ──────────────────────────────────────────────────────────────
+  // ── Le doigt sur l'objet ──────────────────────────────────────────────────
+
+  void _prendLObjet(ObjetPose o) {
+    _tailleDepart = o.taille;
+    _angleDepart = o.angle;
+  }
+
+  void _bougeLObjet(ObjetPose o, ScaleUpdateDetails d, Size boite) {
+    setState(() {
+      // Un doigt : on pousse. Deux : on tourne et on grandit EN PLUS, car le
+      // point entre les deux doigts se déplace lui aussi.
+      o.position += Offset(
+        d.focalPointDelta.dx / boite.width,
+        d.focalPointDelta.dy / boite.height,
+      );
+      if (d.pointerCount > 1) {
+        o.taille = (_tailleDepart * d.scale).clamp(0.02, 0.6);
+        o.angle = _angleDepart + d.rotation;
+      }
+      o.position = Offset(
+        o.position.dx.clamp(0.0, 1.0),
+        o.position.dy.clamp(0.0, 1.0),
+      );
+    });
+  }
+
+  void _prendLaPoignee(ObjetPose o, Offset global, Size boite) {
+    final v = _versLeCentre(o, global, boite);
+    _tailleDepart = o.taille;
+    _angleDepart = o.angle;
+    _rayonDepart = v.distance;
+    _directionDepart = v.direction;
+  }
+
+  void _tireLaPoignee(ObjetPose o, Offset global, Size boite) {
+    if (_rayonDepart <= 0) return;
+    final v = _versLeCentre(o, global, boite);
+    setState(() {
+      o.taille = (_tailleDepart * v.distance / _rayonDepart).clamp(0.02, 0.6);
+      o.angle = _angleDepart + (v.direction - _directionDepart);
+    });
+  }
+
+  /// Le vecteur qui va du centre de l'objet au doigt, dans le repère de la
+  /// surface. C'est lui qui donne la distance — donc la taille — et l'angle.
+  Offset _versLeCentre(ObjetPose o, Offset global, Size boite) {
+    final boiteRendue = _surface.currentContext?.findRenderObject();
+    if (boiteRendue is! RenderBox) return Offset.zero;
+    final local = boiteRendue.globalToLocal(global);
+    final centre = Offset(
+      o.position.dx * boite.width,
+      o.position.dy * boite.height,
+    );
+    return local - centre;
+  }
+
+  // ── Le doigt sur l'image ──────────────────────────────────────────────────
 
   void _commence(Offset ou, Size boite) {
     final f = Offset(ou.dx / boite.width, ou.dy / boite.height);
-    if (_outil == Outil.dessin) {
-      setState(() {
-        _traits.add(TraitDessine(_encre, 0.008)..points.add(f));
-      });
+    if (_outil == Outil.gomme) {
+      _gomme(f);
       return;
     }
-    // Déplacement : on prend ce qui est le plus près du doigt.
-    _saisi = _leProcheDe(f);
+    setState(() {
+      final trait = TraitDessine(_encre, _epaisseur)..points.add(f);
+      _traits.add(trait);
+      _ordre.add(trait);
+    });
   }
 
   void _continue(Offset ou, Size boite) {
     final f = Offset(ou.dx / boite.width, ou.dy / boite.height);
-    if (_outil == Outil.dessin) {
-      if (_traits.isEmpty) return;
-      setState(() => _traits.last.points.add(f));
+    if (_outil == Outil.gomme) {
+      _gomme(f);
       return;
     }
-    final saisi = _saisi;
-    if (saisi == null) return;
-    setState(() {
-      if (saisi < 0) {
-        _tamponOu = f;
-      } else if (saisi < _etiquettes.length) {
-        _etiquettes[saisi].position = f;
-      }
-    });
+    if (_traits.isEmpty) return;
+    setState(() => _traits.last.points.add(f));
   }
 
-  /// L'indice du morceau le plus proche : −1 pour le tampon, sinon
-  /// l'étiquette. Nul si rien n'est assez près.
-  int? _leProcheDe(Offset f) {
-    int? gagnant;
-    var meilleur = 0.18; // au-delà, le doigt visait autre chose
-    if (_tampon != null) {
-      final d = (f - _tamponOu).distance;
-      if (d < meilleur) {
-        meilleur = d;
-        gagnant = -1;
-      }
-    }
-    for (var i = 0; i < _etiquettes.length; i++) {
-      final d = (f - _etiquettes[i].position).distance;
-      if (d < meilleur) {
-        meilleur = d;
-        gagnant = i;
-      }
-    }
-    return gagnant;
+  /// LA GOMME N'EFFACE QUE CE QUI EST DESSINÉ. Nino : « il doit y avoir une
+  /// gomme aussi, qui ne marche que sur ce qui est dessiné. » Un texte ou un
+  /// tampon se reprend par son cadre bleu, pas en frottant dessus.
+  void _gomme(Offset f) {
+    final morts = _traits.where((t) => t.toucheA(f, _rayonGomme)).toList();
+    if (morts.isEmpty) return;
+    setState(() {
+      _traits.removeWhere(morts.contains);
+      _ordre.removeWhere(morts.contains);
+    });
   }
 
   // ── Les outils ────────────────────────────────────────────────────────────
 
-  Widget _barreDOutils(ThemePalette palette) => Container(
-    color: Colors.black38,
+  Widget _barreDOutils() => Container(
+    color: const Color(0xFF1A1A1A),
     padding: EdgeInsets.symmetric(horizontal: S(8), vertical: S(6)),
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -266,69 +510,44 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
               T('Dessin'),
               actif: _outil == Outil.dessin,
               onTap: () => setState(() => _outil = Outil.dessin),
-              palette: palette,
             ),
             _outilTouche(
-              Icons.open_with,
-              T('Déplacer'),
-              actif: _outil == Outil.deplacer,
-              onTap: () => setState(() => _outil = Outil.deplacer),
-              palette: palette,
+              Icons.auto_fix_normal,
+              T('Gomme'),
+              actif: _outil == Outil.gomme,
+              onTap: () => setState(() => _outil = Outil.gomme),
             ),
-            _outilTouche(
-              Icons.title,
-              T('Texte'),
-              actif: false,
-              onTap: _ajouterDuTexte,
-              palette: palette,
-            ),
+            _outilTouche(Icons.title, T('Texte'), onTap: _ajouterDuTexte),
             _outilTouche(
               Icons.approval,
               T('Tampon'),
-              actif: _tampon != null,
+              actif: _objets.any((o) => o.estUnTampon),
               onTap: _poserLeTampon,
-              palette: palette,
             ),
-            _outilTouche(
-              Icons.undo,
-              T('Défaire'),
-              actif: false,
-              onTap: _defaire,
-              palette: palette,
-            ),
+            _outilTouche(Icons.undo, T('Défaire'), onTap: _defaire),
           ],
         ),
         SizedBox(height: S(6)),
         Row(
           children: [
-            for (final c in _encres) _pastilleDEncre(c),
-            const Spacer(),
-            if (_tampon != null) ...[
-              // Le petit bouton qui échange les deux ronds, et celui qui
-              // change la taille du tampon.
+            _toucheDeCouleur(),
+            SizedBox(width: S(8)),
+            // LE CURSEUR D'ÉPAISSEUR, en dessin comme à la gomme : l'un trace
+            // large, l'autre efface large, et c'est le même réglage.
+            Expanded(child: _curseurDEpaisseur()),
+            if (_choisi?.estUnTampon ?? false) ...[
+              SizedBox(width: S(6)),
               _rondBouton(Icons.swap_horiz, T('Inverser les ronds'), () {
-                setState(() => _tampon = _tampon!.echange());
+                setState(() => _choisi!.tampon = _choisi!.tampon!.echange());
               }),
-              SizedBox(width: S(4)),
-              _rondBouton(Icons.remove, T('Plus petit'), () {
-                setState(
-                  () => _tamponTaille = (_tamponTaille * 0.85).clamp(0.02, 0.2),
-                );
-              }),
-              SizedBox(width: S(4)),
-              _rondBouton(Icons.add, T('Plus grand'), () {
-                setState(
-                  () => _tamponTaille = (_tamponTaille * 1.18).clamp(0.02, 0.2),
-                );
-              }),
-              SizedBox(width: S(8)),
             ],
+            SizedBox(width: S(8)),
             SizedBox(
-              width: S(120),
+              width: S(100),
               child: FugaButton(
                 text: _travaille ? '…' : T('Envoyer'),
-                color: palette.clair,
-                textColor: Colors.black,
+                color: kBleuSelection,
+                fontSize: SF(15),
                 onPressed: _travaille ? null : () => unawaited(_envoyer()),
               ),
             ),
@@ -341,9 +560,8 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   Widget _outilTouche(
     IconData icone,
     String nom, {
-    required bool actif,
+    bool actif = false,
     required VoidCallback onTap,
-    required ThemePalette palette,
   }) => Expanded(
     child: Padding(
       padding: EdgeInsets.symmetric(horizontal: S(2)),
@@ -355,7 +573,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
             size: SF(18),
             color: actif ? Colors.black : Colors.white,
           ),
-          color: actif ? palette.clair : kGrisTouche,
+          color: actif ? kBleuSelection : kGrisTouche,
           height: touchHeight() * 0.74,
           onPressed: onTap,
         ),
@@ -363,23 +581,77 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     ),
   );
 
-  Widget _pastilleDEncre(Color c) => Padding(
-    padding: EdgeInsets.only(right: S(6)),
+  /// UNE SEULE TOUCHE DE COULEUR, qui porte celle qu'on a en main.
+  ///
+  /// Ce qu'on choisit dedans va à l'objet sélectionné s'il y en a un — « ça
+  /// change la couleur de l'objet en question » — et sinon à l'encre, donc au
+  /// prochain trait, au prochain texte, au prochain tampon.
+  Widget _toucheDeCouleur() => Tooltip(
+    message: T('Couleur'),
     child: GestureDetector(
-      onTap: () => setState(() => _encre = c),
+      onTap: () => unawaited(_ouvrirLaPalette()),
       child: Container(
-        width: S(22),
-        height: S(22),
+        width: touchHeight() * 0.62,
+        height: touchHeight() * 0.62,
         decoration: BoxDecoration(
-          color: c,
+          color: _choisi?.couleur ?? _encre,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: _encre == c ? Colors.white : Colors.black54,
-            width: _encre == c ? S(3) : S(1),
-          ),
+          border: Border.all(color: Colors.white, width: S(2)),
         ),
       ),
     ),
+  );
+
+  Future<void> _ouvrirLaPalette() async {
+    final choisi = _choisi;
+    final couleur = await choisirUneCouleur(
+      context,
+      actuelle: choisi?.couleur ?? _encre,
+    );
+    if (couleur == null || !mounted) return;
+    setState(() {
+      if (choisi != null) {
+        choisi.couleur = couleur;
+      } else {
+        _encre = couleur;
+      }
+    });
+  }
+
+  Widget _curseurDEpaisseur() => Row(
+    children: [
+      // Un aperçu du trait : le chiffre ne dit rien, le point se voit.
+      Container(
+        width: S(26),
+        height: S(26),
+        alignment: Alignment.center,
+        child: Container(
+          width: S(2) + S(22) * (_epaisseur - kEpaisseurMin) / kEpaisseurMax,
+          height: S(2) + S(22) * (_epaisseur - kEpaisseurMin) / kEpaisseurMax,
+          decoration: BoxDecoration(
+            color: _choisi?.couleur ?? _encre,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+      Expanded(
+        child: SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: kBleuSelection,
+            inactiveTrackColor: Colors.white24,
+            thumbColor: Colors.white,
+            trackHeight: S(3),
+            overlayShape: SliderComponentShape.noOverlay,
+          ),
+          child: Slider(
+            value: _epaisseur,
+            min: kEpaisseurMin,
+            max: kEpaisseurMax,
+            onChanged: (v) => setState(() => _epaisseur = v),
+          ),
+        ),
+      ),
+    ],
   );
 
   Widget _rondBouton(IconData icone, String nom, VoidCallback onTap) => Tooltip(
@@ -397,29 +669,44 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     ),
   );
 
-  void _defaire() => setState(() {
-    if (_etiquettes.isNotEmpty) {
-      _etiquettes.removeLast();
-    } else if (_traits.isNotEmpty) {
-      _traits.removeLast();
-    } else {
-      _tampon = null;
-    }
-  });
+  /// Défait la dernière pose, trait ou objet, dans l'ordre où elles sont
+  /// venues.
+  void _defaire() {
+    if (_ordre.isEmpty) return;
+    setState(() {
+      final dernier = _ordre.removeLast();
+      if (dernier is TraitDessine) {
+        _traits.remove(dernier);
+      } else if (dernier is ObjetPose) {
+        _objets.remove(dernier);
+        if (identical(dernier, _choisi)) _choisi = null;
+      }
+    });
+  }
 
   /// Le tampon se pose une fois ; le toucher de nouveau le retire.
-  void _poserLeTampon() => setState(() {
-    if (_tampon != null) {
-      _tampon = null;
+  void _poserLeTampon() {
+    final dejaLa = _objets.where((o) => o.estUnTampon).toList();
+    if (dejaLa.isNotEmpty) {
+      setState(() {
+        _objets.removeWhere(dejaLa.contains);
+        _ordre.removeWhere(dejaLa.contains);
+        if (dejaLa.any((o) => identical(o, _choisi))) _choisi = null;
+      });
       return;
     }
-    _tampon = Tampon(
-      date: DateTime.now(),
-      gauche: widget.moi,
-      droite: widget.lui,
+    final pose = ObjetPose.tampon(
+      Tampon(date: DateTime.now(), gauche: widget.moi, droite: widget.lui),
+      position: const Offset(0.5, 0.86),
+      taille: 0.055,
+      couleur: _encre,
     );
-    _outil = Outil.deplacer;
-  });
+    setState(() {
+      _objets.add(pose);
+      _ordre.add(pose);
+      _choisi = pose;
+    });
+  }
 
   /// Du texte — et des émojis, que le clavier du téléphone offre déjà.
   Future<void> _ajouterDuTexte() async {
@@ -455,10 +742,20 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
         ],
       ),
     );
-    if (texte == null || texte.trim().isEmpty) return;
+    if (texte == null || texte.trim().isEmpty || !mounted) return;
+    final pose = ObjetPose.texte(
+      texte.trim(),
+      position: const Offset(0.5, 0.2),
+      taille: 0.07,
+      couleur: _encre,
+    );
     setState(() {
-      _etiquettes.add(Etiquette(texte.trim(), const Offset(0.5, 0.2), 0.07));
-      _outil = Outil.deplacer;
+      _objets.add(pose);
+      _ordre.add(pose);
+      // IL ARRIVE DANS SON CADRE BLEU : « on ajoute un texte ou un tampon,
+      // celui-ci apparaît dans un cadre bleu ». On le place donc au doigt
+      // tout de suite, sans avoir à le choisir d'abord.
+      _choisi = pose;
     });
   }
 
@@ -466,7 +763,14 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
 
   /// Photographie la surface et rend des octets JPEG.
   Future<void> _envoyer() async {
-    setState(() => _travaille = true);
+    // LE CADRE BLEU N'EST PAS DANS L'IMAGE : on range la sélection, on laisse
+    // l'image se repeindre sans elle, et on photographie ensuite.
+    setState(() {
+      _choisi = null;
+      _travaille = true;
+    });
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
     try {
       final octets = await composeLImage(_surface);
       if (!mounted) return;
@@ -506,11 +810,15 @@ Future<Uint8List> composeLImage(GlobalKey surface) async {
 
 /// Les traits, peints par-dessus l'image.
 ///
+/// Publique, et c'est voulu : c'est par elle qu'un test voit ce que le doigt
+/// a tracé — et surtout ce que la gomme a repris. Sans elle, on ne pourrait
+/// vérifier le dessin qu'à l'œil, sur une image.
+///
 /// Les points sont rangés en FRACTION de la boîte : c'est ce qui fait qu'un
 /// trait tracé sur un écran de téléphone tombe au même endroit dans le
 /// fichier, qui en fait deux fois plus.
-class _PeintreDesTraits extends CustomPainter {
-  const _PeintreDesTraits(this.traits);
+class PeintreDesTraits extends CustomPainter {
+  const PeintreDesTraits(this.traits);
 
   final List<TraitDessine> traits;
 
@@ -544,5 +852,5 @@ class _PeintreDesTraits extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PeintreDesTraits vieux) => true;
+  bool shouldRepaint(PeintreDesTraits vieux) => true;
 }

@@ -1,0 +1,357 @@
+/// L'ÉDITEUR : le cadre bleu, la palette, le curseur et la gomme.
+///
+/// Nino, après l'avoir essayé : « le mode modification ne me convient pas.
+/// Il ne doit pas y avoir un bouton déplacer. Ça doit plutôt marcher avec
+/// des mouvements de doigt […] on ajoute un texte ou un tampon, celui-ci
+/// apparaît dans un cadre bleu. Le cadre bleu est un cadre de sélection qui
+/// permet de déplacer, agrandir ou rétrécir, pivoter. »
+library;
+
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/i18n/translations.dart';
+import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/screens/editeur_image_screen.dart';
+import 'package:lafuga/ui/widgets/palette_couleurs.dart';
+import 'package:lafuga/ui/widgets/tampon_partie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Un PNG d'un pixel : l'éditeur a besoin d'une image qui se décode.
+final Uint8List kPixel = Uint8List.fromList([
+  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, //
+  0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, //
+  0, 0, 0, 13, 73, 68, 65, 84, 120, 218, 99, 252, 207, 192, 240, 31, 0, //
+  5, 0, 1, 255, 171, 206, 54, 137, 0, 0, 0, 0, 73, 69, 78, 68, 174, //
+  66, 96, 130,
+]);
+
+/// Les traits que le peintre a en main : c'est ce que le doigt a laissé.
+///
+/// On cherche LE peintre des traits, et non le premier `CustomPaint` venu :
+/// une touche, une infobulle ou un bandeau en posent d'autres, et viser le
+/// premier faisait regarder ailleurs.
+List<TraitDessine> traits(WidgetTester tester) {
+  final peinture = tester
+      .widgetList<CustomPaint>(find.byType(CustomPaint))
+      .firstWhere((c) => c.painter is PeintreDesTraits);
+  return (peinture.painter! as PeintreDesTraits).traits;
+}
+
+/// La surface d'édition : l'image elle-même, et la boîte où le doigt agit.
+Finder get surface => find.byType(Image);
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({
+      'lang_chosen': true,
+      'tuto_seen': true,
+      'theme': 'foret',
+    });
+    await Settings.load();
+    await Translations.load('fr');
+    setScaleSize(const Size(393, 851));
+  });
+  tearDown(resetScale);
+
+  /// L'éditeur, ouvert et prêt.
+  ///
+  /// IL FAUT LAISSER L'IMAGE SE MESURER : la surface prend la forme de la
+  /// photo, et cette forme vient d'un décodage qui ne se fait pas dans le
+  /// temps arrêté d'un test. Sans ce `runAsync`, l'écran en reste à sa roue
+  /// d'attente et rien n'est à l'écran.
+  Future<void> ouvrir(WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EditeurImageScreen(image: kPixel, moi: 'Nino', lui: 'celia'),
+      ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+  }
+
+  group('La barre', () {
+    // Nino : « il ne doit pas y avoir un bouton déplacer. »
+    testWidgets('plus de « déplacer », mais une gomme', (tester) async {
+      await ouvrir(tester);
+
+      expect(find.byTooltip('Déplacer'), findsNothing);
+      expect(find.byTooltip('Gomme'), findsOneWidget);
+      expect(find.byTooltip('Dessin'), findsOneWidget);
+      expect(find.byTooltip('Texte'), findsOneWidget);
+      expect(find.byTooltip('Tampon'), findsOneWidget);
+      expect(find.byTooltip('Défaire'), findsOneWidget);
+    });
+
+    // Nino : « il doit y avoir un seul bouton couleur qui donne accès à une
+    // palette complète. »
+    testWidgets('une seule touche de couleur', (tester) async {
+      await ouvrir(tester);
+      expect(find.byTooltip('Couleur'), findsOneWidget);
+    });
+
+    // Nino : « le mode dessin doit donner un curseur pour gérer l'épaisseur
+    // des prochains traits. »
+    testWidgets('un curseur d épaisseur', (tester) async {
+      await ouvrir(tester);
+      expect(find.byType(Slider), findsOneWidget);
+    });
+
+    // Nino : « le fond du mode modification doit être noir […] ajoute aussi
+    // un cadre blanc autour de l'image en modification. »
+    testWidgets('fond noir et cadre blanc', (tester) async {
+      await ouvrir(tester);
+
+      final page = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(page.backgroundColor, Colors.black);
+
+      final cadres = tester.widgetList<Container>(find.byType(Container));
+      expect(
+        cadres.any((c) {
+          final d = c.decoration;
+          return d is BoxDecoration &&
+              d.border?.top.color == Colors.white &&
+              d.color == null;
+        }),
+        isTrue,
+        reason: 'l image doit être bordée de blanc',
+      );
+    });
+  });
+
+  group('Le doigt', () {
+    testWidgets('il dessine, et la gomme ne reprend que ça', (tester) async {
+      await ouvrir(tester);
+      final centre = tester.getCenter(surface);
+
+      // UN TRAIT.
+      await tester.dragFrom(centre, const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester).length, 1);
+
+      // UN TEXTE, qui ne doit pas s'effacer à la gomme.
+      await tester.tap(find.byTooltip('Texte'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Polly');
+      await tester.tap(find.text('Poser'));
+      await tester.pumpAndSettle();
+      expect(find.text('Polly'), findsOneWidget);
+
+      // LA GOMME, sur le trait.
+      await tester.tap(find.byTooltip('Gomme'));
+      await tester.pump();
+      await tester.dragFrom(centre, const Offset(0, 40));
+      await tester.pump();
+
+      expect(traits(tester), isEmpty, reason: 'le trait est repris');
+      expect(
+        find.text('Polly'),
+        findsOneWidget,
+        reason: 'la gomme ne marche que sur ce qui est dessiné',
+      );
+    });
+
+    testWidgets('« défaire » reprend la dernière pose, dans l ordre', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      final centre = tester.getCenter(surface);
+
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pump();
+      expect(find.byType(TamponPartie), findsOneWidget);
+
+      await tester.dragFrom(centre, const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester).length, 1);
+
+      // Le trait est venu APRÈS le tampon : c'est lui qui s'en va d'abord.
+      await tester.tap(find.byTooltip('Défaire'));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+      expect(find.byType(TamponPartie), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Défaire'));
+      await tester.pump();
+      expect(find.byType(TamponPartie), findsNothing);
+    });
+  });
+
+  group('La palette', () {
+    test('trente couleurs, toutes différentes', () {
+      expect(kPaletteComplete.length, 30);
+      expect(
+        kPaletteComplete.map((c) => c.toARGB32()).toSet().length,
+        30,
+        reason: 'deux pastilles identiques seraient un piège pour le doigt',
+      );
+    });
+
+    testWidgets('elle rend la couleur touchée', (tester) async {
+      Color? rendue;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    rendue = await choisirUneCouleur(
+                      context,
+                      actuelle: Colors.white,
+                    );
+                  },
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+
+      // La première pastille, en haut à gauche de la grille.
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(GridView),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(rendue, isNotNull);
+    });
+  });
+
+  group('Les nuances', () {
+    // Nino : « la palette doit pouvoir passer de carreaux à nuance avec un
+    // bouton. »
+    testWidgets('une touche passe des carreaux au dégradé, et revient', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => unawaited(
+                    choisirUneCouleur(context, actuelle: Colors.white),
+                  ),
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byType(Nuancier), findsNothing);
+
+      await tester.tap(find.text('Nuances'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Nuancier), findsOneWidget);
+      expect(find.byType(GridView), findsNothing);
+      expect(find.text('Choisir'), findsOneWidget);
+
+      await tester.tap(find.text('Carreaux'));
+      await tester.pumpAndSettle();
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byType(Nuancier), findsNothing);
+    });
+
+    test(
+      'le dégradé : la teinte en largeur, le clair et le sombre en hauteur',
+      () {
+        // Au milieu à gauche : le rouge pur.
+        expect(
+          Nuancier.couleurEn(const Offset(0, 0.5)).toARGB32(),
+          const Color(0xFFFF0000).toARGB32(),
+        );
+        // Tout en haut : le blanc, quelle que soit la teinte.
+        expect(
+          Nuancier.couleurEn(const Offset(0.4, 0)).toARGB32(),
+          Colors.white.toARGB32(),
+        );
+        // Tout en bas : le noir.
+        expect(
+          Nuancier.couleurEn(const Offset(0.7, 1)).toARGB32(),
+          Colors.black.toARGB32(),
+        );
+      },
+    );
+
+    test('et la cible retrouve sa place', () {
+      for (final c in [
+        const Color(0xFFFF0000),
+        const Color(0xFF00A0FF),
+        Colors.white,
+        Colors.black,
+      ]) {
+        final place = Nuancier.placeDe(c);
+        expect(
+          Nuancier.couleurEn(place).toARGB32(),
+          c.toARGB32(),
+          reason: 'la couleur en main doit retomber sur elle-même',
+        );
+      }
+    });
+  });
+
+  group("L'objet posé", () {
+    testWidgets('un texte arrive sélectionné, dans son cadre bleu', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Texte'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Polly');
+      await tester.tap(find.text('Poser'));
+      await tester.pumpAndSettle();
+
+      final cadres = tester.widgetList<Container>(find.byType(Container));
+      expect(
+        cadres.any((c) {
+          final d = c.decoration;
+          return d is BoxDecoration && d.border?.top.color == kBleuSelection;
+        }),
+        isTrue,
+        reason: 'il doit apparaître dans un cadre bleu',
+      );
+    });
+
+    testWidgets('un appui à côté range le cadre', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      bool cadreBleu() =>
+          tester.widgetList<Container>(find.byType(Container)).any((c) {
+            final d = c.decoration;
+            return d is BoxDecoration && d.border?.top.color == kBleuSelection;
+          });
+
+      expect(cadreBleu(), isTrue);
+
+      // Un appui dans un coin de l'image, loin du tampon.
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+
+      expect(cadreBleu(), isFalse);
+    });
+  });
+}
