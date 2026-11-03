@@ -48,7 +48,7 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(const Size(393, 851));
-    tester.view.physicalSize = const Size(393, 240);
+    tester.view.physicalSize = const Size(393, 260);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -143,10 +143,15 @@ Future<void> main() async {
     // sortait avec des cases vides, et Nino l'a vu avant moi — « y a même pas
     // les enveloppes sur ton aperçu ».
     await tester.runAsync(() async {
-      await precacheImage(
-        const AssetImage('assets/images/enveloppe.webp'),
-        tester.element(find.byType(ColoredBox).first),
-      );
+      for (final asset in [
+        'assets/images/enveloppe.webp',
+        'assets/images/enveloppe_plus.webp',
+      ]) {
+        await precacheImage(
+          AssetImage(asset),
+          tester.element(find.byType(ColoredBox).first),
+        );
+      }
     });
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -176,13 +181,16 @@ Widget _boite(Color couleur, DateTime maintenant, List<Enveloppe> dedans) {
   return Column(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Text(
-        'Boîte aux lettres',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: SF(10),
-          fontWeight: FontWeight.bold,
-          shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+      SizedBox(
+        height: hauteurDuMotDeLaBoite,
+        child: Text(
+          'Boîte aux lettres',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: SF(10),
+            fontWeight: FontWeight.bold,
+            shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+          ),
         ),
       ),
       SizedBox(height: S(2)),

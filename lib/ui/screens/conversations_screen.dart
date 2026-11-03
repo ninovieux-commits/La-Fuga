@@ -269,7 +269,30 @@ double get kAvatarConversation => S(48);
 /// profil des utilisateurs, je voudrais qu'elles soient une seule fois en plus
 /// gros en bas ». Une par personne, posées aux deux coins, comme sur son
 /// dessin — et les bulles n'en portent plus aucune.
-double get kAvatarBasConversation => S(84);
+/// La hauteur du mot « Boîte aux lettres », au-dessus du cadre.
+double get hauteurDuMotDeLaBoite => SF(10) * 1.4;
+
+/// LA HAUTEUR D'UNE BOÎTE AUX LETTRES, son mot compris : le cadre, ses
+/// marges, son trait, et l'étiquette au-dessus.
+///
+/// Elle se calcule plutôt que de se deviner, parce que deux choses la
+/// suivent : les places à l'intérieur, et les deux photos à côté.
+double get hauteurDeLaBoiteAuxLettres =>
+    hauteurDuMotDeLaBoite +
+    S(2) +
+    touchHeight() +
+    2 * S(3) +
+    2 * kTraitDeTouche.width;
+
+/// LES DEUX VISAGES FONT LA HAUTEUR DES BOÎTES. Nino : « agrandis les images
+/// de profil pour qu'elles fassent la même hauteur que les boîtes aux
+/// lettres. Ça va te demander de déplacer un peu ces dernières vers le
+/// centre de la bande. »
+///
+/// Le déplacement vient tout seul : chaque moitié de la rangée est un visage
+/// et sa boîte, collés l'un à l'autre contre leur bord — la photo grandit,
+/// la boîte recule d'autant.
+double get kAvatarBasConversation => hauteurDeLaBoiteAuxLettres;
 
 /// Combien de fois au plus on ressaute vers le bas en ouvrant une conversation.
 ///
@@ -1008,13 +1031,16 @@ class _ConversationScreenState extends State<ConversationScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          T('Boîte aux lettres'),
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: SF(10),
-            fontWeight: FontWeight.bold,
-            shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+        SizedBox(
+          height: hauteurDuMotDeLaBoite,
+          child: Text(
+            T('Boîte aux lettres'),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: SF(10),
+              fontWeight: FontWeight.bold,
+              shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+            ),
           ),
         ),
         SizedBox(height: S(2)),
