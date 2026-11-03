@@ -425,6 +425,170 @@ void main() {
     });
   });
 
+  group('La gomme', () {
+    TraitDessine trait(List<Offset> points) {
+      final t = TraitDessine(Colors.red, 0.01);
+      t.points.addAll(points);
+      return t;
+    }
+
+    // Nino : « elle doit fonctionner comme une gomme — là elle supprime la
+    // totalité d'un trait qu'elle touche — c'est-à-dire effacer uniquement
+    // là où elle passe. »
+    test('gommé par le milieu, un trait en fait deux', () {
+      final t = trait([for (var i = 0; i <= 10; i++) Offset(i / 10, 0.5)]);
+
+      final restes = t.moins(const Offset(0.5, 0.5), 0.12);
+
+      expect(restes.length, 2, reason: 'le trou laisse deux morceaux');
+      expect(restes.first.points.every((p) => p.dx < 0.4), isTrue);
+      expect(restes.last.points.every((p) => p.dx > 0.6), isTrue);
+      // Et ce qui reste garde la couleur et l'épaisseur d'origine.
+      expect(restes.first.couleur, t.couleur);
+      expect(restes.first.epaisseur, t.epaisseur);
+    });
+
+    test('gommé au bout, il raccourcit', () {
+      final t = trait([for (var i = 0; i <= 10; i++) Offset(i / 10, 0.5)]);
+      final restes = t.moins(const Offset(0, 0.5), 0.25);
+      expect(restes.length, 1);
+      expect(restes.single.points.first.dx, greaterThan(0.25));
+    });
+
+    test('gommé en entier, il ne reste rien', () {
+      final t = trait([const Offset(0.5, 0.5), const Offset(0.52, 0.5)]);
+      expect(t.moins(const Offset(0.5, 0.5), 0.2), isEmpty);
+    });
+
+    test('et ce qu elle ne touche pas ne bouge pas', () {
+      final t = trait([const Offset(0.1, 0.1), const Offset(0.2, 0.1)]);
+      expect(t.toucheA(const Offset(0.9, 0.9), 0.05), isFalse);
+      expect(t.moins(const Offset(0.9, 0.9), 0.05).single.points.length, 2);
+    });
+  });
+
+  group('Le cadre de sélection', () {
+    /// L'angle sous lequel le tampon est dessiné.
+    ///
+    /// On vise la transformation qui ENTOURE le tampon : la première de
+    /// l'écran est celle du zoom, et elle ne tourne jamais.
+    double penche(WidgetTester tester) {
+      final t = tester.widget<Transform>(
+        find
+            .ancestor(
+              of: find.byType(TamponPartie),
+              matching: find.byType(Transform),
+            )
+            .first,
+      );
+      return t.transform.storage[1];
+    }
+
+    // Nino : « il doit y avoir une poignée de rotation juste après l'angle
+    // haut/droite des cadres de sélection. »
+    testWidgets('la poignée de rotation tourne l objet', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.rotate_right), findsOneWidget);
+      final avant = penche(tester);
+
+      await tester.drag(find.byIcon(Icons.rotate_right), const Offset(0, 60));
+      await tester.pump();
+
+      expect(
+        penche(tester),
+        isNot(avant),
+        reason: 'la poignée doit faire pivoter le cadre',
+      );
+    });
+
+    // Nino : « le bouton d'inversion noir/blanc ne doit pas être dans le
+    // bandeau d'outils, il doit apparaître à droite du cadre lorsque le
+    // tampon est sélectionné. »
+    testWidgets('la touche des ronds suit la sélection, pas la barre', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      expect(find.byTooltip('Inverser les ronds'), findsNothing);
+
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Inverser les ronds'), findsOneWidget);
+
+      // Elle est à DROITE du cadre, pas dans le bandeau du bas.
+      final touche = tester.getCenter(find.byTooltip('Inverser les ronds'));
+      final cadre = tester.getRect(find.byType(TamponPartie));
+      expect(touche.dx, greaterThan(cadre.right));
+      expect(touche.dy, lessThan(tester.getRect(surface).bottom));
+
+      // Désélectionné, elle s'en va.
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+      expect(find.byTooltip('Inverser les ronds'), findsNothing);
+    });
+  });
+
+  group('Le zoom', () {
+    double zoomActuel(WidgetTester tester) =>
+        tester.widget<Transform>(find.byKey(cleDuZoom)).transform.storage[0];
+
+    /// Deux doigts qui s'écartent (ou se rapprochent) sur la surface.
+    ///
+    /// [depart] est l'écart initial entre les doigts : pour un pincement
+    /// vers l'intérieur il doit être assez grand pour qu'ils ne se croisent
+    /// pas — deux doigts qui se croisent s'écartent de nouveau, et le test
+    /// mesurerait l'inverse de ce qu'il croit.
+    Future<void> pince(
+      WidgetTester tester,
+      double ecart, {
+      double depart = 20,
+    }) async {
+      final centre = tester.getCenter(surface);
+      final g1 = await tester.startGesture(centre - Offset(depart, 0));
+      final g2 = await tester.startGesture(centre + Offset(depart, 0));
+      await tester.pump();
+      for (var i = 0; i < 6; i++) {
+        await g1.moveBy(Offset(-ecart / 6, 0));
+        await g2.moveBy(Offset(ecart / 6, 0));
+        await tester.pump();
+      }
+      await g1.up();
+      await g2.up();
+      await tester.pump();
+    }
+
+    // Nino : « lorsqu'on fait cette action alors que rien n'est sélectionné,
+    // ça doit zoomer/dézoomer l'image. »
+    testWidgets('deux doigts grossissent l image', (tester) async {
+      await ouvrir(tester);
+      expect(zoomActuel(tester), 1);
+
+      await pince(tester, 200);
+      expect(zoomActuel(tester), greaterThan(1));
+    });
+
+    // Nino : « on ne doit pas pouvoir dézoomer lorsque l'image est déjà
+    // entière. »
+    testWidgets('et on ne descend jamais sous l image entière', (tester) async {
+      await ouvrir(tester);
+      await pince(tester, -80, depart: 100);
+      expect(zoomActuel(tester), 1);
+    });
+
+    // Nino : « elle doit pouvoir se zoomer jusqu'à 4 fois mais lentement
+    // pour la précision. »
+    testWidgets('jusqu à quatre fois, pas plus', (tester) async {
+      await ouvrir(tester);
+      for (var i = 0; i < 12; i++) {
+        await pince(tester, 400);
+      }
+      expect(zoomActuel(tester), kZoomMax);
+    });
+  });
+
   group("L'objet posé", () {
     testWidgets('un texte arrive sélectionné, dans son cadre bleu', (
       tester,

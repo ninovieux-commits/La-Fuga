@@ -15,6 +15,7 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/enveloppe_jeton.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/picto_touche.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Une enveloppe qui expire dans [reste], vue de [maintenant].
@@ -220,19 +221,17 @@ void main() {
       await tester.pump();
     }
 
-    // Nino : « il y a deux +, un noir et un tout fin orange, et ils sont tous
-    // les deux mal placés. Mets un seul + noir en plein milieu de la touche. »
-    testWidgets('un seul « + », noir, au milieu', (tester) async {
+    // Nino : « pour remplacer l'enveloppe avec le plus, voici un symbole
+    // qui le contient déjà. » Plus de signe dessiné par-dessus : il
+    // recouvrait l'enveloppe.
+    testWidgets('le symbole porte son « + », on n en dessine pas un second', (
+      tester,
+    ) async {
       await poserLaTouche(tester);
 
-      expect(find.text('+'), findsOneWidget);
-      final signe = tester.widget<Text>(find.text('+'));
-      expect(signe.style?.color, Colors.black);
-
-      final touche = tester.getRect(find.byType(ToucheEnveloppePlus));
-      final plus = tester.getRect(find.text('+'));
-      expect(plus.center.dx, moreOrLessEquals(touche.center.dx, epsilon: 0.5));
-      expect(plus.center.dy, moreOrLessEquals(touche.center.dy, epsilon: 0.5));
+      expect(find.text('+'), findsNothing);
+      final picto = tester.widget<PictoTouche>(find.byType(PictoTouche));
+      expect(picto.asset, 'assets/images/enveloppe_plus.webp');
     });
 
     // Nino : « le fond de la touche doit être du même gris que [retour]. »

@@ -288,46 +288,15 @@ class ToucheEnveloppePlus extends StatelessWidget {
           onTap: actif ? onPressed : null,
           child: Opacity(
             opacity: actif ? 1 : kOpaciteEteinte,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                PictoTouche(
-                  asset: 'assets/images/enveloppe.webp',
-                  couleur: palette.fonce,
-                  secours: '✉',
-                ),
-                // UN SEUL « + », NOIR, EN PLEIN MILIEU. Nino : « il y a deux
-                // +, un noir et un tout fin orange, et ils sont tous les deux
-                // mal placés. Mets un seul + noir en plein milieu de la
-                // touche. »
-                //
-                // Les deux venaient de [MotTouche], dont le contour est peint
-                // dans la boîte pendant que la lettre, elle, débordait de la
-                // sienne : le trait noir et l'orange se retrouvaient décalés,
-                // et aucun des deux n'était là où on l'attendait. Un signe
-                // noir, plein, posé au centre, n'a pas ce défaut — et le
-                // dessin qu'il recouvre porte déjà son propre trait noir.
-                Center(
-                  child: FractionallySizedBox(
-                    // Assez grand pour se voir d'un coup d'œil, assez petit
-                    // pour que l'enveloppe reste lisible dessous : le signe
-                    // couvre un peu plus du tiers de la touche.
-                    heightFactor: 0.62,
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: Text(
-                        '+',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          height: 1,
-                          fontSize: S(40),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // LE SYMBOLE PORTE DÉJÀ SON « + ». Nino : « pour remplacer
+            // l'enveloppe avec le plus, voici un symbole qui le contient
+            // déjà. » On ne dessine donc plus rien par-dessus : le signe
+            // noir posé au milieu recouvrait l'enveloppe, et deux dessins
+            // valent toujours moins qu'un seul bien fait.
+            child: PictoTouche(
+              asset: 'assets/images/enveloppe_plus.webp',
+              couleur: palette.fonce,
+              secours: '✉',
             ),
           ),
         ),

@@ -429,6 +429,24 @@ void main() {
       expect(server.bodyOf('/env_envoyer')['image'], base64Encode(kPixel));
     });
 
+    // Nino : « cliquer sur un espace vide de la boîte aux lettres du
+    // correspondant doit faire la même chose que cliquer sur ce bouton. »
+    testWidgets('une place vide de SA boîte ouvre l envoi', (tester) async {
+      server.replies['/env_liste'] = {'ok': true, 'enveloppes': const []};
+      poseUnePhoto();
+      await ouvrir(tester);
+
+      // La boîte de gauche est la sienne : celle où mes enveloppes
+      // attendent. On touche sa première place, vide.
+      expect(find.byType(EnveloppeJeton), findsNothing);
+      final place = find.byKey(const ValueKey('place vide 0'));
+      expect(place, findsOneWidget, reason: 'seule SA boîte en propose');
+      await tester.tap(place);
+      await battre(tester, fois: 20);
+
+      expect(find.text('Appareil photo'), findsOneWidget);
+    });
+
     testWidgets('la touche éteinte ne demande rien', (tester) async {
       server.replies['/env_liste'] = {
         'ok': true,

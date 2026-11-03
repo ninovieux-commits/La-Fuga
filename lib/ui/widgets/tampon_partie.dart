@@ -13,6 +13,9 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../game/date_locale.dart';
+import '../../i18n/translations.dart';
+
 /// Ce que le tampon raconte : une date, deux noms, et qui avait les Blancs.
 final class Tampon {
   const Tampon({
@@ -33,19 +36,27 @@ final class Tampon {
   /// l'échange.
   final bool blancAGauche;
 
-  Tampon echange() => Tampon(
-    date: date,
-    gauche: gauche,
-    droite: droite,
-    blancAGauche: !blancAGauche,
+  Tampon echange() => copie(blancAGauche: !blancAGauche);
+
+  /// Le même, avec ce qu'on vient de corriger.
+  Tampon copie({
+    DateTime? date,
+    String? gauche,
+    String? droite,
+    bool? blancAGauche,
+  }) => Tampon(
+    date: date ?? this.date,
+    gauche: gauche ?? this.gauche,
+    droite: droite ?? this.droite,
+    blancAGauche: blancAGauche ?? this.blancAGauche,
   );
 
-  /// La date au format court, sans nom de mois : il changerait de langue
-  /// selon le téléphone, et le tampon est posé sur une image qui voyage.
-  String get dateEcrite =>
-      '${_deux(date.day)}/${_deux(date.month)}/${date.year}';
-
-  static String _deux(int v) => v.toString().padLeft(2, '0');
+  /// La date au format court, sans nom de mois — il changerait de langue
+  /// selon le téléphone, et le tampon est posé sur une image qui voyage —
+  /// mais DANS LE SENS DE LA LANGUE. Nino : « lorsqu'un joueur a l'app
+  /// réglée en anglais, ça doit mettre la date dans le sens anglais, idem
+  /// pour les autres langues où le sens est différent. »
+  String get dateEcrite => dateEcriteSelon(date, Translations.current.language);
 }
 
 /// Le tampon dessiné : la date au-dessus, les deux noms et leurs ronds en
@@ -56,6 +67,9 @@ class TamponPartie extends StatelessWidget {
     required this.tampon,
     required this.taille,
     this.encre = Colors.white,
+    this.surLaDate,
+    this.surGauche,
+    this.surDroite,
   });
 
   final Tampon tampon;
@@ -71,6 +85,21 @@ class TamponPartie extends StatelessWidget {
   /// Les deux ronds, eux, ne changent pas : ils disent qui tient les Blancs
   /// et qui tient les Noirs, et une autre couleur leur ôterait leur sens.
   final Color encre;
+
+  /// Ce qu'on fait quand on touche la date ou l'un des noms.
+  ///
+  /// Nino : « les noms et la date doivent être cliquables pour
+  /// modification. » Nuls — le cas du tampon qu'on ne fait que regarder —
+  /// les trois morceaux ne prennent aucun appui, et le doigt passe au
+  /// travers pour déplacer le tampon entier.
+  final VoidCallback? surLaDate;
+  final VoidCallback? surGauche;
+  final VoidCallback? surDroite;
+
+  /// Enveloppe un morceau d'une prise, si prise il y a.
+  Widget _prenable(Widget enfant, VoidCallback? quoiFaire) => quoiFaire == null
+      ? enfant
+      : GestureDetector(onTap: quoiFaire, child: enfant);
 
   @override
   Widget build(BuildContext context) {
@@ -89,31 +118,40 @@ class TamponPartie extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            tampon.dateEcrite,
-            style: TextStyle(
-              color: encre,
-              fontSize: taille * 0.8,
-              fontWeight: FontWeight.bold,
-              height: 1.1,
+          _prenable(
+            Text(
+              tampon.dateEcrite,
+              style: TextStyle(
+                color: encre,
+                fontSize: taille * 0.8,
+                fontWeight: FontWeight.bold,
+                height: 1.1,
+              ),
             ),
+            surLaDate,
           ),
           SizedBox(height: taille * 0.2),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _camp(
-                tampon.gauche,
-                blanc: tampon.blancAGauche,
-                rond: rond,
-                encre: encre,
+              _prenable(
+                _camp(
+                  tampon.gauche,
+                  blanc: tampon.blancAGauche,
+                  rond: rond,
+                  encre: encre,
+                ),
+                surGauche,
               ),
               SizedBox(width: taille * 0.7),
-              _camp(
-                tampon.droite,
-                blanc: !tampon.blancAGauche,
-                rond: rond,
-                encre: encre,
+              _prenable(
+                _camp(
+                  tampon.droite,
+                  blanc: !tampon.blancAGauche,
+                  rond: rond,
+                  encre: encre,
+                ),
+                surDroite,
               ),
             ],
           ),

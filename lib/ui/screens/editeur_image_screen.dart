@@ -62,6 +62,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
+import 'package:flutter/services.dart' show TextInputFormatter;
+
+import '../../game/date_locale.dart';
 import '../../game/enveloppe.dart';
 import '../../i18n/translations.dart';
 import '../scale.dart';
@@ -74,6 +77,30 @@ import '../widgets/tampon_partie.dart';
 /// Le bleu du cadre de sélection. Celui des sélections, partout : il ne
 /// désigne rien dans le jeu, donc on ne le confond avec rien.
 const Color kBleuSelection = Color(0xFF2D9CFF);
+
+/// La place laissée autour d'un cadre pour ses poignées.
+///
+/// ELLE EST DANS LA BOÎTE DE L'OBJET, et c'est tout l'enjeu : une poignée
+/// peinte en dehors — ce qu'on obtient avec un `Positioned` négatif et un
+/// `Clip.none` — se VOIT mais ne reçoit AUCUN doigt. Flutter n'envoie pas un
+/// appui à ce qui déborde de la boîte de son parent. Nino : « je n'arrive
+/// pas à pivoter ni agrandir/rétrécir. »
+/// Elle se mesure sur la HAUTEUR D'UNE TOUCHE, et non sur la largeur de
+/// l'écran : `S(18)` donne moins de dix points sur un téléphone — un dessin,
+/// pas une prise. Une poignée se vise au doigt, elle suit donc la règle des
+/// touches.
+double get kMargeDesPoignees => touchHeight() * 0.55;
+
+/// Le plus grand grossissement de l'image en cours de retouche.
+const double kZoomMax = 4;
+
+/// La transformation du regard, repérée pour les tests.
+const Key cleDuZoom = ValueKey('zoom de l image');
+
+/// La lenteur du zoom : Nino, « elle doit pouvoir se zoomer jusqu'à 4 fois
+/// mais lentement pour la précision. » Un pincement qui double l'écart des
+/// doigts ne grossit donc que de 40 % — on vise le pixel sans se battre.
+const double kLenteurDuZoom = 0.4;
 
 /// Un trait tracé au doigt.
 final class TraitDessine {
@@ -93,6 +120,31 @@ final class TraitDessine {
   /// que pose la gomme.
   bool toucheA(Offset f, double rayon) =>
       points.any((p) => (p - f).distance <= rayon);
+
+  /// CE QUI RESTE DU TRAIT quand la gomme passe à [rayon] de [f].
+  ///
+  /// Nino : « elle doit fonctionner comme une gomme — là elle supprime la
+  /// totalité d'un trait qu'elle touche — c'est-à-dire effacer uniquement là
+  /// où elle passe. » Un trait gommé par le milieu rend donc DEUX traits, et
+  /// le trou a la taille du rond de la gomme.
+  List<TraitDessine> moins(Offset f, double rayon) {
+    final restes = <TraitDessine>[];
+    TraitDessine? courant;
+    for (final p in points) {
+      if ((p - f).distance <= rayon) {
+        courant = null;
+        continue;
+      }
+      if (courant == null) {
+        courant = TraitDessine(couleur, epaisseur);
+        restes.add(courant);
+      }
+      courant.points.add(p);
+    }
+    // Un point tout seul se voit (le peintre en fait un rond), donc on le
+    // garde : effacer autour d'un point ne doit pas effacer le point.
+    return restes;
+  }
 }
 
 /// Un objet posé sur l'image : une étiquette de texte, ou le tampon.
@@ -117,7 +169,8 @@ final class ObjetPose {
 
   final String? texte;
 
-  /// Mutable : la petite touche qui échange les deux ronds en pose un autre.
+  /// Mutable : la touche qui échange les ronds, et les corrections de la
+  /// date ou des noms, en posent un autre.
   Tampon? tampon;
 
   /// Le centre, en fraction de la boîte.
@@ -196,8 +249,17 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   /// Ce qu'on retient au début d'un pincement ou d'une poignée.
   double _tailleDepart = 0;
   double _angleDepart = 0;
-  double _rayonDepart = 0;
   double _directionDepart = 0;
+
+  /// LE REGARD, pas l'image : ce grossissement et ce décalage sont posés
+  /// AU-DESSUS de la surface photographiée, donc ils ne partent pas dans
+  /// l'enveloppe. On regarde de près pour viser, on envoie l'image entière.
+  double _zoom = 1;
+  Offset _vue = Offset.zero;
+  double _zoomDepart = 1;
+
+  /// Vrai tant qu'un doigt tient la poignée de rotation.
+  bool _tourne = false;
 
   static const double kEpaisseurMin = 0.002;
   static const double kEpaisseurMax = 0.04;
@@ -268,7 +330,27 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       // LA BOÎTE A LA FORME DE LA PHOTO : la surface épouse l'image, donc
       // une fraction de la boîte est une fraction de l'image, à l'écran
       // comme dans le fichier.
-      child: AspectRatio(aspectRatio: forme, child: _surfaceDEdition()),
+      child: AspectRatio(
+        aspectRatio: forme,
+        // LE ZOOM EST AU-DESSUS DE LA SURFACE PHOTOGRAPHIÉE, et c'est ce qui
+        // fait qu'il ne part pas dans l'enveloppe : `toImage` dessine la
+        // limite de repeinture dans SON repère, sans rien savoir de ce que
+        // ses parents lui font subir. On regarde donc de près, et on envoie
+        // l'image entière.
+        //
+        // Les doigts, eux, traversent la transformation à l'endroit :
+        // Flutter leur applique l'inverse, et le trait tombe là où on le
+        // trace, zoomé ou non.
+        child: ClipRect(
+          child: Transform(
+            key: cleDuZoom,
+            transform: Matrix4.identity()
+              ..translateByDouble(_vue.dx, _vue.dy, 0, 1)
+              ..scaleByDouble(_zoom, _zoom, 1, 1),
+            child: _surfaceDEdition(),
+          ),
+        ),
+      ),
     );
   }
 
@@ -280,11 +362,22 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       builder: (context, contraintes) {
         final boite = contraintes.biggest;
         return GestureDetector(
-          // Un appui dans le vide range le cadre bleu. C'est ce qui rend le
-          // crayon au doigt sans qu'on ait à toucher une touche.
+          // UNE SEULE PRISE POUR TOUT : un doigt dessine ou gomme, deux
+          // doigts zooment. Flutter refuse qu'un même détecteur suive à la
+          // fois les glissements et les pincements — et il a raison, les
+          // deux se disputeraient le même appui.
           onTap: () => setState(() => _choisi = null),
-          onPanStart: (d) => _commence(d.localPosition, boite),
-          onPanUpdate: (d) => _continue(d.localPosition, boite),
+          onScaleStart: (d) {
+            _zoomDepart = _zoom;
+            if (d.pointerCount == 1) _commence(d.localFocalPoint, boite);
+          },
+          onScaleUpdate: (d) {
+            if (d.pointerCount > 1) {
+              _zoome(d, boite);
+              return;
+            }
+            _continue(d.localFocalPoint, boite);
+          },
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -309,11 +402,22 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   /// Un objet, à sa place, tourné, et dans son cadre s'il est choisi.
   Widget _poseLObjet(ObjetPose o, Size boite) {
     final choisi = identical(o, _choisi);
-    final enfant = o.estUnTampon
+    final tampon = o.tampon;
+    final enfant = tampon != null
         ? TamponPartie(
-            tampon: o.tampon!,
+            tampon: tampon,
             taille: o.taille * boite.height,
             encre: o.couleur,
+            // LES NOMS ET LA DATE SE TOUCHENT, mais seulement quand le
+            // tampon est choisi : sinon le premier appui le sélectionne,
+            // comme pour tout le reste.
+            surLaDate: choisi ? () => unawaited(_changerLaDate(o)) : null,
+            surGauche: choisi
+                ? () => unawaited(_changerUnNom(o, gauche: true))
+                : null,
+            surDroite: choisi
+                ? () => unawaited(_changerUnNom(o, gauche: false))
+                : null,
           )
         : Text(
             o.texte!,
@@ -325,6 +429,11 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
               shadows: const [Shadow(blurRadius: 4, color: Color(0xCC000000))],
             ),
           );
+
+    // La place des poignées, DANS la boîte de l'objet. À droite, de quoi
+    // loger la touche des ronds quand c'est un tampon choisi.
+    final marge = kMargeDesPoignees;
+    final margeDroite = choisi && o.estUnTampon ? touchHeight() * 0.7 : marge;
 
     return Positioned(
       left: o.position.dx * boite.width,
@@ -342,21 +451,28 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
           child: Transform.rotate(
             angle: o.angle,
             child: Stack(
-              clipBehavior: Clip.none,
               children: [
-                Container(
-                  padding: EdgeInsets.all(S(4)),
-                  decoration: choisi
-                      ? BoxDecoration(
-                          border: Border.all(
-                            color: kBleuSelection,
-                            width: S(1.5),
-                          ),
-                        )
-                      : null,
-                  child: enfant,
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    marge,
+                    marge,
+                    margeDroite,
+                    marge,
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(S(4)),
+                    decoration: choisi
+                        ? BoxDecoration(
+                            border: Border.all(
+                              color: kBleuSelection,
+                              width: S(1.5),
+                            ),
+                          )
+                        : null,
+                    child: enfant,
+                  ),
                 ),
-                if (choisi) ..._poignees(o, boite),
+                if (choisi) ..._poignees(o, boite, margeDroite),
               ],
             ),
           ),
@@ -365,40 +481,84 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     );
   }
 
-  /// Les prises du cadre bleu : les trois coins qui ne font que le montrer,
-  /// et celui d'en bas à droite qui tourne et redimensionne à un seul doigt.
-  List<Widget> _poignees(ObjetPose o, Size boite) {
-    final cote = S(14);
-    Widget point({required bool vivante}) => Container(
+  /// Les prises du cadre bleu : trois coins qui ne font que le montrer, la
+  /// poignée de rotation juste après le coin haut-droit, et — pour un
+  /// tampon — la touche qui échange les ronds, à droite du cadre.
+  ///
+  /// Nino : « il doit y avoir une poignée de rotation juste après l'angle
+  /// haut/droite des cadres de sélection. Agrandir et rétrécir doit se faire
+  /// en pinçant/dépinçant avec deux doigts. » Et : « le bouton d'inversion
+  /// noir/blanc ne doit pas être dans le bandeau d'outils, il doit
+  /// apparaître à droite du cadre lorsque le tampon est sélectionné. »
+  List<Widget> _poignees(ObjetPose o, Size boite, double margeDroite) {
+    final cote = S(13);
+    final marge = kMargeDesPoignees;
+    Widget point() => Container(
       width: cote,
       height: cote,
       decoration: BoxDecoration(
-        color: vivante ? kBleuSelection : Colors.white,
+        color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: S(1.5)),
+        border: Border.all(color: kBleuSelection, width: S(1.5)),
       ),
     );
+    // Les coins du cadre, mesurés depuis les bords de la boîte.
+    final decal = marge - cote / 2;
     return [
-      Positioned(top: -cote / 2, left: -cote / 2, child: point(vivante: false)),
+      Positioned(top: decal, left: decal, child: point()),
+      Positioned(bottom: decal, left: decal, child: point()),
+      Positioned(bottom: decal, right: margeDroite - cote / 2, child: point()),
+      // LA POIGNÉE DE ROTATION, au-delà du coin haut-droit.
       Positioned(
-        top: -cote / 2,
-        right: -cote / 2,
-        child: point(vivante: false),
-      ),
-      Positioned(
-        bottom: -cote / 2,
-        left: -cote / 2,
-        child: point(vivante: false),
-      ),
-      Positioned(
-        bottom: -cote / 2,
-        right: -cote / 2,
-        child: GestureDetector(
-          onPanStart: (d) => _prendLaPoignee(o, d.globalPosition, boite),
-          onPanUpdate: (d) => _tireLaPoignee(o, d.globalPosition, boite),
-          child: point(vivante: true),
+        top: 0,
+        right: margeDroite - marge,
+        // UN `Listener`, ET NON UNE PRISE DE PLUS : le détecteur de
+        // l'objet suit les pincements, et un pincement accepte aussi UN
+        // doigt. Les deux se disputaient donc la poignée, et c'est le
+        // pincement qui gagnait — on déplaçait l'objet en croyant le
+        // tourner. Nino : « je n'arrive pas à pivoter. »
+        //
+        // Le `Listener` reçoit les doigts sans entrer dans cette dispute, et
+        // le drapeau dit au déplacement de se taire le temps qu'on tourne.
+        child: Listener(
+          onPointerDown: (e) {
+            _tourne = true;
+            _prendLaPoignee(o, e.position, boite);
+          },
+          onPointerMove: (e) {
+            if (_tourne) _tourneLaPoignee(o, e.position, boite);
+          },
+          onPointerUp: (_) => _tourne = false,
+          onPointerCancel: (_) => _tourne = false,
+          child: Container(
+            width: marge,
+            height: marge,
+            decoration: BoxDecoration(
+              color: kBleuSelection,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: S(1.5)),
+            ),
+            child: Icon(
+              Icons.rotate_right,
+              size: marge * 0.72,
+              color: Colors.white,
+            ),
+          ),
         ),
       ),
+      if (o.estUnTampon)
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: _rondBouton(
+              Icons.swap_horiz,
+              T('Inverser les ronds'),
+              () => setState(() => o.tampon = o.tampon!.echange()),
+            ),
+          ),
+        ),
     ];
   }
 
@@ -410,16 +570,19 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   }
 
   void _bougeLObjet(ObjetPose o, ScaleUpdateDetails d, Size boite) {
+    // La poignée a la main : on ne déplace pas ce qu'on est en train de
+    // faire tourner.
+    if (_tourne) return;
     setState(() {
-      // Un doigt : on pousse. Deux : on tourne et on grandit EN PLUS, car le
-      // point entre les deux doigts se déplace lui aussi.
+      // Un doigt : on pousse. Deux : on grandit — Nino, « agrandir et
+      // rétrécir doit se faire en pinçant/dépinçant avec deux doigts » — et
+      // le point entre les deux doigts continue de pousser.
       o.position += Offset(
         d.focalPointDelta.dx / boite.width,
         d.focalPointDelta.dy / boite.height,
       );
       if (d.pointerCount > 1) {
         o.taille = (_tailleDepart * d.scale).clamp(0.02, 0.6);
-        o.angle = _angleDepart + d.rotation;
       }
       o.position = Offset(
         o.position.dx.clamp(0.0, 1.0),
@@ -430,23 +593,20 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
 
   void _prendLaPoignee(ObjetPose o, Offset global, Size boite) {
     final v = _versLeCentre(o, global, boite);
-    _tailleDepart = o.taille;
     _angleDepart = o.angle;
-    _rayonDepart = v.distance;
     _directionDepart = v.direction;
   }
 
-  void _tireLaPoignee(ObjetPose o, Offset global, Size boite) {
-    if (_rayonDepart <= 0) return;
+  /// LA POIGNÉE NE FAIT QUE TOURNER. La taille se prend à deux doigts : une
+  /// poignée qui ferait les deux change l'une quand on cherche l'autre.
+  void _tourneLaPoignee(ObjetPose o, Offset global, Size boite) {
     final v = _versLeCentre(o, global, boite);
-    setState(() {
-      o.taille = (_tailleDepart * v.distance / _rayonDepart).clamp(0.02, 0.6);
-      o.angle = _angleDepart + (v.direction - _directionDepart);
-    });
+    if (v == Offset.zero) return;
+    setState(() => o.angle = _angleDepart + (v.direction - _directionDepart));
   }
 
   /// Le vecteur qui va du centre de l'objet au doigt, dans le repère de la
-  /// surface. C'est lui qui donne la distance — donc la taille — et l'angle.
+  /// surface — zoom compris, puisque c'est lui qui porte la transformation.
   Offset _versLeCentre(ObjetPose o, Offset global, Size boite) {
     final boiteRendue = _surface.currentContext?.findRenderObject();
     if (boiteRendue is! RenderBox) return Offset.zero;
@@ -483,19 +643,66 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     setState(() => _traits.last.points.add(f));
   }
 
-  /// LA GOMME N'EFFACE QUE CE QUI EST DESSINÉ. Nino : « il doit y avoir une
-  /// gomme aussi, qui ne marche que sur ce qui est dessiné. » Un texte ou un
-  /// tampon se reprend par son cadre bleu, pas en frottant dessus.
-  void _gomme(Offset f) {
-    final morts = _traits.where((t) => t.toucheA(f, _rayonGomme)).toList();
-    if (morts.isEmpty) return;
+  /// DEUX DOIGTS SUR L'IMAGE : on regarde de plus près.
+  ///
+  /// Nino : « lorsqu'on fait cette action alors que rien n'est sélectionné,
+  /// ça doit zoomer/dézoomer l'image. Elle doit pouvoir se zoomer jusqu'à 4
+  /// fois mais lentement pour la précision. On ne doit pas pouvoir dézoomer
+  /// lorsque l'image est déjà entière. »
+  ///
+  /// D'où les deux bornes : un plancher à 1 — l'image entière, et pas plus
+  /// petite — et un plafond à quatre. La vue est ensuite ramenée dans
+  /// l'image : on ne peut pas faire glisser du vide dans le cadre.
+  void _zoome(ScaleUpdateDetails d, Size boite) {
+    final vise = (_zoomDepart * (1 + (d.scale - 1) * kLenteurDuZoom))
+        .clamp(1.0, kZoomMax)
+        .toDouble();
     setState(() {
-      _traits.removeWhere(morts.contains);
-      _ordre.removeWhere(morts.contains);
+      // Le point entre les deux doigts reste sous les doigts : sans cela, on
+      // zoome toujours sur le coin de l'image.
+      final ancre = d.localFocalPoint;
+      final avant = (ancre - _vue) / _zoom;
+      _zoom = vise;
+      _vue = ancre - avant * _zoom;
+      _vue += d.focalPointDelta;
+      _vue = _dansLImage(_vue, boite);
     });
   }
 
-  // ── Les outils ────────────────────────────────────────────────────────────
+  /// Ramène la vue dans l'image : jamais de vide dans le cadre.
+  Offset _dansLImage(Offset vue, Size boite) {
+    final debordX = boite.width * (_zoom - 1);
+    final debordY = boite.height * (_zoom - 1);
+    return Offset(vue.dx.clamp(-debordX, 0.0), vue.dy.clamp(-debordY, 0.0));
+  }
+
+  /// LA GOMME N'EFFACE QUE LÀ OÙ ELLE PASSE, et que ce qui est dessiné.
+  ///
+  /// Nino : « elle doit fonctionner comme une gomme — là elle supprime la
+  /// totalité d'un trait qu'elle touche — c'est-à-dire effacer uniquement là
+  /// où elle passe. » Un trait gommé par le milieu devient donc deux traits.
+  /// Un texte ou un tampon, lui, se reprend par son cadre bleu : « elle ne
+  /// marche que sur ce qui est dessiné ».
+  void _gomme(Offset f) {
+    final rayon = _rayonGomme;
+    final touches = _traits.where((t) => t.toucheA(f, rayon)).toList();
+    if (touches.isEmpty) return;
+    setState(() {
+      for (final vieux in touches) {
+        final restes = vieux.moins(f, rayon);
+        final place = _traits.indexOf(vieux);
+        _traits.removeAt(place);
+        _traits.insertAll(place, restes);
+        // L'ordre des poses suit : « défaire » doit reprendre les morceaux
+        // là où était le trait entier.
+        final rang = _ordre.indexOf(vieux);
+        if (rang >= 0) {
+          _ordre.removeAt(rang);
+          _ordre.insertAll(rang, restes);
+        }
+      }
+    });
+  }
 
   Widget _barreDOutils() => Container(
     color: const Color(0xFF1A1A1A),
@@ -511,9 +718,16 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
               actif: _outil == Outil.dessin,
               onTap: () => setState(() => _outil = Outil.dessin),
             ),
+            // UNE VRAIE GOMME, et non la baguette magique de Material :
+            // Nino, « la gomme doit avoir une image de gomme plutôt que
+            // cette espèce de baguette magique ». Aucune des icônes livrées
+            // avec Flutter n'en est une — on la dessine.
             _outilTouche(
-              Icons.auto_fix_normal,
+              null,
               T('Gomme'),
+              dessin: GommeDessinee(
+                encre: _outil == Outil.gomme ? Colors.black : Colors.white,
+              ),
               actif: _outil == Outil.gomme,
               onTap: () => setState(() => _outil = Outil.gomme),
             ),
@@ -535,12 +749,6 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
             // LE CURSEUR D'ÉPAISSEUR, en dessin comme à la gomme : l'un trace
             // large, l'autre efface large, et c'est le même réglage.
             Expanded(child: _curseurDEpaisseur()),
-            if (_choisi?.estUnTampon ?? false) ...[
-              SizedBox(width: S(6)),
-              _rondBouton(Icons.swap_horiz, T('Inverser les ronds'), () {
-                setState(() => _choisi!.tampon = _choisi!.tampon!.echange());
-              }),
-            ],
             SizedBox(width: S(8)),
             SizedBox(
               width: S(100),
@@ -558,9 +766,10 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   );
 
   Widget _outilTouche(
-    IconData icone,
+    IconData? icone,
     String nom, {
     bool actif = false,
+    Widget? dessin,
     required VoidCallback onTap,
   }) => Expanded(
     child: Padding(
@@ -568,11 +777,13 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       child: Tooltip(
         message: nom,
         child: FugaButton(
-          enfant: Icon(
-            icone,
-            size: SF(18),
-            color: actif ? Colors.black : Colors.white,
-          ),
+          enfant:
+              dessin ??
+              Icon(
+                icone,
+                size: SF(18),
+                color: actif ? Colors.black : Colors.white,
+              ),
           color: actif ? kBleuSelection : kGrisTouche,
           height: touchHeight() * 0.74,
           onPressed: onTap,
@@ -707,6 +918,95 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       _choisi = pose;
     });
   }
+
+  /// LA DATE SE CORRIGE, et le clavier n'a que des chiffres à donner.
+  ///
+  /// Nino : « pour la date, ça doit laisser les // et remplir seul au bon
+  /// endroit, qu'on ait qu'à appuyer sur les chiffres voulus. » Les
+  /// séparateurs sont donc posés par le champ lui-même, dans l'ordre de la
+  /// langue : le doigt ne tape que des chiffres.
+  Future<void> _changerLaDate(ObjetPose o) async {
+    final tampon = o.tampon;
+    if (tampon == null) return;
+    final langue = Translations.current.language;
+    final controleur = TextEditingController(
+      text: dateEcriteSelon(tampon.date, langue),
+    );
+    final saisi = await _demandeUnTexte(
+      titre: T('La date'),
+      indice: ordreDeLaDate(langue).masque,
+      controleur: controleur,
+      formateurs: [_MasqueDeDate(langue)],
+      clavier: TextInputType.number,
+      taille: 10,
+    );
+    if (saisi == null || !mounted) return;
+    final date = dateDuTexte(saisi, langue);
+    if (date == null) return;
+    setState(() => o.tampon = tampon.copie(date: date));
+  }
+
+  /// L'un des deux noms. On ne les devine plus : ce sont les deux joueurs,
+  /// mais une partie se raconte parfois autrement.
+  Future<void> _changerUnNom(ObjetPose o, {required bool gauche}) async {
+    final tampon = o.tampon;
+    if (tampon == null) return;
+    final controleur = TextEditingController(
+      text: gauche ? tampon.gauche : tampon.droite,
+    );
+    final saisi = await _demandeUnTexte(
+      titre: T('Le nom'),
+      indice: T('Votre texte…'),
+      controleur: controleur,
+      taille: 20,
+    );
+    if (saisi == null || saisi.trim().isEmpty || !mounted) return;
+    setState(
+      () => o.tampon = gauche
+          ? tampon.copie(gauche: saisi.trim())
+          : tampon.copie(droite: saisi.trim()),
+    );
+  }
+
+  /// Un champ dans un popup, et ce qu'on y a écrit.
+  Future<String?> _demandeUnTexte({
+    required String titre,
+    required String indice,
+    required TextEditingController controleur,
+    required int taille,
+    List<TextInputFormatter> formateurs = const [],
+    TextInputType? clavier,
+  }) => showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: kFugaGrey,
+      title: Text(titre, style: const TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: controleur,
+        autofocus: true,
+        maxLength: taille,
+        keyboardType: clavier,
+        inputFormatters: formateurs,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          counterText: '',
+          hintText: indice,
+          hintStyle: const TextStyle(color: Colors.white38),
+        ),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(T('Annuler')),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(controleur.text),
+          child: Text(T('Poser')),
+        ),
+      ],
+    ),
+  );
 
   /// Du texte — et des émojis, que le clavier du téléphone offre déjà.
   Future<void> _ajouterDuTexte() async {
@@ -853,4 +1153,89 @@ class PeintreDesTraits extends CustomPainter {
 
   @override
   bool shouldRepaint(PeintreDesTraits vieux) => true;
+}
+
+/// LE MASQUE DE LA DATE : les séparateurs se posent tout seuls.
+///
+/// On ne retient que les chiffres de ce qui est tapé, et on les redistribue
+/// dans l'ordre de la langue. Effacer enlève un chiffre, jamais une barre
+/// qu'il faudrait viser.
+class _MasqueDeDate extends TextInputFormatter {
+  _MasqueDeDate(this.langue);
+
+  final String langue;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue vieux,
+    TextEditingValue neuf,
+  ) {
+    final texte = masqueLaDate(neuf.text, langue);
+    return TextEditingValue(
+      text: texte,
+      selection: TextSelection.collapsed(offset: texte.length),
+    );
+  }
+}
+
+/// UNE GOMME, dessinée : Flutter n'en livre pas.
+///
+/// Un parallélogramme penché, coupé en deux dans sa longueur — le caoutchouc
+/// clair et la partie qui a servi. C'est le dessin que tout le monde
+/// reconnaît, et il tient en quelques traits.
+class GommeDessinee extends StatelessWidget {
+  const GommeDessinee({super.key, this.encre = Colors.white});
+
+  /// La couleur du trait qui en fait le tour.
+  final Color encre;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: SF(20),
+    height: SF(20),
+    child: CustomPaint(painter: _PeintreDeGomme(encre)),
+  );
+}
+
+class _PeintreDeGomme extends CustomPainter {
+  const _PeintreDeGomme(this.encre);
+
+  final Color encre;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.width;
+    // Le corps, penché : quatre points et un arrondi.
+    final corps = Path()
+      ..moveTo(c * 0.08, c * 0.72)
+      ..lineTo(c * 0.52, c * 0.16)
+      ..lineTo(c * 0.94, c * 0.46)
+      ..lineTo(c * 0.50, c * 0.94)
+      ..close();
+    canvas.drawPath(corps, Paint()..color = const Color(0xFFF2B5B5));
+
+    // La moitié basse, plus sombre : la partie qui a frotté.
+    final usee = Path()
+      ..moveTo(c * 0.08, c * 0.72)
+      ..lineTo(c * 0.30, c * 0.44)
+      ..lineTo(c * 0.72, c * 0.70)
+      ..lineTo(c * 0.50, c * 0.94)
+      ..close();
+    canvas.drawPath(usee, Paint()..color = const Color(0xFFD98C8C));
+
+    final trait = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = c * 0.07
+      ..strokeJoin = StrokeJoin.round
+      ..color = encre;
+    canvas.drawPath(corps, trait);
+    canvas.drawLine(
+      Offset(c * 0.30, c * 0.44),
+      Offset(c * 0.72, c * 0.70),
+      trait,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_PeintreDeGomme vieux) => vieux.encre != encre;
 }

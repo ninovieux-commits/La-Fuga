@@ -1044,7 +1044,24 @@ class _ConversationScreenState extends State<ConversationScreen>
                               _toucheUneEnveloppe(dedans[place], palette),
                             ),
                           )
-                        : null,
+                        // UNE PLACE VIDE DE SA BOÎTE EST UNE INVITATION.
+                        // Nino : « cliquer sur un espace vide de la boîte
+                        // aux lettres du correspondant doit faire la même
+                        // chose que cliquer sur ce bouton. » Dans la mienne,
+                        // non : je ne dépose rien chez moi.
+                        : (miennes
+                              ? GestureDetector(
+                                  key: ValueKey('place vide $place'),
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => unawaited(
+                                    _nouvelleEnveloppe(
+                                      paletteOf(
+                                        Settings.instance.themeAxes.general,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : null),
                   ),
                 ),
             ],
