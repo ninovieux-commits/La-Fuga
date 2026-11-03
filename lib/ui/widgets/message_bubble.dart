@@ -148,10 +148,20 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    final fond = echoue
-        ? const Color.fromRGBO(120, 40, 40, 1)
-        : (deMoi ? palette.clair : palette.fonce);
-    final encre = echoue ? Colors.white : (deMoi ? Colors.black : Colors.white);
+    // TOUTES LES BULLES PORTENT LA PREMIÈRE COULEUR DU THÈME, quel que soit
+    // leur côté. Nino : « toutes les bulles doivent être en couleur 1 et
+    // toutes les enveloppes en couleur 2, histoire d'équilibrer. Puis comme
+    // ça la couleur de bulle envoyée devient la même que reçue (pour
+    // l'instant j'envoie une bulle dorée mais mon adversaire en reçoit une
+    // argentée). »
+    //
+    // Chacun garde SA palette — la règle d'avant, « mes bulles doivent être à
+    // ma couleur » — mais le côté ne choisit plus entre les deux teintes :
+    // c'est lui qui faisait qu'un même message changeait de couleur d'un
+    // écran à l'autre. Qui parle se lit toujours au côté, au coin presque
+    // droit de la bulle et au visage d'en dessous.
+    final fond = echoue ? const Color.fromRGBO(120, 40, 40, 1) : palette.clair;
+    final encre = echoue ? Colors.white : Colors.black;
     final rayon = Radius.circular(S(18));
     final pointe = Radius.circular(S(4));
     final coins = BorderRadius.only(

@@ -74,9 +74,14 @@ deux passages.
   pour les reçus et envoyés, mais doit être sur un bouton pour les envoyer. »
 - **Le chrono au pied**, au format dicté : `48h00` → `47h59`. La minute
   entamée ne compte pas — « je ne veux pas que ça arrondisse à la minute ».
-- **La couleur est celle de la bulle du même côté** : la mienne en `clair`,
-  la sienne en `fonce`, « exactement comme les bulles de conversation en
-  fait ».
+- **La couleur est la seconde du thème de son auteur.** Nino : « toutes les
+  bulles doivent être en couleur 1 et toutes les enveloppes en couleur 2,
+  histoire d'équilibrer. Puis comme ça la couleur de bulle envoyée devient la
+  même que reçue (pour l'instant j'envoie une bulle dorée mais mon adversaire
+  en reçoit une argentée). » La palette reste celle de l'auteur — une bulle
+  comme une enveloppe porte les couleurs de qui l'envoie, sur les deux
+  écrans — mais la teinte ne dépend plus du côté : `clair` pour toutes les
+  bulles, `fonce` pour toutes les enveloppes.
 - **Seules celles qu'on peut ouvrir oscillent.** Trois degrés et demi, un
   aller-retour toutes les 1,4 s. La sienne se tient droite : on ne peut que
   la vérifier ou la reprendre, elle n'appelle personne.

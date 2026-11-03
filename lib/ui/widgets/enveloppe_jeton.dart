@@ -31,16 +31,19 @@ const Duration kEnveloppeBalancement = Duration(milliseconds: 1400);
 /// en compte des dizaines, et celle-ci est la seule qui nous regarde.
 const Key cleDuBalancement = ValueKey('balancement enveloppe');
 
-/// LA COULEUR D'UNE ENVELOPPE EST CELLE DE SA BULLE.
+/// UNE ENVELOPPE PORTE LA SECONDE COULEUR DU THÈME DE SON AUTEUR.
 ///
 /// Nino : « je veux que les enveloppes envoyées prennent ma couleur et les
 /// reçues, la couleur de mon correspondant (exactement comme les bulles de
-/// conversation en fait) ». Les bulles prennent `clair` pour les miennes et
-/// `fonce` pour les siennes, dans le thème qui habille la conversation —
-/// donc le sien. Une enveloppe suit exactement la même règle, et on lit d'un
-/// coup d'œil de quel côté elle vient.
-Color couleurEnveloppe(Enveloppe e, ThemePalette palette) =>
-    e.deMoi ? palette.clair : palette.fonce;
+/// conversation en fait) », puis : « toutes les bulles doivent être en
+/// couleur 1 et toutes les enveloppes en couleur 2, histoire d'équilibrer. »
+///
+/// Donc : la palette est celle de CELUI QUI L'A ENVOYÉE, comme pour une
+/// bulle — la mienne porte mes couleurs sur son écran comme sur le mien — et
+/// la teinte est la seconde, celle que les bulles n'emploient plus. Les deux
+/// couleurs du thème se partagent ainsi la conversation au lieu de se
+/// disputer les côtés.
+Color couleurEnveloppe(ThemePalette palette) => palette.fonce;
 
 class EnveloppeJeton extends StatefulWidget {
   const EnveloppeJeton({

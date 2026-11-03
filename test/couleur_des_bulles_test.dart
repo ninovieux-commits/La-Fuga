@@ -1,7 +1,12 @@
-/// Chacun ses couleurs.
+/// Chacun ses couleurs — mais la même teinte des deux côtés.
 ///
 /// Nino : « les bulles de l'adversaire restent à sa couleur, mais mes bulles
-/// doivent être à ma couleur ! »
+/// doivent être à ma couleur ! », puis, le déséquilibre constaté : « toutes
+/// les bulles doivent être en couleur 1 et toutes les enveloppes en couleur
+/// 2 […] comme ça la couleur de bulle envoyée devient la même que reçue
+/// (pour l'instant j'envoie une bulle dorée mais mon adversaire en reçoit une
+/// argentée). » La PALETTE reste donc celle de l'auteur, et la TEINTE ne
+/// dépend plus du côté.
 ///
 /// C'est la troisième fois que la question se pose, et les trois réponses
 /// tiennent ensemble : le décor de la page est à lui (« on entre chez lui »),
@@ -118,7 +123,11 @@ void main() {
       );
       expect(
         (boite.decoration! as BoxDecoration).color,
-        paletteOf('foret').fonce,
+        paletteOf('foret').clair,
+        // Nino : « toutes les bulles doivent être en couleur 1 […] comme ça
+        // la couleur de bulle envoyée devient la même que reçue. » La palette
+        // reste celle de son auteur ; c'est la teinte qui ne dépend plus du
+        // côté.
         reason: 'la palette n est pas seulement rangée, elle est peinte',
       );
     });

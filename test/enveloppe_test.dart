@@ -149,20 +149,15 @@ void main() {
       );
     });
 
-    // Nino : « les enveloppes envoyées prennent ma couleur et les reçues, la
-    // couleur de mon correspondant (exactement comme les bulles de
-    // conversation en fait) ».
-    test('la couleur est celle de la bulle du même côté', () {
+    // Nino : « toutes les bulles doivent être en couleur 1 et toutes les
+    // enveloppes en couleur 2, histoire d'équilibrer. »
+    test('une enveloppe porte la SECONDE couleur, les bulles la première', () {
       final palette = paletteOf('original');
+      expect(couleurEnveloppe(palette), palette.fonce);
       expect(
-        couleurEnveloppe(enveloppe(kEnveloppeVie, deMoi: true), palette),
-        palette.clair,
-        reason: 'la mienne porte la couleur de mes bulles',
-      );
-      expect(
-        couleurEnveloppe(enveloppe(kEnveloppeVie), palette),
-        palette.fonce,
-        reason: 'la sienne porte la couleur des siennes',
+        couleurEnveloppe(palette),
+        isNot(palette.clair),
+        reason: 'les bulles ont la première : les deux se partagent l écran',
       );
     });
 
