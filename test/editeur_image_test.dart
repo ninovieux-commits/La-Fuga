@@ -72,10 +72,23 @@ void main() {
         home: EditeurImageScreen(image: kPixel, moi: 'Nino', lui: 'celia'),
       ),
     );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    // ON ATTEND QUE L'IMAGE SOIT MESURÉE, sans parier sur une durée. Un
+    // délai fixe de cinquante millisecondes suffisait sur une machine au
+    // repos et pas sur une machine chargée : l'éditeur en restait à sa roue
+    // d'attente, la barre d'outils n'existait pas encore, et le test tombait
+    // une fois sur vingt — au milieu de la suite complète, jamais seul.
+    for (var i = 0; i < 50; i++) {
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
+    expect(
+      find.byType(CircularProgressIndicator),
+      findsNothing,
+      reason: "l'image n'a pas fini de se mesurer",
     );
-    await tester.pump();
   }
 
   group('La barre', () {
