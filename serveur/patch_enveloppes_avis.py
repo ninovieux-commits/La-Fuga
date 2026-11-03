@@ -50,11 +50,17 @@ ENV_JETON = "[enveloppe]"
 
 
 # ── 2. LA TRACE, posee a l'envoi ────────────────────────────────────────────
-MOTIF_TRACE = '''    gid = cur.lastrowid
+#
+# L'ancre PORTE LA LIGNE DE L'INSERT au-dessus, et ce n'est pas du zele :
+# « gid = cur.lastrowid » suivi d'un commit et d'un close se trouve deux fois
+# dans le serveur. Le script a refuse d'ecrire, comme il doit.
+MOTIF_TRACE = '''        (me["id"], autre["id"], nom, len(octets), maintenant, expire))
+    gid = cur.lastrowid
     conn.commit()
     conn.close()'''
 
-AJOUT_TRACE = '''    gid = cur.lastrowid
+AJOUT_TRACE = '''        (me["id"], autre["id"], nom, len(octets), maintenant, expire))
+    gid = cur.lastrowid
     # LA TRACE DANS LE FIL, comme un message ordinaire : memes colonnes, meme
     # horodatage, meme plafond que /send_message. Dans la meme transaction que
     # l'enveloppe — l'une sans l'autre n'aurait pas de sens.
