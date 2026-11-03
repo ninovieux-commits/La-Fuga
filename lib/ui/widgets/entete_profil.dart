@@ -238,8 +238,10 @@ class EnteteProfil extends StatelessWidget {
     final texte = vide ? _sansDevise : devise.trim();
     final corps = TexteRemplissant(
       texte,
+      // Encre NOIRE : la bulle est claire depuis que toutes les bulles de
+      // l'application portent la première couleur du thème.
       style: TextStyle(
-        color: vide ? Colors.white54 : Colors.white,
+        color: vide ? Colors.black54 : Colors.black,
         fontStyle: vide ? FontStyle.italic : FontStyle.normal,
       ),
       tailleMin: SF(10),
@@ -247,7 +249,11 @@ class EnteteProfil extends StatelessWidget {
       maxLignes: kLignesDevise,
     );
     final bulle = BulleDevise(
-      couleur: palette.fonce,
+      // TOUTES LES BULLES DE L'APPLICATION PORTENT LA PREMIÈRE COULEUR.
+      // Nino : « toutes les bulles de l'App en couleur 1. » Celle-ci est la
+      // seule qui vit hors d'une conversation, et elle ne fait plus
+      // exception.
+      couleur: palette.clair,
       // « fais ta prière ! » se crie, comme dans la messagerie : la bulle se
       // hérisse. Une devise vide, elle, ne crie jamais — c'est le texte de
       // remplacement qui s'affiche, et il n'est pas de nous.

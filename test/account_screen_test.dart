@@ -242,6 +242,21 @@ void main() {
     );
   });
 
+  // Nino : « toutes les bulles de l'App en couleur 1. » Celle de la devise
+  // est la seule qui vive hors d'une conversation, et elle ne fait plus
+  // exception.
+  testWidgets('la bulle de la devise porte la première couleur', (
+    tester,
+  ) async {
+    server.replies['/get_profile'] = profile();
+    await open(tester);
+
+    final bulle = tester.widget<BulleDevise>(find.byType(BulleDevise));
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+    expect(bulle.couleur, palette.clair);
+    expect(bulle.couleur, isNot(palette.fonce));
+  });
+
   testWidgets('une devise tranquille garde sa bulle lisse', (tester) async {
     server.replies['/get_profile'] = profile();
     await open(tester);
