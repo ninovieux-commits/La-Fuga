@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
+import 'package:lafuga/net/filet_relecture.dart';
 import 'package:lafuga/net/message_hub.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
@@ -164,6 +165,41 @@ void main() {
       // Et il est lu : la pastille ne doit pas s'allumer pour lui.
       expect(online.messages.unreadFrom('toto'), 0);
     });
+
+    // Nino : « les messages non plus n'apparaissent pas en temps réel quand
+    // on est déjà sur la boîte ? » Le direct reste la voie normale, mais le
+    // filet derrière lui ne doit pas laisser passer trente secondes sur
+    // l'écran où l'on attend une réponse en regardant.
+    //
+    // On vérifie le RÉGLAGE et ce qu'il produit, et non le minuteur : le
+    // filet lit l'heure du monde, que le temps simulé d'un test de widget ne
+    // fait pas avancer.
+    test(
+      'la conversation ouverte ne laisse pas passer plus de huit secondes',
+      () {
+        expect(kEspaceDuFilet, const Duration(seconds: 8));
+
+        final filet = FiletRelecture(espace: kEspaceDuFilet);
+        final t0 = DateTime(2026, 11, 3, 12);
+        filet.note(t0);
+        expect(
+          filet.fautRelire(
+            directVivant: true,
+            maintenant: t0.add(const Duration(seconds: 7)),
+          ),
+          isFalse,
+          reason: 'le direct a déjà prévenu : cette requête ne sert à rien',
+        );
+        expect(
+          filet.fautRelire(
+            directVivant: true,
+            maintenant: t0.add(const Duration(seconds: 8)),
+          ),
+          isTrue,
+          reason: 'passé ce délai, on va voir nous-mêmes',
+        );
+      },
+    );
 
     testWidgets('un message d un tiers ne s invite pas', (tester) async {
       final online = OnlineService(

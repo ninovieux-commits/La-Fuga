@@ -294,6 +294,14 @@ double get hauteurDeLaBoiteAuxLettres =>
 /// la boîte recule d'autant.
 double get kAvatarBasConversation => hauteurDeLaBoiteAuxLettres;
 
+/// Le plus long qu'une conversation OUVERTE puisse attendre sans relire.
+///
+/// Huit secondes, et non les trente du menu : c'est le seul écran où
+/// l'attente se voit, puisqu'on le regarde en attendant la réponse. Le
+/// direct reste la voie normale — à vingt millisecondes — et ceci n'est que
+/// le plafond du pire cas, celui où la socket répond sans rien dire.
+const Duration kEspaceDuFilet = Duration(seconds: 8);
+
 /// Combien de fois au plus on ressaute vers le bas en ouvrant une conversation.
 ///
 /// Chaque passe avance d'environ une hauteur d'écran de bulles construites.
@@ -393,7 +401,18 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// Tant que le direct répond, cette relecture s'espace : elle n'a plus
   /// qu'à rattraper ce qu'il aurait manqué. Elle reprend son rythme dès que
   /// la socket se tait.
-  final FiletRelecture _filet = FiletRelecture();
+  ///
+  /// HUIT SECONDES ICI, ET NON TRENTE. Trente conviennent au menu, dont on
+  /// ne regarde les aperçus qu'en passant ; une conversation OUVERTE est le
+  /// seul endroit où l'attente se voit — on regarde l'écran en attendant la
+  /// réponse. Nino : « les messages n'apparaissent pas en temps réel quand on
+  /// est déjà sur la boîte. »
+  ///
+  /// Le direct reste la voie normale, et il ne coûte rien ; ceci n'est que le
+  /// plafond du pire cas, ramené de trente secondes à huit. Une conversation
+  /// ouverte demande donc au plus sept relectures par minute, contre quinze
+  /// avant le filet.
+  final FiletRelecture _filet = FiletRelecture(espace: kEspaceDuFilet);
 
   // ── LES ENVELOPPES ─────────────────────────────────────────────────────────
   //
