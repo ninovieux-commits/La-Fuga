@@ -27,6 +27,8 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
+import '../../state/settings.dart';
+import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'fuga_popup.dart';
@@ -41,23 +43,71 @@ const List<Color> kGrisDeLaPalette = [
   Colors.black,
 ];
 
-/// Les teintes vives, puis les mêmes en sombre, puis les gris.
-List<Color> construisLaPalette() {
-  final vives = <Color>[];
-  final sombres = <Color>[];
-  for (var i = 0; i < 12; i++) {
-    final teinte = i * 30.0;
-    vives.add(HSVColor.fromAHSV(1, teinte, 0.95, 1).toColor());
-    sombres.add(HSVColor.fromAHSV(1, teinte, 1, 0.55).toColor());
-  }
-  return [...vives, ...sombres, ...kGrisDeLaPalette];
-}
+/// LES SIX TEINTES, dans l'ordre de l'arc-en-ciel.
+///
+/// Six et non douze : une colonne par teinte, c'est ce qui rend la grille
+/// lisible. Pour la teinte exacte qui manque entre deux colonnes, il y a les
+/// nuances.
+const List<double> kTeintesDeLaPalette = [0, 60, 120, 180, 240, 300];
 
-/// La palette entière, construite une fois.
-final List<Color> kPaletteComplete = construisLaPalette();
+/// Les quatre degrés d'une teinte, du pâle au sombre.
+///
+/// (saturation, valeur) — le premier éclaircit, les suivants assombrissent.
+const List<(double, double)> kDegresDeLaPalette = [
+  (0.35, 1.0),
+  (1.0, 1.0),
+  (1.0, 0.72),
+  (1.0, 0.42),
+];
+
+/// LA GRILLE, RANGÉE : une colonne par teinte, une rangée par degré.
+///
+/// Nino : « je comprends pas la palette couleurs… range-les de façon
+/// logique. » Elles étaient rangées par teinte croissante sur deux rangées de
+/// six : une colonne mêlait donc du rouge et du cyan, et l'œil n'y trouvait
+/// aucune suite. Maintenant on descend dans une colonne pour assombrir, on se
+/// déplace de côté pour changer de teinte, et les gris ferment la marche.
+List<List<Color>> construisLesRangees() => [
+  for (final (saturation, valeur) in kDegresDeLaPalette)
+    [
+      for (final teinte in kTeintesDeLaPalette)
+        HSVColor.fromAHSV(1, teinte, saturation, valeur).toColor(),
+    ],
+  kGrisDeLaPalette,
+];
+
+/// Les rangées fixes — celles qui ne dépendent pas du thème.
+final List<List<Color>> kRangeesDeLaPalette = construisLesRangees();
+
+/// La palette fixe, à plat.
+final List<Color> kPaletteComplete = [
+  for (final rangee in kRangeesDeLaPalette) ...rangee,
+];
+
+/// LES COULEURS DU THÈME, la rangée du bas.
+///
+/// Nino : « rajoute en bas une ligne dans laquelle il y a les couleurs du
+/// thème de l'utilisateur. » Ce sont celles de son écran : ses bulles, ses
+/// enveloppes, son plateau. Écrire sur une photo avec la couleur de son thème
+/// n'est pas une couleur de plus, c'est SA couleur.
+List<Color> rangeeDuTheme(ThemePalette theme) => [
+  theme.clair,
+  theme.clairDim,
+  theme.fonce,
+  theme.fonceDim,
+  theme.board,
+  theme.menu,
+];
 
 /// Combien de pastilles par rangée.
 const int kPastillesParRangee = 6;
+
+/// Le bloc des carreaux, repéré pour les tests : c'est lui qui doit faire la
+/// même taille que le nuancier.
+const Key cleDesCarreaux = ValueKey('carreaux de la palette');
+
+/// Le carré des nuances et sa barre de teintes, repérés de même.
+const Key cleDuNuancier = ValueKey('nuancier de la palette');
 
 /// L'écart entre deux pastilles, et la marge autour de la grille.
 double get _ecartDesCarreaux => S(6);
@@ -73,13 +123,23 @@ double get _margeDesCarreaux => S(4);
 /// Elle se calcule plutôt que de se deviner : c'est la grille qui commande,
 /// et elle dépend de la largeur qu'on lui donne.
 double hauteurDesCarreaux(double largeur) {
-  final dispo = largeur - 2 * _margeDesCarreaux;
-  final cote =
-      (dispo - _ecartDesCarreaux * (kPastillesParRangee - 1)) /
-      kPastillesParRangee;
-  final rangees = (kPaletteComplete.length / kPastillesParRangee).ceil();
-  return cote * rangees + _ecartDesCarreaux * (rangees - 1);
+  final cote = coteDUnCarreau(largeur);
+  final rangees = kRangeesDeLaPalette.length + 1; // la rangée du thème
+  return cote * rangees +
+      _ecartDesCarreaux * (rangees - 1) +
+      _hauteurDeLEtiquette +
+      _ecartDesCarreaux;
 }
+
+/// Le côté d'une pastille, pour une largeur donnée.
+double coteDUnCarreau(double largeur) {
+  final dispo = largeur - 2 * _margeDesCarreaux;
+  return (dispo - _ecartDesCarreaux * (kPastillesParRangee - 1)) /
+      kPastillesParRangee;
+}
+
+/// La place du mot « Mon thème » au-dessus de la dernière rangée.
+double get _hauteurDeLEtiquette => SF(11) * 1.4;
 
 /// Ouvre la palette. Rend la couleur choisie, ou nul si l'on a refermé.
 Future<Color?> choisirUneCouleur(
@@ -126,7 +186,23 @@ class CorpsDeLaPalette extends StatefulWidget {
 
 class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
   bool _nuances = false;
-  late Color _couleur = widget.actuelle;
+
+  /// La couleur en main, tenue en teinte-saturation-lumière : c'est ce que
+  /// les deux dessins manipulent, et le gris n'a pas de teinte en RVB — la
+  /// garder ici évite que la barre saute à zéro dès qu'on passe par le noir.
+  late HSVColor _teinteEtNuance = HSVColor.fromColor(widget.actuelle);
+
+  late final TextEditingController _code = TextEditingController(
+    text: codeHexa(widget.actuelle),
+  );
+
+  Color get _couleur => _teinteEtNuance.toColor();
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => Column(
@@ -170,110 +246,216 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
     ],
   );
 
-  Widget _lesCarreaux(double hauteur) => SizedBox(
-    height: hauteur,
-    child: GridView.count(
-      // LE POPUP DÉFILE DÉJÀ : sa colonne ne borne pas la hauteur de ses
-      // lignes, et une grille qui veut s'étendre à l'infini s'y plaint. On
-      // lui donne donc la hauteur calculée, et elle ne défile pas pour son
-      // compte.
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: kPastillesParRangee,
-      mainAxisSpacing: _ecartDesCarreaux,
-      crossAxisSpacing: _ecartDesCarreaux,
-      padding: EdgeInsets.symmetric(horizontal: _margeDesCarreaux),
-      children: [
-        for (final c in kPaletteComplete)
-          _Pastille(
+  Widget _lesCarreaux(double hauteur) {
+    final theme = paletteOf(Settings.instance.themeAxes.general);
+    return SizedBox(
+      key: cleDesCarreaux,
+      height: hauteur,
+      child: LayoutBuilder(
+        builder: (context, boite) {
+          final cote = coteDUnCarreau(boite.maxWidth);
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: _margeDesCarreaux),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final rangee in kRangeesDeLaPalette) ...[
+                  _rangee(rangee, cote),
+                  SizedBox(height: _ecartDesCarreaux),
+                ],
+                // LA RANGÉE DU THÈME, nommée : sans le mot, on prendrait ses
+                // six couleurs pour une septième rangée de plus.
+                SizedBox(
+                  height: _hauteurDeLEtiquette,
+                  child: Text(
+                    T('Mon thème'),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: SF(11),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                _rangee(rangeeDuTheme(theme), cote),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Une rangée de pastilles, toutes de la même taille.
+  Widget _rangee(List<Color> couleurs, double cote) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      for (final c in couleurs)
+        SizedBox(
+          width: cote,
+          height: cote,
+          child: _Pastille(
             couleur: c,
             choisie: c.toARGB32() == widget.actuelle.toARGB32(),
             onTap: () => Navigator.of(context).pop(c),
           ),
-      ],
-    ),
+        ),
+    ],
   );
 
+  /// LES NUANCES, sur le modèle que Nino a montré : un carré de saturation
+  /// et de lumière pour la teinte en cours, la barre des teintes à droite,
+  /// le code hexadécimal — qu'on peut écrire — et l'ancienne couleur en
+  /// regard de la nouvelle.
+  ///
+  /// Nino : « pour la nuance, recrée ça plutôt. » Le dégradé d'avant mettait
+  /// tout dans un seul rectangle : on y perdait la teinte dès qu'on cherchait
+  /// la lumière. Séparer les deux est ce que font tous les éditeurs, et pour
+  /// la même raison.
   Widget _lesNuances(double hauteur) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
       SizedBox(
-        // LA MÊME BOÎTE QUE LES CARREAUX : grande, donc facile à viser.
+        key: cleDuNuancier,
         height: hauteur,
-        width: double.infinity,
-        child: Nuancier(
-          couleur: _couleur,
-          onChange: (c) => setState(() => _couleur = c),
+        child: Row(
+          children: [
+            Expanded(
+              child: Nuancier(
+                couleur: _teinteEtNuance,
+                onChange: _poseLaCouleur,
+              ),
+            ),
+            SizedBox(width: S(8)),
+            SizedBox(
+              width: S(30),
+              child: BarreDesTeintes(
+                couleur: _teinteEtNuance,
+                onChange: _poseLaCouleur,
+              ),
+            ),
+          ],
         ),
       ),
       SizedBox(height: S(8)),
+      // L'ANCIENNE ET LA NOUVELLE, côte à côte, chacune avec son code.
       Row(
         children: [
-          Container(
-            width: touchHeight() * 0.62,
-            height: touchHeight() * 0.62,
-            decoration: BoxDecoration(
-              color: _couleur,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: S(2)),
+          _rond(widget.actuelle),
+          SizedBox(width: S(6)),
+          Text(
+            codeHexa(widget.actuelle),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: SF(13),
+              fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(width: S(8)),
+          Icon(Icons.arrow_forward, size: SF(16), color: Colors.white54),
+          SizedBox(width: S(8)),
+          _rond(_couleur),
+          SizedBox(width: S(6)),
           Expanded(
-            child: SizedBox(
-              height: touchHeight() * 0.74,
-              child: FugaButton(
-                text: T('Choisir'),
-                color: _couleur,
-                textColor: _couleur.computeLuminance() > 0.5
-                    ? Colors.black
-                    : Colors.white,
-                fontSize: SF(15),
-                height: double.infinity,
-                onPressed: () => Navigator.of(context).pop(_couleur),
+            child: TextField(
+              controller: _code,
+              maxLength: 7,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: SF(13),
+                fontWeight: FontWeight.bold,
               ),
+              decoration: const InputDecoration(counterText: '', isDense: true),
+              onChanged: _ecritLeCode,
             ),
           ),
         ],
       ),
+      SizedBox(height: S(8)),
+      SizedBox(
+        height: touchHeight() * 0.74,
+        child: FugaButton(
+          text: T('Choisir'),
+          color: _couleur,
+          textColor: _couleur.computeLuminance() > 0.5
+              ? Colors.black
+              : Colors.white,
+          fontSize: SF(15),
+          height: double.infinity,
+          onPressed: () => Navigator.of(context).pop(_couleur),
+        ),
+      ),
     ],
   );
+
+  Widget _rond(Color c) => Container(
+    width: touchHeight() * 0.46,
+    height: touchHeight() * 0.46,
+    decoration: BoxDecoration(
+      color: c,
+      shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: S(1.5)),
+    ),
+  );
+
+  /// Le doigt a bougé dans le carré ou dans la barre.
+  void _poseLaCouleur(HSVColor c) => setState(() {
+    _teinteEtNuance = c;
+    _code.text = codeHexa(c.toColor());
+  });
+
+  /// On a écrit un code. Tant qu'il n'est pas complet, on ne touche à rien :
+  /// effacer un caractère ne doit pas faire sauter la cible à l'autre bout
+  /// du carré.
+  void _ecritLeCode(String saisi) {
+    final c = couleurDuCode(saisi);
+    if (c == null) return;
+    setState(() => _teinteEtNuance = HSVColor.fromColor(c));
+  }
 }
 
-/// Le dégradé continu : la teinte en largeur, le clair et le sombre en
-/// hauteur.
+/// Le code d'une couleur, comme on l'écrit : « #RRGGBB ».
+String codeHexa(Color c) =>
+    '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+/// La couleur d'un code écrit à la main, ou nul s'il n'en est pas un.
 ///
-/// En haut, du blanc vers la teinte pure ; en bas, de la teinte pure vers le
-/// noir. Tout ce qu'un écran sait montrer tient donc dans ce rectangle, et le
-/// doigt y va directement — pas de curseur à régler l'un après l'autre.
+/// On accepte le dièse ou non, les majuscules comme les minuscules : ce qu'on
+/// recopie d'ailleurs arrive sous toutes les formes.
+Color? couleurDuCode(String saisi) {
+  final propre = saisi.replaceAll('#', '').trim();
+  if (propre.length != 6) return null;
+  final valeur = int.tryParse(propre, radix: 16);
+  if (valeur == null) return null;
+  return Color(0xFF000000 | valeur);
+}
+
+/// LE CARRÉ : la saturation en largeur, la lumière en hauteur, pour une
+/// teinte donnée.
 class Nuancier extends StatelessWidget {
   const Nuancier({super.key, required this.couleur, required this.onChange});
 
-  final Color couleur;
-  final ValueChanged<Color> onChange;
+  /// La couleur en main — sa teinte peint le carré, sa place y pose la cible.
+  final HSVColor couleur;
 
-  /// La couleur d'un point du rectangle, en fractions.
-  static Color couleurEn(Offset f) {
-    final teinte = (f.dx.clamp(0.0, 1.0)) * 360;
-    final y = f.dy.clamp(0.0, 1.0);
-    // Au-dessus du milieu : du blanc vers la teinte. En dessous : de la
-    // teinte vers le noir.
-    final saturation = y <= 0.5 ? y * 2 : 1.0;
-    final valeur = y <= 0.5 ? 1.0 : 1 - (y - 0.5) * 2;
-    return HSVColor.fromAHSV(1, teinte % 360, saturation, valeur).toColor();
-  }
+  final ValueChanged<HSVColor> onChange;
 
-  /// Où se trouve une couleur dans le rectangle — pour y poser la cible.
-  static Offset placeDe(Color c) {
-    final hsv = HSVColor.fromColor(c);
-    final y = hsv.value < 1 ? 0.5 + (1 - hsv.value) / 2 : hsv.saturation / 2;
-    return Offset(hsv.hue / 360, y.clamp(0.0, 1.0));
-  }
+  /// La couleur d'un point du carré, en fractions.
+  static HSVColor couleurEn(double teinte, Offset f) => HSVColor.fromAHSV(
+    1,
+    teinte,
+    f.dx.clamp(0.0, 1.0),
+    1 - f.dy.clamp(0.0, 1.0),
+  );
+
+  /// Où se trouve une couleur dans le carré.
+  static Offset placeDe(HSVColor c) => Offset(c.saturation, 1 - c.value);
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, boite) {
       void suit(Offset local) => onChange(
         couleurEn(
+          couleur.hue,
           Offset(local.dx / boite.maxWidth, local.dy / boite.maxHeight),
         ),
       );
@@ -281,7 +463,7 @@ class Nuancier extends StatelessWidget {
         onTapDown: (d) => suit(d.localPosition),
         onPanUpdate: (d) => suit(d.localPosition),
         child: CustomPaint(
-          painter: _PeintreDesNuances(placeDe(couleur)),
+          painter: _PeintreDuCarre(couleur),
           size: boite.biggest,
         ),
       );
@@ -289,64 +471,145 @@ class Nuancier extends StatelessWidget {
   );
 }
 
-class _PeintreDesNuances extends CustomPainter {
-  const _PeintreDesNuances(this.cible);
+class _PeintreDuCarre extends CustomPainter {
+  const _PeintreDuCarre(this.couleur);
 
-  /// La position de la couleur en main, en fractions.
-  final Offset cible;
+  final HSVColor couleur;
 
   @override
   void paint(Canvas canvas, Size size) {
     final cadre = Offset.zero & size;
-    final arrondi = RRect.fromRectAndRadius(cadre, Radius.circular(S(8)));
+    final arrondi = RRect.fromRectAndRadius(cadre, Radius.circular(S(6)));
     canvas.save();
     canvas.clipRRect(arrondi);
 
-    // LES TEINTES, en largeur.
-    final teintes = <Color>[
-      for (var i = 0; i <= 12; i++)
-        HSVColor.fromAHSV(1, (i * 30) % 360, 1, 1).toColor(),
-    ];
+    // Du blanc à la teinte pure, en largeur.
     canvas.drawRect(
       cadre,
-      Paint()..shader = LinearGradient(colors: teintes).createShader(cadre),
+      Paint()
+        ..shader = LinearGradient(
+          colors: [
+            Colors.white,
+            HSVColor.fromAHSV(1, couleur.hue, 1, 1).toColor(),
+          ],
+        ).createShader(cadre),
     );
-
-    // LE BLANC AU-DESSUS, LE NOIR EN DESSOUS, et la teinte pure au milieu.
+    // Puis le noir, en hauteur.
     canvas.drawRect(
       cadre,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.white, Color(0x00FFFFFF), Colors.black],
-          stops: [0, 0.5, 1],
+          colors: [Color(0x00000000), Colors.black],
         ).createShader(cadre),
     );
     canvas.restore();
 
-    // LA CIBLE : deux ronds, un blanc et un noir, pour se voir sur tout.
-    final ou = Offset(cible.dx * size.width, cible.dy * size.height);
-    canvas.drawCircle(
-      ou,
-      S(9),
+    _cible(canvas, Nuancier.placeDe(couleur), size);
+  }
+
+  @override
+  bool shouldRepaint(_PeintreDuCarre vieux) => vieux.couleur != couleur;
+}
+
+/// LA BARRE DES TEINTES, à droite du carré.
+class BarreDesTeintes extends StatelessWidget {
+  const BarreDesTeintes({
+    super.key,
+    required this.couleur,
+    required this.onChange,
+  });
+
+  final HSVColor couleur;
+  final ValueChanged<HSVColor> onChange;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, boite) {
+      void suit(Offset local) {
+        final part = (local.dy / boite.maxHeight).clamp(0.0, 1.0);
+        onChange(couleur.withHue(part * 359.99));
+      }
+
+      return GestureDetector(
+        onTapDown: (d) => suit(d.localPosition),
+        onPanUpdate: (d) => suit(d.localPosition),
+        child: CustomPaint(
+          painter: _PeintreDesTeintes(couleur.hue),
+          size: boite.biggest,
+        ),
+      );
+    },
+  );
+}
+
+class _PeintreDesTeintes extends CustomPainter {
+  const _PeintreDesTeintes(this.teinte);
+
+  final double teinte;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cadre = Offset.zero & size;
+    final arrondi = RRect.fromRectAndRadius(cadre, Radius.circular(S(6)));
+    canvas.save();
+    canvas.clipRRect(arrondi);
+    canvas.drawRect(
+      cadre,
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = S(3)
-        ..color = Colors.white,
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            for (var i = 0; i <= 12; i++)
+              HSVColor.fromAHSV(1, (i * 30) % 360, 1, 1).toColor(),
+          ],
+        ).createShader(cadre),
     );
-    canvas.drawCircle(
-      ou,
-      S(9),
+    canvas.restore();
+
+    // Un trait en travers, à la hauteur de la teinte.
+    final y = teinte / 360 * size.height;
+    canvas.drawLine(
+      Offset(0, y),
+      Offset(size.width, y),
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = S(1)
-        ..color = Colors.black,
+        ..color = Colors.white
+        ..strokeWidth = S(3),
+    );
+    canvas.drawLine(
+      Offset(0, y),
+      Offset(size.width, y),
+      Paint()
+        ..color = Colors.black
+        ..strokeWidth = S(1),
     );
   }
 
   @override
-  bool shouldRepaint(_PeintreDesNuances vieux) => vieux.cible != cible;
+  bool shouldRepaint(_PeintreDesTeintes vieux) => vieux.teinte != teinte;
+}
+
+/// La cible : deux ronds, un blanc et un noir, pour se voir sur tout.
+void _cible(Canvas canvas, Offset place, Size size) {
+  final ou = Offset(place.dx * size.width, place.dy * size.height);
+  canvas.drawCircle(
+    ou,
+    S(8),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = S(3)
+      ..color = Colors.white,
+  );
+  canvas.drawCircle(
+    ou,
+    S(8),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = S(1)
+      ..color = Colors.black,
+  );
 }
 
 /// Une pastille de la palette. Celle qui est en main porte un trait blanc.

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/editeur_image_screen.dart';
 import 'package:lafuga/ui/widgets/palette_couleurs.dart';
@@ -222,7 +223,7 @@ void main() {
       await tester.tap(
         find
             .descendant(
-              of: find.byType(GridView),
+              of: find.byKey(cleDesCarreaux),
               matching: find.byType(Container),
             )
             .first,
@@ -258,18 +259,18 @@ void main() {
       await tester.tap(find.text('ouvrir'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byKey(cleDesCarreaux), findsOneWidget);
       expect(find.byType(Nuancier), findsNothing);
 
       await tester.tap(find.text('Nuances'));
       await tester.pumpAndSettle();
       expect(find.byType(Nuancier), findsOneWidget);
-      expect(find.byType(GridView), findsNothing);
+      expect(find.byKey(cleDesCarreaux), findsNothing);
       expect(find.text('Choisir'), findsOneWidget);
 
       await tester.tap(find.text('Carreaux'));
       await tester.pumpAndSettle();
-      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byKey(cleDesCarreaux), findsOneWidget);
       expect(find.byType(Nuancier), findsNothing);
     });
 
@@ -294,36 +295,107 @@ void main() {
       );
       await tester.tap(find.text('ouvrir'));
       await tester.pumpAndSettle();
-      final carreaux = tester.getSize(find.byType(GridView));
+      final carreaux = tester.getSize(find.byKey(cleDesCarreaux));
 
       await tester.tap(find.text('Nuances'));
       await tester.pumpAndSettle();
-      final nuances = tester.getSize(find.byType(Nuancier));
+      final nuances = tester.getSize(find.byKey(cleDuNuancier));
 
       expect(nuances.width, moreOrLessEquals(carreaux.width, epsilon: 0.5));
       expect(nuances.height, moreOrLessEquals(carreaux.height, epsilon: 0.5));
     });
 
-    test(
-      'le dégradé : la teinte en largeur, le clair et le sombre en hauteur',
-      () {
-        // Au milieu à gauche : le rouge pur.
+    // Nino : « range-les de façon logique et rajoute en bas une ligne dans
+    // laquelle il y a les couleurs du thème de l'utilisateur. »
+    test('rangée par colonnes de teinte, du pâle au sombre', () {
+      expect(kRangeesDeLaPalette.length, 5, reason: '4 degrés, puis les gris');
+      for (final rangee in kRangeesDeLaPalette) {
+        expect(rangee.length, kPastillesParRangee);
+      }
+      // Une colonne garde sa teinte du haut en bas.
+      for (var colonne = 0; colonne < kPastillesParRangee; colonne++) {
+        final teintes = {
+          for (var ligne = 0; ligne < kDegresDeLaPalette.length; ligne++)
+            HSVColor.fromColor(kRangeesDeLaPalette[ligne][colonne]).hue.round(),
+        };
         expect(
-          Nuancier.couleurEn(const Offset(0, 0.5)).toARGB32(),
-          const Color(0xFFFF0000).toARGB32(),
+          teintes.length,
+          1,
+          reason: 'la colonne $colonne doit tenir une seule teinte',
         );
-        // Tout en haut : le blanc, quelle que soit la teinte.
-        expect(
-          Nuancier.couleurEn(const Offset(0.4, 0)).toARGB32(),
-          Colors.white.toARGB32(),
-        );
-        // Tout en bas : le noir.
-        expect(
-          Nuancier.couleurEn(const Offset(0.7, 1)).toARGB32(),
-          Colors.black.toARGB32(),
-        );
-      },
-    );
+      }
+      // Et elle s\'assombrit en descendant.
+      for (var colonne = 0; colonne < kPastillesParRangee; colonne++) {
+        final clartes = [
+          for (var ligne = 1; ligne < kDegresDeLaPalette.length; ligne++)
+            kRangeesDeLaPalette[ligne][colonne].computeLuminance(),
+        ];
+        for (var i = 1; i < clartes.length; i++) {
+          expect(clartes[i], lessThan(clartes[i - 1]));
+        }
+      }
+    });
+
+    test('la dernière rangée est celle du thème', () {
+      final theme = paletteOf('foret');
+      final rangee = rangeeDuTheme(theme);
+      expect(rangee.length, kPastillesParRangee);
+      expect(rangee, contains(theme.clair));
+      expect(rangee, contains(theme.fonce));
+    });
+
+    testWidgets('elle paraît, nommée, sous les gris', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => unawaited(
+                    choisirUneCouleur(context, actuelle: Colors.white),
+                  ),
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mon thème'), findsOneWidget);
+      Offset ouEst(Color c) => tester.getCenter(
+        find.byWidgetPredicate(
+          (w) => w is Container && (w.decoration as BoxDecoration?)?.color == c,
+        ),
+      );
+      expect(
+        ouEst(paletteOf('foret').fonce).dy,
+        greaterThan(ouEst(Colors.black).dy),
+        reason: 'la rangée du thème est sous les gris',
+      );
+    });
+
+    // Nino a montré le sélecteur qu'il voulait : « pour la nuance, recrée ça
+    // plutôt. » Un carré par teinte, et la teinte à part.
+    test('le carré : la saturation en largeur, la lumière en hauteur', () {
+      // À droite, en haut : la teinte pure.
+      expect(
+        Nuancier.couleurEn(0, const Offset(1, 0)).toColor().toARGB32(),
+        const Color(0xFFFF0000).toARGB32(),
+      );
+      // À gauche, en haut : le blanc.
+      expect(
+        Nuancier.couleurEn(200, const Offset(0, 0)).toColor().toARGB32(),
+        Colors.white.toARGB32(),
+      );
+      // Tout en bas : le noir, quelle que soit la teinte.
+      expect(
+        Nuancier.couleurEn(120, const Offset(0.7, 1)).toColor().toARGB32(),
+        Colors.black.toARGB32(),
+      );
+    });
 
     test('et la cible retrouve sa place', () {
       for (final c in [
@@ -332,13 +404,24 @@ void main() {
         Colors.white,
         Colors.black,
       ]) {
-        final place = Nuancier.placeDe(c);
+        final hsv = HSVColor.fromColor(c);
+        final place = Nuancier.placeDe(hsv);
         expect(
-          Nuancier.couleurEn(place).toARGB32(),
+          Nuancier.couleurEn(hsv.hue, place).toColor().toARGB32(),
           c.toARGB32(),
           reason: 'la couleur en main doit retomber sur elle-même',
         );
       }
+    });
+
+    test('le code hexadécimal se lit et s écrit', () {
+      expect(codeHexa(const Color(0xFF106D1F)), '#106D1F');
+      expect(couleurDuCode('#106D1F')?.toARGB32(), 0xFF106D1F);
+      // Sans dièse, en minuscules : c'est ce qu'on recopie d'ailleurs.
+      expect(couleurDuCode('106d1f')?.toARGB32(), 0xFF106D1F);
+      // Incomplet ou faux : on ne touche à rien.
+      expect(couleurDuCode('#106D1'), isNull);
+      expect(couleurDuCode('pas une couleur'), isNull);
     });
   });
 

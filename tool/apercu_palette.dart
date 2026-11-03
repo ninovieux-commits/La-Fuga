@@ -33,7 +33,7 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(const Size(393, 851));
-    tester.view.physicalSize = const Size(640, 420);
+    tester.view.physicalSize = const Size(700, 560);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -74,7 +74,9 @@ Future<void> main() async {
                       Expanded(
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: S(8)),
-                          child: ColoredBox(
+                          // Material, comme le Dialog du vrai popup : le
+                          // champ du code hexadécimal en a besoin.
+                          child: Material(
                             color: kFugaGrey,
                             child: Padding(
                               padding: EdgeInsets.all(S(8)),
