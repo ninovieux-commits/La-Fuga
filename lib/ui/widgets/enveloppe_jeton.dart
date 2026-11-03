@@ -113,7 +113,16 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
 
   @override
   Widget build(BuildContext context) {
-    final cote = widget.cote ?? S(38);
+    // LE MÊME DESSIN QUE DANS LA TOUCHE, À LA MÊME TAILLE. Nino, la rangée
+    // sous les yeux : « les enveloppes reçues et envoyées sont trop petites.
+    // Mets-les de la même taille que celle qui est dans le bouton en haut à
+    // droite. »
+    //
+    // La touche est un carré d'une hauteur de touche, et son symbole y occupe
+    // [kPartPicto] : un jeton de la même largeur porte donc un dessin de la
+    // même taille, puisqu'il passe par le même [PictoTouche]. Le chiffre ne
+    // se recopie pas d'un endroit à l'autre — c'est la même expression.
+    final cote = widget.cote ?? touchHeight();
     final dessin = SizedBox(
       width: cote,
       height: cote,
@@ -218,7 +227,11 @@ class ToucheEnveloppePlus extends StatelessWidget {
     child: AspectRatio(
       aspectRatio: 1,
       child: Material(
-        color: actif ? kGrisTouche : fondEteint(kGrisTouche),
+        // LE GRIS DE « < RETOUR », et c'est un autre que celui des touches
+        // du plateau. Nino : « le fond de la touche doit être du même gris
+        // que [retour]. » Les deux se tiennent dans le même bandeau, à deux
+        // doigts l'une de l'autre : la moindre différence s'y voit.
+        color: actif ? kFugaGrey : fondEteint(kFugaGrey),
         shape: formeDeTouche(BorderRadius.circular(S(14))),
         child: InkWell(
           borderRadius: BorderRadius.circular(S(14)),
@@ -233,20 +246,33 @@ class ToucheEnveloppePlus extends StatelessWidget {
                   couleur: palette.fonce,
                   secours: '✉',
                 ),
-                // LE PETIT « + », dans le coin : il dit « en envoyer une »
-                // sans recouvrir l'enveloppe.
-                Align(
-                  alignment: Alignment.bottomRight,
+                // UN SEUL « + », NOIR, EN PLEIN MILIEU. Nino : « il y a deux
+                // +, un noir et un tout fin orange, et ils sont tous les deux
+                // mal placés. Mets un seul + noir en plein milieu de la
+                // touche. »
+                //
+                // Les deux venaient de [MotTouche], dont le contour est peint
+                // dans la boîte pendant que la lettre, elle, débordait de la
+                // sienne : le trait noir et l'orange se retrouvaient décalés,
+                // et aucun des deux n'était là où on l'attendait. Un signe
+                // noir, plein, posé au centre, n'a pas ce défaut — et le
+                // dessin qu'il recouvre porte déjà son propre trait noir.
+                Center(
                   child: FractionallySizedBox(
-                    widthFactor: 0.44,
-                    heightFactor: 0.44,
-                    child: MotTouche(
-                      texte: '+',
-                      couleur: palette.clair,
-                      style: TextStyle(
-                        fontSize: S(20),
-                        fontWeight: FontWeight.bold,
-                        height: 1,
+                    // Assez grand pour se voir d'un coup d'œil, assez petit
+                    // pour que l'enveloppe reste lisible dessous : le signe
+                    // couvre un peu plus du tiers de la touche.
+                    heightFactor: 0.62,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Text(
+                        '+',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                          fontSize: S(40),
+                        ),
                       ),
                     ),
                   ),

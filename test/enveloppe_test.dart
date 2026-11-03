@@ -14,6 +14,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/enveloppe_jeton.dart';
+import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Une enveloppe qui expire dans [reste], vue de [maintenant].
@@ -164,6 +165,87 @@ void main() {
     testWidgets('le chrono est écrit par-dessus le dessin', (tester) async {
       await poser(tester, enveloppe(const Duration(hours: 12, minutes: 34)));
       expect(find.text('12h34'), findsOneWidget);
+    });
+
+    // Nino, la rangée sous les yeux : « les enveloppes reçues et envoyées
+    // sont trop petites. Mets-les de la même taille que celle qui est dans le
+    // bouton en haut à droite. »
+    testWidgets('le jeton fait la taille de la touche, donc son dessin aussi', (
+      tester,
+    ) async {
+      await poser(tester, enveloppe(kEnveloppeVie));
+      final jeton = tester.getSize(find.byType(EnveloppeJeton));
+      expect(jeton.width, touchHeight());
+      expect(
+        jeton.height,
+        touchHeight(),
+        reason: 'le même carré que la touche : le même dessin dedans',
+      );
+    });
+  });
+
+  group('La touche qui envoie', () {
+    Future<void> poserLaTouche(WidgetTester tester, {bool actif = true}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                height: touchHeight(),
+                child: ToucheEnveloppePlus(
+                  palette: paletteOf('original'),
+                  actif: actif,
+                  onPressed: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    // Nino : « il y a deux +, un noir et un tout fin orange, et ils sont tous
+    // les deux mal placés. Mets un seul + noir en plein milieu de la touche. »
+    testWidgets('un seul « + », noir, au milieu', (tester) async {
+      await poserLaTouche(tester);
+
+      expect(find.text('+'), findsOneWidget);
+      final signe = tester.widget<Text>(find.text('+'));
+      expect(signe.style?.color, Colors.black);
+
+      final touche = tester.getRect(find.byType(ToucheEnveloppePlus));
+      final plus = tester.getRect(find.text('+'));
+      expect(plus.center.dx, moreOrLessEquals(touche.center.dx, epsilon: 0.5));
+      expect(plus.center.dy, moreOrLessEquals(touche.center.dy, epsilon: 0.5));
+    });
+
+    // Nino : « le fond de la touche doit être du même gris que [retour]. »
+    testWidgets('le gris est celui des touches de bandeau', (tester) async {
+      await poserLaTouche(tester);
+      final fond = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(ToucheEnveloppePlus),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(fond.color, kFugaGrey);
+    });
+
+    testWidgets('éteinte, elle pâlit sans disparaître', (tester) async {
+      await poserLaTouche(tester, actif: false);
+      expect(find.byType(ToucheEnveloppePlus), findsOneWidget);
+      final fond = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(ToucheEnveloppePlus),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(fond.color, isNot(kFugaGrey));
     });
   });
 }

@@ -931,7 +931,6 @@ class _ConversationScreenState extends State<ConversationScreen>
               couleur: couleurEnveloppe(palette),
               maintenant: _maintenant,
               onTap: () => unawaited(_toucheUneEnveloppe(e, palette)),
-              cote: S(34),
             ),
           ),
     ];
