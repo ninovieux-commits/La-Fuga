@@ -341,64 +341,52 @@ void main() {
 
     Finder laTouche() => find.byTooltip(T('Envoyer une pièce'));
 
-    testWidgets('clavier rangé, elle n est pas là', (tester) async {
+    // Nino, la rangée de saisie sous les yeux : « j'aimerais que le bouton
+    // entouré en rouge soit déplacé là où il y a l'autre rond rouge. Enlève
+    // le fond gris de cette touche, je veux juste le logo lafuga. On peut
+    // réduire légèrement la taille du bouton envoyer. »
+    testWidgets('elle est là, clavier rangé comme déployé', (tester) async {
       await ouvrir(tester, clavier: false);
-      expect(laTouche(), findsNothing);
-    });
-
-    testWidgets('clavier déployé, elle paraît, carrée et au milieu', (
-      tester,
-    ) async {
+      expect(laTouche(), findsOneWidget);
       await ouvrir(tester, clavier: true);
       expect(laTouche(), findsOneWidget);
-
-      final place = tester.getRect(laTouche());
-      expect(
-        place.width,
-        moreOrLessEquals(place.height, epsilon: 0.5),
-        reason: 'carré, pas rectangle',
-      );
-      expect(
-        place.center.dx,
-        moreOrLessEquals(393 / 2, epsilon: 1),
-        reason: 'au milieu, comme Nino l a demandé',
-      );
     });
 
-    testWidgets('elle porte le logo du thème choisi', (tester) async {
+    testWidgets('elle porte le logo du thème choisi, et rien d autre', (
+      tester,
+    ) async {
       await Settings.instance.setTheme('volcan');
       await ouvrir(tester, clavier: true);
       final logo = tester.widget<ProfilePhoto>(
         find.descendant(of: laTouche(), matching: find.byType(ProfilePhoto)),
       );
       expect(logo.photo, 'logo|volcan');
+      expect(
+        find.descendant(of: laTouche(), matching: find.byType(Material)),
+        findsNothing,
+        reason: 'plus de fond gris : le logo EST la touche',
+      );
     });
 
-    testWidgets('elle se tient ENTRE les deux visages', (tester) async {
-      // Nino : « le bouton doit apparaître entre nos deux images de profil,
-      // pas dessous. » Les deux photos du bas sont les plus grandes de
-      // l écran : on les reconnaît à leur taille.
+    testWidgets('elle se tient entre le champ et « Envoyer »', (tester) async {
       await ouvrir(tester, clavier: true);
-      final visages = tester
-          .widgetList<ProfilePhoto>(find.byType(ProfilePhoto))
-          .where((p) => p.size == kAvatarBasConversation)
-          .toList();
-      expect(visages, hasLength(2), reason: 'les deux grandes photos du bas');
-
-      final places = find
-          .byWidgetPredicate(
-            (w) => w is ProfilePhoto && w.size == kAvatarBasConversation,
-          )
-          .evaluate()
-          .map((e) => tester.getRect(find.byWidget(e.widget)))
-          .toList();
+      final champ = tester.getRect(find.byType(TextField));
+      final envoyer = tester.getRect(
+        find.widgetWithText(FilledButton, T('Envoyer')),
+      );
       final touche = tester.getRect(laTouche());
-      expect(touche.center.dx, greaterThan(places[0].right));
-      expect(touche.center.dx, lessThan(places[1].left));
+
+      expect(touche.left, greaterThanOrEqualTo(champ.right - 1));
+      expect(touche.right, lessThanOrEqualTo(envoyer.left + 1));
       expect(
-        (touche.center.dy - places[0].center.dy).abs(),
-        lessThan(places[0].height),
-        reason: 'sur la même rangée qu elles, et non dessous',
+        (touche.center.dy - envoyer.center.dy).abs(),
+        lessThan(envoyer.height),
+        reason: 'sur la même rangée',
+      );
+      expect(
+        envoyer.height,
+        lessThan(touchHeight()),
+        reason: 'la touche « Envoyer » a été réduite',
       );
     });
 

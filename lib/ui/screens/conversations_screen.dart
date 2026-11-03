@@ -822,7 +822,6 @@ class _ConversationScreenState extends State<ConversationScreen>
             size: kAvatarBasConversation,
           ),
         ),
-        _toucheDesPieces(palette),
         GestureDetector(
           onTap: () => unawaited(_fiche(widget.online.pseudo ?? '', palette)),
           child: ProfilePhoto(
@@ -848,45 +847,28 @@ class _ConversationScreenState extends State<ConversationScreen>
     if (_pieces) setState(() => _pieces = false);
   }
 
-  /// La touche qui ouvre les pièces, ENTRE LES DEUX VISAGES.
+  /// Le logo qui ouvre les pièces, CONTRE LA TOUCHE « ENVOYER ».
   ///
-  /// Nino : « le bouton doit apparaître entre nos deux images de profil, pas
-  /// dessous. » Elle y trouve sa place sans rien pousser : les deux photos
-  /// sont aux deux bouts d'une rangée, et un enfant de plus au milieu ne les
-  /// déplace pas d'un pixel.
+  /// Il s'est d'abord tenu entre les deux visages, et ne paraissait que
+  /// clavier déployé. Nino, la rangée sous les yeux : « j'aimerais que le
+  /// bouton entouré en rouge soit déplacé là où il y a l'autre rond rouge.
+  /// Enlève le fond gris de cette touche, je veux juste le logo lafuga. »
   ///
-  /// Elle ne paraît que CLAVIER DÉPLOYÉ, comme il l'avait demandé d'abord.
-  /// Le clavier se reconnaît à la place qu'il prend : `viewInsets.bottom`
-  /// vaut sa hauteur quand il est là, et zéro sinon.
-  Widget _toucheDesPieces(ThemePalette palette) {
-    if (MediaQuery.viewInsetsOf(context).bottom <= 0) {
-      return const SizedBox.shrink();
-    }
-    final cote = touchHeight();
-    return Center(
-      child: Tooltip(
-        message: T('Envoyer une pièce'),
-        child: Material(
-          color: Colors.black38,
-          shape: formeDeTouche(BorderRadius.circular(S(10))),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(S(10)),
-            onTap: () => setState(() => _pieces = !_pieces),
-            child: SizedBox(
-              width: cote,
-              height: cote,
-              child: Center(
-                child: ProfilePhoto(
-                  photo: 'logo|${Settings.instance.themeAxes.general}',
-                  size: cote * 0.72,
-                ),
-              ),
-            ),
-          ),
-        ),
+  /// Plus de fond, donc, ni de trait : le logo EST la touche. Et il ne
+  /// disparaît plus avec le clavier — il a sa place dans la rangée de
+  /// saisie, qui est toujours là ; la faire changer de forme selon le
+  /// clavier ferait sauter « Envoyer » d'un côté à l'autre.
+  Widget _toucheDesPieces(ThemePalette palette) => Tooltip(
+    message: T('Envoyer une pièce'),
+    child: InkResponse(
+      onTap: () => setState(() => _pieces = !_pieces),
+      radius: touchHeight() * 0.55,
+      child: ProfilePhoto(
+        photo: 'logo|${Settings.instance.themeAxes.general}',
+        size: touchHeight() * 0.86,
       ),
-    );
-  }
+    ),
+  );
 
   Widget _composer(ThemePalette palette) => Container(
     padding: EdgeInsets.all(S(8)),
@@ -909,12 +891,23 @@ class _ConversationScreenState extends State<ConversationScreen>
                 onSubmitted: (_) => _send(),
               ),
             ),
-            SizedBox(width: S(8)),
+            SizedBox(width: S(6)),
+            _toucheDesPieces(palette),
+            SizedBox(width: S(6)),
             FilledButton(
               onPressed: _send,
+              // UN PEU PLUS PETITE : Nino, « on peut réduire légèrement la
+              // taille du bouton envoyer. » Ce qu'elle rend va au champ de
+              // saisie et au logo qui vient de la rejoindre.
               style: FilledButton.styleFrom(
                 backgroundColor: palette.clair,
                 side: kTraitDeTouche,
+                padding: EdgeInsets.symmetric(horizontal: S(12)),
+                minimumSize: Size(0, touchHeight() * 0.74),
+                textStyle: TextStyle(
+                  fontSize: SF(14),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               child: Text(T('Envoyer')),
             ),

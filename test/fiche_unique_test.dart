@@ -178,9 +178,16 @@ void main() {
       expect(find.widgetWithText(FugaButton, T('Défier')), findsOneWidget);
     });
 
+    /// Les deux VISAGES du bas : les plus grandes photos de l'écran. Le logo
+    /// de la touche des pièces en est une aussi, mais plus petite, et il se
+    /// tient maintenant dans la rangée de saisie.
+    Finder lesVisages() => find.byWidgetPredicate(
+      (w) => w is ProfilePhoto && w.size == kAvatarBasConversation,
+    );
+
     testWidgets('SA photo du bas aussi', (tester) async {
       await ouvrir(tester);
-      await tester.tap(find.byType(ProfilePhoto).first);
+      await tester.tap(lesVisages().first);
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(find.widgetWithText(FugaButton, T('Bloquer')), findsOneWidget);
@@ -189,7 +196,7 @@ void main() {
     testWidgets('et la MIENNE, qui n offre que le profil', (tester) async {
       // On ne se défie pas, on ne se met pas en favori, on ne se bloque pas.
       await ouvrir(tester);
-      await tester.tap(find.byType(ProfilePhoto).last);
+      await tester.tap(lesVisages().last);
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(find.widgetWithText(FugaButton, T('Profil')), findsOneWidget);

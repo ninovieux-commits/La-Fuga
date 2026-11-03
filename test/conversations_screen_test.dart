@@ -436,7 +436,12 @@ void main() {
         ],
       );
 
-      final photos = tester.widgetList<ProfilePhoto>(find.byType(ProfilePhoto));
+      // Les VISAGES : les plus grandes photos de l'écran. Le logo de la
+      // touche des pièces en est une aussi, mais plus petite.
+      final visages = find.byWidgetPredicate(
+        (w) => w is ProfilePhoto && w.size == kAvatarBasConversation,
+      );
+      final photos = tester.widgetList<ProfilePhoto>(visages);
       expect(
         photos.length,
         2,
@@ -453,23 +458,21 @@ void main() {
 
       // En bas : sous la dernière bulle, au-dessus de la saisie.
       final basDesBulles = tester.getRect(find.text('et encore une')).bottom;
-      for (final coin in tester.widgetList<ProfilePhoto>(
-        find.byType(ProfilePhoto),
-      )) {
+      for (final coin in tester.widgetList<ProfilePhoto>(visages)) {
         expect(
           tester.getRect(find.byWidget(coin)).top,
           greaterThan(basDesBulles),
         );
       }
       expect(
-        tester.getRect(find.byType(ProfilePhoto).last).top,
+        tester.getRect(visages.last).top,
         lessThan(tester.getRect(find.byType(TextField)).top),
       );
 
       // La sienne à gauche, la mienne à droite — chacune du côté de ses
       // bulles.
-      final gauche = tester.getRect(find.byType(ProfilePhoto).first);
-      final droite = tester.getRect(find.byType(ProfilePhoto).last);
+      final gauche = tester.getRect(visages.first);
+      final droite = tester.getRect(visages.last);
       expect(gauche.left, lessThan(droite.left));
     });
 
@@ -482,9 +485,11 @@ void main() {
         ],
       );
       expect(
-        find.byType(ProfilePhoto),
+        find.byWidgetPredicate(
+          (w) => w is ProfilePhoto && w.size == kAvatarBasConversation,
+        ),
         findsNWidgets(2),
-        reason: 'huit messages ne font toujours que deux photos',
+        reason: 'huit messages ne font toujours que deux visages',
       );
     });
 
