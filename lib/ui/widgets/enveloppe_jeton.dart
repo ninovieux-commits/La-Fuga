@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../../game/enveloppe.dart';
 import '../../i18n/translations.dart';
+import '../../theme/themes.dart';
 import '../scale.dart';
 import 'picto_touche.dart';
 
@@ -30,6 +31,17 @@ const Duration kEnveloppeBalancement = Duration(milliseconds: 1400);
 /// en compte des dizaines, et celle-ci est la seule qui nous regarde.
 const Key cleDuBalancement = ValueKey('balancement enveloppe');
 
+/// LA COULEUR D'UNE ENVELOPPE EST CELLE DE SA BULLE.
+///
+/// Nino : « je veux que les enveloppes envoyées prennent ma couleur et les
+/// reçues, la couleur de mon correspondant (exactement comme les bulles de
+/// conversation en fait) ». Les bulles prennent `clair` pour les miennes et
+/// `fonce` pour les siennes, dans le thème qui habille la conversation —
+/// donc le sien. Une enveloppe suit exactement la même règle, et on lit d'un
+/// coup d'œil de quel côté elle vient.
+Color couleurEnveloppe(Enveloppe e, ThemePalette palette) =>
+    e.deMoi ? palette.clair : palette.fonce;
+
 class EnveloppeJeton extends StatefulWidget {
   const EnveloppeJeton({
     super.key,
@@ -42,7 +54,8 @@ class EnveloppeJeton extends StatefulWidget {
 
   final Enveloppe enveloppe;
 
-  /// La couleur du dessin — le thème décide, comme pour tous les symboles.
+  /// La couleur du dessin. Voir [couleurEnveloppe] : c'est celle de la bulle
+  /// du même côté.
   final Color couleur;
 
   final VoidCallback onTap;

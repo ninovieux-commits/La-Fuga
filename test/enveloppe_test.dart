@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/game/enveloppe.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/enveloppe_jeton.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,27 +43,37 @@ void main() {
   });
 
   group('Le chrono', () {
-    test('une enveloppe qui vient d être posée affiche 48h00', () {
+    // Nino : « je ne veux pas que ça arrondisse à la minute. »
+    test('posée, elle affiche 48h00 — puis 47h59 dès la première seconde', () {
       expect(chronoEnveloppe(kEnveloppeVie), '48h00');
-      // Et une demi-seconde plus tard aussi : on arrondit vers le haut à la
-      // minute, sinon elle naîtrait déjà en retard.
       expect(
-        chronoEnveloppe(kEnveloppeVie - const Duration(milliseconds: 500)),
-        '48h00',
+        chronoEnveloppe(kEnveloppeVie - const Duration(seconds: 1)),
+        '47h59',
+        reason: 'la minute entamée ne compte pas : on tronque',
       );
     });
 
-    test('une minute plus tard, 47h59', () {
+    test('et 47h59 dure la minute entière', () {
+      expect(
+        chronoEnveloppe(kEnveloppeVie - const Duration(seconds: 59)),
+        '47h59',
+      );
       expect(
         chronoEnveloppe(kEnveloppeVie - const Duration(minutes: 1)),
         '47h59',
+        reason: 'une minute pleine passée : elle bascule à 47h58 juste après',
+      );
+      expect(
+        chronoEnveloppe(kEnveloppeVie - const Duration(minutes: 1, seconds: 1)),
+        '47h58',
       );
     });
 
     test('les minutes prennent deux chiffres, les heures non', () {
       expect(chronoEnveloppe(const Duration(hours: 1, minutes: 5)), '1h05');
       expect(chronoEnveloppe(const Duration(minutes: 59)), '0h59');
-      expect(chronoEnveloppe(const Duration(seconds: 30)), '0h01');
+      // La dernière minute affiche « 0h00 » : il ne reste vraiment plus rien.
+      expect(chronoEnveloppe(const Duration(seconds: 30)), '0h00');
     });
 
     test('au bout, 0h00 — mais l enveloppe est déjà partie', () {
@@ -135,6 +146,23 @@ void main() {
         find.byKey(cleDuBalancement),
         findsNothing,
         reason: 'aucune rotation : elle n appelle personne',
+      );
+    });
+
+    // Nino : « les enveloppes envoyées prennent ma couleur et les reçues, la
+    // couleur de mon correspondant (exactement comme les bulles de
+    // conversation en fait) ».
+    test('la couleur est celle de la bulle du même côté', () {
+      final palette = paletteOf('original');
+      expect(
+        couleurEnveloppe(enveloppe(kEnveloppeVie, deMoi: true), palette),
+        palette.clair,
+        reason: 'la mienne porte la couleur de mes bulles',
+      );
+      expect(
+        couleurEnveloppe(enveloppe(kEnveloppeVie), palette),
+        palette.fonce,
+        reason: 'la sienne porte la couleur des siennes',
       );
     });
 

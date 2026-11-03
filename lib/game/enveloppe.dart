@@ -78,14 +78,15 @@ int _entier(Object? v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
 
 /// Le chrono d'une enveloppe, au format que Nino a dicté : « 48h00 -> 47h59 ».
 ///
-/// Les heures d'abord, les minutes ensuite sur deux chiffres. On ARRONDIT
-/// VERS LE HAUT à la minute : une enveloppe qui vient d'être posée doit
-/// afficher « 48h00 », pas « 47h59 » parce qu'une demi-seconde a passé. La
-/// dernière minute, elle, affiche « 0h01 » jusqu'au bout — « 0h00 » ne
-/// s'affiche jamais, l'enveloppe part avant.
+/// Les heures d'abord, les minutes ensuite sur deux chiffres, et LA MINUTE
+/// ENTAMÉE NE COMPTE PAS : on tronque. Nino : « je ne veux pas que ça
+/// arrondisse à la minute. » Une enveloppe qui vient d'être posée affiche
+/// donc « 48h00 » pendant une seconde, puis « 47h59 » pendant la minute
+/// entière qui suit — c'est le compte à rebours qu'il a décrit, et c'est
+/// aussi le temps qu'il RESTE vraiment, jamais une minute de plus.
 String chronoEnveloppe(Duration restant) {
   if (restant <= Duration.zero) return '0h00';
-  final minutes = (restant.inSeconds / 60).ceil();
+  final minutes = restant.inMinutes;
   final heures = minutes ~/ 60;
   final reste = minutes % 60;
   return '${heures}h${reste.toString().padLeft(2, '0')}';
