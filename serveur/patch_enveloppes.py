@@ -57,6 +57,11 @@ MOTIF = '''def _send_push(fcm_token, title, body, data=None):'''
 AJOUT = '''# ---------------------------------------------------------------------------
 # LES ENVELOPPES : une image qui passe, et qui ne reste nulle part.
 # ---------------------------------------------------------------------------
+# base64 n'est pas importe plus haut : le reste du serveur n'en a jamais eu
+# besoin. L'import est ici, dans le bloc qui s'en sert, et non ajoute au haut
+# du fichier : une ligne de moins a toucher, et le bloc reste d'un seul
+# morceau. Python l'accepte n'importe ou au niveau du module.
+import base64
 # Deux en attente par expediteur et par paire, 48 h de duree de vie, effacee
 # des que le destinataire l'ouvre. Le serveur ne decode jamais l'image : elle
 # arrive deja reduite a 720p par le telephone, il ne fait que la poser sur le
@@ -225,7 +230,7 @@ def env_envoyer():
         return jsonify({"ok": False, "error": "Deja deux enveloppes en "
                                               "attente"}), 409
 
-    nom = "%s.img" % uuid.uuid4().hex
+    nom = "%s.img" % secrets.token_hex(16)
     try:
         with open(_env_chemin(nom), "wb") as f:
             f.write(octets)
