@@ -23,14 +23,14 @@
 /// sur une grande touche et invisible sur une petite : le bandeau d'une
 /// partie rogne ce qui dépasse, et la pastille y perdait sa moitié basse.
 ///
-/// ## Elle bat
+/// ## Elle ne bat pas
 ///
-/// Une seconde et demie allumée, une seconde et demie éteinte. Un point fixe
-/// se confond avec le décor ; un point qui bat se voit du coin de l'œil, et
-/// c'est tout ce qu'on lui demande.
+/// Elle a clignoté le temps d'un essai — une seconde et demie allumée, une
+/// seconde et demie éteinte — et Nino l'a retiré : « ne le fais pas
+/// clignoter finalement. » Elle reste donc allumée tant qu'il y a quelque
+/// chose à lire.
 library;
 
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -41,13 +41,10 @@ import '../scale.dart';
 import '../suit_les_reglages.dart';
 import 'fuga_button.dart';
 
-/// Le temps que la pastille reste allumée, puis éteinte.
-const Duration kBattementPastille = Duration(milliseconds: 1500);
-
-/// LE ROND LUI-MÊME, qui bat.
+/// LE ROND LUI-MÊME.
 ///
 /// À part, parce que la liste des conversations le pose seul, sans touche
-/// dessous : le même dessin, le même battement, deux usages.
+/// dessous : le même dessin, deux usages.
 class PastilleNonLue extends StatefulWidget {
   const PastilleNonLue({super.key, required this.cote, this.couleur});
 
@@ -61,40 +58,21 @@ class PastilleNonLue extends StatefulWidget {
   State<PastilleNonLue> createState() => _PastilleNonLueState();
 }
 
+/// À état pour une seule raison : suivre le thème. Changer de thème doit
+/// repeindre la pastille là où elle se trouve, fût-ce sous un autre écran.
 class _PastilleNonLueState extends State<PastilleNonLue> with SuitLesReglages {
-  Timer? _battement;
-  bool _allumee = true;
-
   @override
-  void initState() {
-    super.initState();
-    _battement = Timer.periodic(kBattementPastille, (_) {
-      if (mounted) setState(() => _allumee = !_allumee);
-    });
-  }
-
-  @override
-  void dispose() {
-    _battement?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedOpacity(
-    opacity: _allumee ? 1 : 0,
-    duration: const Duration(milliseconds: 180),
-    child: Container(
-      width: widget.cote,
-      height: widget.cote,
-      decoration: BoxDecoration(
-        color:
-            widget.couleur ??
-            paletteOf(Settings.instance.themeAxes.general).clair,
-        shape: BoxShape.circle,
-        // Le trait noir des touches : la pastille se détache de n'importe
-        // quel fond, clair comme sombre.
-        border: const Border.fromBorderSide(kTraitDeTouche),
-      ),
+  Widget build(BuildContext context) => Container(
+    width: widget.cote,
+    height: widget.cote,
+    decoration: BoxDecoration(
+      color:
+          widget.couleur ??
+          paletteOf(Settings.instance.themeAxes.general).clair,
+      shape: BoxShape.circle,
+      // Le trait noir des touches : la pastille se détache de n'importe quel
+      // fond, clair comme sombre.
+      border: const Border.fromBorderSide(kTraitDeTouche),
     ),
   );
 }

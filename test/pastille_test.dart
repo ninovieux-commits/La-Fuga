@@ -2,8 +2,8 @@
 ///
 /// Nino, trois captures en main : « celle de la photo 1 est mangée et celle
 /// de la photo 2 est à l'ancienne. Arrange ça. La pastille doit être en
-/// couleur 1 avec le contour noir. Elle doit apparaître et disparaître à
-/// intervalles de 1,5 seconde. »
+/// couleur 1 avec le contour noir. » Elle a clignoté le temps d'un essai,
+/// puis : « ne le fais pas clignoter finalement. »
 library;
 
 import 'package:flutter/material.dart';
@@ -14,10 +14,6 @@ import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/widgets/unread_dot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// L'opacité que la pastille vise en ce moment.
-double opacite(WidgetTester tester) =>
-    tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
 
 /// Le rond peint.
 BoxDecoration rond(WidgetTester tester) =>
@@ -75,10 +71,6 @@ void main() {
   }
 
   group('Son allure', () {
-    test('elle bat toutes les 1,5 seconde', () {
-      expect(kBattementPastille, const Duration(milliseconds: 1500));
-    });
-
     testWidgets('couleur 1 du thème, et le trait noir des touches', (
       tester,
     ) async {
@@ -90,17 +82,14 @@ void main() {
       expect(peinture.shape, BoxShape.circle);
     });
 
-    testWidgets('elle s allume, s éteint, et se rallume', (tester) async {
+    testWidgets('elle reste allumée : plus de clignotement', (tester) async {
       await poser(tester);
-      expect(opacite(tester), 1);
+      expect(find.byType(AnimatedOpacity), findsNothing);
 
-      await tester.pump(kBattementPastille);
-      await tester.pump();
-      expect(opacite(tester), 0, reason: 'elle disparaît au bout d une 1,5 s');
-
-      await tester.pump(kBattementPastille);
-      await tester.pump();
-      expect(opacite(tester), 1, reason: 'et revient la 1,5 s suivante');
+      // Trois secondes plus tard, elle est toujours là, entière.
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.byType(PastilleNonLue), findsOneWidget);
+      expect(find.byType(Opacity), findsNothing);
     });
   });
 
