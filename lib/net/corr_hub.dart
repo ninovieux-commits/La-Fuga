@@ -30,6 +30,19 @@ class CorrHub {
   /// À suivre pour se rafraîchir à l'instant où quelque chose bouge.
   Stream<CorrChange> get changes => _changes.stream;
 
+  /// Les enveloppes qui arrivent, au fil de l'eau : le pseudo de l'envoyeur.
+  ///
+  /// À part des changements de correspondance, parce que ce n'en est pas un :
+  /// la boîte de messages y relit sa rangée de jetons, et l'écran de partie y
+  /// fait passer le symbole dans le bandeau. Le serveur les annonce par le
+  /// même `maj_directe` — c'est `_notify_user` qui le pose, en même temps que
+  /// la push — et la connexion ne garde qu'un écouteur par événement : il
+  /// faut donc que ce soit celui-ci qui les distribue.
+  Stream<String> get enveloppes => _enveloppes.stream;
+
+  final StreamController<String> _enveloppes =
+      StreamController<String>.broadcast();
+
   /// Les types qui concernent la correspondance.
   ///
   /// `message` n'en est pas : les messages privés ont leur propre chemin
@@ -59,12 +72,20 @@ class CorrHub {
   /// serveur ni socket.
   void receive(Map<String, dynamic> data) {
     final type = '${data['type'] ?? ''}'.trim();
+    // UNE ENVELOPPE N'EST PAS UNE PARTIE : elle a son propre canal, et elle
+    // ne doit surtout pas faire relire la liste des parties.
+    if (type == 'enveloppe') {
+      final de = '${data['de'] ?? ''}'.trim();
+      if (de.isNotEmpty) _enveloppes.add(de);
+      return;
+    }
     if (!concerneCorresp(type)) return;
     _changes.add((type: type, gameId: '${data['game_id'] ?? ''}'.trim()));
   }
 
   void dispose() {
     detach();
+    unawaited(_enveloppes.close());
     unawaited(_changes.close());
   }
 }

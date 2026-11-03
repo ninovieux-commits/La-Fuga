@@ -3,6 +3,8 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -33,6 +35,12 @@ import '../widgets/profile_photo.dart';
 import '../widgets/champ_pieces.dart';
 import '../pieces_emoji.dart';
 import '../widgets/panneau_pieces.dart';
+import '../widgets/fuga_popup.dart';
+import '../widgets/enveloppe_jeton.dart';
+import '../widgets/choix_source_image.dart';
+import '../../game/enveloppe.dart';
+import 'editeur_image_screen.dart';
+import 'visionneuse_enveloppe.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
 class ConversationsScreen extends StatefulWidget {
@@ -355,6 +363,41 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// la socket se tait.
   final FiletRelecture _filet = FiletRelecture();
 
+  // ── LES ENVELOPPES ─────────────────────────────────────────────────────────
+  //
+  // Une image qui passe, et qui ne reste nulle part : voir
+  // docs/ENVELOPPES.md. Les jetons encadrent les visages — les siennes à
+  // côté de sa photo, les miennes à côté de la mienne, là où Nino les a
+  // dessinées : « les carrés rouges indiquent l'endroit où se trouvent les
+  // enveloppes reçues et envoyées avec le petit chrono par dessus. »
+
+  /// Les enveloppes en attente avec ce correspondant, DANS LES DEUX SENS.
+  List<Enveloppe> _enveloppes = const [];
+
+  /// L'instant où l'on se place pour écrire les chronos.
+  ///
+  /// UNE MINUTE, PAS UNE SECONDE : le chrono s'écrit « 47h59 », il ne bouge
+  /// donc qu'une fois par minute, et un battement par seconde ferait
+  /// redessiner la rangée soixante fois pour rien. La même minute relit la
+  /// liste : une enveloppe reçue n'a pas de socket pour s'annoncer.
+  DateTime _maintenant = DateTime.now();
+  Timer? _horloge;
+  StreamSubscription<String>? _ecouteEnveloppes;
+
+  /// Vrai pendant qu'une image monte : la touche s'éteint, et un second
+  /// appui ne peut pas en envoyer deux.
+  bool _envoiEnCours = false;
+
+  /// Combien des MIENNES attendent encore d'être ouvertes.
+  int get _miennesEnAttente =>
+      _enveloppes.where((e) => e.deMoi && !e.expiree(_maintenant)).length;
+
+  /// Nino : « on ne peut pas en envoyer de nouvelles si on en a déjà envoyé
+  /// [deux] et que le correspondant ne les a pas ouvertes. » Le serveur tient
+  /// la même règle — celle-ci ne fait qu'éteindre la touche avant le refus.
+  bool get _peutEnvoyer =>
+      !_envoiEnCours && _miennesEnAttente < kEnveloppesEnAttente;
+
   @override
   void initState() {
     super.initState();
@@ -388,11 +431,24 @@ class _ConversationScreenState extends State<ConversationScreen>
       _filet.note();
       unawaited(_refresh());
     });
+    unawaited(_relisLesEnveloppes());
+    // UNE ENVELOPPE ARRIVE SANS ATTENDRE LA MINUTE : le serveur l'annonce
+    // par le même `maj_directe` que la push, et le jeton paraît aussitôt.
+    _ecouteEnveloppes = widget.online.corr.enveloppes
+        .where((de) => de == widget.pseudo)
+        .listen((_) => unawaited(_relisLesEnveloppes()));
+    _horloge = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) return;
+      setState(() => _maintenant = DateTime.now());
+      unawaited(_relisLesEnveloppes());
+    });
   }
 
   @override
   void dispose() {
     EcranCourant.fermeConversation(widget.pseudo);
+    _ecouteEnveloppes?.cancel();
+    _horloge?.cancel();
     _poll?.cancel();
     _watch?.cancel();
     profilsConnus.removeListener(_surProfil);
@@ -708,6 +764,22 @@ class _ConversationScreenState extends State<ConversationScreen>
                 // Son nom ouvre SA fiche — la même qu'en partie.
                 onTitleTap: () => unawaited(_fiche(widget.pseudo, palette)),
                 onBack: () => Navigator.of(context).pop(),
+                // LE CARRÉ VERT DU DESSIN DE NINO : « le carré vert dessiné
+                // indique l'endroit où se trouvera l'icône d'enveloppe avec
+                // un petit + ajouté, permettant d'envoyer une image. »
+                //
+                // La hauteur est donnée : la touche est un carré, et sans
+                // contrainte elle prendrait toute la largeur de la place de
+                // droite — cent dix points de haut dans un bandeau qui n'en
+                // fait que quarante.
+                action: SizedBox(
+                  height: touchHeight(),
+                  child: ToucheEnveloppePlus(
+                    palette: mienne,
+                    actif: _peutEnvoyer,
+                    onPressed: () => unawaited(_nouvelleEnveloppe(mienne)),
+                  ),
+                ),
               ),
               Expanded(
                 // LE PANNEAU DES IMAGES SE POSE PAR-DESSUS LA LISTE, et non
@@ -725,7 +797,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                   ],
                 ),
               ),
-              _visages(palette),
+              _visages(palette, mienne),
               _composer(palette),
             ],
           ),
@@ -807,10 +879,9 @@ class _ConversationScreenState extends State<ConversationScreen>
   ///
   /// Chacun du côté d'où viennent ses bulles — on sait d'un coup d'œil qui
   /// parle de quel côté, et une seule fois suffit à le dire.
-  Widget _visages(ThemePalette palette) => Padding(
+  Widget _visages(ThemePalette palette, ThemePalette mienne) => Padding(
     padding: EdgeInsets.symmetric(horizontal: S(10), vertical: S(6)),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Les deux photos ouvrent la même fiche que les noms : la sienne, et
         // la mienne — qui n'offre que « Profil », puisqu'on ne se défie pas,
@@ -822,6 +893,12 @@ class _ConversationScreenState extends State<ConversationScreen>
             size: kAvatarBasConversation,
           ),
         ),
+        // SES ENVELOPPES CONTRE SA PHOTO, LES MIENNES CONTRE LA MIENNE : on
+        // voit d'un coup d'œil qui attend quoi, et le jeton porte la couleur
+        // de son auteur, comme sa bulle.
+        _enveloppesDe(miennes: false, palette: palette),
+        const Spacer(),
+        _enveloppesDe(miennes: true, palette: mienne),
         GestureDetector(
           onTap: () => unawaited(_fiche(widget.online.pseudo ?? '', palette)),
           child: ProfilePhoto(
@@ -834,6 +911,285 @@ class _ConversationScreenState extends State<ConversationScreen>
         ),
       ],
     ),
+  );
+
+  /// Une rangée de jetons : les miennes, ou les siennes.
+  ///
+  /// Vide, elle ne prend aucune place — rien ne doit bouger pour une
+  /// conversation qui n'échange que des mots. Les expirées ne paraissent pas :
+  /// le serveur les efface de son côté à son prochain ménage, et une
+  /// enveloppe à « 0h00 » ne s'ouvrirait plus de toute façon.
+  Widget _enveloppesDe({required bool miennes, required ThemePalette palette}) {
+    final jetons = [
+      for (final e in _enveloppes)
+        if (e.deMoi == miennes && !e.expiree(_maintenant))
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: S(3)),
+            child: EnveloppeJeton(
+              key: ValueKey('enveloppe ${e.id}'),
+              enveloppe: e,
+              couleur: couleurEnveloppe(palette),
+              maintenant: _maintenant,
+              onTap: () => unawaited(_toucheUneEnveloppe(e, palette)),
+              cote: S(34),
+            ),
+          ),
+    ];
+    if (jetons.isEmpty) return const SizedBox.shrink();
+    return Row(mainAxisSize: MainAxisSize.min, children: jetons);
+  }
+
+  /// Relit la liste des enveloppes, et ne redessine que si elle a changé.
+  Future<void> _relisLesEnveloppes() async {
+    final r = await widget.online.client.listerEnveloppes(widget.pseudo);
+    if (!mounted || !r.isOk) return;
+    final frais = [
+      for (final e in r.get<List<dynamic>>('enveloppes') ?? const [])
+        if (e is Map) Enveloppe.fromJson(Map<String, dynamic>.from(e)),
+    ];
+    if (_memesEnveloppes(frais, _enveloppes)) return;
+    setState(() => _enveloppes = frais);
+  }
+
+  /// Les mêmes, dans le même ordre : le serveur les rend triées, il suffit
+  /// donc de comparer les identifiants pour savoir s'il y a lieu de
+  /// redessiner. Les chronos, eux, sont rafraîchis par l'horloge.
+  static bool _memesEnveloppes(List<Enveloppe> a, List<Enveloppe> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
+  }
+
+  /// Un jeton touché : le popup, puis ce qu'il a dit.
+  Future<void> _toucheUneEnveloppe(Enveloppe e, ThemePalette sienne) async {
+    final choix = await _demandeQuoiFaire(e, sienne);
+    if (choix == null || !mounted) return;
+
+    if (choix == _ChoixEnveloppe.supprimer) {
+      final r = await widget.online.client.supprimerEnveloppe(e.id);
+      if (!mounted) return;
+      if (!r.isOk) await _dis(r.serverError ?? T("L'enveloppe est restée."));
+      if (!mounted) return;
+      await _relisLesEnveloppes();
+      return;
+    }
+
+    final r = await widget.online.client.ouvrirEnveloppe(e.id);
+    if (!mounted) return;
+    if (!r.isOk) {
+      await _dis(r.serverError ?? T("L'enveloppe ne s'ouvre pas."));
+      if (!mounted) return;
+      await _relisLesEnveloppes();
+      return;
+    }
+    final Uint8List image;
+    try {
+      image = base64Decode(r.get<String>('image') ?? '');
+    } on FormatException {
+      await _dis(T("L'image est illisible."));
+      return;
+    }
+
+    // ELLE NE QUITTE LA RANGÉE QU'À LA FERMETURE. Nino : « l'image n'est
+    // supprimée qu'une fois fermée. » Le serveur, lui, l'a déjà effacée en la
+    // rendant — mais rien ne doit bouger sous les yeux pendant qu'on la
+    // regarde, donc on relit la liste AU RETOUR, pas avant.
+    if (!mounted) return;
+    final retour = await Navigator.of(context).push<({Uint8List renvoyer})>(
+      MaterialPageRoute<({Uint8List renvoyer})>(
+        builder: (_) => VisionneuseEnveloppe(
+          image: image,
+          deLui: !e.deMoi,
+          moi: widget.online.pseudo ?? '',
+          lui: widget.pseudo,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _relisLesEnveloppes();
+    // « Modifier et renvoyer » : la visionneuse rend l'image retouchée, et
+    // c'est une nouvelle enveloppe qui part.
+    if (retour != null && mounted) await _envoieLEnveloppe(retour.renvoyer);
+  }
+
+  /// « Ouvrir l'enveloppe pour visionner l'image ? » — dans l'ordre que Nino
+  /// a dicté : [Ouvrir] [Annuler] [Supprimer].
+  ///
+  /// La sienne ne se perd pas en l'ouvrant : vérifier n'est pas reprendre.
+  /// Le texte le dit, sans quoi on n'oserait jamais y toucher.
+  Future<_ChoixEnveloppe?> _demandeQuoiFaire(
+    Enveloppe e,
+    ThemePalette sienne,
+  ) => showFugaPopup<_ChoixEnveloppe>(
+    context,
+    widthFactor: 0.88,
+    heightFactor: 0.44,
+    rows: [
+      (
+        0.34,
+        popupText(
+          e.ouvrable
+              ? T("Ouvrir l'enveloppe pour visionner l'image ?")
+              : T('Ouvrir votre enveloppe pour la vérifier ?'),
+          size: 16,
+          bold: true,
+        ),
+      ),
+      (
+        0.24,
+        popupText(
+          e.ouvrable
+              ? T('Une fois ouverte, elle disparaît de la conversation.')
+              : T('La vérifier ne la reprend pas : elle restera en attente.'),
+          size: 13,
+          color: const Color.fromRGBO(217, 217, 217, 1),
+        ),
+      ),
+      (
+        kTouchRow,
+        Row(
+          children: [
+            Expanded(
+              child: FugaButton(
+                text: T('Ouvrir'),
+                color: sienne.fonce,
+                fontSize: SF(14),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ChoixEnveloppe.ouvrir),
+              ),
+            ),
+            SizedBox(width: S(6)),
+            Expanded(
+              child: FugaButton(
+                text: T('Annuler'),
+                color: kGrisTouche,
+                fontSize: SF(14),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            SizedBox(width: S(6)),
+            Expanded(
+              child: FugaButton(
+                text: T('Supprimer'),
+                color: kRougeBloquer,
+                fontSize: SF(14),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ChoixEnveloppe.supprimer),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  /// La touche « enveloppe + » : choisir l'image, puis l'envoyer telle quelle
+  /// ou la retoucher. Nino : « quand on a choisi la photo, ça nous demande
+  /// [envoyer] ou [modifier]. »
+  Future<void> _nouvelleEnveloppe(ThemePalette mienne) async {
+    if (!_peutEnvoyer) return;
+    final brut = await choisirUneImage(context, palette: mienne);
+    if (brut == null || !mounted) return;
+    final suite = await _demandeEnvoyerOuModifier(mienne);
+    if (suite == null || !mounted) return;
+
+    var image = brut;
+    if (suite == _Suite.modifier) {
+      final modifiee = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute<Uint8List>(
+          builder: (_) => EditeurImageScreen(
+            image: brut,
+            moi: widget.online.pseudo ?? '',
+            lui: widget.pseudo,
+          ),
+        ),
+      );
+      if (modifiee == null || !mounted) return;
+      image = modifiee;
+    }
+    await _envoieLEnveloppe(image);
+  }
+
+  Future<_Suite?> _demandeEnvoyerOuModifier(ThemePalette mienne) =>
+      showFugaPopup<_Suite>(
+        context,
+        widthFactor: 0.84,
+        heightFactor: 0.36,
+        rows: [
+          (0.4, popupText(T('Cette image ?'), size: 17, bold: true)),
+          (
+            kTouchRow,
+            Row(
+              children: [
+                Expanded(
+                  child: FugaButton(
+                    text: T('Envoyer'),
+                    color: mienne.fonce,
+                    fontSize: SF(15),
+                    onPressed: () => Navigator.of(context).pop(_Suite.envoyer),
+                  ),
+                ),
+                SizedBox(width: S(8)),
+                Expanded(
+                  child: FugaButton(
+                    text: T('Modifier'),
+                    color: kGrisTouche,
+                    fontSize: SF(15),
+                    onPressed: () => Navigator.of(context).pop(_Suite.modifier),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  /// L'image part. Elle voyage en base64 : le reste de l'API parle JSON.
+  Future<void> _envoieLEnveloppe(Uint8List image) async {
+    setState(() => _envoiEnCours = true);
+    try {
+      final r = await widget.online.client.envoyerEnveloppe(
+        widget.pseudo,
+        base64Encode(image),
+      );
+      if (!mounted) return;
+      if (!r.isOk) {
+        await _dis(r.serverError ?? T("L'enveloppe n'est pas partie."));
+        return;
+      }
+      if (!mounted) return;
+      await _relisLesEnveloppes();
+    } finally {
+      if (mounted) setState(() => _envoiEnCours = false);
+    }
+  }
+
+  /// Un mot, et une seule touche pour le refermer : ce qui a raté se dit, il
+  /// ne se devine pas au jeton qui n'est pas apparu.
+  Future<void> _dis(String mot) => showFugaPopup<void>(
+    context,
+    widthFactor: 0.82,
+    heightFactor: 0.32,
+    rows: [
+      (0.5, popupText(mot, size: 15, bold: true)),
+      (
+        kTouchRow,
+        Row(
+          children: [
+            Expanded(
+              child: FugaButton(
+                text: T('Fermer'),
+                color: kGrisTouche,
+                fontSize: SF(16),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
   );
 
   /// Pose l'image choisie dans le message, SANS fermer le panneau.
@@ -917,6 +1273,12 @@ class _ConversationScreenState extends State<ConversationScreen>
     ),
   );
 }
+
+/// Ce que le popup d'une enveloppe a dit. « Annuler » ne rend rien.
+enum _ChoixEnveloppe { ouvrir, supprimer }
+
+/// Ce qu'on fait de l'image qu'on vient de choisir.
+enum _Suite { envoyer, modifier }
 
 /// Un message parti, dont le serveur n'a pas encore rendu compte.
 class _EnVol {

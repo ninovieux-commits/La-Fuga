@@ -2,6 +2,12 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- ENREGISTRER UNE IMAGE REÇUE DANS LA GALERIE.
+         Android 10 et au-delà n'en demandent pas la permission : une appli
+         écrit ses propres images sans rien réclamer. En deçà — l'appli
+         descend jusqu'à Android 7 — il la faut, d'où le plafond. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
 
     <application
         android:label="La Fuga"

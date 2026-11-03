@@ -45,6 +45,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../game/enveloppe.dart';
 import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
@@ -54,6 +55,7 @@ import '../scale.dart';
 import '../texte_emoji.dart';
 import 'bulle_cri.dart';
 import 'fuga_button.dart';
+import 'picto_touche.dart';
 import 'profile_photo.dart';
 
 /// Part de la largeur qu'une bulle peut occuper au plus.
@@ -113,6 +115,27 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // L'ENVELOPPE QUI PASSE EN PARTIE : le symbole seul, sans bulle, de la
+    // taille d'un émoji seul. Nino : « en partie, on ne voit pas l'image
+    // s'afficher comme les messages rapides, seulement le symbole
+    // d'enveloppe qui passe comme un émoticône. »
+    //
+    // En couleur 2, comme toutes les enveloppes de l'application — et dans la
+    // palette de celui qui l'envoie, comme sa bulle.
+    if (texte.trim() == kJetonEnveloppe && !echoue) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
+        child: SizedBox.square(
+          dimension: tailleDUnEmoji(SF(16) * kEmojiGrossiMax),
+          child: PictoTouche(
+            asset: 'assets/images/enveloppe.webp',
+            couleur: palette.fonce,
+            secours: '✉',
+          ),
+        ),
+      );
+    }
+
     // Un message qui n'est QUE des images se montre en grand, sans bulle,
     // exactement comme un émoji seul — et quel qu'en soit le nombre.
     final images = compteImagesSeules(texte);

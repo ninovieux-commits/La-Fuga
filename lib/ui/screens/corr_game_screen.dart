@@ -10,6 +10,7 @@ import '../../engine/board.dart';
 import '../../engine/piece.dart';
 import '../../engine/literal_replay.dart';
 import '../../game/correspondence.dart';
+import '../../game/enveloppe.dart';
 import '../../game/game_archive.dart';
 import '../../game/move_controller.dart';
 import '../../game/sound_player.dart';
@@ -209,6 +210,17 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     _ecouteMesBulles = OnlineService.instance.messages.outgoing
         .where((m) => m.to == _g.opponent)
         .listen((m) => _bulles.add((texte: m.text, deMoi: true)));
+    // L'ENVELOPPE PASSE, PAS L'IMAGE. Nino : « en partie, on ne voit pas
+    // l'image s'afficher comme les messages rapides, seulement le symbole
+    // d'enveloppe qui passe comme un émoticône. » On ne l'ouvre pas d'ici :
+    // elle attend dans la boîte de messages, avec son chrono.
+    _ecouteEnveloppes = OnlineService.instance.corr.enveloppes
+        .where((de) => de == _g.opponent)
+        .listen((_) {
+          if (!_bulles.isClosed) {
+            _bulles.add((texte: kJetonEnveloppe, deMoi: false));
+          }
+        });
     OnlineService.instance.messages.addListener(_onMessages);
     // L'étoile du bandeau suit la touche « Favori / Retirer », qui vit dans
     // un popup : le cache partagé fait le lien.
@@ -302,6 +314,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
     profilsConnus.removeListener(_onMessages);
     _ecouteBulles?.cancel();
     _ecouteMesBulles?.cancel();
+    _ecouteEnveloppes?.cancel();
     unawaited(_bulles.close());
     _sounds.dispose();
     super.dispose();
@@ -318,6 +331,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       StreamController<BulleEnJeu>.broadcast();
   StreamSubscription<IncomingMessage>? _ecouteBulles;
   StreamSubscription<OutgoingMessage>? _ecouteMesBulles;
+  StreamSubscription<String>? _ecouteEnveloppes;
 
   /// Cette partie est-elle une Random Fuga ? C'est son code qui le dit.
   bool get _estRandom => _g.randomCode.isNotEmpty;

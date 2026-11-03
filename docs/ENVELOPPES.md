@@ -115,3 +115,33 @@ l'ouvre.
 
 **En partie**, l'image ne s'affiche pas comme un message rapide : seule
 l'enveloppe passe, comme un émoticône.
+
+Ce passage-là n'est pas un message : rien n'est écrit, rien n'est gardé, et le
+texte ne part jamais au serveur. La bande de l'écran de jeu reçoit le jeton
+`[enveloppe]` (`kJetonEnveloppe`), et la bulle le reconnaît pour dessiner le
+symbole à la taille d'un émoji seul, sans bulle autour. On ne l'ouvre pas de
+là : elle attend dans la boîte de messages, avec son chrono.
+
+## Où ça vit, dans le code
+
+| Quoi | Où |
+| --- | --- |
+| La règle, le chrono, le jeton de partie | `lib/game/enveloppe.dart` |
+| Le dessin, son balancement, la touche `+` | `lib/ui/widgets/enveloppe_jeton.dart` |
+| Le choix appareil photo / photos | `lib/ui/widgets/choix_source_image.dart` |
+| Le tampon de partie | `lib/ui/widgets/tampon_partie.dart` |
+| L'éditeur (dessin, texte, tampon) | `lib/ui/screens/editeur_image_screen.dart` |
+| La visionneuse, le téléchargement, le renvoi | `lib/ui/screens/visionneuse_enveloppe.dart` |
+| La rangée, les popups, les envois | `lib/ui/screens/conversations_screen.dart` |
+| Le symbole qui passe en partie | `lib/ui/widgets/message_bubble.dart` |
+| Les quatre routes | `serveur/patch_enveloppes.py` |
+
+**L'annonce en direct.** Le serveur pose la notification par `_notify_user`,
+qui émet déjà le même contenu sur les sockets ouvertes (`maj_directe`) : une
+enveloppe arrive donc avec `{"type": "enveloppe", "de": "<pseudo>"}`. Comme la
+connexion ne garde qu'un écouteur par événement, c'est `CorrHub` qui la
+distribue — par un flux à part, `enveloppes`, puisque ce n'est pas un
+changement de correspondance et qu'il ne doit surtout pas faire relire la liste
+des parties. La conversation ouverte y relit sa rangée, et l'écran de partie y
+fait passer le symbole. À défaut de socket, la rangée se relit de toute façon
+chaque minute, en même temps que les chronos.

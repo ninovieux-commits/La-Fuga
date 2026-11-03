@@ -277,6 +277,27 @@ class OnlineClient {
   Future<ApiResult> markRead(String pseudo) =>
       _api.post('/mark_read', _auth({'pseudo': pseudo}));
 
+  // ── Enveloppes ────────────────────────────────────────────────────────────
+  //
+  // Une image qui passe, et qui ne reste nulle part : voir
+  // docs/ENVELOPPES.md. L'image voyage en base64 — le reste de l'API parle
+  // JSON, et une photo de 300 Ko en fait 400 une fois encodée.
+
+  Future<ApiResult> envoyerEnveloppe(String pseudo, String imageBase64) => _api
+      .post('/env_envoyer', _auth({'pseudo': pseudo, 'image': imageBase64}));
+
+  /// Les enveloppes en attente avec ce correspondant, DANS LES DEUX SENS.
+  Future<ApiResult> listerEnveloppes(String pseudo) =>
+      _api.post('/env_liste', _auth({'pseudo': pseudo}));
+
+  /// Rend l'image. Ouverte par le DESTINATAIRE, le serveur l'efface dans la
+  /// foulée ; par l'expéditeur, elle reste — vérifier n'est pas reprendre.
+  Future<ApiResult> ouvrirEnveloppe(int id) =>
+      _api.post('/env_ouvrir', _auth({'id': id}));
+
+  Future<ApiResult> supprimerEnveloppe(int id) =>
+      _api.post('/env_supprimer', _auth({'id': id}));
+
   // ── Correspondance ────────────────────────────────────────────────────────
 
   Future<ApiResult> corrList() => _api.post('/corr_list', _auth());

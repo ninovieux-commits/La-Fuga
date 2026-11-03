@@ -23,6 +23,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
     this.bold = false,
     this.favori = false,
     this.onTitleTap,
+    this.action,
   });
 
   /// Intitulé du bouton de retour, barre chevron comprise : `< Menu`.
@@ -51,6 +52,13 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   /// Quand le titre EST un pseudo, le toucher ouvre la fiche du joueur —
   /// comme son nom en partie, comme sa photo.
   final VoidCallback? onTitleTap;
+
+  /// Ce qui occupe la place de DROITE, en face de la touche de retour.
+  ///
+  /// Elle était vide, et réservée : c'est elle qui tient le titre au milieu.
+  /// La boîte de discussion y pose sa touche d'enveloppe — Nino l'a entourée
+  /// en vert à cet endroit précis.
+  final Widget? action;
 
   static const double _sideWidth = 110;
 
@@ -100,7 +108,14 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
-          const SizedBox(width: _sideWidth),
+          // La place de droite : vide, elle tient le titre au milieu ; prise,
+          // elle porte la touche de l'écran.
+          SizedBox(
+            width: _sideWidth,
+            child: action == null
+                ? null
+                : Align(alignment: Alignment.centerRight, child: action),
+          ),
         ],
       ),
     ),

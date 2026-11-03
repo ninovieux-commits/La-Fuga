@@ -22,6 +22,19 @@ dependencies:
   firebase_messaging: ^16.7.0
   flutter_local_notifications: ^18.0.1
   url_launcher: ^6.3.1
+  # LES ENVELOPPES : choisir une photo, et la rendre légère.
+  #
+  # `image_picker` ouvre l'appareil photo ou la galerie, et REDUIT lui-même
+  # l'image avec le décodeur du système : c'est ce qui permet au serveur de
+  # ne jamais décoder quoi que ce soit (voir docs/ENVELOPPES.md).
+  image_picker: ^1.1.2
+  # `image` réencode en JPEG ce que l'éditeur a dessiné : un PNG de 720p
+  # pèserait deux mégaoctets là où le JPEG en fait deux cents kilos.
+  image: ^4.3.0
+  # `gal` range dans la galerie du téléphone l'image qu'on vient de recevoir :
+  # « quand on ouvre une image reçue, il y a un bouton télécharger ». C'est le
+  # seul endroit où une image quitte l'application pour de bon.
+  gal: ^2.3.3
 
 dev_dependencies:
   flutter_test:

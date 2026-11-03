@@ -26,6 +26,19 @@ const int kEnveloppesEnAttente = 2;
 /// serveur se contente d'un plafond dur en octets, au cas où.
 const int kEnveloppeCote = 1280;
 
+/// CE QUI PASSE EN PARTIE, à la place de l'image.
+///
+/// Nino : « en partie, on ne voit pas l'image s'afficher comme les messages
+/// rapides, seulement le symbole d'enveloppe qui passe comme un émoticône. »
+///
+/// Ce n'est donc pas un message : rien n'est écrit, rien n'est gardé, et le
+/// texte ne part jamais au serveur. C'est un mot de passe entre la bande de
+/// l'écran de jeu et la bulle qui la peint — elle y reconnaît l'enveloppe et
+/// dessine le symbole, de la taille d'un émoji seul. Entre crochets, comme
+/// les jetons d'images, pour qu'une vieille version en face n'en fasse rien
+/// de pire que de l'afficher tel quel.
+const String kJetonEnveloppe = '[enveloppe]';
+
 /// Une enveloppe en attente, dans un sens ou dans l'autre.
 final class Enveloppe {
   const Enveloppe({

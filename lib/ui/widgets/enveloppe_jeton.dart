@@ -17,6 +17,7 @@ import '../../game/enveloppe.dart';
 import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'fuga_button.dart';
 import 'picto_touche.dart';
 
 /// L'angle du balancement, en radians. Trois degrés et demi : assez pour
@@ -179,6 +180,81 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
         fontSize: cote * 0.24,
         fontWeight: FontWeight.bold,
         height: 1.15,
+      ),
+    ),
+  );
+}
+
+/// LA TOUCHE QUI ENVOIE une enveloppe : le dessin, et un petit « + ».
+///
+/// Nino : « sur l'image ci-jointe, le carré vert dessiné indique l'endroit où
+/// se trouvera l'icône d'enveloppe avec un petit + ajouté, permettant
+/// d'envoyer une image », et : « il ne doit pas être sur un bouton pour les
+/// reçus et envoyés, mais doit être sur un bouton pour les envoyer. »
+///
+/// Celle-ci est donc une VRAIE touche — gris des touches, trait noir, coins
+/// arrondis — là où les jetons de la conversation sont des dessins nus.
+class ToucheEnveloppePlus extends StatelessWidget {
+  const ToucheEnveloppePlus({
+    super.key,
+    required this.palette,
+    required this.onPressed,
+    this.actif = true,
+  });
+
+  final ThemePalette palette;
+  final VoidCallback onPressed;
+
+  /// Faux quand on a déjà deux enveloppes en attente chez ce correspondant :
+  /// la touche s'éteint au lieu de disparaître, et son infobulle dit
+  /// pourquoi.
+  final bool actif;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: actif
+        ? T('Envoyer une image')
+        : T('Deux enveloppes attendent déjà'),
+    child: AspectRatio(
+      aspectRatio: 1,
+      child: Material(
+        color: actif ? kGrisTouche : fondEteint(kGrisTouche),
+        shape: formeDeTouche(BorderRadius.circular(S(14))),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(S(14)),
+          onTap: actif ? onPressed : null,
+          child: Opacity(
+            opacity: actif ? 1 : kOpaciteEteinte,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PictoTouche(
+                  asset: 'assets/images/enveloppe.webp',
+                  couleur: palette.fonce,
+                  secours: '✉',
+                ),
+                // LE PETIT « + », dans le coin : il dit « en envoyer une »
+                // sans recouvrir l'enveloppe.
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.44,
+                    heightFactor: 0.44,
+                    child: MotTouche(
+                      texte: '+',
+                      couleur: palette.clair,
+                      style: TextStyle(
+                        fontSize: S(20),
+                        fontWeight: FontWeight.bold,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     ),
   );
