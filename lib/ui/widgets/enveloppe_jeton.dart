@@ -20,10 +20,14 @@ import '../scale.dart';
 import 'fuga_button.dart';
 import 'picto_touche.dart';
 
-/// L'angle du balancement, en radians. Trois degrés et demi : assez pour
-/// attraper l'œil au bord du champ de vision, pas assez pour agacer celui
-/// qui lit ses messages.
-const double kEnveloppeAngle = 0.06;
+/// L'angle de la secousse, en radians.
+///
+/// Sept degrés et demi. Trois et demi d'abord — « assez pour attraper l'œil
+/// sans agacer celui qui lit ses messages » — mais Nino, la rangée sous les
+/// yeux : « l'oscillement de l'enveloppe doit être un peu plus important,
+/// histoire d'attirer l'œil. » À cette taille de jeton, trois degrés ne se
+/// voient pas du coin de l'œil ; sept se voient, et la secousse reste brève.
+const double kEnveloppeAngle = 0.13;
 
 /// Le temps d'un cycle : la secousse, puis l'attente.
 ///
