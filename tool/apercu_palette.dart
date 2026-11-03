@@ -79,7 +79,7 @@ Future<void> main() async {
                             child: Padding(
                               padding: EdgeInsets.all(S(8)),
                               child: const CorpsDeLaPalette(
-                                actuelle: const Color(0xFFFF2D2D),
+                                actuelle: Color(0xFFFF2D2D),
                               ),
                             ),
                           ),
