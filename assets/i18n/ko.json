@@ -552,5 +552,7 @@
   "Modifier": "변경",
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "화면을 아래로 밀면 통신 대국입니다: 시간 제한 없이 등록된 플레이어와 둡니다. 시작하려면 빈 판을 누른 뒤 즐겨찾기에서 상대를 고르세요 그다음 시작 국면을 고르세요: 표준, Random, 또는 직접 구성한 국면. 구분 바는 한 판 이상에서 당신의 차례일 때, 또는 누군가 도전을 보냈을 때 밝아집니다.",
   "Remplacer": "교체",
-  "Cette variante en contredit une déjà présente.": "이 변화는 이미 준비된 변화와 모순됩니다."
+  "Cette variante en contredit une déjà présente.": "이 변화는 이미 준비된 변화와 모순됩니다.",
+  "Ouvrir l'enveloppe": "봉투 열기",
+  "Votre enveloppe": "내 봉투"
 }

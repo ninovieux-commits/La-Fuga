@@ -552,5 +552,7 @@
   "Modifier": "変更",
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "画面を下にスワイプすると通信対局になります：時間無制限で、登録済みのプレイヤーと対戦します。始めるには空の盤をタップし、お気に入りから相手を選びます そのあと開始局面を選びます：標準、Random、または自分で並べた局面。 区切りのバーは、一つ以上の対局であなたの手番のとき、または挑戦を送られたときに光ります。",
   "Remplacer": "置き換える",
-  "Cette variante en contredit une déjà présente.": "この変化は、すでに用意した変化と矛盾します。"
+  "Cette variante en contredit une déjà présente.": "この変化は、すでに用意した変化と矛盾します。",
+  "Ouvrir l'enveloppe": "封筒を開く",
+  "Votre enveloppe": "あなたの封筒"
 }

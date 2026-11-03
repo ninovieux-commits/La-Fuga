@@ -552,5 +552,7 @@
   "Modifier": "Изменить",
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "Проведите по экрану ВНИЗ для ИГР ПО ПЕРЕПИСКЕ: партии без ограничения времени против зарегистрированных игроков. Чтобы начать, нажмите на пустую доску и выберите соперника из избранного Затем выберите начальную позицию: стандартную, Random или составленную вами. Разделительная полоса загорается, когда в одной или нескольких партиях ваш ход или когда вам прислали вызов.",
   "Remplacer": "Заменить",
-  "Cette variante en contredit une déjà présente.": "Этот вариант противоречит одному из уже подготовленных."
+  "Cette variante en contredit une déjà présente.": "Этот вариант противоречит одному из уже подготовленных.",
+  "Ouvrir l'enveloppe": "Открыть конверт",
+  "Votre enveloppe": "Ваш конверт"
 }

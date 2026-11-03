@@ -552,5 +552,7 @@
   "Modifier": "Modificar",
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "Desliza la pantalla hacia ABAJO para la CORRESPONDENCIA: partidas sin límite de tiempo, contra jugadores registrados. Para iniciar una, toca un tablero vacío y elige a tu rival entre tus favoritos Luego elige la posición inicial: estándar, Random, o una posición que compongas tú mismo. La barra de separación se ilumina cuando te toca jugar en una o varias partidas, o cuando alguien te ha enviado un desafío.",
   "Remplacer": "Reemplazar",
-  "Cette variante en contredit une déjà présente.": "Esta variante contradice una ya preparada."
+  "Cette variante en contredit une déjà présente.": "Esta variante contradice una ya preparada.",
+  "Ouvrir l'enveloppe": "Abrir el sobre",
+  "Votre enveloppe": "Tu sobre"
 }

@@ -552,5 +552,7 @@
   "Modifier": "Ändern",
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "Wische den Bildschirm nach UNTEN für FERNPARTIEN: Partien ohne Zeitlimit gegen registrierte Spieler. Um eine zu starten, tippe auf ein leeres Brett und wähle dann deinen Gegner aus deinen Favoriten Wähle danach die Ausgangsstellung: Standard, Random, oder eine selbst zusammengestellte Stellung. Der Trennbalken leuchtet auf, wenn du in einer oder mehreren Partien am Zug bist oder wenn dir jemand eine Herausforderung geschickt hat.",
   "Remplacer": "Ersetzen",
-  "Cette variante en contredit une déjà présente.": "Diese Variante widerspricht einer bereits vorbereiteten."
+  "Cette variante en contredit une déjà présente.": "Diese Variante widerspricht einer bereits vorbereiteten.",
+  "Ouvrir l'enveloppe": "Umschlag öffnen",
+  "Votre enveloppe": "Dein Umschlag"
 }
