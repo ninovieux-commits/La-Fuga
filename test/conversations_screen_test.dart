@@ -34,6 +34,7 @@ import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_background.dart';
 import 'package:lafuga/ui/widgets/message_bubble.dart';
 import 'package:lafuga/ui/widgets/profile_photo.dart';
+import 'package:lafuga/ui/widgets/unread_dot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -141,7 +142,14 @@ void main() {
 
       expect(find.text('Ana'), findsOneWidget);
       expect(find.text('À toi de jouer'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget, reason: 'la pastille des non-lus');
+      // La pastille, et non un compteur : la même qu'ailleurs depuis que
+      // Nino les a vues côte à côte.
+      expect(
+        find.byType(PastilleNonLue),
+        findsOneWidget,
+        reason: 'la pastille des non-lus, sur la conversation qui en a',
+      );
+      expect(find.text('3'), findsNothing);
       expect(
         find.text('Vous : ok'),
         findsOneWidget,

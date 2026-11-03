@@ -32,6 +32,7 @@ import '../widgets/message_bubble.dart';
 import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
+import '../widgets/unread_dot.dart';
 import '../widgets/champ_pieces.dart';
 import '../mesure_emoji.dart';
 import '../pieces_emoji.dart';
@@ -235,7 +236,10 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                     ],
                   ),
                 ),
-                if (c.unread > 0) _badge(c.unread),
+                // La pastille, et non un compteur : la même que sur la
+                // touche du menu et celle d'une partie. Nino : « celle de la
+                // photo 2 est à l'ancienne. »
+                if (c.unread > 0) _pastille(),
               ],
             ),
           ),
@@ -260,23 +264,9 @@ class _ConversationsScreenState extends State<ConversationsScreen>
         TextSpan(text: m.texte),
   ];
 
-  Widget _badge(int count) => Container(
-    width: S(26),
-    height: S(26),
-    alignment: Alignment.center,
-    decoration: const BoxDecoration(
-      color: Color(0xFFD93333),
-      shape: BoxShape.circle,
-    ),
-    child: Text(
-      '$count',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: SF(13),
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  );
+  /// Le même rond qu'ailleurs, et qui bat de même : [UnreadDot] le dessine
+  /// dans la boîte qu'on lui donne, on lui en donne donc une à sa taille.
+  Widget _pastille() => PastilleNonLue(cote: S(20));
 }
 
 /// Une conversation : les messages, et de quoi répondre.
