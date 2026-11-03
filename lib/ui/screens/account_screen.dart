@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import '../../game/correspondence.dart';
 import '../../game/defi_relais.dart';
 import '../../i18n/translations.dart';
+import '../../net/avatar_photos.dart';
+import '../../net/decors_connus.dart';
 import '../../net/notification_permission.dart';
 import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
@@ -594,7 +596,122 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
     ),
     _checkbox('mail', T('Recevoir des notifications :'), sub: false),
     for (final (key, label) in _subNotifs) _checkbox(key, T(label)),
+    _title(T('Mon compte')),
+    _action(T('Changer de pseudo'), _changerDePseudo),
+    _action(T('Changer de mot de passe'), _changerDeMotDePasse),
   ];
+
+  /// CHANGER DE PSEUDO.
+  ///
+  /// Le serveur le réécrit partout où il est gardé en toutes lettres —
+  /// l'historique, les parties par correspondance et leur chat — et le jeton
+  /// ne bouge pas, puisqu'il est rangé par compte. On ne se déconnecte donc
+  /// pas, et la session locale prend le nouveau nom.
+  Future<void> _changerDePseudo() async {
+    final controleur = TextEditingController(text: widget.online.pseudo ?? '');
+    final nouveau = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(T('Changer de pseudo')),
+        content: TextField(
+          controller: controleur,
+          autofocus: true,
+          maxLength: 20,
+          decoration: InputDecoration(hintText: T('Nouveau pseudo')),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controleur.text.trim()),
+            child: Text(T('Enregistrer')),
+          ),
+        ],
+      ),
+    );
+    if (nouveau == null || nouveau.isEmpty || !mounted) return;
+    final r = await widget.online.client.changerPseudo(nouveau);
+    if (!mounted) return;
+    if (!r.isOk) {
+      await _dis(r.serverError ?? T('Changement impossible'));
+      return;
+    }
+    // Les caches sont rangés par pseudo : celui d'avant ne désigne plus
+    // personne, et le nouveau n'a encore rien appris. On les vide, et le
+    // profil relu les remplira.
+    AvatarPhotos.clear();
+    DecorsConnus.clear();
+    if (mounted) await _load();
+  }
+
+  /// CHANGER DE MOT DE PASSE, l'ancien en main.
+  ///
+  /// Le serveur ferme les AUTRES sessions au passage : changer son mot de
+  /// passe sert justement à chasser quelqu'un. Celle-ci reste ouverte.
+  Future<void> _changerDeMotDePasse() async {
+    final ancien = TextEditingController();
+    final nouveau = TextEditingController();
+    final fait = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(T('Changer de mot de passe')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ancien,
+              autofocus: true,
+              obscureText: true,
+              decoration: InputDecoration(hintText: T('Mot de passe actuel')),
+            ),
+            SizedBox(height: S(8)),
+            TextField(
+              controller: nouveau,
+              obscureText: true,
+              decoration: InputDecoration(hintText: T('Nouveau mot de passe')),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(T('Annuler')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(T('Enregistrer')),
+          ),
+        ],
+      ),
+    );
+    if (fait != true || !mounted) return;
+    final r = await widget.online.client.changerMotDePasse(
+      ancien.text,
+      nouveau.text,
+    );
+    if (!mounted) return;
+    await _dis(
+      r.isOk
+          ? T('Mot de passe changé.')
+          : (r.serverError ?? T('Changement impossible')),
+    );
+  }
+
+  /// Un mot, et une touche pour le refermer.
+  Future<void> _dis(String mot) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      content: Text(mot),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(T('Fermer')),
+        ),
+      ],
+    ),
+  );
 
   /// Historique de qui : le mien sur mon profil, le sien sur celui d'un
   /// tiers — le `target_pseudo` d'`_open_history` chez Kivy.

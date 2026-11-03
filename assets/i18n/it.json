@@ -595,5 +595,12 @@
   "Choisir": "Scegliere",
   "Mon thème": "Il mio tema",
   "La date": "La data",
-  "Le nom": "Il nome"
+  "Le nom": "Il nome",
+  "Changer de pseudo": "Cambiare nome",
+  "Changer de mot de passe": "Cambiare password",
+  "Nouveau pseudo": "Nuovo nome",
+  "Mot de passe actuel": "Password attuale",
+  "Nouveau mot de passe": "Nuova password",
+  "Mot de passe changé.": "Password cambiata.",
+  "Changement impossible": "Modifica impossibile"
 }

@@ -595,5 +595,12 @@
   "Choisir": "Wählen",
   "Mon thème": "Mein Thema",
   "La date": "Das Datum",
-  "Le nom": "Der Name"
+  "Le nom": "Der Name",
+  "Changer de pseudo": "Benutzernamen ändern",
+  "Changer de mot de passe": "Passwort ändern",
+  "Nouveau pseudo": "Neuer Benutzername",
+  "Mot de passe actuel": "Aktuelles Passwort",
+  "Nouveau mot de passe": "Neues Passwort",
+  "Mot de passe changé.": "Passwort geändert.",
+  "Changement impossible": "Änderung nicht möglich"
 }

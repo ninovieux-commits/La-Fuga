@@ -595,5 +595,12 @@
   "Choisir": "Choose",
   "Mon thème": "My theme",
   "La date": "Date",
-  "Le nom": "Name"
+  "Le nom": "Name",
+  "Changer de pseudo": "Change username",
+  "Changer de mot de passe": "Change password",
+  "Nouveau pseudo": "New username",
+  "Mot de passe actuel": "Current password",
+  "Nouveau mot de passe": "New password",
+  "Mot de passe changé.": "Password changed.",
+  "Changement impossible": "Could not change it"
 }

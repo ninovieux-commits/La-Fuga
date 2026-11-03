@@ -595,5 +595,12 @@
   "Choisir": "Выбрать",
   "Mon thème": "Моя тема",
   "La date": "Дата",
-  "Le nom": "Имя"
+  "Le nom": "Имя",
+  "Changer de pseudo": "Сменить имя",
+  "Changer de mot de passe": "Сменить пароль",
+  "Nouveau pseudo": "Новое имя",
+  "Mot de passe actuel": "Текущий пароль",
+  "Nouveau mot de passe": "Новый пароль",
+  "Mot de passe changé.": "Пароль изменён.",
+  "Changement impossible": "Изменение невозможно"
 }
