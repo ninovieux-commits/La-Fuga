@@ -48,7 +48,7 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(const Size(393, 851));
-    tester.view.physicalSize = const Size(393, 220);
+    tester.view.physicalSize = const Size(393, 240);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -102,45 +102,30 @@ Future<void> main() async {
                         ),
                       ],
                     ),
-                    // LA RANGÉE DU BAS : les visages et les jetons.
+                    // LA RANGÉE DU BAS : les visages et les deux boîtes
+                    // aux lettres. Recopié de `_boiteAuxLettres`, dans la
+                    // conversation : un aperçu ne peut pas appeler une
+                    // méthode privée d'écran, et c'est l'ALLURE qu'on vient
+                    // vérifier ici, pas le branchement.
                     Row(
                       children: [
                         _visage(const Color(0xFFCCCCCC)),
-                        for (final e in [
-                          _env(kEnveloppeVie, deMoi: false, id: 1),
+                        _boite(palette.fonce, maintenant, [
+                          _env(kEnveloppeVie, deMoi: true, id: 1),
                           _env(
                             const Duration(hours: 12, minutes: 34),
-                            deMoi: false,
+                            deMoi: true,
                             id: 2,
                           ),
-                        ])
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: EnveloppeJeton(
-                              enveloppe: e,
-                              couleur: palette.fonce,
-                              maintenant: maintenant,
-                              onTap: () {},
-                            ),
-                          ),
+                        ]),
                         const Spacer(),
-                        for (final e in [
+                        _boite(palette.fonce, maintenant, [
                           _env(
                             const Duration(hours: 47, minutes: 59),
-                            deMoi: true,
+                            deMoi: false,
                             id: 3,
                           ),
-                          _env(const Duration(hours: 1), deMoi: true, id: 4),
-                        ])
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: EnveloppeJeton(
-                              enveloppe: e,
-                              couleur: palette.fonce,
-                              maintenant: maintenant,
-                              onTap: () {},
-                            ),
-                          ),
+                        ]),
                         _visage(const Color(0xFF888888)),
                       ],
                     ),
@@ -153,7 +138,18 @@ Future<void> main() async {
       ),
     );
 
-    await tester.pump(const Duration(milliseconds: 350));
+    // LE DESSIN NE PARAÎT QUE SI ON L'ATTEND. Un `Image.asset` se décode
+    // hors de la frame : sans `precacheImage` dans un `runAsync`, l'aperçu
+    // sortait avec des cases vides, et Nino l'a vu avant moi — « y a même pas
+    // les enveloppes sur ton aperçu ».
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/images/enveloppe.webp'),
+        tester.element(find.byType(ColoredBox).first),
+      );
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     Directory('tool/apercus').createSync(recursive: true);
     final limite =
         _cadre.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -173,3 +169,52 @@ Widget _visage(Color couleur) => Container(
   height: kAvatarBasConversation,
   decoration: BoxDecoration(color: couleur, shape: BoxShape.circle),
 );
+
+/// Une boîte aux lettres, comme la conversation la dessine.
+Widget _boite(Color couleur, DateTime maintenant, List<Enveloppe> dedans) {
+  final cote = touchHeight();
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        'Boîte aux lettres',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: SF(10),
+          fontWeight: FontWeight.bold,
+          shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+        ),
+      ),
+      SizedBox(height: S(2)),
+      Container(
+        padding: EdgeInsets.all(S(3)),
+        decoration: BoxDecoration(
+          color: Colors.black26,
+          borderRadius: BorderRadius.circular(S(8)),
+          border: const Border.fromBorderSide(kTraitDeTouche),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var place = 0; place < kEnveloppesEnAttente; place++)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: S(2)),
+                child: SizedBox(
+                  width: cote,
+                  height: cote,
+                  child: place < dedans.length
+                      ? EnveloppeJeton(
+                          enveloppe: dedans[place],
+                          couleur: couleur,
+                          maintenant: maintenant,
+                          onTap: () {},
+                        )
+                      : null,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
+}

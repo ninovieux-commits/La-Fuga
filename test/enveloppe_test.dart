@@ -123,22 +123,37 @@ void main() {
       return t.transform.storage[1];
     }
 
-    testWidgets('celle qu on peut ouvrir oscille', (tester) async {
+    // Nino : « l'oscillement n'est pas bon. L'enveloppe doit faire un
+    // oscillement SEC toutes les 1,3 secondes. »
+    testWidgets('celle qu on peut ouvrir a une secousse sèche', (tester) async {
       await poser(tester, enveloppe(kEnveloppeVie));
-      final depart = penche(tester);
+      expect(penche(tester), 0, reason: 'elle part droite');
 
-      await tester.pump(kEnveloppeBalancement ~/ 4);
+      // Les instants sont comptés depuis le début du cycle, qui en dure
+      // 1300 : la secousse occupe les 300 premiers, le reste est immobile.
+
+      // 100 — LA SECOUSSE.
+      await tester.pump(const Duration(milliseconds: 100));
       expect(
         penche(tester),
-        isNot(depart),
-        reason: 'elle doit se balancer pour appeler l œil',
+        isNot(0),
+        reason: 'elle doit sursauter pour appeler l œil',
       );
 
-      // Et elle ne s'arrête pas : un aller-retour plus tard, elle bouge
-      // encore.
-      final milieu = penche(tester);
-      await tester.pump(kEnveloppeBalancement ~/ 2);
-      expect(penche(tester), isNot(milieu));
+      // 600 puis 700 — LE REPOS, et c'est lui qui rend la secousse sèche :
+      // passé les 300 premiers, elle est droite et parfaitement immobile.
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(
+        penche(tester),
+        0,
+        reason: 'entre deux secousses, elle ne bouge plus',
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(penche(tester), 0);
+
+      // 1400, soit 100 du cycle suivant — ELLE RECOMMENCE.
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(penche(tester), isNot(0));
     });
 
     testWidgets('la sienne se tient droite', (tester) async {

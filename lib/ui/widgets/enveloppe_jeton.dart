@@ -25,8 +25,17 @@ import 'picto_touche.dart';
 /// qui lit ses messages.
 const double kEnveloppeAngle = 0.06;
 
-/// Le temps d'un aller-retour complet.
-const Duration kEnveloppeBalancement = Duration(milliseconds: 1400);
+/// Le temps d'un cycle : la secousse, puis l'attente.
+///
+/// Nino : « l'oscillement n'est pas bon. L'enveloppe doit faire un
+/// oscillement SEC toutes les 1,3 secondes. » Le balancement continu
+/// ondulait sans jamais s'arrêter ; celui-ci se tait presque tout le temps,
+/// et c'est le silence qui fait remarquer la secousse.
+const Duration kEnveloppeBalancement = Duration(milliseconds: 1300);
+
+/// Ce que dure la secousse elle-même, dans ce cycle. Le reste, l'enveloppe
+/// se tient droite.
+const Duration kEnveloppeSecousse = Duration(milliseconds: 300);
 
 /// La rotation du balancement, repérée pour les tests : une pile de widgets
 /// en compte des dizaines, et celle-ci est la seule qui nous regarde.
@@ -81,6 +90,46 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
     duration: kEnveloppeBalancement,
   );
 
+  /// LA SECOUSSE, puis le repos : un aller-retour franc en trois dixièmes de
+  /// seconde, et l'enveloppe se tient droite pendant la seconde qui suit.
+  ///
+  /// Les poids se lisent en centièmes de seconde, puisqu'ils totalisent 130
+  /// pour 1300 ms : 6 pour partir, 9 pour traverser, 9 pour revenir, 6 pour
+  /// se reposer droite — 300 ms en tout — puis 100 d'immobilité franche.
+  /// C'est cette immobilité qui rend la secousse sèche : une valeur
+  /// constante, pas une courbe qui s'éteint.
+  late final Animation<double> _angle = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween<double>(
+        begin: 0,
+        end: 1,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 6,
+    ),
+    TweenSequenceItem(
+      tween: Tween<double>(
+        begin: 1,
+        end: -1,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 9,
+    ),
+    TweenSequenceItem(
+      tween: Tween<double>(
+        begin: -1,
+        end: 1,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 9,
+    ),
+    TweenSequenceItem(
+      tween: Tween<double>(
+        begin: 1,
+        end: 0,
+      ).chain(CurveTween(curve: Curves.easeIn)),
+      weight: 6,
+    ),
+    TweenSequenceItem(tween: ConstantTween<double>(0), weight: 100),
+  ]).animate(_balance);
+
   @override
   void initState() {
     super.initState();
@@ -97,7 +146,10 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
   /// droites, et leur animation ne tourne même pas.
   void _suitLOscillation() {
     if (widget.enveloppe.ouvrable) {
-      if (!_balance.isAnimating) _balance.repeat(reverse: true);
+      // `repeat` sans `reverse` : la suite de tweens contient déjà
+      // l'aller-retour ET l'attente, et la rejouer à l'envers remettrait
+      // l'attente avant la secousse une fois sur deux.
+      if (!_balance.isAnimating) _balance.repeat();
     } else if (_balance.isAnimating) {
       _balance
         ..stop()
@@ -158,12 +210,10 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
         child: RepaintBoundary(
           child: widget.enveloppe.ouvrable
               ? AnimatedBuilder(
-                  animation: _balance,
+                  animation: _angle,
                   builder: (context, enfant) => Transform.rotate(
                     key: cleDuBalancement,
-                    // Un aller-retour, et non un tour : la valeur va de 0 à 1
-                    // puis revient, on la ramène entre −1 et 1.
-                    angle: kEnveloppeAngle * (_balance.value * 2 - 1),
+                    angle: kEnveloppeAngle * _angle.value,
                     child: enfant,
                   ),
                   child: dessin,

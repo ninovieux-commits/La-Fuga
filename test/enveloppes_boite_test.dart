@@ -192,10 +192,43 @@ void main() {
       expect(mienne.couleur, paletteOf(kMonTheme).fonce);
     });
 
-    testWidgets('aucune enveloppe, aucun jeton', (tester) async {
+    testWidgets('aucune enveloppe, aucun jeton — mais les deux boîtes', (
+      tester,
+    ) async {
       server.replies['/env_liste'] = {'ok': true, 'enveloppes': const []};
       await ouvrir(tester);
+
       expect(find.byType(EnveloppeJeton), findsNothing);
+      // Nino : « crée autour un petit cadre encadrant les deux enveloppes
+      // possibles, au-dessus duquel est écrit "boîte aux lettres". » Le
+      // cadre reste, vide : il ne saute pas à chaque arrivée, et ses deux
+      // places disent d'elles-mêmes combien on peut en déposer.
+      expect(find.text('Boîte aux lettres'), findsNWidgets(2));
+    });
+
+    // Nino : « les enveloppes reçues et envoyées sont du mauvais côté, il
+    // faut les inverser. » Une enveloppe attend dans la boîte de CELUI QUI
+    // LA REÇOIT : les miennes chez lui, à gauche contre sa photo ; les
+    // siennes chez moi, à droite.
+    testWidgets('chacune attend dans la boîte de son destinataire', (
+      tester,
+    ) async {
+      server.replies['/env_liste'] = {
+        'ok': true,
+        'enveloppes': [ligne(id: 7, deMoi: false), ligne(id: 8, deMoi: true)],
+      };
+
+      await ouvrir(tester);
+
+      final recue = tester.getCenter(find.byKey(const ValueKey('enveloppe 7')));
+      final envoyee = tester.getCenter(
+        find.byKey(const ValueKey('enveloppe 8')),
+      );
+      expect(
+        envoyee.dx,
+        lessThan(recue.dx),
+        reason: 'celle que j envoie attend dans SA boîte, à gauche',
+      );
     });
   });
 

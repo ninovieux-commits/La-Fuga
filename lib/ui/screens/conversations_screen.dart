@@ -886,56 +886,141 @@ class _ConversationScreenState extends State<ConversationScreen>
         // Les deux photos ouvrent la même fiche que les noms : la sienne, et
         // la mienne — qui n'offre que « Profil », puisqu'on ne se défie pas,
         // ne se met pas en favori et ne se bloque pas soi-même.
-        GestureDetector(
-          onTap: () => unawaited(_fiche(widget.pseudo, palette)),
-          child: ProfilePhoto(
-            photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
-            size: kAvatarBasConversation,
+        // CHAQUE ENVELOPPE EST DANS LA BOÎTE DE CELUI QUI LA REÇOIT. Nino :
+        // « les enveloppes reçues et envoyées sont du mauvais côté, il faut
+        // les inverser » — et c'était bien le sens de la première phrase du
+        // cahier des charges : « ça affiche une enveloppe à côté de l'image
+        // de profil de la personne qui reçoit ».
+        //
+        // Donc : celles que j'ai envoyées attendent dans SA boîte, contre sa
+        // photo ; celles qu'il m'a envoyées attendent dans LA MIENNE. Le
+        // jeton garde la couleur de son auteur, comme sa bulle — la mienne à
+        // gauche, la sienne à droite.
+        //
+        // CHAQUE MOITIÉ TIENT DANS LA SIENNE, quel que soit l'écran : la
+        // rangée est faite d'un visage et d'une boîte, et la boîte se réduit
+        // plutôt que de déborder. Sans cela, un écran large — ou simplement
+        // une police plus grande — poussait la rangée hors du cadre, et
+        // Flutter y peint ses rayures jaunes et noires.
+        Expanded(
+          child: Row(
+            children: [
+              // Les deux photos ouvrent la même fiche que les noms : la
+              // sienne, et la mienne — qui n'offre que « Profil », puisqu'on
+              // ne se défie pas, ne se met pas en favori et ne se bloque pas
+              // soi-même.
+              GestureDetector(
+                onTap: () => unawaited(_fiche(widget.pseudo, palette)),
+                child: ProfilePhoto(
+                  photo: avatarPhotoFor(widget.pseudo, _theirPhoto),
+                  size: kAvatarBasConversation,
+                ),
+              ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _boiteAuxLettres(miennes: true, palette: mienne),
+                ),
+              ),
+            ],
           ),
         ),
-        // SES ENVELOPPES CONTRE SA PHOTO, LES MIENNES CONTRE LA MIENNE : on
-        // voit d'un coup d'œil qui attend quoi, et le jeton porte la couleur
-        // de son auteur, comme sa bulle.
-        _enveloppesDe(miennes: false, palette: palette),
-        const Spacer(),
-        _enveloppesDe(miennes: true, palette: mienne),
-        GestureDetector(
-          onTap: () => unawaited(_fiche(widget.online.pseudo ?? '', palette)),
-          child: ProfilePhoto(
-            photo: avatarPhotoFor(
-              widget.online.pseudo,
-              widget.online.session?.photo ?? '',
-            ),
-            size: kAvatarBasConversation,
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: _boiteAuxLettres(miennes: false, palette: palette),
+                ),
+              ),
+              GestureDetector(
+                onTap: () =>
+                    unawaited(_fiche(widget.online.pseudo ?? '', palette)),
+                child: ProfilePhoto(
+                  photo: avatarPhotoFor(
+                    widget.online.pseudo,
+                    widget.online.session?.photo ?? '',
+                  ),
+                  size: kAvatarBasConversation,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     ),
   );
 
-  /// Une rangée de jetons : les miennes, ou les siennes.
+  /// UNE BOÎTE AUX LETTRES : deux places, et ce qu'il y a dedans.
   ///
-  /// Vide, elle ne prend aucune place — rien ne doit bouger pour une
-  /// conversation qui n'échange que des mots. Les expirées ne paraissent pas :
-  /// le serveur les efface de son côté à son prochain ménage, et une
-  /// enveloppe à « 0h00 » ne s'ouvrirait plus de toute façon.
-  Widget _enveloppesDe({required bool miennes, required ThemePalette palette}) {
-    final jetons = [
+  /// Nino : « crée autour un petit cadre encadrant les deux enveloppes
+  /// possibles, au-dessus duquel est écrit "boîte aux lettres". »
+  ///
+  /// Les deux places sont TOUJOURS là, même vides : le cadre ne change pas de
+  /// taille quand une enveloppe part ou arrive, rien ne saute sous les yeux,
+  /// et les deux cases disent d'elles-mêmes combien on peut en déposer. Les
+  /// expirées n'y paraissent pas — le serveur les efface à son prochain
+  /// ménage, et une enveloppe à « 0h00 » ne s'ouvrirait plus de toute façon.
+  Widget _boiteAuxLettres({
+    required bool miennes,
+    required ThemePalette palette,
+  }) {
+    final dedans = [
       for (final e in _enveloppes)
-        if (e.deMoi == miennes && !e.expiree(_maintenant))
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: S(3)),
-            child: EnveloppeJeton(
-              key: ValueKey('enveloppe ${e.id}'),
-              enveloppe: e,
-              couleur: couleurEnveloppe(palette),
-              maintenant: _maintenant,
-              onTap: () => unawaited(_toucheUneEnveloppe(e, palette)),
-            ),
-          ),
+        if (e.deMoi == miennes && !e.expiree(_maintenant)) e,
     ];
-    if (jetons.isEmpty) return const SizedBox.shrink();
-    return Row(mainAxisSize: MainAxisSize.min, children: jetons);
+    final cote = touchHeight();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          T('Boîte aux lettres'),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: SF(10),
+            fontWeight: FontWeight.bold,
+            shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+          ),
+        ),
+        SizedBox(height: S(2)),
+        Container(
+          padding: EdgeInsets.all(S(3)),
+          decoration: BoxDecoration(
+            color: Colors.black26,
+            borderRadius: BorderRadius.circular(S(8)),
+            border: const Border.fromBorderSide(kTraitDeTouche),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var place = 0; place < kEnveloppesEnAttente; place++)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: S(2)),
+                  child: SizedBox(
+                    width: cote,
+                    height: cote,
+                    child: place < dedans.length
+                        ? EnveloppeJeton(
+                            key: ValueKey('enveloppe ${dedans[place].id}'),
+                            enveloppe: dedans[place],
+                            couleur: couleurEnveloppe(palette),
+                            maintenant: _maintenant,
+                            onTap: () => unawaited(
+                              _toucheUneEnveloppe(dedans[place], palette),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   /// Relit la liste des enveloppes, et ne redessine que si elle a changé.
