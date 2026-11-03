@@ -234,6 +234,33 @@ void main() {
       expect(souslesYeux(tester, 'ma réponse'), isTrue);
     });
 
+    // Nino : « j'aimerais qu'on reste en bas de la discussion lorsqu'on
+    // déploie le clavier. »
+    testWidgets('le clavier qui se déploie ne remonte pas la conversation', (
+      tester,
+    ) async {
+      await ouvre(tester, 40);
+      final avant = position(tester);
+      expect(
+        avant.pixels,
+        moreOrLessEquals(avant.maxScrollExtent, epsilon: 0.5),
+      );
+
+      // Le clavier mange le tiers bas de l'écran : la liste perd de la
+      // hauteur, et son décalage ne veut plus dire la même chose.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      final p = position(tester);
+      expect(
+        p.pixels,
+        moreOrLessEquals(p.maxScrollExtent, epsilon: 0.5),
+        reason: 'sans cela le dernier message passe sous le champ de saisie',
+      );
+      expect(souslesYeux(tester, 'message numero 39'), isTrue);
+    });
+
     testWidgets('un message reçu en direct amène jusqu à lui', (tester) async {
       final online = await ouvre(tester, 40);
       online.messages.receive({'de': 'toto', 'texte': 'coucou'});

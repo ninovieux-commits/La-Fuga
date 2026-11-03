@@ -318,7 +318,7 @@ class ConversationScreen extends StatefulWidget {
 }
 
 class _ConversationScreenState extends State<ConversationScreen>
-    with SuitLesReglages {
+    with SuitLesReglages, WidgetsBindingObserver {
   final ControleurAvecPieces _input = ControleurAvecPieces();
 
   /// Le panneau des images est-il ouvert ?
@@ -436,6 +436,16 @@ class _ConversationScreenState extends State<ConversationScreen>
     // La conversation est SOUS LES YEUX : ses messages n'ont pas besoin
     // d'une carte dans le volet des notifications.
     EcranCourant.ouvreConversation(widget.pseudo);
+    // LE CLAVIER NE DOIT PAS NOUS REMONTER LA CONVERSATION. Nino :
+    // « j'aimerais qu'on reste en bas de la discussion lorsqu'on déploie le
+    // clavier. » Quand il se déploie, la liste perd de la hauteur mais garde
+    // son décalage : le dernier message passe sous le champ de saisie, et
+    // l'on se retrouve à lire ce qui était dit une minute plus tôt.
+    //
+    // `didChangeMetrics` prévient à chaque image de la montée du clavier :
+    // on recolle au bas à chacune, et la liste suit le mouvement au lieu de
+    // sauter une fois arrivée.
+    WidgetsBinding.instance.addObserver(this);
     // LA BOÎTE S'OUVRE EN BAS, DÈS LE CACHE.
     //
     // Les messages d'avant sont là dès la première image — c'est l'intérêt
@@ -479,6 +489,7 @@ class _ConversationScreenState extends State<ConversationScreen>
   @override
   void dispose() {
     EcranCourant.fermeConversation(widget.pseudo);
+    WidgetsBinding.instance.removeObserver(this);
     _ecouteEnveloppes?.cancel();
     _horloge?.cancel();
     _poll?.cancel();
@@ -490,6 +501,13 @@ class _ConversationScreenState extends State<ConversationScreen>
   }
 
   /// Son profil a bougé : le décor et la photo de l'écran suivent.
+  /// Le clavier monte ou descend, l'écran tourne : on reste en bas.
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    _scrollToEnd();
+  }
+
   void _surProfil() {
     if (!mounted) return;
     setState(() {
@@ -1410,16 +1428,24 @@ class _ConversationScreenState extends State<ConversationScreen>
             SizedBox(width: S(6)),
             FilledButton(
               onPressed: _send,
-              // UN PEU PLUS PETITE : Nino, « on peut réduire légèrement la
-              // taille du bouton envoyer. » Ce qu'elle rend va au champ de
-              // saisie et au logo qui vient de la rejoindre.
+              // Elle avait d'abord rétréci — « on peut réduire légèrement la
+              // taille du bouton envoyer » — puis Nino l'a revue dans sa
+              // rangée : « j'aimerais que le bouton envoyer soit un peu plus
+              // gros et le mot écrit en noir plutôt que bleu. »
+              //
+              // Le bleu n'était pas un choix : sans encre donnée, une
+              // `FilledButton` écrit dans la couleur que Material juge
+              // lisible sur son fond, et sur le doré du thème il tombait sur
+              // le bleu de sa palette par défaut. Le noir est celui des
+              // bulles, qui portent la même couleur.
               style: FilledButton.styleFrom(
                 backgroundColor: palette.clair,
+                foregroundColor: Colors.black,
                 side: kTraitDeTouche,
-                padding: EdgeInsets.symmetric(horizontal: S(12)),
-                minimumSize: Size(0, touchHeight() * 0.74),
+                padding: EdgeInsets.symmetric(horizontal: S(16)),
+                minimumSize: Size(0, touchHeight() * 0.9),
                 textStyle: TextStyle(
-                  fontSize: SF(14),
+                  fontSize: SF(15),
                   fontWeight: FontWeight.bold,
                 ),
               ),
