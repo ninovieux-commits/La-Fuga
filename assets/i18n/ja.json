@@ -595,12 +595,5 @@
   "Choisir": "選ぶ",
   "Mon thème": "マイテーマ",
   "La date": "日付",
-  "Le nom": "名前",
-  "Changer de pseudo": "ユーザー名を変更",
-  "Changer de mot de passe": "パスワードを変更",
-  "Nouveau pseudo": "新しいユーザー名",
-  "Mot de passe actuel": "現在のパスワード",
-  "Nouveau mot de passe": "新しいパスワード",
-  "Mot de passe changé.": "パスワードを変更しました。",
-  "Changement impossible": "変更できません"
+  "Le nom": "名前"
 }

@@ -595,12 +595,5 @@
   "Choisir": "선택",
   "Mon thème": "내 테마",
   "La date": "날짜",
-  "Le nom": "이름",
-  "Changer de pseudo": "닉네임 변경",
-  "Changer de mot de passe": "비밀번호 변경",
-  "Nouveau pseudo": "새 닉네임",
-  "Mot de passe actuel": "현재 비밀번호",
-  "Nouveau mot de passe": "새 비밀번호",
-  "Mot de passe changé.": "비밀번호를 변경했습니다.",
-  "Changement impossible": "변경할 수 없습니다"
+  "Le nom": "이름"
 }

@@ -56,7 +56,6 @@ final class OnlineSession {
   final double glissee;
 
   OnlineSession copyWith({
-    String? pseudo,
     String? theme,
     String? photo,
     String? instrument,
@@ -65,7 +64,7 @@ final class OnlineSession {
     int? meloRandom,
   }) => OnlineSession(
     token: token,
-    pseudo: pseudo ?? this.pseudo,
+    pseudo: pseudo,
     melo: melo ?? this.melo,
     meloRandom: meloRandom ?? this.meloRandom,
     theme: theme ?? this.theme,
@@ -277,28 +276,6 @@ class OnlineClient {
 
   Future<ApiResult> markRead(String pseudo) =>
       _api.post('/mark_read', _auth({'pseudo': pseudo}));
-
-  // ── Le compte ─────────────────────────────────────────────────────────────
-
-  /// Change le nom du compte — partout où il est écrit, y compris dans
-  /// l'historique et les parties par correspondance.
-  ///
-  /// LE JETON NE CHANGE PAS : le serveur range ses jetons par identifiant de
-  /// compte, pas par nom. On garde donc la session, en y posant le nouveau
-  /// nom.
-  Future<ApiResult> changerPseudo(String nouveau) async {
-    final r = await _api.post('/changer_pseudo', _auth({'pseudo': nouveau}));
-    if (r.isOk) {
-      _session = _session?.copyWith(pseudo: r.get<String>('pseudo') ?? nouveau);
-    }
-    return r;
-  }
-
-  /// Change le mot de passe, l'ancien en main.
-  ///
-  /// Les AUTRES sessions se ferment côté serveur : celle-ci garde son jeton.
-  Future<ApiResult> changerMotDePasse(String ancien, String nouveau) =>
-      _api.post('/changer_mdp', _auth({'ancien': ancien, 'nouveau': nouveau}));
 
   // ── Enveloppes ────────────────────────────────────────────────────────────
   //
