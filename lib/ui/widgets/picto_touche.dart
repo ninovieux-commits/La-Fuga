@@ -70,6 +70,7 @@ class PictoTouche extends StatelessWidget {
     required this.asset,
     required this.couleur,
     this.secours = '?',
+    this.part = kPartPicto,
   });
 
   /// Le fichier : blanc sur fond transparent, teinté ici par le thème, comme
@@ -81,6 +82,12 @@ class PictoTouche extends StatelessWidget {
   /// Ce qui s'affiche si le dessin manque : une touche sans rien dessus n'est
   /// plus une touche.
   final String secours;
+
+  /// La part de la touche qu'occupe le dessin. [kPartPicto] partout, sauf là
+  /// où un symbole demande à se voir davantage — l'enveloppe de la boîte de
+  /// messages, par exemple, dont Nino a voulu qu'elle soit « un peu plus
+  /// grande, ×1,2 ».
+  final double part;
 
   /// Le dessin, teinté de [teinte].
   Widget _dessin(Color teinte) => Image.asset(
@@ -97,8 +104,8 @@ class PictoTouche extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FractionallySizedBox(
-    widthFactor: kPartPicto,
-    heightFactor: kPartPicto,
+    widthFactor: part,
+    heightFactor: part,
     // LE TRAIT NOIR EST LE MÊME DESSIN, ÉLARGI ET PEINT EN NOIR, posé
     // DERRIÈRE : ce qui dépasse tout autour fait le contour. Un pictogramme
     // n'est qu'une forme pleine, il n'a pas de tracé à épaissir ; c'est la

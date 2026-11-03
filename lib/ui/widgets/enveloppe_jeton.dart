@@ -301,6 +301,11 @@ class ToucheEnveloppePlus extends StatelessWidget {
               asset: 'assets/images/enveloppe_plus.webp',
               couleur: palette.fonce,
               secours: '✉',
+              // UN PEU PLUS GRANDE QUE LES AUTRES : Nino, « agrandis quand
+              // même un peu l'icône dans le bouton (×1,2) ». Le symbole
+              // porte son « + » dans un coin, il occupe donc moins de place
+              // qu'un pictogramme plein à part égale.
+              part: kPartPicto * 1.2,
             ),
           ),
         ),
