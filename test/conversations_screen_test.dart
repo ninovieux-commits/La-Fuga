@@ -149,6 +149,35 @@ void main() {
       );
     });
 
+    // L'aperçu montrait le jeton brut : « Vous : [imhn] ».
+    testWidgets('une pièce en dernier message se dessine, pas son jeton', (
+      tester,
+    ) async {
+      await tester.runAsync(logIn);
+      server.replies['/list_conversations'] = {
+        'ok': true,
+        'conversations': [
+          {'pseudo': 'Ana', 'last_text': 'regarde [imhn]', 'last_de_moi': true},
+        ],
+      };
+
+      await open(tester);
+
+      expect(
+        find.textContaining('[imhn]'),
+        findsNothing,
+        reason: 'le jeton ne doit jamais se lire',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(Text),
+          matching: find.byType(ProfilePhoto),
+        ),
+        findsWidgets,
+        reason: 'la pièce se dessine au milieu des mots',
+      );
+    });
+
     testWidgets('aucune conversation, on le dit', (tester) async {
       await tester.runAsync(logIn);
       server.replies['/list_conversations'] = {

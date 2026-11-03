@@ -33,6 +33,7 @@ import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/champ_pieces.dart';
+import '../mesure_emoji.dart';
 import '../pieces_emoji.dart';
 import '../widgets/panneau_pieces.dart';
 import '../widgets/fuga_popup.dart';
@@ -214,8 +215,16 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        preview,
+                      // LES IMAGES SE DESSINENT DANS L'APERÇU AUSSI.
+                      //
+                      // Le dernier message d'une conversation n'est pas
+                      // toujours des mots : une pièce envoyée s'écrit
+                      // « [imhn] » dans la base, et c'est ce jeton brut que
+                      // la liste montrait — « Vous : [imhn] », qui ne veut
+                      // rien dire pour qui la lit. Les bulles le savaient
+                      // déjà, la liste l'ignorait.
+                      Text.rich(
+                        TextSpan(children: _apercuEnMorceaux(preview)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -234,6 +243,22 @@ class _ConversationsScreenState extends State<ConversationsScreen>
       ),
     );
   }
+
+  /// L'aperçu en morceaux : du texte, et les images dessinées à la taille
+  /// des lettres qui les entourent.
+  List<InlineSpan> _apercuEnMorceaux(String texte) => [
+    for (final m in decoupeMessage(texte))
+      if (m.texte == null)
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: ProfilePhoto(
+            photo: photoDuMorceau(m, Settings.instance.themeAxes.general),
+            size: tailleDUnEmoji(SF(12)),
+          ),
+        )
+      else
+        TextSpan(text: m.texte),
+  ];
 
   Widget _badge(int count) => Container(
     width: S(26),
