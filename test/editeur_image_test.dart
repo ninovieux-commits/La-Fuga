@@ -273,6 +273,37 @@ void main() {
       expect(find.byType(Nuancier), findsNothing);
     });
 
+    // Nino : « le truc de nuances doit faire la même taille que celui de
+    // carreaux, comme ça il sera plus simple d'utilisation. »
+    testWidgets('le dégradé occupe la boîte des carreaux', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => unawaited(
+                    choisirUneCouleur(context, actuelle: Colors.white),
+                  ),
+                  child: const Text('ouvrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+      final carreaux = tester.getSize(find.byType(GridView));
+
+      await tester.tap(find.text('Nuances'));
+      await tester.pumpAndSettle();
+      final nuances = tester.getSize(find.byType(Nuancier));
+
+      expect(nuances.width, moreOrLessEquals(carreaux.width, epsilon: 0.5));
+      expect(nuances.height, moreOrLessEquals(carreaux.height, epsilon: 0.5));
+    });
+
     test(
       'le dégradé : la teinte en largeur, le clair et le sombre en hauteur',
       () {

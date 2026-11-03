@@ -59,6 +59,28 @@ final List<Color> kPaletteComplete = construisLaPalette();
 /// Combien de pastilles par rangée.
 const int kPastillesParRangee = 6;
 
+/// L'écart entre deux pastilles, et la marge autour de la grille.
+double get _ecartDesCarreaux => S(6);
+double get _margeDesCarreaux => S(4);
+
+/// LA HAUTEUR DE LA GRILLE, pour une largeur donnée.
+///
+/// Nino : « le truc de nuances doit faire la même taille que celui de
+/// carreaux, comme ça il sera plus simple d'utilisation. » Les deux modes
+/// occupent donc exactement la même boîte — on ne vise pas mieux dans un
+/// dégradé étroit, et le popup ne change pas de taille quand on bascule.
+///
+/// Elle se calcule plutôt que de se deviner : c'est la grille qui commande,
+/// et elle dépend de la largeur qu'on lui donne.
+double hauteurDesCarreaux(double largeur) {
+  final dispo = largeur - 2 * _margeDesCarreaux;
+  final cote =
+      (dispo - _ecartDesCarreaux * (kPastillesParRangee - 1)) /
+      kPastillesParRangee;
+  final rangees = (kPaletteComplete.length / kPastillesParRangee).ceil();
+  return cote * rangees + _ecartDesCarreaux * (rangees - 1);
+}
+
 /// Ouvre la palette. Rend la couleur choisie, ou nul si l'on a refermé.
 Future<Color?> choisirUneCouleur(
   BuildContext context, {
@@ -138,36 +160,45 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
         ),
       ),
       SizedBox(height: S(8)),
-      if (_nuances) _lesNuances() else _lesCarreaux(),
+      // La même boîte pour les deux modes, mesurée sur la grille.
+      LayoutBuilder(
+        builder: (context, boite) {
+          final hauteur = hauteurDesCarreaux(boite.maxWidth);
+          return _nuances ? _lesNuances(hauteur) : _lesCarreaux(hauteur);
+        },
+      ),
     ],
   );
 
-  Widget _lesCarreaux() => GridView.count(
-    // LE POPUP DÉFILE DÉJÀ : sa colonne ne borne pas la hauteur de ses
-    // lignes, et une grille qui veut s'étendre à l'infini s'y plaint. On lui
-    // dit donc de prendre la place de son contenu, et de ne pas défiler pour
-    // son compte.
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    crossAxisCount: kPastillesParRangee,
-    mainAxisSpacing: S(6),
-    crossAxisSpacing: S(6),
-    padding: EdgeInsets.symmetric(horizontal: S(4)),
-    children: [
-      for (final c in kPaletteComplete)
-        _Pastille(
-          couleur: c,
-          choisie: c.toARGB32() == widget.actuelle.toARGB32(),
-          onTap: () => Navigator.of(context).pop(c),
-        ),
-    ],
+  Widget _lesCarreaux(double hauteur) => SizedBox(
+    height: hauteur,
+    child: GridView.count(
+      // LE POPUP DÉFILE DÉJÀ : sa colonne ne borne pas la hauteur de ses
+      // lignes, et une grille qui veut s'étendre à l'infini s'y plaint. On
+      // lui donne donc la hauteur calculée, et elle ne défile pas pour son
+      // compte.
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: kPastillesParRangee,
+      mainAxisSpacing: _ecartDesCarreaux,
+      crossAxisSpacing: _ecartDesCarreaux,
+      padding: EdgeInsets.symmetric(horizontal: _margeDesCarreaux),
+      children: [
+        for (final c in kPaletteComplete)
+          _Pastille(
+            couleur: c,
+            choisie: c.toARGB32() == widget.actuelle.toARGB32(),
+            onTap: () => Navigator.of(context).pop(c),
+          ),
+      ],
+    ),
   );
 
-  Widget _lesNuances() => Column(
+  Widget _lesNuances(double hauteur) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
       SizedBox(
-        height: S(170),
+        // LA MÊME BOÎTE QUE LES CARREAUX : grande, donc facile à viser.
+        height: hauteur,
         width: double.infinity,
         child: Nuancier(
           couleur: _couleur,
