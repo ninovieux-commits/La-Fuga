@@ -172,7 +172,15 @@ class _ConversationsScreenState extends State<ConversationsScreen>
   /// Une conversation : carte grise, avatar, pseudo, aperçu du dernier
   /// message, et la pastille des non-lus.
   Widget _row(Conversation c) {
-    final preview = c.lastFromMe ? '${T("Vous : ")}${c.lastText}' : c.lastText;
+    // L'APERÇU NE MONTRE PAS LE JETON. La trace d'une enveloppe est un
+    // message comme un autre pour le serveur, et c'est tout l'intérêt — mais
+    // « Vous : [enveloppe] » ne veut rien dire pour qui lit sa liste.
+    final enveloppe = c.lastText.trim() == kJetonEnveloppe;
+    final preview = enveloppe
+        ? (c.lastFromMe
+              ? T('Vous avez envoyé une enveloppe')
+              : T('a envoyé une enveloppe'))
+        : (c.lastFromMe ? '${T("Vous : ")}${c.lastText}' : c.lastText);
 
     return Material(
       color: kFugaGrey,
