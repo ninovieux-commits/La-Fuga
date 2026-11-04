@@ -600,5 +600,6 @@
   "Classement": "ランキング",
   "Autres": "その他",
   "Affronter Deep Grey": "Deep Greyと対戦",
-  "Le classement arrive bientôt.": "ランキングは近日公開です。"
+  "Classement indisponible": "ランキングを取得できません",
+  "Personne au classement pour l'instant.": "まだランキングに誰もいません。"
 }

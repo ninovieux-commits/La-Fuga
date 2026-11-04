@@ -242,6 +242,13 @@ class OnlineClient {
 
   Future<ApiResult> listFavorites() => _api.post('/list_favorites', _auth());
 
+  /// Les trente meilleurs mélos du mode demandé.
+  ///
+  /// Le mode voyage en BOOLÉEN et non en nom de colonne : c'est le serveur
+  /// qui choisit entre `melo` et `melo_random`, dans une liste fermée.
+  Future<ApiResult> leaderboard({required bool random}) =>
+      _api.post('/classement', _auth({'random': random}));
+
   /// Bloquer un joueur : plus de matchmaking ni de défi entre vous.
   Future<ApiResult> blockUser(String pseudo) =>
       _api.post('/block_user', _auth({'pseudo': pseudo}));

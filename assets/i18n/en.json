@@ -600,5 +600,6 @@
   "Classement": "Leaderboard",
   "Autres": "More",
   "Affronter Deep Grey": "Face Deep Grey",
-  "Le classement arrive bientôt.": "The leaderboard is coming soon."
+  "Classement indisponible": "Leaderboard unavailable",
+  "Personne au classement pour l'instant.": "Nobody on the leaderboard yet."
 }

@@ -32,6 +32,7 @@ import '../../theme/theme_assets.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
+import '../widgets/classement_volet.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
@@ -40,6 +41,7 @@ import '../widgets/touche_chat.dart';
 import '../widgets/corr_mode_dialog.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
+import '../widgets/volet_menu.dart';
 import '../widgets/menu_tour.dart';
 import '../widgets/player_card.dart';
 import '../widgets/story_view.dart';
@@ -146,6 +148,25 @@ class MenuScreenState extends State<MenuScreen>
     ])
       name: GlobalKey(),
   };
+
+  /// LE VOLET POSÉ SUR LE MENU, et non par-dessus toute l'application.
+  ///
+  /// Nino : « lorsqu'il apparaît les boutons "standard/random" et "nino"
+  /// doivent rester accessibles. [...] Ce serait bien que le popup favoris
+  /// en question ainsi que les autres popups qui s'affichent directement sur
+  /// le menu laissent également accessibles les boutons "nino" et
+  /// "standard/random". »
+  ///
+  /// `showDialog` ouvre une ROUTE par-dessus l'écran : plus rien de ce qui
+  /// est dessous ne reçoit un doigt. Le volet vit donc dans la pile du menu
+  /// lui-même, et le bandeau du haut se dessine APRÈS lui — ce qui suffit à
+  /// lui rendre ses deux touches, celle qui est dessinée en dernier recevant
+  /// le doigt la première.
+  Widget Function(BuildContext)? _volet;
+
+  /// Ce que le volet rendra en se refermant, pour qui l'attend.
+  Completer<Object?>? _reponseDuVolet;
+
   final ScrollController _scroll = ScrollController();
   late final List<MenuTourStop> _tour = loadMenuTour();
 
@@ -271,6 +292,10 @@ class MenuScreenState extends State<MenuScreen>
 
   @override
   void dispose() {
+    // Qui attendait la réponse du volet l'attendrait pour toujours.
+    final attente = _reponseDuVolet;
+    _reponseDuVolet = null;
+    if (attente != null && !attente.isCompleted) attente.complete(null);
     _ecouteCorr?.cancel();
     _online.revisionMelo.removeListener(_surMelo);
     _corrPoll?.cancel();
@@ -744,24 +769,25 @@ class MenuScreenState extends State<MenuScreen>
   /// VIOLETTE : rien ne lui disait quelle couleur prendre, et `ThemeData`
   /// n'ayant pas de jeu de couleurs, elle prenait la graine d'usine de
   /// Material 3. Elle ne venait d'aucun thème de La Fuga.
-  Future<FavoriteChoice?> _pickFavorite(
-    List<Person> favorites,
-    String title,
-  ) => showDialog<FavoriteChoice>(
-    context: context,
-    builder: (context) {
-      final palette = paletteOf(_axes.general);
-      void choisir(String pseudo, FavoriteAction action) =>
-          Navigator.of(context).pop((pseudo: pseudo, action: action));
+  Future<FavoriteChoice?> _pickFavorite(List<Person> favorites, String title) =>
+      _ouvreVolet<FavoriteChoice>((context) {
+        final palette = paletteOf(_axes.general);
+        void choisir(String pseudo, FavoriteAction action) =>
+            _fermeVolet((pseudo: pseudo, action: action));
 
-      return AlertDialog(
-        title: Text(title),
-        contentPadding: EdgeInsets.fromLTRB(S(12), S(12), S(12), 0),
-        content: favorites.isEmpty
-            ? Text(T('Aucun favori.\nAjoutez des favoris via la recherche.'))
-            : SizedBox(
-                width: double.maxFinite,
-                child: ListView(
+        return PanneauDuVolet(
+          titre: title,
+          onFermer: _fermeVolet,
+          enfant: favorites.isEmpty
+              ? MotTouche(
+                  texte: T(
+                    'Aucun favori.\nAjoutez des favoris via la recherche.',
+                  ),
+                  couleur: Colors.white,
+                  maxLines: 2,
+                  style: TextStyle(fontSize: SF(14)),
+                )
+              : ListView(
                   shrinkWrap: true,
                   children: [
                     for (final f in favorites)
@@ -817,20 +843,8 @@ class MenuScreenState extends State<MenuScreen>
                       ),
                   ],
                 ),
-              ),
-        actions: [
-          SizedBox(
-            width: S(140),
-            child: FugaButton(
-              text: T('Fermer'),
-              onPressed: () => Navigator.of(context).pop(),
-              fontSize: SF(15),
-            ),
-          ),
-        ],
-      );
-    },
-  );
+        );
+      });
 
   /// La fiche d'un favori : son nom, son Mélo, et le relief d'une touche.
   ///
@@ -1047,6 +1061,33 @@ class MenuScreenState extends State<MenuScreen>
 
   // ── Autres écrans ─────────────────────────────────────────────────────────
 
+  /// Pose un volet sur le menu, et rend ce qu'il répondra en se refermant.
+  ///
+  /// Un seul à la fois : en ouvrir un second referme le premier, comme une
+  /// route en remplacerait une autre.
+  Future<T?> _ouvreVolet<T extends Object>(
+    Widget Function(BuildContext context) corps,
+  ) {
+    _fermeVolet();
+    final attente = Completer<Object?>();
+    setState(() {
+      _volet = corps;
+      _reponseDuVolet = attente;
+    });
+    return attente.future.then((v) => v is T ? v : null);
+  }
+
+  /// Referme le volet. Sans réponse, c'est un refus — comme un popup qu'on
+  /// quitte par le voile ou par la touche « Fermer ».
+  void _fermeVolet([Object? reponse]) {
+    final attente = _reponseDuVolet;
+    if (attente == null) return;
+    _reponseDuVolet = null;
+    _volet = null;
+    if (mounted) setState(() {});
+    if (!attente.isCompleted) attente.complete(reponse);
+  }
+
   Future<void> _push(Widget screen) async {
     // Le champ de recherche garde le focus : sans cela le clavier se
     // rouvrirait tout seul au retour sur le menu.
@@ -1065,10 +1106,30 @@ class MenuScreenState extends State<MenuScreen>
     await _refreshUnread();
   }
 
-  /// Le classement n'existe pas encore : ni écran chez nous, ni route chez le
-  /// serveur. La touche, elle, est demandée — alors elle le dit franchement
-  /// plutôt que de ne rien faire sous le doigt.
-  void _openClassement() => _say(T('Le classement arrive bientôt.'));
+  /// Les trente meilleurs mélos, dans un volet qui défile.
+  ///
+  /// Le volet suit le MODE de l'application : la touche « standard / random »
+  /// du bandeau reste sous le doigt pendant qu'il est ouvert, elle ne le
+  /// referme pas, et le classement change avec elle. Cela marche tout seul —
+  /// le volet se reconstruit à chaque `setState` du menu, et il lit `_random`
+  /// à ce moment-là.
+  Future<void> _openClassement() async {
+    if (!await _requireLogin()) return;
+    final pseudo = await _ouvreVolet<String>(
+      (context) => PanneauDuVolet(
+        titre: _random ? '${T('Classement')} — Random' : T('Classement'),
+        onFermer: _fermeVolet,
+        enfant: ClassementVolet(
+          random: _random,
+          online: _online,
+          palette: paletteOf(_axes.general),
+          surJoueur: _fermeVolet,
+        ),
+      ),
+    );
+    if (pseudo == null || !mounted) return;
+    await _push(AccountScreen(online: _online, pseudo: pseudo));
+  }
 
   Future<void> _openAccount() async {
     if (!await _requireLogin()) return;
@@ -1079,12 +1140,12 @@ class MenuScreenState extends State<MenuScreen>
   /// `.nmc` est dans le menu de l'historique, et le composeur de thèmes dans
   /// les réglages — comme en Kivy.
   Future<void> _openPlus() async {
-    final palette = paletteOf(_axes.general);
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: paletteOf(_axes.menu).menu,
-        content: Column(
+    await _ouvreVolet<Object>((context) {
+      final palette = paletteOf(_axes.general);
+      return PanneauDuVolet(
+        titre: T('Autres'),
+        onFermer: _fermeVolet,
+        enfant: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final (label, color, action)
@@ -1110,15 +1171,15 @@ class MenuScreenState extends State<MenuScreen>
                   color: color,
                   fontSize: SF(17),
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    _fermeVolet();
                     action();
                   },
                 ),
               ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Le tuto. Sa dernière touche, « Le menu > », enchaîne sur la visite
@@ -1253,46 +1314,73 @@ class MenuScreenState extends State<MenuScreen>
     final menuPalette = paletteOf(_axes.menu);
     final background = imagesFor(_axes.menu)?.background;
 
-    return Scaffold(
-      backgroundColor: menuPalette.menu,
-      body: Container(
-        decoration: background == null
-            ? null
-            : BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(background),
-                  fit: BoxFit.cover,
+    return PopScope(
+      // Un volet se referme par le retour arrière, comme un popup.
+      canPop: _volet == null,
+      onPopInvokedWithResult: (sorti, _) {
+        if (!sorti) _fermeVolet();
+      },
+      child: Scaffold(
+        backgroundColor: menuPalette.menu,
+        body: Container(
+          decoration: background == null
+              ? null
+              : BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(background),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
-        child: Stack(
-          children: [
-            // Voile clair sur les fonds chargés, pour que les écritures du
-            // menu restent lisibles — comme en Kivy sur fleur et dragon.
-            if (background != null &&
-                (_axes.menu == 'fleur' || _axes.menu == 'dragon'))
-              Container(color: Colors.white.withValues(alpha: 0.45)),
-            // Pas de SafeArea autour du menu : Kivy donne au défilement TOUTE
-            // la fenêtre (`ScrollView(size_hint=(1, 1))`) et l'appli est en
-            // plein écran immersif. Une marge de sécurité en haut laissait une
-            // bande vide que rien ne remplissait, et empêchait le menu de
-            // défiler jusqu'au bord.
-            _content(palette),
-            _topBar(palette),
-            if (_tourIndex != null)
-              // Les anneaux se recalculent à chaque défilement : sans cela ils
-              // restaient plantés là où la touche se trouvait au départ.
-              AnimatedBuilder(
-                animation: _scroll,
-                builder: (context, _) => MenuTourOverlay(
-                  stop: _tour[_tourIndex!],
-                  index: _tourIndex!,
-                  count: _tour.length,
-                  rings: _tourRings(_tourIndex!),
-                  onPrevious: () => _tourStep(-1),
-                  onNext: () => _tourStep(1),
+          child: Stack(
+            children: [
+              // Voile clair sur les fonds chargés, pour que les écritures du
+              // menu restent lisibles — comme en Kivy sur fleur et dragon.
+              if (background != null &&
+                  (_axes.menu == 'fleur' || _axes.menu == 'dragon'))
+                Container(color: Colors.white.withValues(alpha: 0.45)),
+              // Pas de SafeArea autour du menu : Kivy donne au défilement TOUTE
+              // la fenêtre (`ScrollView(size_hint=(1, 1))`) et l'appli est en
+              // plein écran immersif. Une marge de sécurité en haut laissait une
+              // bande vide que rien ne remplissait, et empêchait le menu de
+              // défiler jusqu'au bord.
+              _content(palette),
+              if (_volet != null) ...[
+                // LE VOILE. Il assombrit le menu et le referme d'un doigt posé
+                // à côté — mais il ne couvre PAS le bandeau du haut, qui se
+                // dessine après lui et reçoit donc les doigts le premier.
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _fermeVolet,
+                    child: const ColoredBox(color: Colors.black54),
+                  ),
                 ),
-              ),
-          ],
+                // Le volet lui-même. `Center` ne prend que la place de son
+                // enfant pour les doigts : à côté du panneau, c'est le voile
+                // qui répond, comme sous un vrai popup.
+                Positioned.fill(
+                  child: SafeArea(
+                    child: Center(child: Builder(builder: _volet!)),
+                  ),
+                ),
+              ],
+              _topBar(palette),
+              if (_tourIndex != null)
+                // Les anneaux se recalculent à chaque défilement : sans cela ils
+                // restaient plantés là où la touche se trouvait au départ.
+                AnimatedBuilder(
+                  animation: _scroll,
+                  builder: (context, _) => MenuTourOverlay(
+                    stop: _tour[_tourIndex!],
+                    index: _tourIndex!,
+                    count: _tour.length,
+                    rings: _tourRings(_tourIndex!),
+                    onPrevious: () => _tourStep(-1),
+                    onNext: () => _tourStep(1),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

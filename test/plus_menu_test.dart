@@ -5,7 +5,6 @@
 /// test fige la liste, pour qu'aucune entrée ne s'y glisse à nouveau.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
@@ -13,6 +12,7 @@ import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/screens/parties_menu_screen.dart';
 import 'package:lafuga/ui/screens/reader_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/volet_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Prefs d'une appli déjà lancée une fois : ni choix de langue, ni tuto —
@@ -51,12 +51,15 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
+    // Cinq entrées, plus le « Fermer » du volet : le menu « Autres » ne
+    // s'ouvre plus en route par-dessus l'écran mais en volet posé sur le
+    // menu, pour que les deux touches du bandeau restent accessibles.
     expect(
       find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(PanneauDuVolet),
         matching: find.byType(FugaButton),
       ),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(find.text('Lecteur nmc'), findsNothing);
     expect(find.text('Composer le thème'), findsNothing);
