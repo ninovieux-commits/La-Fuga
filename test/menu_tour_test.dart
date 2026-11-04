@@ -47,15 +47,37 @@ void main() {
   }
 
   group('Étapes', () {
-    test('les neuf étapes de Kivy sont là, dans l ordre', () {
+    test('la visite suit le menu, de haut en bas', () {
+      // Les neuf étapes de Kivy, plus les deux grosses touches nées de la
+      // refonte — et dans l'ordre où on les rencontre à l'écran. Nino :
+      // « as-tu pensé à accorder le tuto à notre nouveau menu ? »
       final stops = loadMenuTour();
 
-      expect(stops, hasLength(9));
-      expect(stops.first.targets, ['cad']);
+      expect(stops.map((s) => s.targets), [
+        ['cad'],
+        ['local', 'online'],
+        ['search', 'fav'],
+        ['conv'],
+        ['classement'],
+        ['ai'],
+        ['plus'],
+        ['corr'],
+        ['compte'],
+        ['random'],
+        <String>[],
+      ]);
       expect(stops.first.text, contains('CADENCE'));
-      expect(stops[1].targets, ['local', 'online']);
-      expect(stops.last.targets, isEmpty, reason: 'le mot de la fin');
       expect(stops.last.text, contains('Bonne fugue'));
+    });
+
+    test('elle parle du menu D AUJOURD HUI', () {
+      final textes = {for (final s in loadMenuTour()) s.targets.join(): s.text};
+      // La touche ne dit plus « Plus » mais « Autres ».
+      expect(textes['plus'], contains('Autres'));
+      expect(textes['plus'], isNot(contains('« Plus »')));
+      // Et la cadence ne part plus cochée.
+      expect(textes['cad'], contains('Aucune'));
+      expect(textes['cad'], contains('retirer'));
     });
 
     // Nino : « l'utilité de la barre de séparation doit être rapidement
@@ -80,6 +102,8 @@ void main() {
         'compte',
         'random',
         'plus',
+        'conv',
+        'classement',
       };
       for (final stop in loadMenuTour()) {
         for (final target in stop.targets) {
@@ -147,7 +171,7 @@ void main() {
   ) async {
     await startTour(tester);
 
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < loadMenuTour().length - 1; i++) {
       await tapVisible(tester, find.text('Continuer >'));
     }
     expect(find.textContaining('Bonne fugue'), findsOneWidget);

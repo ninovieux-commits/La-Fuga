@@ -253,6 +253,10 @@ class MenuScreenState extends State<MenuScreen>
       'compte',
       'random',
       'plus',
+      // Les deux grosses touches nées de la refonte : la visite les montre
+      // comme les autres, et le test des anneaux refuse une cible sans clé.
+      'conv',
+      'classement',
     ])
       name: GlobalKey(),
   };
@@ -1647,7 +1651,14 @@ class MenuScreenState extends State<MenuScreen>
                               : (c == Cadence.quinze
                                     ? palette.fonce
                                     : palette.clair),
-                          onPressed: () => setState(() => _cadence = c),
+                          // TOUCHER CELLE QUI EST CHOISIE LA RETIRE. Nino :
+                          // « il faut que cliquer sur une cadence
+                          // sélectionnée la désélectionne. » C'est le seul
+                          // moyen de revenir à une partie locale sans chrono
+                          // une fois qu'on a choisi.
+                          onPressed: () => setState(
+                            () => _cadence = _cadence == c ? null : c,
+                          ),
                         ),
                     ],
                   ),
@@ -1802,6 +1813,7 @@ class MenuScreenState extends State<MenuScreen>
             builder: (context, _) => UnreadDot(
               show: _online.messages.hasUnread,
               child: _grosseTouche(
+                cle: _tourKeys['conv'],
                 dessin: 'assets/images/chat.webp',
                 secours: '💬',
                 texte: T('Conversations'),
@@ -1811,6 +1823,7 @@ class MenuScreenState extends State<MenuScreen>
             ),
           ),
           _grosseTouche(
+            cle: _tourKeys['classement'],
             dessin: 'assets/images/podium.webp',
             secours: '1·2·3',
             texte: T('Classement'),

@@ -18,7 +18,7 @@ const String kMenuTourJson = r'''
    "cad"
   ],
   "scroll": "cad",
-  "text": "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes."
+  "text": "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes. Aucune n'est choisie au départ — sans cadence, une partie en local se joue sans chrono, et le jeu en ligne t'en demandera une. Touche une cadence déjà choisie pour la retirer."
  },
  {
   "targets": [
@@ -30,13 +30,6 @@ const String kMenuTourJson = r'''
  },
  {
   "targets": [
-   "ai"
-  ],
-  "scroll": "ai",
-  "text": "« deep grey » est l'intelligence artificielle du jeu : affronte-la pour t'entraîner quand tu veux."
- },
- {
-  "targets": [
    "search",
    "fav"
   ],
@@ -45,10 +38,38 @@ const String kMenuTourJson = r'''
  },
  {
   "targets": [
+   "conv"
+  ],
+  "scroll": "conv",
+  "text": "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend."
+ },
+ {
+  "targets": [
+   "classement"
+  ],
+  "scroll": "classement",
+  "text": "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random."
+ },
+ {
+  "targets": [
+   "ai"
+  ],
+  "scroll": "ai",
+  "text": "« deep grey » est l'intelligence artificielle du jeu : affronte-la pour t'entraîner quand tu veux."
+ },
+ {
+  "targets": [
+   "plus"
+  ],
+  "scroll": "plus",
+  "text": "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu)."
+ },
+ {
+  "targets": [
    "corr"
   ],
   "scroll": "corr",
-  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi."
+  "text": "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties."
  },
  {
   "targets": [
@@ -63,13 +84,6 @@ const String kMenuTourJson = r'''
   ],
   "scroll": "obj",
   "text": "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi."
- },
- {
-  "targets": [
-   "plus"
-  ],
-  "scroll": "plus",
-  "text": "« Plus » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu)."
  },
  {
   "targets": [],

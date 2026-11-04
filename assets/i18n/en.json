@@ -262,7 +262,6 @@
   "Cherche un joueur par son nom pour le défier directement ; l'étoile gère tes favoris.": "Search for a player by name to challenge them directly; the star manages your favorites.",
   "« Compte » : crée ton compte ici. Il est OBLIGATOIRE pour jouer en ligne et en correspondance.": "“Account”: create your account here. It is REQUIRED to play online and by correspondence.",
   "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi.": "“Random” enables the Random Fuga variant: the starting position is drawn at random from 1750 positions × 2 types of symmetry, i.e. 3500 possible openings. It resets on every launch. In correspondence, the position is chosen when you send the challenge.",
-  "« Plus » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“More” gives access to this tutorial, your game history, analysis, settings, and to SUPPORTING THE DEVELOPERS (a small donation to help the game).",
   "Et voilà, tu sais tout ! Le reste (thèmes, réglages, historique, analyse), tu le découvriras toi-même. Bonne fugue !": "That's it, you know everything! The rest (themes, settings, history, analysis) you'll discover on your own. Happy escaping!",
   "Compte créé !": "Account created!",
   "Connecté !": "Connected!",
@@ -410,7 +409,6 @@
   "Moi contre %s :": "Me vs %s:",
   "En direct : %d - %d": "Live: %d - %d",
   "Correspondance : %d - %d": "Correspondence: %d - %d",
-  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes.": "Before a game, choose your TIME control: the thinking time given to each player, in minutes.",
   "Recherche d'un adversaire…\n\nCadence : %s": "Searching for an opponent…\n\nTime: %s",
   "Défi envoyé à %s…\n\nCadence : %s\n\n": "Challenge sent to %s…\n\nTime: %s\n\n",
   "[b]%s[/b] (Mélo %d)\nvous défie !\n\nCadence : %s%s": "[b]%s[/b] (Elo %d)\nchallenges you!\n\nTime: %s%s",
@@ -549,7 +547,6 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "A playable position requires:\n\n• one Heir on each side, no more, no fewer;\n• on each side, at least one square piece touching another square piece — a lone square cannot move, and the game would be drawn from the start;\n• at least three free squares: a full board leaves nowhere to go.",
   "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "The two rally lines come in pairs: White first, then Black, seven squares of r and dashes.",
   "Modifier": "Change",
-  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "Swipe the screen DOWN for CORRESPONDENCE: games with no time limit, against registered players. To start one, tap an empty board, then choose your opponent from your favorites , then the starting position: standard, Random, or a position you compose yourself. The separator bar lights up when it is your turn to play in one or more games, or when someone has sent you a challenge.",
   "Remplacer": "Replace",
   "Cette variante en contredit une déjà présente.": "This variation contradicts one already prepared.",
   "Ouvrir l'enveloppe": "Open the envelope",
@@ -602,5 +599,10 @@
   "Classement indisponible": "Leaderboard unavailable",
   "Personne au classement pour l'instant.": "Nobody on the leaderboard yet.",
   "Sélectionnez une cadence pour jouer en ligne.": "Select a time control to play online.",
-  "mélo": "Mélo"
+  "mélo": "Mélo",
+  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes. Aucune n'est choisie au départ — sans cadence, une partie en local se joue sans chrono, et le jeu en ligne t'en demandera une. Touche une cadence déjà choisie pour la retirer.": "Before a game, choose your TIME control: the thinking time given to each player, in minutes. None is selected at first — without a time control, a local game is played without a clock, and online play will ask you for one. Tap a time control already chosen to remove it.",
+  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "Swipe the screen DOWN for CORRESPONDENCE: games with no time limit, against registered players. To start one, tap an empty board, then choose your opponent from your favorites , then the starting position: standard, Random, or a position you compose yourself. The separator bar lights up when it is your turn to play in one or more games, or when someone has sent you a challenge. Tap it to jump straight down to the games.",
+  "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "“Conversations” gathers your chats with other players. A dot lights up on it as soon as a message is waiting for you.",
+  "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "“Leaderboard” shows the thirty best Mélos, with your own line at the bottom so you can place yourself. It follows the mode: in Random, it is the Random leaderboard.",
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“More” gives access to this tutorial, your game history, analysis, settings, and to SUPPORTING THE DEVELOPERS (a small donation to help the game)."
 }

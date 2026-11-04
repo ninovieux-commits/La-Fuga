@@ -262,7 +262,6 @@
   "Cherche un joueur par son nom pour le défier directement ; l'étoile gère tes favoris.": "Busca a un jugador por su nombre para desafiarlo directamente; la estrella gestiona tus favoritos.",
   "« Compte » : crée ton compte ici. Il est OBLIGATOIRE pour jouer en ligne et en correspondance.": "«Cuenta»: crea tu cuenta aquí. Es OBLIGATORIA para jugar en línea y por correspondencia.",
   "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi.": "«Random» activa la variante Random Fuga: la posición inicial se sortea entre 1750 posiciones × 2 tipos de simetría, es decir 3500 aperturas posibles. Se reinicia en cada arranque. En correspondencia, la posición se elige al enviar el desafío.",
-  "« Plus » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "«Más» da acceso a este tutorial, al historial de tus partidas, al análisis, a los ajustes y a APOYAR A LOS DESARROLLADORES (una pequeña donación para ayudar al juego).",
   "Et voilà, tu sais tout ! Le reste (thèmes, réglages, historique, analyse), tu le découvriras toi-même. Bonne fugue !": "¡Y ya está, lo sabes todo! El resto (temas, ajustes, historial, análisis) lo descubrirás por ti mismo. ¡Buena huida!",
   "Compte créé !": "¡Cuenta creada!",
   "Connecté !": "¡Conectado!",
@@ -410,7 +409,6 @@
   "Moi contre %s :": "Yo contra %s:",
   "En direct : %d - %d": "En directo: %d - %d",
   "Correspondance : %d - %d": "Por correspondencia: %d - %d",
-  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes.": "Antes de una partida, elige tu TIEMPO: el tiempo de reflexión de cada jugador, en minutos.",
   "Recherche d'un adversaire…\n\nCadence : %s": "Buscando un rival…\n\nTiempo: %s",
   "Défi envoyé à %s…\n\nCadence : %s\n\n": "Desafío enviado a %s…\n\nTiempo: %s\n\n",
   "[b]%s[/b] (Mélo %d)\nvous défie !\n\nCadence : %s%s": "[b]%s[/b] (Elo %d)\n¡te desafía!\n\nTiempo: %s%s",
@@ -549,7 +547,6 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "Una posición jugable requiere:\n\n• un Heredero en cada bando, ni más ni menos;\n• en cada bando, al menos una pieza cuadrada que toque otra pieza cuadrada — una cuadrada aislada no puede moverse, y la partida serían tablas de entrada;\n• al menos tres casillas libres: un tablero lleno no deja a dónde ir.",
   "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "Las dos líneas de reunión van en pareja: primero las Blancas, luego las Negras, siete casillas de r y guiones.",
   "Modifier": "Modificar",
-  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "Desliza la pantalla hacia ABAJO para la CORRESPONDENCIA: partidas sin límite de tiempo, contra jugadores registrados. Para iniciar una, toca un tablero vacío y elige a tu rival entre tus favoritos Luego elige la posición inicial: estándar, Random, o una posición que compongas tú mismo. La barra de separación se ilumina cuando te toca jugar en una o varias partidas, o cuando alguien te ha enviado un desafío.",
   "Remplacer": "Reemplazar",
   "Cette variante en contredit une déjà présente.": "Esta variante contradice una ya preparada.",
   "Ouvrir l'enveloppe": "Abrir el sobre",
@@ -602,5 +599,10 @@
   "Classement indisponible": "Clasificación no disponible",
   "Personne au classement pour l'instant.": "Todavía no hay nadie en la clasificación.",
   "Sélectionnez une cadence pour jouer en ligne.": "Selecciona un ritmo para jugar en línea.",
-  "mélo": "Mélo"
+  "mélo": "Mélo",
+  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes. Aucune n'est choisie au départ — sans cadence, une partie en local se joue sans chrono, et le jeu en ligne t'en demandera une. Touche une cadence déjà choisie pour la retirer.": "Antes de una partida, elige tu TIEMPO: el tiempo de reflexión de cada jugador, en minutos. Al principio no hay ninguno seleccionado: sin tiempo, una partida local se juega sin reloj, y el juego en línea te pedirá uno. Toca un tiempo ya elegido para quitarlo.",
+  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "Desliza la pantalla hacia ABAJO para la CORRESPONDENCIA: partidas sin límite de tiempo, contra jugadores registrados. Para iniciar una, toca un tablero vacío y elige a tu rival entre tus favoritos Luego elige la posición inicial: estándar, Random, o una posición que compongas tú mismo. La barra de separación se ilumina cuando te toca jugar en una o varias partidas, o cuando alguien te ha enviado un desafío. Tócala para bajar de golpe hasta las partidas.",
+  "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "«Conversaciones» reúne tus charlas con otros jugadores. Un punto se enciende en él en cuanto te espera un mensaje.",
+  "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "«Clasificación» muestra los treinta mejores Mélos, con tu propia línea abajo para situarte. Sigue el modo: en Random, es la clasificación Random.",
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "«Más» da acceso a este tutorial, al historial de tus partidas, al análisis, a los ajustes y a APOYAR A LOS DESARROLLADORES (una pequeña donación para ayudar al juego)."
 }

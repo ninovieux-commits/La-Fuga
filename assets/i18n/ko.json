@@ -262,7 +262,6 @@
   "Cherche un joueur par son nom pour le défier directement ; l'étoile gère tes favoris.": "이름으로 플레이어를 검색해 바로 도전하세요. 별표로 즐겨찾기를 관리합니다.",
   "« Compte » : crée ton compte ici. Il est OBLIGATOIRE pour jouer en ligne et en correspondance.": "“계정”: 여기서 계정을 만드세요. 온라인 대전과 통신 대국에 필수입니다.",
   "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi.": "“Random”은 Random Fuga 변형을 켭니다: 시작 위치는 1750개 위치 × 2가지 대칭 유형에서 무작위로 뽑히며, 즉 3500가지 오프닝이 있습니다. 실행할 때마다 초기화됩니다. 통신 대국에서는 도전을 보낼 때 국면을 고릅니다.",
-  "« Plus » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“더보기”에서 이 튜토리얼, 대국 기록, 분석, 설정, 그리고 개발자 후원(게임을 돕는 소액 기부)에 접근할 수 있습니다.",
   "Et voilà, tu sais tout ! Le reste (thèmes, réglages, historique, analyse), tu le découvriras toi-même. Bonne fugue !": "이제 다 아셨습니다! 나머지(테마, 설정, 기록, 분석)는 스스로 발견하게 됩니다. 멋진 탈출을!",
   "Compte créé !": "계정이 생성되었습니다!",
   "Connecté !": "연결되었습니다!",
@@ -410,7 +409,6 @@
   "Moi contre %s :": "나 대 %s:",
   "En direct : %d - %d": "실시간: %d - %d",
   "Correspondance : %d - %d": "통신: %d - %d",
-  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes.": "대국 전에 시간을 고르세요: 각 플레이어에게 주어지는 생각 시간(분)입니다.",
   "Recherche d'un adversaire…\n\nCadence : %s": "상대를 찾는 중…\n\n시간: %s",
   "Défi envoyé à %s…\n\nCadence : %s\n\n": "%s에게 도전장 전송…\n\n시간: %s\n\n",
   "[b]%s[/b] (Mélo %d)\nvous défie !\n\nCadence : %s%s": "[b]%s[/b] (레이팅 %d)\n님이 도전합니다!\n\n시간: %s%s",
@@ -549,7 +547,6 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "둘 수 있는 배치의 조건:\n\n• 각 진영에 후계자 하나씩, 더도 덜도 아니게;\n• 각 진영에 다른 사각 말과 맞닿은 사각 말이 하나 이상 — 외톨이 사각 말은 움직일 수 없어 처음부터 무승부가 됩니다;\n• 빈 칸이 세 개 이상: 꽉 찬 보드에는 갈 곳이 없습니다.",
   "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "집결 구역 두 줄은 짝으로 씁니다. 백이 먼저, 흑이 다음, r 과 하이픈으로 일곱 칸.",
   "Modifier": "변경",
-  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "화면을 아래로 밀면 통신 대국입니다: 시간 제한 없이 등록된 플레이어와 둡니다. 시작하려면 빈 판을 누른 뒤 즐겨찾기에서 상대를 고르세요 그다음 시작 국면을 고르세요: 표준, Random, 또는 직접 구성한 국면. 구분 바는 한 판 이상에서 당신의 차례일 때, 또는 누군가 도전을 보냈을 때 밝아집니다.",
   "Remplacer": "교체",
   "Cette variante en contredit une déjà présente.": "이 변화는 이미 준비된 변화와 모순됩니다.",
   "Ouvrir l'enveloppe": "봉투 열기",
@@ -602,5 +599,10 @@
   "Classement indisponible": "랭킹을 불러올 수 없습니다",
   "Personne au classement pour l'instant.": "아직 랭킹에 아무도 없습니다.",
   "Sélectionnez une cadence pour jouer en ligne.": "온라인 대국을 하려면 시간 제한을 선택하세요.",
-  "mélo": "Mélo"
+  "mélo": "Mélo",
+  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes. Aucune n'est choisie au départ — sans cadence, une partie en local se joue sans chrono, et le jeu en ligne t'en demandera une. Touche une cadence déjà choisie pour la retirer.": "대국 전에 시간을 고르세요: 각 플레이어에게 주어지는 생각 시간(분)입니다. 처음에는 아무것도 선택되어 있지 않습니다. 시간 제한이 없으면 로컬 대국은 시계 없이 진행되고, 온라인에서는 선택을 요구합니다. 이미 선택한 시간 제한을 다시 누르면 해제됩니다.",
+  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "화면을 아래로 밀면 통신 대국입니다: 시간 제한 없이 등록된 플레이어와 둡니다. 시작하려면 빈 판을 누른 뒤 즐겨찾기에서 상대를 고르세요 그다음 시작 국면을 고르세요: 표준, Random, 또는 직접 구성한 국면. 구분 바는 한 판 이상에서 당신의 차례일 때, 또는 누군가 도전을 보냈을 때 밝아집니다. 누르면 대국 목록까지 한 번에 내려갑니다.",
+  "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "“대화”에는 다른 플레이어와의 대화가 모여 있습니다. 메시지가 오면 작은 점이 켜집니다.",
+  "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "“랭킹”은 상위 30명의 Mélo를 보여 주고, 맨 아래에 자신의 줄이 고정됩니다. 모드를 따르며, Random에서는 Random 랭킹이 됩니다.",
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“기타”에서 이 튜토리얼, 대국 기록, 분석, 설정, 그리고 개발자 후원(게임을 돕는 소액 기부)에 접근할 수 있습니다."
 }

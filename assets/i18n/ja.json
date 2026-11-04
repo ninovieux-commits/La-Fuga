@@ -262,7 +262,6 @@
   "Cherche un joueur par son nom pour le défier directement ; l'étoile gère tes favoris.": "名前でプレイヤーを検索して直接挑戦できます。星印でお気に入りを管理します。",
   "« Compte » : crée ton compte ici. Il est OBLIGATOIRE pour jouer en ligne et en correspondance.": "「アカウント」：ここでアカウントを作成します。オンライン対戦と通信対局には必須です。",
   "« Random » active la variante Random Fuga pour tes parties locales et en ligne : la position de départ est tirée au hasard parmi 1750 positions x 2 types de symétrie, soit 3500 débuts possibles. Il se réinitialise à chaque lancement. En correspondance, la position se choisit au moment du défi.": "「Random」は Random Fuga のバリアントを有効にします：初期局面は1750局面×2種類の対称から無作為に選ばれ、計3500通りの開始があります。起動ごとにリセットされます。 通信対局では、挑戦を送るときに局面を選びます。",
-  "« Plus » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "「その他」から、このチュートリアル、対局履歴、解析、設定、そして開発者を支援する（ゲームを助ける少額の寄付）にアクセスできます。",
   "Et voilà, tu sais tout ! Le reste (thèmes, réglages, historique, analyse), tu le découvriras toi-même. Bonne fugue !": "これで全部わかりました！残り（テーマ、設定、履歴、解析）は自分で見つけてください。よい逃走を！",
   "Compte créé !": "アカウントを作成しました！",
   "Connecté !": "接続しました！",
@@ -410,7 +409,6 @@
   "Moi contre %s :": "自分 対 %s：",
   "En direct : %d - %d": "リアルタイム: %d - %d",
   "Correspondance : %d - %d": "通信: %d - %d",
-  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes.": "対局前に持ち時間を選びます：各プレイヤーに与えられる考慮時間（分）です。",
   "Recherche d'un adversaire…\n\nCadence : %s": "対戦相手を検索中…\n\n持ち時間: %s",
   "Défi envoyé à %s…\n\nCadence : %s\n\n": "%s に挑戦を送信…\n\n持ち時間: %s\n\n",
   "[b]%s[/b] (Mélo %d)\nvous défie !\n\nCadence : %s%s": "[b]%s[/b]（レート %d）\nがあなたに挑戦！\n\n持ち時間: %s%s",
@@ -549,7 +547,6 @@
   "Une position jouable demande :\n\n• un Héritier dans chaque camp, ni plus ni moins ;\n• dans chaque camp, au moins une pièce carrée qui touche une autre pièce carrée — une carrée isolée ne peut pas bouger, et la partie serait nulle d'entrée ;\n• au moins trois cases libres : un plateau plein ne laisse nulle part où aller.": "対局可能な配置の条件：\n\n• 各陣営に後継者をちょうど一つ。\n• 各陣営に、他の四角い駒と接する四角い駒が少なくとも一つ。孤立した四角い駒は動けず、初手から引き分けになります。\n• 空きマスが三つ以上。盤が埋まっていると行き場がありません。",
   "Les deux lignes de ralliement vont par deux : celle des Blancs, puis celle des Noirs, sept cases de r et de tirets.": "集結ゾーンの2行は対で書きます。先に白、次に黒、r とハイフンで7マス。",
   "Modifier": "変更",
-  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi.": "画面を下にスワイプすると通信対局になります：時間無制限で、登録済みのプレイヤーと対戦します。始めるには空の盤をタップし、お気に入りから相手を選びます そのあと開始局面を選びます：標準、Random、または自分で並べた局面。 区切りのバーは、一つ以上の対局であなたの手番のとき、または挑戦を送られたときに光ります。",
   "Remplacer": "置き換える",
   "Cette variante en contredit une déjà présente.": "この変化は、すでに用意した変化と矛盾します。",
   "Ouvrir l'enveloppe": "封筒を開く",
@@ -602,5 +599,10 @@
   "Classement indisponible": "ランキングを取得できません",
   "Personne au classement pour l'instant.": "まだランキングに誰もいません。",
   "Sélectionnez une cadence pour jouer en ligne.": "オンラインで対戦するには持ち時間を選んでください。",
-  "mélo": "Mélo"
+  "mélo": "Mélo",
+  "Avant une partie, choisis ta CADENCE : le temps de réflexion accordé à chaque joueur, en minutes. Aucune n'est choisie au départ — sans cadence, une partie en local se joue sans chrono, et le jeu en ligne t'en demandera une. Touche une cadence déjà choisie pour la retirer.": "対局前に持ち時間を選びます：各プレイヤーに与えられる考慮時間（分）です。 最初はどれも選ばれていません。持ち時間なしなら、ローカル対局は時計なしで行われ、オンラインでは選択を求められます。選択済みの持ち時間をもう一度押すと解除できます。",
+  "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "画面を下にスワイプすると通信対局になります：時間無制限で、登録済みのプレイヤーと対戦します。始めるには空の盤をタップし、お気に入りから相手を選びます そのあと開始局面を選びます：標準、Random、または自分で並べた局面。 区切りのバーは、一つ以上の対局であなたの手番のとき、または挑戦を送られたときに光ります。 タップすると対局一覧まで一気に移動します。",
+  "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "「会話」には他のプレイヤーとのやり取りがまとまっています。メッセージが届くと小さな丸が光ります。",
+  "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "「ランキング」は上位30人のMéloを表示し、一番下に自分の行が固定されます。モードに従い、Randomでは Random のランキングになります。",
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "「その他」から、このチュートリアル、対局履歴、解析、設定、そして開発者を支援する（ゲームを助ける少額の寄付）にアクセスできます。"
 }

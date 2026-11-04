@@ -256,6 +256,20 @@ void main() {
       }
     });
 
+    testWidgets('la toucher une seconde fois la retire', (tester) async {
+      await ouvre(tester);
+      await tester.tap(find.text('15 min'));
+      await tester.pumpAndSettle();
+      expect(fond(tester, '15 min'), isNot(kGrisTouche));
+
+      // Nino : « il faut que cliquer sur une cadence sélectionnée la
+      // désélectionne. » C'est le seul moyen de revenir à une partie locale
+      // sans chrono une fois qu'on a choisi.
+      await tester.tap(find.text('15 min'));
+      await tester.pumpAndSettle();
+      expect(fond(tester, '15 min'), kGrisTouche);
+    });
+
     testWidgets('les deux bords s allument en couleur 1, le milieu en 2', (
       tester,
     ) async {
