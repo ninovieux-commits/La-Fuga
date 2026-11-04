@@ -131,7 +131,6 @@ Widget _grosse(String dessin, String texte, Color teinte, Color contour) {
                 part: kPartDuSymboleDesGrosses,
               ),
             ),
-            SizedBox(height: S(4)),
             // Deux lignes réservées, comme dans le menu : sans elles,
             // « Affronter Deep Grey » perdrait sa seconde ligne.
             SizedBox(
@@ -148,6 +147,8 @@ Widget _grosse(String dessin, String texte, Color teinte, Color contour) {
                 ),
               ),
             ),
+            // L'écart est sous le mot, comme dans le menu.
+            SizedBox(height: S(6)),
           ],
         ),
       ),

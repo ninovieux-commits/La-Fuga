@@ -1926,7 +1926,6 @@ class MenuScreenState extends State<MenuScreen>
                       },
                     ),
                   ),
-                  SizedBox(height: S(4)),
                   SizedBox(
                     height: hauteurDuMot,
                     // LE MOT RÉTRÉCIT PLUTÔT QUE D'ÊTRE COUPÉ, comme dans
@@ -1963,6 +1962,14 @@ class MenuScreenState extends State<MenuScreen>
                       ),
                     ),
                   ),
+                  // L'ÉCART EST SOUS LE MOT, et non au-dessus. Nino :
+                  // « remonte un peu l'écriture "affronter Deep Grey" vers
+                  // le symbole, car là l'écriture est mangée et on dirait
+                  // qu'il y a écrit "deed grev". » Les jambages du « p » et
+                  // du « y » frôlaient le trait noir de la touche, qui les
+                  // fermait ; le mot s'en éloigne et se rapproche d'autant
+                  // de son dessin.
+                  SizedBox(height: S(6)),
                 ],
               ),
             );
