@@ -18,6 +18,7 @@
 library;
 
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -40,8 +41,77 @@ const Color kCouleur2 = Colors.black;
 
 final GlobalKey _cadre = GlobalKey();
 
+/// Un mot cerné d'une couleur AU CHOIX.
+///
+/// Nino : « l'écriture doit être blanc sur blanc avec contours noirs pour la
+/// couleur 1, et noir sur noir avec les contours blancs pour la couleur 2. »
+/// `MotTouche` cerne toujours de noir ; ici le cerne devient un réglage.
+Widget _motCerne({
+  required String texte,
+  required Color couleur,
+  required Color contour,
+  required TextStyle style,
+  int maxLines = 1,
+}) => Text(
+  texte,
+  textAlign: TextAlign.center,
+  maxLines: maxLines,
+  style: style.copyWith(
+    color: couleur,
+    shadows: [
+      for (var i = 0; i < kCopiesDuBord; i++)
+        Shadow(
+          color: contour,
+          offset: Offset(
+            kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
+            kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
+          ),
+        ),
+    ],
+  ),
+);
+
+/// Un dessin cerné d'une couleur AU CHOIX — la couronne de [PictoTouche],
+/// dont la couleur du cerne n'est plus forcément le noir.
+class _PictoCerne extends StatelessWidget {
+  const _PictoCerne({
+    required this.asset,
+    required this.couleur,
+    required this.contour,
+    required this.part,
+  });
+
+  final String asset;
+  final Color couleur;
+  final Color contour;
+  final double part;
+
+  Widget _dessin(Color teinte) =>
+      Image.asset(asset, color: teinte, fit: BoxFit.contain);
+
+  @override
+  Widget build(BuildContext context) => FractionallySizedBox(
+    widthFactor: part,
+    heightFactor: part,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < kCopiesDuBord; i++)
+          Transform.translate(
+            offset: Offset(
+              kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
+              kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
+            ),
+            child: _dessin(contour),
+          ),
+        _dessin(couleur),
+      ],
+    ),
+  );
+}
+
 /// Une des quatre grosses touches, telle que le menu la dessine.
-Widget _grosse(String dessin, String texte, Color teinte) {
+Widget _grosse(String dessin, String texte, Color teinte, Color contour) {
   final rayon = S(18);
   final marge = S(8);
   return SizedBox(
@@ -54,9 +124,10 @@ Widget _grosse(String dessin, String texte, Color teinte) {
         child: Column(
           children: [
             Expanded(
-              child: PictoTouche(
+              child: _PictoCerne(
                 asset: dessin,
                 couleur: teinte,
+                contour: contour,
                 part: kPartDuSymboleDesGrosses,
               ),
             ),
@@ -87,11 +158,14 @@ Widget _grosse(String dessin, String texte, Color teinte) {
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final (nom, encreSurClair) in [
-    // Le mot reste blanc, comme partout dans l'application aujourd'hui.
-    ('noir_blanc', Colors.white),
-    // Le mot passe au noir quand le fond est clair.
-    ('noir_blanc_encre', Colors.black),
+  for (final (nom, encreSurClair, cerneInverse) in [
+    // Le mot reste blanc, cerné de noir, comme partout aujourd'hui.
+    ('noir_blanc', Colors.white, false),
+    // Le mot passe au noir sur fond clair, toujours cerné de noir.
+    ('noir_blanc_encre', Colors.black, false),
+    // LA RÈGLE DE NINO : la couleur 1 s'écrit en blanc cerné de noir, la
+    // couleur 2 en noir cerné de blanc — le cerne prend l'opposé.
+    ('noir_blanc_cernes', Colors.white, true),
   ]) {
     testWidgets('aperçu $nom', (tester) async {
       // ignore: invalid_use_of_visible_for_testing_member
@@ -139,14 +213,42 @@ Future<void> main() async {
         ),
       );
 
-      Widget touche(String texte, Color fond) => FugaButton(
-        text: texte,
-        color: fond,
-        textColor: fond == kCouleur1 ? encreSurClair : Colors.white,
-        height: double.infinity,
-        fontSize: SF(16),
-        onPressed: () {},
-      );
+      // Sur la couleur 1, le mot est blanc et le cerne noir ; sur la
+      // couleur 2, le mot est noir et le cerne blanc.
+      Color encreDe(Color fond) => cerneInverse
+          ? (fond == kCouleur1 ? kCouleur1 : kCouleur2)
+          : (fond == kCouleur1 ? encreSurClair : Colors.white);
+      Color cerneDe(Color fond) =>
+          cerneInverse && fond == kCouleur2 ? kCouleur1 : kCouleur2;
+
+      Widget touche(String texte, Color fond) {
+        final rayon = S(18);
+        return Material(
+          color: fond,
+          shape: formeDeTouche(BorderRadius.circular(rayon)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(rayon),
+            onTap: () {},
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: S(10)),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: _motCerne(
+                    texte: texte,
+                    couleur: encreDe(fond),
+                    contour: cerneDe(fond),
+                    style: TextStyle(
+                      fontSize: SF(16),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
 
       await tester.pumpWidget(
         MaterialApp(
@@ -199,6 +301,7 @@ Future<void> main() async {
                                     'assets/images/chat.webp',
                                     T('Conversations'),
                                     kCouleur1,
+                                    cerneDe(kCouleur1),
                                   ),
                                 ),
                                 SizedBox(width: ecart),
@@ -207,6 +310,7 @@ Future<void> main() async {
                                     'assets/images/podium.webp',
                                     T('Classement'),
                                     kCouleur2,
+                                    cerneDe(kCouleur2),
                                   ),
                                 ),
                               ],
@@ -219,6 +323,7 @@ Future<void> main() async {
                                     'assets/images/deepgrey_silhouette.webp',
                                     nomInsecable(T('Affronter Deep Grey')),
                                     kCouleur2,
+                                    cerneDe(kCouleur2),
                                   ),
                                 ),
                                 SizedBox(width: ecart),
@@ -227,6 +332,7 @@ Future<void> main() async {
                                     'assets/images/plus.webp',
                                     T('Autres'),
                                     kCouleur1,
+                                    cerneDe(kCouleur1),
                                   ),
                                 ),
                               ],
