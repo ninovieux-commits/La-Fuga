@@ -154,18 +154,36 @@ class PictoTouche extends StatelessWidget {
 /// le mot en couleur de thème sur fond gris médian avec le trait noir fin en
 /// faisant comme si les lettres étaient des symboles. »
 ///
-/// Le trait noir fait la même épaisseur VISIBLE qu'autour des dessins, mais
-/// il s'obtient autrement, et c'est là que se cache un piège.
+/// ## Le contour est fait des MÊMES lettres, posées en couronne
 ///
-/// Un pictogramme est une forme pleine : on le DILATE de [kTraitPicto], et ce
-/// qui dépasse tout autour — un demi-pixel entier — fait le contour. Une
-/// lettre, elle, a un contour qu'on peut tracer directement ; mais un tracé
-/// est CENTRÉ sur la ligne qu'il suit : la moitié part en dehors de la
-/// lettre, l'autre moitié en dedans, où les lettres pleines la recouvrent. À
-/// épaisseur égale, le mot ne montrait donc que la MOITIÉ du trait d'un
-/// dessin. Nino : « pourquoi pour les mots le trait noir est moins visible
-/// que pour les symboles ? » C'est pour cela que le tracé vaut le DOUBLE de
-/// [kTraitPicto] : à l'écran, les deux font la même épaisseur.
+/// Exactement comme pour un dessin : [kCopiesDuBord] copies noires du mot, à
+/// [kTraitPicto] du centre, et le mot plein par-dessus. Ce qui dépasse tout
+/// autour fait le contour, à distance constante du bord.
+///
+/// Elles sont posées en OMBRES du texte lui-même, sans flou : le moteur les
+/// dessine dans la même passe que les lettres, et surtout À LA MÊME PLACE,
+/// puisque c'est le même texte.
+///
+/// ## Pourquoi ce n'est plus un tracé
+///
+/// Le contour s'obtenait en RETRAÇANT le mot avec un `TextPainter` à part,
+/// peint derrière. Un tracé mesure plus large et plus haut que le même texte
+/// plein : le peintre se centrait donc sur une autre boîte que les lettres,
+/// et le contour glissait. Sur les mélos du classement, écrits sans rien
+/// autour qui les recadre, le décalage atteignait trois points et les
+/// chiffres paraissaient en relief. Nino : « je ne veux pas que les mélos
+/// dans le classement soient en perspective. »
+///
+/// Une ombre, elle, part du même texte, de la même boîte, de la même ligne :
+/// il n'y a plus de seconde mesure, donc plus rien à faire coïncider.
+///
+/// ## Et l'épaisseur n'est plus doublée
+///
+/// Un tracé est CENTRÉ sur le contour de la lettre : la moitié partait en
+/// dedans, recouverte par les lettres pleines, et il fallait le doubler pour
+/// qu'il se voie autant qu'autour d'un dessin. Une copie décalée, elle, ne
+/// dépasse que par dehors — c'est [kTraitPicto] tout rond, le même nombre
+/// que pour les symboles.
 class MotTouche extends StatelessWidget {
   const MotTouche({
     super.key,
@@ -183,79 +201,23 @@ class MotTouche extends StatelessWidget {
 
   final int maxLines;
 
-  @override
-  Widget build(BuildContext context) {
-    // Le style tel que le `Text` l'aura vraiment : celui qu'on lui donne,
-    // posé sur celui que l'arbre impose. Le contour doit être dessiné avec
-    // EXACTEMENT la même police et la même taille, sans quoi il ne tombe pas
-    // sur les lettres.
-    final effectif = DefaultTextStyle.of(context).style.merge(style);
-    return CustomPaint(
-      // Un peintre peint DERRIÈRE son enfant : le contour passe donc sous
-      // les lettres pleines, comme la copie dilatée sous un picto.
-      painter: _ContourMot(
-        texte: texte,
-        style: effectif,
-        maxLines: maxLines,
-        echelle: MediaQuery.textScalerOf(context),
-      ),
-      child: Text(
-        texte,
-        textAlign: TextAlign.center,
-        maxLines: maxLines,
-        style: style.copyWith(color: couleur),
-      ),
-    );
-  }
-}
-
-/// Le contour noir d'un mot : les mêmes lettres, tracées et non remplies.
-///
-/// Un `CustomPaint` plutôt qu'un second `Text` : le mot ne doit figurer
-/// qu'UNE fois dans l'arbre, sinon chaque `find.text` du code d'essai en
-/// trouve deux, et surtout un lecteur d'écran le dirait deux fois.
-class _ContourMot extends CustomPainter {
-  const _ContourMot({
-    required this.texte,
-    required this.style,
-    required this.maxLines,
-    required this.echelle,
-  });
-
-  final String texte;
-  final TextStyle style;
-  final int maxLines;
-  final TextScaler echelle;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final peintre = TextPainter(
-      text: TextSpan(
-        text: texte,
-        style: style.copyWith(
-          foreground: Paint()
-            ..style = PaintingStyle.stroke
-            // LE DOUBLE, et pour que les deux se ressemblent : voir
-            // [MotTouche]. Un tracé est centré, la moitié ne se voit pas.
-            ..strokeWidth = kTraitPicto * 2
-            ..strokeJoin = StrokeJoin.round
-            ..color = const Color(0xFF000000),
+  /// La couronne de copies noires, en ombres sans flou.
+  static List<Shadow> get contourDesLettres => [
+    for (var i = 0; i < kCopiesDuBord; i++)
+      Shadow(
+        color: const Color(0xFF000000),
+        offset: Offset(
+          kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
+          kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
         ),
       ),
-      textAlign: TextAlign.center,
-      maxLines: maxLines,
-      textDirection: TextDirection.ltr,
-      textScaler: echelle,
-    )..layout(maxWidth: size.width);
-    // La boîte est celle du `Text`, donc de la même hauteur à l'arrondi
-    // près ; on recentre pour que le contour ne glisse pas d'un pixel.
-    peintre.paint(canvas, Offset(0, (size.height - peintre.height) / 2));
-  }
+  ];
 
   @override
-  bool shouldRepaint(_ContourMot vieux) =>
-      vieux.texte != texte ||
-      vieux.style != style ||
-      vieux.maxLines != maxLines ||
-      vieux.echelle != echelle;
+  Widget build(BuildContext context) => Text(
+    texte,
+    textAlign: TextAlign.center,
+    maxLines: maxLines,
+    style: style.copyWith(color: couleur, shadows: contourDesLettres),
+  );
 }

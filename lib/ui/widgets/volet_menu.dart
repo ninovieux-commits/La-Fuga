@@ -26,7 +26,7 @@ class PanneauDuVolet extends StatelessWidget {
     required this.titre,
     required this.enfant,
     required this.onFermer,
-    this.largeur = 0.88,
+    this.largeur = 0.94,
     this.hauteur = 0.68,
   });
 
@@ -39,6 +39,11 @@ class PanneauDuVolet extends StatelessWidget {
   final VoidCallback onFermer;
 
   /// Fractions de l'écran, comme le `size_hint` d'un `Popup` de Kivy.
+  ///
+  /// Large : les lignes qu'il porte valent par ce qu'elles alignent — un
+  /// rang, un visage, un nom, un nombre — et chaque point gagné sur les
+  /// bords est un point donné aux noms. Nino : « les lignes doivent être
+  /// plus larges. »
   final double largeur;
   final double hauteur;
 

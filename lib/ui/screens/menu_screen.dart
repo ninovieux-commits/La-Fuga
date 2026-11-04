@@ -1251,7 +1251,7 @@ class MenuScreenState extends State<MenuScreen>
     if (!await _requireLogin()) return;
     final pseudo = await _ouvreVolet<String>(
       (context) => PanneauDuVolet(
-        titre: _random ? '${T('Classement')} — Random' : T('Classement'),
+        titre: _titreDuClassement(),
         onFermer: _fermeVolet,
         enfant: ClassementVolet(
           random: _random,
@@ -2239,7 +2239,15 @@ class MenuScreenState extends State<MenuScreen>
     final melo = (!_online.isLoggedIn || session == null)
         ? '????'
         : '${_random ? session.meloRandom : session.melo}';
-    final texte = T('mélo %s').replaceAll('%s', melo);
-    return _random ? 'Random $texte' : texte;
+    return _random ? 'Random ${T('mélo')} $melo' : '${T('mélo')} $melo';
   }
+
+  /// L'intitulé du volet du classement : de quel mélo il parle.
+  ///
+  /// Nino : « l'intitulé du popup doit dire "classement mélo" ou "classement
+  /// random mélo" ». Les deux classements se ressemblent trait pour trait —
+  /// sans le dire, on ne saurait pas lequel on regarde.
+  String _titreDuClassement() => _random
+      ? '${T('Classement')} Random ${T('mélo')}'
+      : '${T('Classement')} ${T('mélo')}';
 }

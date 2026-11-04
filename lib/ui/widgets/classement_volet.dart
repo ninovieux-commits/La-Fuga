@@ -180,7 +180,12 @@ class _ClassementVoletState extends State<ClassementVolet> {
       height: cote,
       child: Material(
         color: kGrisTouche,
-        shape: formeDeTouche(BorderRadius.circular(S(12))),
+        // PRESQUE CARRÉE. Nino : « les lignes doivent être plus larges et
+        // carrées, comme sur ce popup » — celui des favoris, dont les
+        // fiches sont longues et à peine arrondies. Une ligne très arrondie
+        // se lit comme une touche à part ; à peine arrondie, elle se lit
+        // comme une ligne d'un tableau, ce qu'elle est.
+        shape: formeDeTouche(BorderRadius.circular(S(6))),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => widget.surJoueur(j.pseudo),
