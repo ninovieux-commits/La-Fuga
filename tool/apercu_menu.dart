@@ -24,9 +24,15 @@ const Key _cadre = Key('ecran');
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final (nom, theme) in [
-    ('menu', 'original'),
-    ('menu_deepgrey', 'deepgrey'),
+  // La cadence CHOISIE est celle du milieu : c'est la seule qui s'allume en
+  // couleur 2, et donc la seule qui montre ce que devient une touche noire
+  // sous Deep Grey.
+  for (final (nom, theme, cadence) in [
+    ('menu', 'original', null),
+    ('menu_deepgrey', 'deepgrey', null),
+    ('menu_cadence', 'original', '15 min'),
+    ('menu_cadence_medieval', 'medieval', '15 min'),
+    ('menu_cadence_deepgrey', 'deepgrey', '15 min'),
   ]) {
     testWidgets('aperçu du $nom', (tester) async {
       // ignore: invalid_use_of_visible_for_testing_member
@@ -83,6 +89,11 @@ Future<void> main() async {
         }
       });
       await tester.pumpAndSettle(const Duration(milliseconds: 300));
+
+      if (cadence != null) {
+        await tester.tap(find.text(cadence));
+        await tester.pumpAndSettle();
+      }
 
       Directory('tool/apercus').createSync(recursive: true);
       final limite =

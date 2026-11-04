@@ -67,15 +67,17 @@ final class BoardBackgroundPainter extends CustomPainter {
           bottomLeft: isTop ? Radius.zero : radius,
           bottomRight: isTop ? Radius.zero : radius,
         );
-        canvas.drawRRect(
-          rrect,
-          Paint()..color = row == 8 ? palette.clair : palette.fonce,
-        );
-        // Contour foncé : le débordement dans les cadres info doit paraître net.
+        final teinte = row == 8 ? palette.clair : palette.fonce;
+        canvas.drawRRect(rrect, Paint()..color = teinte);
+        // Contour foncé : le débordement dans les cadres info doit paraître
+        // net. BLANC sur une zone noire, sans quoi il n'y a plus de contour
+        // du tout — voir [contourDe].
         canvas.drawRRect(
           rrect,
           Paint()
-            ..color = const Color(0xFF1A1A1A)
+            ..color = estNoire(teinte)
+                ? const Color(0xFFFFFFFF)
+                : const Color(0xFF1A1A1A)
             ..style = PaintingStyle.stroke
             ..strokeWidth = S(2),
         );

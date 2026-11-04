@@ -237,9 +237,20 @@ const Map<String, ThemePalette> kThemes = {
     menu: Color.fromRGBO(128, 128, 128, 1),
     grid: Color.fromRGBO(89, 51, 31, 1),
   ),
+  // DEEP GREY S'ALLUME EN BLANC ET EN NOIR.
+  //
+  // Ses deux couleurs étaient le gris médian — le même, pour les deux —,
+  // c'est-à-dire exactement le fond des touches : une touche allumée ne se
+  // distinguait pas d'une touche éteinte, et un symbole d'accent s'effaçait
+  // sur sa touche. Nino a regardé quatre maquettes (deux dégradés, deux
+  // aplats) et tranché : « et si on fait comme couleur 1 et couleur 2 mais
+  // avec noir et blanc ? [...] Aaah c'est parfait. »
+  //
+  // Ce que ce thème demande en retour, c'est que tout ce qui prend sa
+  // couleur 2 se cerne de blanc plutôt que de noir — voir `contourDe`.
   'deepgrey': ThemePalette(
-    clair: Color.fromRGBO(128, 128, 128, 1),
-    fonce: Color.fromRGBO(128, 128, 128, 1),
+    clair: Color.fromRGBO(255, 255, 255, 1),
+    fonce: Color.fromRGBO(0, 0, 0, 1),
     clairDim: Color.fromRGBO(64, 64, 64, 1),
     fonceDim: Color.fromRGBO(64, 64, 64, 1),
     board: Color.fromRGBO(128, 128, 128, 1),

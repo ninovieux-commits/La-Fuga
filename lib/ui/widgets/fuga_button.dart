@@ -51,14 +51,15 @@ const double kEpaisseurDuVoyant = kTraitPicto * 10;
 /// La couleur d'un voyant ALLUMÉ.
 ///
 /// C'est la couleur 1 du thème — sauf quand celle-ci EST le gris des
-/// touches. Le thème deepgrey peint ses deux couleurs en rgb(128, 128, 128),
-/// c'est-à-dire exactement [kGrisTouche] : allumé, le voyant y gardait la
-/// couleur qu'il a éteint, et ne disait plus rien. Nino : « en couleur
-/// système deepgrey ça s'allume en blanc (idem pour la barre de
-/// séparation). »
+/// touches : allumé, le voyant garderait la couleur qu'il a éteint et ne
+/// dirait plus rien. Nino : « en couleur système deepgrey ça s'allume en
+/// blanc (idem pour la barre de séparation). »
 ///
-/// La règle se lit sur la COULEUR et non sur le nom du thème : un thème
-/// composé à la main qui tomberait sur ce gris-là est soigné du même coup.
+/// Deep Grey s'allume désormais en blanc de lui-même — sa couleur 1 EST le
+/// blanc —, si bien que ce repli ne le concerne plus. Il reste pour les
+/// thèmes composés à la main : la règle se lit sur la COULEUR et non sur le
+/// nom du thème, et celui qui tomberait sur ce gris-là est soigné du même
+/// coup.
 Color couleurAllumee(ThemePalette palette) =>
     palette.clair == kGrisTouche ? Colors.white : palette.clair;
 
@@ -80,6 +81,20 @@ const BorderSide kTraitDeTouche = BorderSide(
   color: Color(0xFF000000),
   width: kTraitPicto,
 );
+
+/// L'encre d'un mot posé sur une touche de [fond].
+///
+/// Blanche partout, comme depuis toujours — SAUF sur une touche noire, où
+/// le mot prend le noir de la touche et se lit par son seul contour blanc.
+/// Nino, devant la maquette de Deep Grey : « l'écriture doit être blanc sur
+/// blanc avec contours noirs pour la couleur 1, et noir sur noir avec les
+/// contours blancs pour la couleur 2 », puis « aaah c'est parfait ».
+///
+/// Sur la couleur 1 — le blanc — cela ne change rien : le mot était déjà
+/// blanc. Aucun autre thème n'a d'accent assez sombre pour basculer, si
+/// bien que cette règle ne se voit que là où Nino l'a demandée.
+Color encreSurTouche(Color fond) =>
+    estNoire(fond) ? fond : const Color(0xFFFFFFFF);
 
 /// La forme d'une touche : son arrondi, avec le trait DEDANS.
 ///
@@ -114,7 +129,7 @@ class FugaButton extends StatelessWidget {
     this.text = '',
     required this.onPressed,
     this.color = kGrisTouche,
-    this.textColor = Colors.white,
+    this.textColor,
     this.height,
     this.fontSize,
     this.radius,
@@ -129,7 +144,10 @@ class FugaButton extends StatelessWidget {
   final Widget? enfant;
   final VoidCallback? onPressed;
   final Color color;
-  final Color textColor;
+
+  /// L'encre du mot. Nulle — le cas normal : [encreSurTouche] la déduit du
+  /// fond de la touche.
+  final Color? textColor;
 
   /// Hauteur imposée. Nulle — le cas normal : l'épaisseur d'une touche,
   /// la même partout. `double.infinity` remplit la place disponible, à
@@ -177,7 +195,7 @@ class FugaButton extends StatelessWidget {
                   enfant ??
                   MotTouche(
                     texte: text,
-                    couleur: textColor,
+                    couleur: textColor ?? encreSurTouche(color),
                     style: TextStyle(
                       fontSize: fontSize ?? SF(16),
                       fontWeight: FontWeight.bold,

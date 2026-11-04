@@ -64,6 +64,31 @@ const double kTraitPicto = 1.15;
 /// image.
 const int kCopiesDuBord = 12;
 
+/// En dessous de cette luminance, une couleur EST le noir.
+///
+/// La couleur la plus sombre qu'un thème donne à ses accents est le violet
+/// de Spatial, rgb(76, 26, 128), qui pèse 0,038 : le seuil est posé bien en
+/// dessous, pour qu'aucun thème existant ne bascule par accident. Il laisse
+/// toutefois passer un noir ADOUCI — jusqu'à rgb(40, 40, 40) environ —, au
+/// cas où le noir franc se révélerait trop dur à l'usage.
+const double kSeuilDuNoir = 0.02;
+
+/// Cette couleur est-elle le noir ?
+bool estNoire(Color couleur) => couleur.computeLuminance() < kSeuilDuNoir;
+
+/// Le contour de ce qui est dessiné en [encre] : noir, sauf sur du noir.
+///
+/// Nino : « à chaque fois que quelque chose prend la couleur noire, il doit
+/// prendre les contours blancs. » Le contour existe pour détacher un dessin
+/// de son fond ; peint de la couleur du dessin lui-même, il ne détache plus
+/// rien. Le thème Deep Grey donne le noir à sa couleur 2 — un symbole, un
+/// mot, une zone qui la prennent disparaissaient donc avec leur cerne.
+///
+/// La règle se lit sur la COULEUR, pas sur le nom du thème : un thème
+/// composé à la main qui tomberait sur le noir est soigné du même coup.
+Color contourDe(Color encre) =>
+    estNoire(encre) ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+
 class PictoTouche extends StatelessWidget {
   const PictoTouche({
     super.key,
@@ -140,7 +165,7 @@ class PictoTouche extends StatelessWidget {
               kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
               kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
             ),
-            child: _dessin(Colors.black),
+            child: _dessin(contourDe(couleur)),
           ),
         _dessin(couleur),
       ],
@@ -201,11 +226,14 @@ class MotTouche extends StatelessWidget {
 
   final int maxLines;
 
-  /// La couronne de copies noires, en ombres sans flou.
-  static List<Shadow> get contourDesLettres => [
+  /// La couronne de copies, en ombres sans flou.
+  ///
+  /// Noires autour d'un mot clair, BLANCHES autour d'un mot noir — voir
+  /// [contourDe]. Nino : « les écritures aussi. »
+  static List<Shadow> contourDesLettres(Color encre) => [
     for (var i = 0; i < kCopiesDuBord; i++)
       Shadow(
-        color: const Color(0xFF000000),
+        color: contourDe(encre),
         offset: Offset(
           kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
           kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
@@ -218,6 +246,6 @@ class MotTouche extends StatelessWidget {
     texte,
     textAlign: TextAlign.center,
     maxLines: maxLines,
-    style: style.copyWith(color: couleur, shadows: contourDesLettres),
+    style: style.copyWith(color: couleur, shadows: contourDesLettres(couleur)),
   );
 }

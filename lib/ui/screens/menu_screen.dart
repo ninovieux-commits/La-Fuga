@@ -1697,9 +1697,14 @@ class MenuScreenState extends State<MenuScreen>
                         enfant: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // L'ENCRE VIENT DU FOND, comme dans toute
+                            // [FugaButton] : les deux lignes sont posées à
+                            // la main, elles doivent donc la demander elles
+                            // aussi. Sous Deep Grey, où la couleur 2 est le
+                            // noir, elles s'écrivent en noir cerné de blanc.
                             MotTouche(
                               texte: T('Jouer en ligne'),
-                              couleur: Colors.white,
+                              couleur: encreSurTouche(palette.fonce),
                               style: TextStyle(
                                 fontSize: SF(16),
                                 fontWeight: FontWeight.bold,
@@ -1707,7 +1712,7 @@ class MenuScreenState extends State<MenuScreen>
                             ),
                             MotTouche(
                               texte: _libelleDuMelo(),
-                              couleur: Colors.white,
+                              couleur: encreSurTouche(palette.fonce),
                               style: TextStyle(
                                 fontSize: SF(14),
                                 fontWeight: FontWeight.bold,
