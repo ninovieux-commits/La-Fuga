@@ -85,7 +85,7 @@ Future<void> ouvrirDrapeau(
                 child: FugaButton(
                   text: T('Proposer nulle'),
                   fontSize: SF(16),
-                  color: nulleProposee ? palette.clair : kFugaGrey,
+                  color: nulleProposee ? palette.clair : kGrisTouche,
                   // Pâle et sans geste quand le coup n'est pas joué : la
                   // touche dit d'elle-même qu'elle n'est pas pour
                   // maintenant.

@@ -236,7 +236,7 @@ class CorrSlot extends StatelessWidget {
       ),
       _slotButton(T('Afficher'), palette.clair, () => onShow(g), y: 0.39),
       _slotButton(T('Revanche'), palette.fonce, () => onRematch(g), y: 0.22),
-      _slotButton(T('Fermer'), kFugaGrey, () => onClose(g), y: 0.05),
+      _slotButton(T('Fermer'), kGrisTouche, () => onClose(g), y: 0.05),
     ];
   }
 

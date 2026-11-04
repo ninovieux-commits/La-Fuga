@@ -39,7 +39,7 @@ Future<void> ouvrirPlusLecteur(
   Widget touche(String texte, GestePlus geste, {Color? couleur}) => FugaButton(
     text: texte,
     fontSize: SF(15),
-    color: couleur ?? kFugaGrey,
+    color: couleur ?? kGrisTouche,
     onPressed: () => Navigator.of(context).pop(geste),
   );
 
@@ -52,14 +52,7 @@ Future<void> ouvrirPlusLecteur(
       (0.20, popupText(T('Plus'), size: 17)),
       (kTouchRow, touche(T('Copier la position'), GestePlus.position)),
       (kTouchRow, touche(T('Copier la partie'), GestePlus.partie)),
-      (
-        kTouchRow,
-        touche(
-          T('Jouer contre Deep Grey'),
-          GestePlus.deepGrey,
-          couleur: const Color.fromRGBO(77, 77, 87, 1),
-        ),
-      ),
+      (kTouchRow, touche(T('Jouer contre Deep Grey'), GestePlus.deepGrey)),
       (
         kTouchRow,
         touche(

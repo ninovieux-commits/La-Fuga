@@ -235,6 +235,9 @@ void main() {
     });
 
     // Nino : « le fond de la touche doit être du même gris que [retour]. »
+    // Ce gris-là est devenu celui de TOUTES les touches de l'application :
+    // « absolument toutes les touches grises de l'App doivent être en gris
+    // pile entre noir et blanc, comme les touches autour du plateau. »
     testWidgets('le gris est celui des touches de bandeau', (tester) async {
       await poserLaTouche(tester);
       final fond = tester.widget<Material>(
@@ -245,7 +248,7 @@ void main() {
             )
             .first,
       );
-      expect(fond.color, kFugaGrey);
+      expect(fond.color, kGrisTouche);
     });
 
     testWidgets('éteinte, elle pâlit sans disparaître', (tester) async {

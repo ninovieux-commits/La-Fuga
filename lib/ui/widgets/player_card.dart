@@ -339,7 +339,7 @@ class _PlayerCardState extends State<_PlayerCard> {
   Widget _touche({
     required String texte,
     required VoidCallback? onPressed,
-    Color couleur = kFugaGrey,
+    Color couleur = kGrisTouche,
     Color encre = Colors.white,
     bool horsService = false,
   }) {

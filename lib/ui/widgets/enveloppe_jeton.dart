@@ -281,11 +281,11 @@ class ToucheEnveloppePlus extends StatelessWidget {
     child: AspectRatio(
       aspectRatio: 1,
       child: Material(
-        // LE GRIS DE « < RETOUR », et c'est un autre que celui des touches
-        // du plateau. Nino : « le fond de la touche doit être du même gris
-        // que [retour]. » Les deux se tiennent dans le même bandeau, à deux
-        // doigts l'une de l'autre : la moindre différence s'y voit.
-        color: actif ? kFugaGrey : fondEteint(kFugaGrey),
+        // LE GRIS DE « < RETOUR ». Nino : « le fond de la touche doit être
+        // du même gris que [retour]. » Les deux se tiennent dans le même
+        // bandeau, à deux doigts l'une de l'autre : la moindre différence
+        // s'y voit. Ce gris-là est devenu celui de TOUTES les touches.
+        color: actif ? kGrisTouche : fondEteint(kGrisTouche),
         shape: formeDeTouche(BorderRadius.circular(S(14))),
         child: InkWell(
           borderRadius: BorderRadius.circular(S(14)),

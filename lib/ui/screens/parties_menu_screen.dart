@@ -107,7 +107,7 @@ class PartiesMenuScreen extends StatelessWidget {
                           (
                             0.55,
                             T('Lecteur nmc'),
-                            kFugaGrey,
+                            kGrisTouche,
                             () => _push(context, const ReaderScreen()),
                           ),
                           // Sous le lecteur de parties, celui des positions :
@@ -115,7 +115,7 @@ class PartiesMenuScreen extends StatelessWidget {
                           (
                             0.40,
                             T('Lecteur fug'),
-                            kFugaGrey,
+                            kGrisTouche,
                             () => _push(context, const FugReaderScreen()),
                           ),
                         ])

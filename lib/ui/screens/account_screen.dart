@@ -774,7 +774,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
   Widget _action(
     String label,
     VoidCallback onTap, {
-    Color couleur = kFugaGrey,
+    Color couleur = kGrisTouche,
   }) => Padding(
     padding: EdgeInsets.symmetric(vertical: S(4)),
     child: FugaButton(

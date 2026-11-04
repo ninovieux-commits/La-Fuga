@@ -38,7 +38,11 @@ import '../widgets/piece_tile.dart';
 
 /// Gris pile entre le noir et le blanc : le fond de la touche du trait, pour
 /// que « Blancs » et « Noirs » s'y lisent tous les deux.
-const Color kGrisMedian = Color.fromRGBO(128, 128, 128, 1);
+///
+/// C'est [kGrisTouche], celui de toutes les touches de l'application, et non
+/// une seconde définition du même nombre : deux constantes pour un seul gris
+/// finissent toujours par se séparer.
+const Color kGrisMedian = kGrisTouche;
 
 /// Les pièces qu'on ne peut avoir qu'en UN SEUL exemplaire par camp.
 ///

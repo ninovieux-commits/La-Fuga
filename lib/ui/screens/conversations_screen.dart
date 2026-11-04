@@ -185,7 +185,9 @@ class _ConversationsScreenState extends State<ConversationsScreen>
         : (c.lastFromMe ? '${T("Vous : ")}${c.lastText}' : c.lastText);
 
     return Material(
-      color: kFugaGrey,
+      // LE GRIS DE TOUTES LES TOUCHES : une fiche de conversation se touche
+      // pour l'ouvrir, c'en est une.
+      color: kGrisTouche,
       shape: formeDeTouche(BorderRadius.circular(S(10))),
       child: InkWell(
         borderRadius: BorderRadius.circular(S(10)),
