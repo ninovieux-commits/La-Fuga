@@ -217,7 +217,6 @@
   "Bonne fugue !": "Gute Flucht!",
   "Jouer en local": "Lokal spielen",
   "Jouer en ligne": "Online spielen",
-  "Jouer en ligne (%d mélo)": "Online spielen (%d Mélo)",
   "Jouer contre Deep Grey": "Gegen Deep Grey spielen",
   "Plus": "Mehr",
   "Mon compte": "Mein Konto",
@@ -601,5 +600,7 @@
   "Autres": "Mehr",
   "Affronter Deep Grey": "Gegen Deep Grey",
   "Classement indisponible": "Rangliste nicht verfügbar",
-  "Personne au classement pour l'instant.": "Noch niemand in der Rangliste."
+  "Personne au classement pour l'instant.": "Noch niemand in der Rangliste.",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "Wähle eine Bedenkzeit, um online zu spielen."
 }

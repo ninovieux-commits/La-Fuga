@@ -217,7 +217,6 @@
   "Bonne fugue !": "Happy escaping!",
   "Jouer en local": "Play locally",
   "Jouer en ligne": "Play online",
-  "Jouer en ligne (%d mélo)": "Play online (%d Mélo)",
   "Jouer contre Deep Grey": "Play against Deep Grey",
   "Plus": "More",
   "Mon compte": "My account",
@@ -601,5 +600,7 @@
   "Autres": "More",
   "Affronter Deep Grey": "Face Deep Grey",
   "Classement indisponible": "Leaderboard unavailable",
-  "Personne au classement pour l'instant.": "Nobody on the leaderboard yet."
+  "Personne au classement pour l'instant.": "Nobody on the leaderboard yet.",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "Select a time control to play online."
 }

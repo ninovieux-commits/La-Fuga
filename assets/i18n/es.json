@@ -217,7 +217,6 @@
   "Bonne fugue !": "¡Buena huida!",
   "Jouer en local": "Jugar en local",
   "Jouer en ligne": "Jugar en línea",
-  "Jouer en ligne (%d mélo)": "Jugar en línea (%d Mélo)",
   "Jouer contre Deep Grey": "Jugar contra Deep Grey",
   "Plus": "Más",
   "Mon compte": "Mi cuenta",
@@ -601,5 +600,7 @@
   "Autres": "Más",
   "Affronter Deep Grey": "Enfrentar a Deep Grey",
   "Classement indisponible": "Clasificación no disponible",
-  "Personne au classement pour l'instant.": "Todavía no hay nadie en la clasificación."
+  "Personne au classement pour l'instant.": "Todavía no hay nadie en la clasificación.",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "Selecciona un ritmo para jugar en línea."
 }

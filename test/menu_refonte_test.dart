@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
@@ -53,6 +54,15 @@ void main() {
       if ((e.widget as FugaButton).text == mot) {
         return tester.getRect(find.byWidget(e.widget));
       }
+    }
+    // Une touche qui porte deux lignes — « Jouer en ligne » et son mélo —
+    // n'a pas de `text` : on la retrouve par le mot qu'elle affiche.
+    final parSonMot = find.ancestor(
+      of: find.text(mot),
+      matching: find.byType(FugaButton),
+    );
+    if (parSonMot.evaluate().isNotEmpty) {
+      return tester.getRect(parSonMot.first);
     }
     fail('touche « $mot » introuvable');
   }
@@ -221,5 +231,54 @@ void main() {
       moreOrLessEquals(SH(0.16), epsilon: 0.5),
       reason: 'le titre ne se laisse pas rogner par la place qui manque',
     );
+  });
+
+  group('La cadence', () {
+    /// La couleur de fond de la touche qui porte ce mot.
+    Color fond(WidgetTester tester, String mot) {
+      for (final e in find.byType(FugaButton).evaluate()) {
+        final b = e.widget as FugaButton;
+        if (b.text == mot) return b.color;
+      }
+      fail('touche « $mot » introuvable');
+    }
+
+    testWidgets('aucune n est choisie en arrivant', (tester) async {
+      await ouvre(tester);
+      for (final m in ['5 min', '15 min', '30 min']) {
+        expect(
+          fond(tester, m),
+          kGrisTouche,
+          reason:
+              'Nino : « quand on arrive sur le menu, aucun des trois ne '
+              'doit être sélectionné » — $m',
+        );
+      }
+    });
+
+    testWidgets('les deux bords s allument en couleur 1, le milieu en 2', (
+      tester,
+    ) async {
+      await ouvre(tester);
+      final palette = paletteOf(Settings.instance.themeAxes.general);
+
+      await tester.tap(find.text('5 min'));
+      await tester.pumpAndSettle();
+      expect(fond(tester, '5 min'), palette.clair);
+      expect(fond(tester, '15 min'), kGrisTouche);
+
+      await tester.tap(find.text('30 min'));
+      await tester.pumpAndSettle();
+      expect(fond(tester, '30 min'), palette.clair);
+      expect(fond(tester, '5 min'), kGrisTouche);
+
+      await tester.tap(find.text('15 min'));
+      await tester.pumpAndSettle();
+      expect(
+        fond(tester, '15 min'),
+        palette.fonce,
+        reason: 'Nino : « 15 min continue à s allumer en couleur 2 »',
+      );
+    });
   });
 }

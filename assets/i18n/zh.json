@@ -217,7 +217,6 @@
   "Bonne fugue !": "祝出逃顺利！",
   "Jouer en local": "本地对战",
   "Jouer en ligne": "在线对战",
-  "Jouer en ligne (%d mélo)": "在线对战 (%d Mélo)",
   "Jouer contre Deep Grey": "对战 Deep Grey",
   "Plus": "更多",
   "Mon compte": "我的账号",
@@ -601,5 +600,7 @@
   "Autres": "更多",
   "Affronter Deep Grey": "挑战 Deep Grey",
   "Classement indisponible": "排行榜不可用",
-  "Personne au classement pour l'instant.": "排行榜暂时为空。"
+  "Personne au classement pour l'instant.": "排行榜暂时为空。",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "请选择时限后再进行在线对战。"
 }

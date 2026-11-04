@@ -217,7 +217,6 @@
   "Bonne fugue !": "よい逃走を！",
   "Jouer en local": "ローカル対戦",
   "Jouer en ligne": "オンライン対戦",
-  "Jouer en ligne (%d mélo)": "オンライン対戦 (%d Mélo)",
   "Jouer contre Deep Grey": "Deep Grey と対戦",
   "Plus": "その他",
   "Mon compte": "アカウント",
@@ -601,5 +600,7 @@
   "Autres": "その他",
   "Affronter Deep Grey": "Deep Greyと対戦",
   "Classement indisponible": "ランキングを取得できません",
-  "Personne au classement pour l'instant.": "まだランキングに誰もいません。"
+  "Personne au classement pour l'instant.": "まだランキングに誰もいません。",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "オンラインで対戦するには持ち時間を選んでください。"
 }

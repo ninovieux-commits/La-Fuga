@@ -59,6 +59,13 @@ class _ClassementVoletState extends State<ClassementVolet> {
   /// une liste qui clignote à chaque aller-retour serait pénible.
   final Map<bool, List<RangClassement>> _connus = {};
 
+  /// MA ligne, par mode, telle que le serveur la calcule : mon rang vrai,
+  /// même au-delà du trentième. Nino : « le classement doit afficher une
+  /// ligne fixe en bas, qui est la ligne de l'utilisateur, pour pouvoir
+  /// comparer son propre mélo avec celui des 30 meilleurs joueurs du volet
+  /// défilant juste au-dessus. »
+  final Map<bool, RangClassement?> _mienne = {};
+
   bool _charge = false;
   String _erreur = '';
 
@@ -96,6 +103,10 @@ class _ClassementVoletState extends State<ClassementVolet> {
         for (final j in r.get<List<dynamic>>('joueurs') ?? const [])
           if (j is Map) RangClassement.fromJson(Map<String, dynamic>.from(j)),
       ];
+      final moi = r.get<Map<String, dynamic>>('moi');
+      _mienne[mode] = moi == null
+          ? null
+          : RangClassement.fromJson(Map<String, dynamic>.from(moi));
     });
   }
 
@@ -131,11 +142,32 @@ class _ClassementVoletState extends State<ClassementVolet> {
         ),
       );
     }
-    return ListView.separated(
-      shrinkWrap: true,
-      itemCount: lignes.length,
-      separatorBuilder: (_, _) => SizedBox(height: S(6)),
-      itemBuilder: (context, i) => _ligne(lignes[i]),
+    final moi = _mienne[widget.random];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // LES TRENTE DÉFILENT, MA LIGNE NON : elle reste sous les yeux
+        // pendant qu'on parcourt la liste, sans quoi la comparaison
+        // demanderait de se souvenir d'un nombre en défilant.
+        Flexible(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: lignes.length,
+            separatorBuilder: (_, _) => SizedBox(height: S(6)),
+            itemBuilder: (context, i) => _ligne(lignes[i]),
+          ),
+        ),
+        if (moi != null) ...[
+          // Un trait, pour qu'on voie tout de suite que cette ligne-là
+          // n'appartient pas à la liste qui défile au-dessus.
+          Container(
+            height: kTraitPicto * 2,
+            margin: EdgeInsets.symmetric(vertical: S(8)),
+            color: Colors.white54,
+          ),
+          _ligne(moi),
+        ],
+      ],
     );
   }
 

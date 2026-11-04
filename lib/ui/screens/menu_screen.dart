@@ -68,20 +68,67 @@ const double kMargeDeLaBande = 17.0;
 /// Écart entre deux touches voisines d'une rangée de trois.
 const double kEcartDeLaBande = 6.0;
 
-/// L'INTERLIGNE DU MENU : le même entre toutes ses rangées de touches.
+/// Combien d'interlignes le premier écran du menu contient.
 ///
-/// Nino : « pour une raison que j'ignore il y a plus d'espace entre les
-/// touches cadence et les touches d'en dessous. En fait j'aimerais que
-/// l'intervalle entre les touches du menu soit toujours le même histoire
-/// d'être logique. »
+/// Trois entre ses quatre rangées, un entre les deux rangées de grosses
+/// touches, un sous la grille, un sous la barre de séparation.
+const int kInterlignesDuMenu = 6;
+
+/// Hauteur d'une des quatre grosses touches : DEUX touches ordinaires.
 ///
-/// Il y en avait DEUX, hérités de Kivy : `SH(0,02) + S(6)` autour d'un bloc
-/// de touches, `SH(0,012) + S(6)` entre deux touches d'un même bloc. Le menu
-/// n'ayant plus de blocs mais une suite de rangées, la distinction ne voulait
-/// plus rien dire — et elle se voyait. C'est le plus petit des deux qui
-/// reste, pour tous, y compris entre les quatre grosses touches et sous
-/// elles, jusqu'à la barre de séparation.
-double intervalleDuMenu() => SH(0.012) + S(kEcartDeLaBande);
+/// Nino : « c'est vraiment trop chargé pour les yeux. Réduis la taille des
+/// 4 gros boutons. » Elle a été calculée un temps pour que la barre de
+/// séparation ne bouge pas d'un pixel — une soustraction à trois étages dont
+/// le résultat, 2,35 fois une touche, ne voulait rien dire. Elle vaut
+/// maintenant deux fois une touche ordinaire, puisqu'elle porte deux choses
+/// — un dessin et un mot — là où une touche ordinaire n'en porte qu'une.
+double hauteurDesGrossesTouches() => touchHeight() * 2;
+
+/// Ce que le premier écran du menu occupe SANS ses interlignes.
+///
+/// Tout y est connu d'avance : deux images à hauteur donnée, un intitulé,
+/// trois rangées de touches, deux rangées de grosses touches et la barre.
+/// On fait donc la somme à la main. `IntrinsicHeight` l'aurait faite pour
+/// nous, mais il interroge les dimensions intrinsèques de ses enfants, et
+/// les `LayoutBuilder` des grosses touches ne savent pas y répondre.
+///
+/// Cette somme doit suivre la colonne de `_content` : tout écart se voit
+/// dans `menu_refonte_test`, qui mesure le bas de la barre de séparation.
+double contenuFixeDuMenu() =>
+    SH(0.06) + // sous le bandeau du haut
+    SH(0.16) + // le titre
+    S(kEcartDeLaBande) +
+    SH(0.13) + // le logo
+    SH(0.02) +
+    S(kEcartDeLaBande) +
+    labelHeight(0.04, 17) + // « Cadence (min / joueur) »
+    S(kEcartDeLaBande) +
+    3 * touchHeight() + // cadences, façons de jouer, recherche
+    2 * hauteurDesGrossesTouches() + // les quatre grosses, en deux rangées
+    S(kEpaisseurDuVoyant); // la barre de séparation
+
+/// L'INTERLIGNE DU MENU : le même entre toutes ses touches, et c'est LUI qui
+/// remplit l'écran.
+///
+/// Nino : « j'aimerais que l'intervalle entre les touches du menu soit
+/// toujours le même histoire d'être logique », puis « t'as qu'à augmenter la
+/// taille de tous les interstices (ce qui veut dire réduire la largeur de
+/// certaines touches) pour que ça prenne toute la hauteur de l'écran ».
+///
+/// Ce n'est donc plus un nombre mais une CONSÉQUENCE : ce qui reste de
+/// l'écran une fois les touches posées, partagé entre les six interlignes.
+/// L'air qui s'entassait sous le logo se répand partout, horizontalement
+/// aussi — les touches d'une même rangée s'écartent d'autant, donc
+/// rétrécissent d'autant.
+///
+/// Son PLANCHER est l'ancien interligne hérité de Kivy : sur un écran trop
+/// court le menu déborderait, et il vaut mieux qu'il défile que de voir les
+/// touches se toucher.
+double intervalleDuMenu() {
+  final plancher = SH(0.012) + S(kEcartDeLaBande);
+  final reste = (screenHeight - contenuFixeDuMenu()) / kInterlignesDuMenu;
+  return reste > plancher ? reste : plancher;
+}
 
 /// Ce que chaque dessin laisse de vide SOUS lui, dans son carré de 192.
 ///
@@ -104,10 +151,6 @@ const Map<String, double> kVideSousLeDessin = {
 
 /// Le côté du carré dans lequel vit un dessin de touche.
 const double kCarreDuDessin = 192;
-
-/// La plus grande des deux — `dart:math` n'est pas importé ici, et une
-/// fonction nommée dit mieux ce qu'on veut qu'un `a > b ? a : b` en ligne.
-double hauteurMaximale(double a, double b) => a > b ? a : b;
 
 /// Part de sa place qu'occupe le symbole d'une des quatre grosses touches.
 ///
@@ -183,7 +226,11 @@ class MenuScreenState extends State<MenuScreen>
 
   /// Cadence choisie au menu. Elle vaut pour les parties locales et en ligne ;
   /// Deep Grey joue toujours sans chrono.
-  Cadence _cadence = Cadence.parDefaut;
+  /// AUCUNE au départ. Nino : « quand on arrive sur le menu, aucun des
+  /// trois ne doit être sélectionné. » Une cadence cochée d'office se joue
+  /// sans qu'on l'ait voulue ; nulle, elle oblige à choisir pour jouer en
+  /// ligne, et laisse la partie locale se jouer sans chrono.
+  Cadence? _cadence;
 
   /// Variante Random Fuga. Comme en Kivy, elle se remet à zéro à chaque
   /// lancement de l'application.
@@ -554,7 +601,9 @@ class MenuScreenState extends State<MenuScreen>
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GameScreen(
-          cadence: _cadence,
+          // SANS CADENCE, SANS CHRONO. Nino : « si on clique sur jouer en
+          // local, ça lance une partie en local sans limite chrono. »
+          cadence: _cadence ?? Cadence.zen,
           aiCamp: null, // deux joueurs sur le même appareil
           themeName: _axes.general,
           initialBoard: _boardFor(code),
@@ -624,8 +673,31 @@ class MenuScreenState extends State<MenuScreen>
 
   // ── Jouer en ligne ────────────────────────────────────────────────────────
 
+  /// La cadence choisie, ou rien — et alors on le dit plutôt que de partir.
+  ///
+  /// Nino : « si on clique sur jouer en ligne, popup message "sélectionner
+  /// une cadence pour jouer en ligne". »
+  ///
+  /// SEULE CETTE TOUCHE-LÀ EXIGE UN CHOIX. Un défi part aussi d'ailleurs —
+  /// d'une conversation, d'une partie de correspondance, de l'historique —
+  /// par un relais qui passe par ici : lui barrer la route aurait fait
+  /// répondre le menu, qu'on ne voit même pas depuis ces écrans. Il garde
+  /// donc la cadence d'avant, quinze minutes, quand rien n'est choisi.
+  Cadence? _cadenceExigee() {
+    final cadence = _cadence;
+    if (cadence == null) {
+      _say(T('Sélectionnez une cadence pour jouer en ligne.'));
+    }
+    return cadence;
+  }
+
   Future<void> _playOnline() async {
+    // LE COMPTE D'ABORD, LA CADENCE ENSUITE : sans compte, réclamer une
+    // cadence ne servirait à rien — il faudrait la choisir, puis se
+    // connecter. Le plus bloquant des deux passe devant.
     if (!await _requireLogin()) return;
+    final cadence = _cadenceExigee();
+    if (cadence == null) return;
     final socket = _online.socket;
     if (socket == null) {
       _say(T('Hors ligne'));
@@ -635,7 +707,7 @@ class MenuScreenState extends State<MenuScreen>
     if (!mounted) return;
     socket.chercherPartie(
       objectif: 'partie',
-      cadence: _cadence.wire,
+      cadence: cadence.wire,
       random: _random,
     );
     setState(() => _searching = true);
@@ -648,7 +720,7 @@ class MenuScreenState extends State<MenuScreen>
         return AlertDialog(
           content: Text(
             "${T("Recherche d'un adversaire…")}\n\n"
-            '${T('Cadence')} : ${_cadence.label}',
+            '${T('Cadence')} : ${cadence.label}',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -735,6 +807,7 @@ class MenuScreenState extends State<MenuScreen>
   }
 
   Future<void> _challenge(String pseudo) async {
+    final cadence = _cadence ?? Cadence.parDefaut;
     final challenges = _challenges;
     if (challenges == null) {
       _say(T('Hors ligne'));
@@ -744,7 +817,7 @@ class MenuScreenState extends State<MenuScreen>
     challenges.challenge(
       pseudo,
       objectif: 'partie',
-      cadence: _cadence.wire,
+      cadence: cadence.wire,
       random: _random,
     );
 
@@ -1475,19 +1548,16 @@ class MenuScreenState extends State<MenuScreen>
           // reste dans leur proportion — 15 au-dessus du titre, 1 entre le
           // titre et le logo, 6 sous le logo.
           SizedBox(
-            // UN ÉCRAN PLEIN, OU CE QUE LE CONTENU DEMANDE SI C'EST PLUS :
-            // sur une fenêtre basse, forcer la hauteur de l'écran faisait
-            // déborder la colonne au lieu de la laisser défiler.
-            height: hauteurMaximale(
-              MediaQuery.sizeOf(context).height,
-              _hauteurDuPremierEcran(),
-            ),
+            // UN ÉCRAN PLEIN — c'est l'interligne qui s'en charge — ou ce
+            // que le contenu demande si c'est plus : sur une fenêtre basse,
+            // l'interligne retombe à son plancher et le menu défile.
+            height:
+                contenuFixeDuMenu() + kInterlignesDuMenu * intervalleDuMenu(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Espace sous la zone du bouton Compte.
                 SizedBox(height: SH(0.06)),
-                const Spacer(flex: 15),
                 // LE TITRE ET LE LOGO GARDENT LEUR TAILLE. Ils ont été
                 // `Flexible` le temps d'une étape, pour ne jamais déborder
                 // d'un écran trop court — mais `Flexible` les mettait en
@@ -1504,7 +1574,6 @@ class MenuScreenState extends State<MenuScreen>
                   ),
                 ),
                 SizedBox(height: S(gap)),
-                const Spacer(flex: 1),
                 GestureDetector(
                   onTap: _showStory,
                   // `logoAssetOf` et non le chemin à la main : trois thèmes
@@ -1523,7 +1592,6 @@ class MenuScreenState extends State<MenuScreen>
                   ),
                 ),
                 SizedBox(height: SH(0.02) + S(gap)),
-                const Spacer(flex: 6),
 
                 SizedBox(
                   height: labelHeight(0.04, 17),
@@ -1565,7 +1633,17 @@ class MenuScreenState extends State<MenuScreen>
                           // « les touches de cadences ne changent que le fait de
                           // prendre le contour noir sur le texte et le fond gris
                           // médian quand elles ne sont pas sélectionnées. »
-                          color: _cadence == c ? palette.fonce : kGrisTouche,
+                          //
+                          // ALLUMÉE, LES DEUX BORDS PRENNENT LA COULEUR 1 ET
+                          // LE MILIEU LA COULEUR 2. Nino : « 5 min et 30 min
+                          // doivent s'allumer en couleur 1 lorsque
+                          // sélectionnés, alors que 15 min continue à
+                          // s'allumer en couleur 2. »
+                          color: _cadence != c
+                              ? kGrisTouche
+                              : (c == Cadence.quinze
+                                    ? palette.fonce
+                                    : palette.clair),
                           onPressed: () => setState(() => _cadence = c),
                         ),
                     ],
@@ -1592,11 +1670,37 @@ class MenuScreenState extends State<MenuScreen>
                       ),
                       FugaButton(
                         key: _tourKeys['online'],
-                        text: _libelleEnLigne(),
                         color: palette.fonce,
                         height: double.infinity,
-                        fontSize: SF(16),
                         onPressed: _searching ? null : _playOnline,
+                        // DEUX LIGNES : l'intitulé, et le mélo en dessous,
+                        // plus petit. Nino : « le bouton jouer en ligne doit
+                        // afficher "mélo ????" en dessous de "jouer en
+                        // ligne". La taille de police de "jouer en ligne"
+                        // doit rester la même mais celle de "mélo ????" peut
+                        // être plus petite (par exemple même taille que
+                        // "affronter Deep Grey"). »
+                        enfant: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            MotTouche(
+                              texte: T('Jouer en ligne'),
+                              couleur: Colors.white,
+                              style: TextStyle(
+                                fontSize: SF(16),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            MotTouche(
+                              texte: _libelleDuMelo(),
+                              couleur: Colors.white,
+                              style: TextStyle(
+                                fontSize: SF(14),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1631,38 +1735,6 @@ class MenuScreenState extends State<MenuScreen>
     );
   }
 
-  /// La hauteur que le premier écran du menu demande VRAIMENT.
-  ///
-  /// Il en occupe un plein — c'est demandé — mais pas moins que ce que son
-  /// contenu réclame : sur une fenêtre large et basse, les mots et les
-  /// marges, qui se mesurent sur la LARGEUR, dépassaient la hauteur
-  /// disponible et la colonne débordait de trente-sept points.
-  ///
-  /// On fait donc la somme à la main. `IntrinsicHeight` l'aurait faite pour
-  /// nous, mais il interroge les dimensions intrinsèques de ses enfants, et
-  /// les `LayoutBuilder` des grosses touches ne savent pas y répondre.
-  ///
-  /// Cette somme doit suivre la colonne : tout écart se voit dans
-  /// `menu_refonte_test`, qui mesure le bas de la barre de séparation.
-  double _hauteurDuPremierEcran() {
-    const gap = 6.0;
-    final interligne = intervalleDuMenu();
-    return SH(0.06) + // sous le bandeau du haut
-        SH(0.16) + // le titre
-        S(gap) +
-        SH(0.13) + // le logo
-        SH(0.02) +
-        S(gap) +
-        labelHeight(0.04, 17) + // « Cadence (min / joueur) »
-        S(gap) +
-        3 * touchHeight() + // cadences, façons de jouer, recherche
-        2 * _hauteurDesGrosses + // les quatre grosses, en deux rangées
-        S(kEpaisseurDuVoyant) + // la barre de séparation
-        // Six : entre les quatre rangées (3), entre les deux rangées de
-        // grosses touches (1), sous la grille (1) et sous la barre (1).
-        6 * interligne;
-  }
-
   /// Les boutons principaux font 70 % de la largeur, centrés, comme en Kivy.
   Widget _wide(Widget child) =>
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
@@ -1695,21 +1767,6 @@ class MenuScreenState extends State<MenuScreen>
     );
   }
 
-  /// Hauteur d'une des quatre grosses touches : DEUX touches ordinaires.
-  ///
-  /// Nino : « c'est vraiment trop chargé pour les yeux. Réduis la taille des
-  /// 4 gros boutons. »
-  ///
-  /// Elle était CALCULÉE pour que la barre de séparation ne bouge pas d'un
-  /// pixel — une soustraction à trois étages dont le résultat, 2,35 fois une
-  /// touche, ne voulait rien dire. Maintenant que l'interligne est unique,
-  /// c'est lui qui place la barre, et la touche peut prendre la hauteur
-  /// qu'elle MÉRITE : deux fois une touche ordinaire, puisqu'elle porte deux
-  /// choses — un dessin et un mot — là où une touche ordinaire n'en porte
-  /// qu'une. La barre remonte d'autant, et c'est précisément l'air qui
-  /// manquait.
-  double get _hauteurDesGrosses => touchHeight() * 2;
-
   /// Les quatre grosses touches, en deux sur deux, sous la recherche.
   ///
   /// Nino : « en dessous ça se sépare en quatre cases avec les symboles de
@@ -1727,7 +1784,7 @@ class MenuScreenState extends State<MenuScreen>
     // voit tout de suite.
     final ecart = intervalleDuMenu();
     Widget deux(Widget gauche, Widget droite) => SizedBox(
-      height: _hauteurDesGrosses,
+      height: hauteurDesGrossesTouches(),
       child: Row(
         children: [
           Expanded(child: gauche),
@@ -2167,19 +2224,22 @@ class MenuScreenState extends State<MenuScreen>
   /// son compte.
   String _accountLabel() => _online.pseudo ?? '?';
 
-  /// Ce qu'écrit la touche « Jouer en ligne » : son intitulé, et mon mélo.
+  /// La seconde ligne de la touche « Jouer en ligne » : mon mélo.
   ///
   /// Nino : « il doit dire "???? mélo" au lieu de juste "????" ». Le nombre
-  /// seul ne disait pas ce qu'il était ; sur une touche qui parle déjà d'une
-  /// autre chose, il le fallait.
+  /// seul ne disait pas ce qu'il était.
   ///
-  /// Le mélo suit le mode — Random Fuga a son propre classement —, et le
-  /// libellé entier passe par la traduction : les dix langues ne mettent pas
-  /// le nombre au même endroit.
-  String _libelleEnLigne() {
+  /// Le mélo suit le mode — Random Fuga a son propre classement — et le dit :
+  /// « quand l'App passe en random, ça affiche "random mélo ????" ». Sans
+  /// compte, le nombre n'existe pas encore : on écrit les points
+  /// d'interrogation plutôt que d'effacer la ligne, pour que la touche ne
+  /// change pas de hauteur en se connectant.
+  String _libelleDuMelo() {
     final session = _online.session;
-    if (!_online.isLoggedIn || session == null) return T('Jouer en ligne');
-    final melo = _random ? session.meloRandom : session.melo;
-    return T('Jouer en ligne (%d mélo)').replaceAll('%d', '$melo');
+    final melo = (!_online.isLoggedIn || session == null)
+        ? '????'
+        : '${_random ? session.meloRandom : session.melo}';
+    final texte = T('mélo %s').replaceAll('%s', melo);
+    return _random ? 'Random $texte' : texte;
   }
 }

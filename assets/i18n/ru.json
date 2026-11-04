@@ -217,7 +217,6 @@
   "Bonne fugue !": "Удачного побега!",
   "Jouer en local": "Игра локально",
   "Jouer en ligne": "Игра онлайн",
-  "Jouer en ligne (%d mélo)": "Игра онлайн (%d Mélo)",
   "Jouer contre Deep Grey": "Играть против Deep Grey",
   "Plus": "Ещё",
   "Mon compte": "Мой аккаунт",
@@ -601,5 +600,7 @@
   "Autres": "Ещё",
   "Affronter Deep Grey": "Сразиться с Deep Grey",
   "Classement indisponible": "Рейтинг недоступен",
-  "Personne au classement pour l'instant.": "В рейтинге пока никого нет."
+  "Personne au classement pour l'instant.": "В рейтинге пока никого нет.",
+  "mélo %s": "Mélo %s",
+  "Sélectionnez une cadence pour jouer en ligne.": "Выберите контроль времени, чтобы играть онлайн."
 }

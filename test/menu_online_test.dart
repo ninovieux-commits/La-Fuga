@@ -75,7 +75,10 @@ void main() {
 
     testWidgets('elle porte le mélo, et dit que c en est un', (tester) async {
       await open(tester);
-      expect(find.text('Jouer en ligne (1600 mélo)'), findsOneWidget);
+      // Deux lignes depuis que Nino l'a voulu ainsi : l'intitulé, et le
+      // mélo en dessous, plus petit.
+      expect(find.text('Jouer en ligne'), findsOneWidget);
+      expect(find.text('mélo 1600'), findsOneWidget);
     });
 
     testWidgets('le bouton Compte n a plus que le pseudo', (tester) async {
@@ -92,18 +95,40 @@ void main() {
       await open(tester);
       await tester.tap(find.text('Standard'));
       await tester.pumpAndSettle();
-      expect(find.text('Jouer en ligne (1500 mélo)'), findsOneWidget);
-      expect(find.text('Jouer en ligne (1600 mélo)'), findsNothing);
+      expect(find.text('Random mélo 1500'), findsOneWidget);
+      expect(find.text('mélo 1600'), findsNothing);
     });
   });
 
   group('Matchmaking', () {
+    /// Aucune cadence n'est cochée en arrivant sur le menu : il faut la
+    /// choisir avant de pouvoir chercher une partie.
+    Future<void> choisirUneCadence(WidgetTester tester) async {
+      await tester.tap(find.text('15 min'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sans cadence, la recherche ne part pas et le dit', (
+      tester,
+    ) async {
+      await open(tester);
+      await tester.tap(find.text('Jouer en ligne'));
+      await tester.pumpAndSettle();
+
+      expect(socket.didSend('chercher_partie'), isFalse);
+      expect(
+        find.text('Sélectionnez une cadence pour jouer en ligne.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('chercher une partie envoie objectif, cadence et random', (
       tester,
     ) async {
       await open(tester);
+      await choisirUneCadence(tester);
 
-      await tester.tap(find.textContaining('Jouer en ligne'));
+      await tester.tap(find.text('Jouer en ligne'));
       await tester.pumpAndSettle();
 
       expect(socket.lastOf('chercher_partie')!['cadence'], '15');
@@ -114,7 +139,8 @@ void main() {
 
     testWidgets('annuler la recherche prévient le serveur', (tester) async {
       await open(tester);
-      await tester.tap(find.textContaining('Jouer en ligne'));
+      await choisirUneCadence(tester);
+      await tester.tap(find.text('Jouer en ligne'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Annuler'));

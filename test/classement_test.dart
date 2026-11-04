@@ -41,6 +41,13 @@ Map<String, dynamic> _classement({required bool random}) => {
         'photo': '',
       },
   ],
+  // Ma propre ligne : le serveur la calcule à part, avec mon vrai rang.
+  'moi': {
+    'rang': random ? 7 : 42,
+    'pseudo': 'Nino',
+    'melo': random ? 1610 : 1480,
+    'photo': '',
+  },
 };
 
 void main() {
@@ -171,5 +178,32 @@ void main() {
     await tester.tapAt(const Offset(196, 835));
     await tester.pumpAndSettle();
     expect(find.byType(PanneauDuVolet), findsNothing);
+  });
+
+  testWidgets('ma ligne reste en bas, avec mon vrai rang', (tester) async {
+    await ouvreLeClassement(tester);
+
+    // Nino : « le classement doit afficher une ligne fixe en bas, qui est la
+    // ligne de l'utilisateur, pour pouvoir comparer son propre mélo avec
+    // celui des 30 meilleurs joueurs du volet défilant juste au-dessus. »
+    // « Nino » est aussi sur la touche du compte, en haut : on ne cherche
+    // que dans le volet.
+    Finder dansLeVolet(String mot) => find.descendant(
+      of: find.byType(ClassementVolet),
+      matching: find.text(mot),
+    );
+
+    expect(dansLeVolet('Nino'), findsOneWidget);
+    expect(dansLeVolet('42'), findsOneWidget, reason: 'mon rang, hors des 30');
+    expect(dansLeVolet('1480'), findsOneWidget);
+
+    // Elle est SOUS la liste, et elle suit le mode comme elle.
+    final derniere = tester.getRect(find.text('std2'));
+    expect(tester.getRect(dansLeVolet('Nino')).top, greaterThan(derniere.top));
+
+    await tester.tap(find.text('Standard'));
+    await tester.pumpAndSettle();
+    expect(find.text('7'), findsOneWidget);
+    expect(find.text('1610'), findsOneWidget);
   });
 }

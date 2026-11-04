@@ -54,6 +54,7 @@ Map<String, dynamic> _classement() => {
         'photo': '',
       },
   ],
+  'moi': {'rang': 42, 'pseudo': 'nino', 'melo': 1530, 'photo': ''},
 };
 
 Future<void> main() async {

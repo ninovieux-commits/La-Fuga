@@ -15,6 +15,14 @@ passer par un parametre SQL — il faut l'ecrire dans le texte de la requete —
 et c'est precisement la que naissent les injections. Ici le client n'envoie
 qu'un booleen, et le serveur choisit seul entre deux constantes.
 
+MA PROPRE LIGNE VOYAGE AVEC LA LISTE, et avec mon vrai rang, meme au-dela
+du trentieme. Nino : « le classement doit afficher une ligne fixe en bas,
+qui est la ligne de l'utilisateur, pour pouvoir comparer son propre melo
+avec celui des 30 meilleurs joueurs du volet defilant juste au-dessus. » Le
+rang se COMPTE — combien de comptes me precedent, plus un — avec exactement
+le meme ordre que la liste, sans quoi le trentieme de la liste et un joueur
+annonce trente-et-unieme pourraient etre le meme.
+
 LA PHOTO EST RENDUE QUAND LA BASE EN A UNE, et une chaine vide sinon : on lit
 la ligne entiere et on y cherche la colonne, plutot que de la nommer dans le
 SELECT, pour qu'une base qui ne l'aurait pas reponde quand meme. L'App sait
@@ -53,6 +61,14 @@ _CLASSEMENT_COLONNES = {False: "melo", True: "melo_random"}
 _CLASSEMENT_TAILLE = 30
 
 
+def _classement_melo(ligne, colonne):
+    """Le melo d'une ligne dans la colonne du mode, 1500 a defaut."""
+    try:
+        return int(ligne.get(colonne) or 1500)
+    except Exception:
+        return 1500
+
+
 @flask_app.route("/classement", methods=["POST"])
 def classement():
     """Les trente meilleurs melos du mode demande.
@@ -67,25 +83,36 @@ def classement():
     rnd = bool(data.get("random"))
     colonne = _CLASSEMENT_COLONNES[rnd]
     try:
-        lignes = get_db().execute(
+        base = get_db()
+        lignes = base.execute(
             "SELECT * FROM users ORDER BY %s DESC, pseudo ASC LIMIT %d"
             % (colonne, _CLASSEMENT_TAILLE)).fetchall()
+        # MON rang : combien de comptes me precedent, plus un. Le depart
+        # est exactement celui de la liste — melo decroissant, puis pseudo
+        # croissant — sinon deux joueurs pourraient se dire du meme rang.
+        moi = dict(base.execute(
+            "SELECT * FROM users WHERE id=?", (me["id"],)).fetchone() or {})
+        mon_melo = _classement_melo(moi, colonne)
+        devant = base.execute(
+            "SELECT COUNT(*) AS n FROM users WHERE %s > ?"
+            " OR (%s = ? AND pseudo < ?)" % (colonne, colonne),
+            (mon_melo, mon_melo, moi.get("pseudo") or "")).fetchone()["n"]
     except Exception:
         return jsonify({"ok": False, "error": "Classement indisponible"}), 500
-    joueurs = []
-    for rang, ligne in enumerate(lignes, 1):
-        d = dict(ligne)
-        try:
-            melo = int(d.get(colonne) or 1500)
-        except Exception:
-            melo = 1500
-        joueurs.append({
+    joueurs = [
+        {
             "rang": rang,
-            "pseudo": d.get("pseudo") or "",
-            "melo": melo,
-            "photo": d.get("photo") or "",
-        })
-    return jsonify({"ok": True, "random": rnd, "joueurs": joueurs})
+            "pseudo": dict(ligne).get("pseudo") or "",
+            "melo": _classement_melo(dict(ligne), colonne),
+            "photo": dict(ligne).get("photo") or "",
+        }
+        for rang, ligne in enumerate(lignes, 1)
+    ]
+    return jsonify({"ok": True, "random": rnd, "joueurs": joueurs,
+                    "moi": {"rang": devant + 1,
+                            "pseudo": moi.get("pseudo") or "",
+                            "melo": mon_melo,
+                            "photo": moi.get("photo") or ""}})
 
 
 @flask_app.route("/env_liste", methods=["POST"])'''

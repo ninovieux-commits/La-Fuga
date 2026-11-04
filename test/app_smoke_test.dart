@@ -174,10 +174,27 @@ void main() {
     expect(find.byType(GameScreen), findsOneWidget);
     final screen = tester.widget<GameScreen>(find.byType(GameScreen));
     expect(screen.aiCamp, isNull);
-    expect(screen.cadence.wire, '15', reason: 'cadence par défaut du menu');
+    // AUCUNE CADENCE N'EST COCHÉE en arrivant : la partie locale part alors
+    // sans chrono. Nino : « si on clique sur jouer en local, ça lance une
+    // partie en local sans limite chrono. »
+    expect(screen.cadence.wire, 'zen', reason: 'sans cadence, pas de chrono');
     // Les panneaux portent les noms des joueurs, comme en Kivy.
     expect(find.text('Joueur 1'), findsOneWidget);
     expect(find.text('Joueur 2'), findsOneWidget);
+  });
+
+  testWidgets('une cadence choisie, la partie locale la prend', (tester) async {
+    await bootApp(tester);
+    // `tap` et non `tapVisible` : amener la rangée des cadences sous les
+    // yeux la glisse sous le bandeau du haut, qui recevrait le doigt.
+    await tester.tap(find.text('5 min'));
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.text('Jouer en local'));
+
+    expect(
+      tester.widget<GameScreen>(find.byType(GameScreen)).cadence.wire,
+      '5',
+    );
   });
 
   testWidgets('le jeu en ligne demande de se connecter', (tester) async {
