@@ -281,4 +281,61 @@ void main() {
       );
     });
   });
+
+  group('La barre de séparation se touche', () {
+    /// Où en est le défilement du menu.
+    ScrollPosition defilement(WidgetTester tester) =>
+        tester.state<ScrollableState>(find.byType(Scrollable).first).position;
+
+    testWidgets('elle descend aux parties par correspondance', (tester) async {
+      await ouvre(tester);
+      expect(defilement(tester).pixels, 0, reason: 'on part du haut');
+
+      await tester.tap(find.byType(AnimatedContainer).first);
+      await tester.pumpAndSettle();
+
+      final position = defilement(tester);
+      expect(position.pixels, greaterThan(0), reason: 'ça a défilé');
+
+      // Nino : « ça fait défiler l'écran jusqu'à ce que ce soit comme sur la
+      // photo » — le trait sous les deux touches du bandeau — « s'il n'y a
+      // pas assez d'aperçus pour descendre aussi bas, ça descend le plus bas
+      // possible ».
+      final place = SH(0.015) + touchHeight() + intervalleDuMenu();
+      final haut = tester.getRect(find.byType(AnimatedContainer).first).top;
+      final enBas = position.pixels >= position.maxScrollExtent - 0.5;
+      expect(
+        enBas || haut <= place + 1,
+        isTrue,
+        reason:
+            'le trait doit monter à $place, ou le menu descendre au bout — '
+            'trait à $haut, défilement ${position.pixels} sur '
+            '${position.maxScrollExtent}',
+      );
+    });
+
+    testWidgets('la surface sensible vaut une touche, pas un trait', (
+      tester,
+    ) async {
+      await ouvre(tester);
+      final trait = tester.getRect(find.byType(AnimatedContainer).first);
+      final sensible = tester.getRect(
+        find
+            .ancestor(
+              of: find.byType(AnimatedContainer).first,
+              matching: find.byType(GestureDetector),
+            )
+            .first,
+      );
+      expect(
+        sensible.height,
+        greaterThan(trait.height * 3),
+        reason: 'un trait de onze points est une cible de quatre millimètres',
+      );
+      expect(
+        sensible.height,
+        moreOrLessEquals(trait.height + 2 * intervalleDuMenu(), epsilon: 0.5),
+      );
+    });
+  });
 }

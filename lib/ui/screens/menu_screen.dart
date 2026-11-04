@@ -275,6 +275,9 @@ class MenuScreenState extends State<MenuScreen>
   /// Ce que le volet rendra en se refermant, pour qui l'attend.
   Completer<Object?>? _reponseDuVolet;
 
+  /// La barre de séparation, pour savoir où elle est quand on la touche.
+  final GlobalKey _cleDuTrait = GlobalKey();
+
   final ScrollController _scroll = ScrollController();
   late final List<MenuTourStop> _tour = loadMenuTour();
 
@@ -1711,16 +1714,13 @@ class MenuScreenState extends State<MenuScreen>
                 _wide(_searchRow(palette)),
                 SizedBox(height: intervalleDuMenu()),
                 _wide(_quatreTouches(palette)),
-                SizedBox(height: intervalleDuMenu()),
 
+                // LE TRAIT PORTE SES DEUX INTERLIGNES : celui qui le sépare
+                // des touches, et celui qui le sépare du bord de l'écran.
+                // Nino : « il doit y avoir le même espace entre la barre de
+                // séparation et le bord de l'écran qu'entre la barre de
+                // séparation et les touches qui sont au-dessus. »
                 _separateur(palette),
-                // ET LE MÊME INTERSTICE SOUS ELLE QUE PARTOUT AILLEURS.
-                // Nino : « pas tout en bas de la page, contre le rebord de
-                // l'écran. Là, c'est nul à chier. Il doit y avoir le même
-                // espace entre la barre de séparation et le bord de l'écran
-                // qu'entre la barre de séparation et les touches qui sont
-                // au-dessus. »
-                SizedBox(height: intervalleDuMenu()),
               ],
             ),
           ),
@@ -2064,31 +2064,75 @@ class MenuScreenState extends State<MenuScreen>
     final attend = _corrGames.any(
       (g) => g.myTurn || (g.status == CorrStatus.defi && !g.isChallenger),
     );
-    return Center(
-      child: FractionallySizedBox(
-        widthFactor: 0.62,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          // DIX FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait pas
-          // qu'elle était allumée : « c'est juste beaucoup trop fin. » Un
-          // voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
-          // dix-sept thèmes, essayé à ×3, revenu à ×2,5 : « finalement 2,5
-          // c'était pas mal. »
-          height: S(kEpaisseurDuVoyant),
-          decoration: BoxDecoration(
-            // ÉTEINTE, ELLE EST GRISE COMME UNE TOUCHE, pas noire : elle
-            // appartient au menu, et seul son contour est noir — comme pour
-            // tout le reste. Nino : « la barre de séparation doit être grise
-            // comme les touches du menu. Seul le contour doit être noir. »
-            color: attend ? couleurAllumee(palette) : kGrisTouche,
-            // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
-            // ronds, et le restent si l'épaisseur change encore.
-            borderRadius: BorderRadius.circular(S(kEpaisseurDuVoyant / 2)),
-            // Le trait noir des touches, autour du voyant.
-            border: const Border.fromBorderSide(kTraitDeTouche),
+    // ELLE PORTE SES DEUX INTERLIGNES, et c'est ce qui lui donne de quoi
+    // être touchée. Nino : « lorsqu'on clique sur la barre de séparation, ça
+    // fait défiler l'écran. » Un trait de onze points de haut est une cible
+    // de quatre millimètres : en lui confiant l'écart qui le précède et
+    // celui qui le suit — que la colonne posait à côté de lui —, la surface
+    // sensible passe à cinquante points sans qu'un pixel bouge à l'écran.
+    final interligne = intervalleDuMenu();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _versLesParties,
+      child: SizedBox(
+        height: 2 * interligne + S(kEpaisseurDuVoyant),
+        child: Center(
+          child: FractionallySizedBox(
+            widthFactor: 0.62,
+            child: AnimatedContainer(
+              key: _cleDuTrait,
+              duration: const Duration(milliseconds: 220),
+              // DIX FOIS LE TRAIT, et non quatre. À quatre, Nino ne voyait pas
+              // qu'elle était allumée : « c'est juste beaucoup trop fin. » Un
+              // voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
+              // dix-sept thèmes, essayé à ×3, revenu à ×2,5 : « finalement 2,5
+              // c'était pas mal. »
+              height: S(kEpaisseurDuVoyant),
+              decoration: BoxDecoration(
+                // ÉTEINTE, ELLE EST GRISE COMME UNE TOUCHE, pas noire : elle
+                // appartient au menu, et seul son contour est noir — comme
+                // pour tout le reste. Nino : « la barre de séparation doit
+                // être grise comme les touches du menu. Seul le contour doit
+                // être noir. »
+                color: attend ? couleurAllumee(palette) : kGrisTouche,
+                // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
+                // ronds, et le restent si l'épaisseur change encore.
+                borderRadius: BorderRadius.circular(S(kEpaisseurDuVoyant / 2)),
+                // Le trait noir des touches, autour du voyant.
+                border: const Border.fromBorderSide(kTraitDeTouche),
+              ),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Descend jusqu'aux parties par correspondance, d'un doigt sur le trait.
+  ///
+  /// Nino : « lorsqu'on clique sur la barre de séparation, ça fait défiler
+  /// l'écran jusqu'à ce que ce soit comme sur la photo que je t'ai envoyée.
+  /// S'il n'y a pas assez d'aperçus pour descendre aussi bas, ça descend le
+  /// plus bas possible. »
+  ///
+  /// Sur sa photo, le trait vient se ranger juste sous les deux touches du
+  /// bandeau, à un interligne d'elles : le menu disparaît, la liste des
+  /// parties prend tout l'écran. On vise donc cette place-là, et le `clamp`
+  /// fait le reste quand la liste est trop courte pour y arriver.
+  Future<void> _versLesParties() async {
+    final trait = _cleDuTrait.currentContext?.findRenderObject();
+    if (trait is! RenderBox || !_scroll.hasClients) return;
+    final hautDuTrait = trait.localToGlobal(Offset.zero).dy;
+    // La place que prend le bandeau du haut, et l'interligne sous lui.
+    final place = SH(0.015) + touchHeight() + intervalleDuMenu();
+    final cible = (_scroll.offset + hautDuTrait - place).clamp(
+      0.0,
+      _scroll.position.maxScrollExtent,
+    );
+    await _scroll.animateTo(
+      cible,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOut,
     );
   }
 
