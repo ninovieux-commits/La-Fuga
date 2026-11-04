@@ -1623,7 +1623,7 @@ class MenuScreenState extends State<MenuScreen>
           _grosseTouche(
             cle: _tourKeys['ai'],
             symbole: (couleur) => PictoTouche(
-              asset: 'assets/images/buste.webp',
+              asset: 'assets/images/deepgrey_silhouette.webp',
               couleur: couleur,
               secours: '☗',
               part: 1,
@@ -1736,12 +1736,13 @@ class MenuScreenState extends State<MenuScreen>
 
   /// Le gros « + » d'« Autres » — celui du bandeau fin du haut, où il ouvre
   /// déjà le même genre de popup. Nino : « pour "autres" dessine un gros plus
-  /// comme dans le bandeau fin du haut ».
+  /// comme dans le bandeau fin du haut ». Il n'y a pas de fichier pour
+  /// celui-là : c'est le glyphe de la police, comme dans le bandeau.
   ///
   /// Le glyphe « + » n'occupe qu'environ la moitié de son cadratin : écrit à
   /// la taille de la place qu'on lui laisse, il y paraîtrait deux fois plus
-  /// petit que les trois dessins voisins. On l'écrit donc au DOUBLE, et on
-  /// laisse déborder le blanc qui l'entoure — il ne se voit pas.
+  /// petit que les trois dessins voisins. On l'écrit donc plus grand que sa
+  /// boîte, et on laisse déborder le blanc qui l'entoure — il ne se voit pas.
   Widget _signePlus(Color couleur) => LayoutBuilder(
     builder: (context, boite) => Center(
       child: OverflowBox(
@@ -1751,7 +1752,9 @@ class MenuScreenState extends State<MenuScreen>
           texte: '+',
           couleur: couleur,
           style: TextStyle(
-            fontSize: boite.maxHeight * 2,
+            // Le double, puis ×0,7 : à ×2 il écrasait ses trois voisins.
+            // Nino : « le + est trop gros. Multiplie-le par 0,7. »
+            fontSize: boite.maxHeight * 2 * 0.7,
             fontWeight: FontWeight.bold,
             height: 1,
           ),
@@ -1825,7 +1828,10 @@ class MenuScreenState extends State<MenuScreen>
           child: FugaButton(
             key: _tourKeys['fav'],
             text: '★',
-            fontSize: SF(18),
+            // ×1,3 : seule de sa rangée à être un dessin, elle paraissait
+            // menue à côté du mot d'à côté. Nino : « l'étoile est trop
+            // petite. Multiplie-la par 1,3. »
+            fontSize: SF(18 * 1.3),
             height: double.infinity,
             radius: S(12),
             // EN COULEUR 1 DU THÈME, et cernée comme le reste — le cerne lui

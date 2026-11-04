@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Fabrique les deux dessins qui manquaient au menu : le podium et le buste.
+"""Fabrique les deux dessins qui manquaient au menu : le podium et Deep Grey.
 
 Les quatre grosses touches du menu portent un symbole, comme en partie :
 `chat.webp` existait déjà pour « conversations », il fallait les deux autres.
 Nino : « je t'ai joint le nouveau symbole pour classement » — c'est le podium,
-qu'on DÉCALQUE de son image ; et pour « affronter Deep Grey » il a dessiné une
-silhouette, qu'on TRACE, parce qu'un dessin géométrique reste net là où un
-décalque de photo bave.
+qu'on DÉCALQUE de son image ; et « pour la touche de Deep Grey je voudrais
+avoir la silhouette exacte de l'image de profil de deepgrey comme symbole » —
+c'est son portrait, dont le canal alpha EST la silhouette.
 
 Un dessin de touche est, comme ses huit voisins : 192 × 192, BLANC sur fond
 transparent (c'est le thème qui le teinte), tenant dans un carré de 172 pour
@@ -16,12 +16,11 @@ Usage : python3 tool/gen_pictos_menu.py <podium_source.jpeg>
 """
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 COTE = 192
 MARGE = 10
 DEDANS = COTE - 2 * MARGE  # 172
-FIN = 4  # on dessine quatre fois trop grand, puis on réduit : bords lisses
 
 # Le fond de l'image du podium est clair, la forme est d'un gris foncé, et
 # les chiffres sont blancs À L'INTÉRIEUR de la forme. On prend donc pour
@@ -56,25 +55,19 @@ def podium(source):
     return blanc_sur_transparent(alpha)
 
 
-def buste():
-    """Tête et épaules, comme sur le croquis : deux formes, un court écart."""
-    d = DEDANS * FIN
-    toile = Image.new('L', (d, d), 0)
-    crayon = ImageDraw.Draw(toile)
-    # La tête : un disque, dans le tiers haut.
-    rayon = round(0.185 * d)
-    cx, cy = d // 2, round(0.205 * d)
-    crayon.ellipse([cx - rayon, cy - rayon, cx + rayon, cy + rayon], fill=255)
-    # Les épaules : un rectangle aux deux coins hauts très arrondis, posé au
-    # bas de la boîte. L'écart avec la tête laisse passer le trait noir entre
-    # les deux, sans quoi la silhouette devient une seule masse illisible.
-    haut = round(0.465 * d)
-    cote = round(0.085 * d)
-    crayon.rounded_rectangle(
-        [cote, haut, d - cote, d], radius=round(0.34 * d), fill=255,
-        corners=(True, True, False, False),
-    )
-    return blanc_sur_transparent(toile)
+def silhouette_deepgrey():
+    """La silhouette EXACTE du portrait de Deep Grey.
+
+    Nino : « pour la touche de Deep Grey je voudrais avoir la silhouette
+    exacte de l'image de profil de deepgrey comme symbole. » Le portrait est
+    deja detoure — fond transparent, figure opaque : sa silhouette est donc
+    son canal alpha, couronne comprise, et il n'y a rien a decalquer. On la
+    rend franche (tout ou rien au-dessus de la moitie) pour que le trait noir
+    du picto tombe net plutot que de baver dans le degrade du bord.
+    """
+    portrait = Image.open('assets/images/deepgrey.webp').convert('RGBA')
+    alpha = portrait.split()[3].point(lambda v: 255 if v >= 128 else 0)
+    return blanc_sur_transparent(alpha)
 
 
 def ecrire(image, chemin):
@@ -86,7 +79,7 @@ def main():
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     ecrire(podium(sys.argv[1]), 'assets/images/podium.webp')
-    ecrire(buste(), 'assets/images/buste.webp')
+    ecrire(silhouette_deepgrey(), 'assets/images/deepgrey_silhouette.webp')
 
 
 if __name__ == '__main__':

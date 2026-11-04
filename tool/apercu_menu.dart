@@ -72,7 +72,7 @@ Future<void> main() async {
         for (final asset in [
           'assets/images/chat.webp',
           'assets/images/podium.webp',
-          'assets/images/buste.webp',
+          'assets/images/deepgrey_silhouette.webp',
           'assets/images/titre.webp',
         ]) {
           await precacheImage(
