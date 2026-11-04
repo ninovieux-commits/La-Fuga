@@ -18,6 +18,7 @@ import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/classement_volet.dart';
@@ -87,10 +88,23 @@ void main() {
     await online.connectSocket();
   });
 
-  Future<void> ouvreLeClassement(WidgetTester tester) async {
+  /// L'écran d'un téléphone, et son ÉCHELLE.
+  ///
+  /// Dire sa taille à `tester.view` ne suffit pas : sans [FugaScale]
+  /// au-dessus — et il n'y en a pas ici, `MenuScreen` étant posé sous un
+  /// `MaterialApp` nu — l'échelle se lit sur la fenêtre du banc d'essai,
+  /// qui reste à 800 × 600. Les écritures sortaient alors deux fois trop
+  /// grandes pour leur écran.
+  void unTelephone(WidgetTester tester) {
+    setScaleSize(const Size(393, 851));
     tester.view.physicalSize = const Size(393, 851);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    addTearDown(resetScale);
+  }
+
+  Future<void> ouvreLeClassement(WidgetTester tester) async {
+    unTelephone(tester);
     await tester.pumpWidget(MaterialApp(home: MenuScreen(online: online)));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Classement'));
@@ -149,9 +163,7 @@ void main() {
   testWidgets('les favoris aussi laissent le bandeau accessible', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(393, 851);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    unTelephone(tester);
     await tester.pumpWidget(MaterialApp(home: MenuScreen(online: online)));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('\u2605'));

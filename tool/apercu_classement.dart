@@ -69,6 +69,13 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     resetScale();
+    // L'ÉCHELLE À LA MAIN. Sans [FugaScale] au-dessus — et il n'y en a pas
+    // ici, puisqu'on pose `MenuScreen` sous un `MaterialApp` nu — l'échelle
+    // se lit sur la fenêtre du banc d'essai, qui reste à 800 × 600 quoi
+    // qu'on dise à `tester.view`. L'aperçu sortait alors avec des
+    // écritures presque deux fois trop grandes pour son écran, et Nino a
+    // cru les mélos énormes : ils ne le sont que sur l'aperçu.
+    setScaleSize(const Size(393, 851));
     tester.view.physicalSize = const Size(393, 851);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
