@@ -62,19 +62,22 @@ class PastilleNonLue extends StatefulWidget {
 /// repeindre la pastille là où elle se trouve, fût-ce sous un autre écran.
 class _PastilleNonLueState extends State<PastilleNonLue> with SuitLesReglages {
   @override
-  Widget build(BuildContext context) => Container(
-    width: widget.cote,
-    height: widget.cote,
-    decoration: BoxDecoration(
-      color:
-          widget.couleur ??
-          paletteOf(Settings.instance.themeAxes.general).clair,
-      shape: BoxShape.circle,
-      // Le trait noir des touches : la pastille se détache de n'importe quel
-      // fond, clair comme sombre.
-      border: const Border.fromBorderSide(kTraitDeTouche),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final fond =
+        widget.couleur ?? paletteOf(Settings.instance.themeAxes.general).clair;
+    return Container(
+      width: widget.cote,
+      height: widget.cote,
+      decoration: BoxDecoration(
+        color: fond,
+        shape: BoxShape.circle,
+        // Le trait des touches : la pastille se détache de n'importe quel
+        // fond, clair comme sombre. Blanc autour d'une pastille noire — la
+        // couleur 1 d'un thème composé à la main peut l'être.
+        border: Border.fromBorderSide(traitDeTouche(fond)),
+      ),
+    );
+  }
 }
 
 /// La pastille POSÉE SUR UNE TOUCHE.

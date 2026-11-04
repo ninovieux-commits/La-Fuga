@@ -18,13 +18,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/widgets/auto_play_bar.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:lafuga/ui/widgets/picto_touche.dart';
+import 'package:lafuga/ui/widgets/unread_dot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Key _cadre = Key('cadre');
 
-/// Combien de pixels franchement blancs, et franchement noirs.
+/// Combien de pixels franchement PLUS CLAIRS que le gris de fond, et
+/// combien franchement plus sombres.
+///
+/// Pas « blancs » et « noirs » au sens strict : la couronne ne fait qu'un
+/// demi-point de large à l'échelle d'un essai, et ses pixels sortent mêlés
+/// au gris. Ce qui se mesure, c'est qu'il y a bien du clair là où il n'y
+/// avait que du noir.
 Future<({int blancs, int noirs})> _compte(
   WidgetTester tester,
   Widget enfant, {
@@ -73,8 +81,8 @@ Future<({int blancs, int noirs})> _compte(
   for (var i = 0; i < pixels.lengthInBytes; i += 4) {
     final somme =
         pixels.getUint8(i) + pixels.getUint8(i + 1) + pixels.getUint8(i + 2);
-    if (somme > 720) blancs++;
-    if (somme < 45) noirs++;
+    if (somme > 560) blancs++;
+    if (somme < 200) noirs++;
   }
   return (blancs: blancs, noirs: noirs);
 }
@@ -173,6 +181,36 @@ void main() {
       asset: 'assets/images/podium.webp',
     );
     expect(gris.blancs, lessThan(5), reason: 'sa couronne reste noire');
+  });
+
+  testWidgets('les signes DESSINÉS se cernent eux aussi', (tester) async {
+    // Nino, montrant le retour au début du mode lecture sous Deep Grey :
+    // « pourquoi ce bouton ne prend pas le contour blanc ? » Les trois
+    // signes de la lecture sont tracés à la main, hors de [PictoTouche] :
+    // leur couronne était restée noire en dur.
+    for (final (nom, signe) in [
+      ('début', const GlypheDebut(taille: 40, couleur: Color(0xFF000000))),
+      ('pause', const GlyphePause(taille: 40, couleur: Color(0xFF000000))),
+      ('lecture', const GlyphePlay(taille: 40, couleur: Color(0xFF000000))),
+    ]) {
+      final vu = await _compte(tester, Center(child: signe));
+      expect(vu.noirs, greaterThan(100), reason: 'le signe $nom est noir');
+      expect(vu.blancs, greaterThan(20), reason: 'sa couronne est blanche');
+    }
+  });
+
+  testWidgets('une pastille noire se cerne de blanc', (tester) async {
+    final noire = await _compte(
+      tester,
+      const Center(child: PastilleNonLue(cote: 40, couleur: Color(0xFF000000))),
+    );
+    expect(noire.blancs, greaterThan(20), reason: 'son trait est blanc');
+
+    final claire = await _compte(
+      tester,
+      const Center(child: PastilleNonLue(cote: 40, couleur: Color(0xFFFFFFFF))),
+    );
+    expect(claire.noirs, greaterThan(20), reason: 'son trait reste noir');
   });
 
   testWidgets('sur une touche noire, le mot s écrit en noir', (tester) async {

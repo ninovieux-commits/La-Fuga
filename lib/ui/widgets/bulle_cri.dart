@@ -208,7 +208,7 @@ class PeintreBulleCri extends CustomPainter {
     // le portent donc comme le reste. Il est centré sur le tracé, d'où le
     // double — c'est le même piège que pour les mots.
     final trait = Paint()
-      ..color = const Color(0xFF000000)
+      ..color = contourDe(fond)
       ..style = PaintingStyle.stroke
       ..strokeWidth = kTraitPicto * 2
       ..strokeJoin = StrokeJoin.round;

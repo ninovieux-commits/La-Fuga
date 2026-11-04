@@ -595,7 +595,7 @@ final class _PausePainter extends CustomPainter {
     // suit, donc la moitié part en dedans, sous la couleur. À épaisseur
     // égale, la pause n'en montrait que la moitié de ses voisines.
     final trait = Paint()
-      ..color = Colors.black
+      ..color = contourDe(couleur)
       ..style = PaintingStyle.stroke
       ..strokeWidth = kTraitPicto * 2;
     final radius = Radius.circular(barWidth / 2);

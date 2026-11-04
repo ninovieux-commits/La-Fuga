@@ -279,14 +279,17 @@ Widget _signe(double taille, Color couleur, Path Function(Size) tracer) =>
       child: CustomPaint(painter: _PeintreSigne(couleur, tracer)),
     );
 
-/// Le peintre commun aux trois signes : le trait noir, puis la couleur.
+/// Le peintre commun aux trois signes : le trait, puis la couleur.
 ///
 /// LE MÊME CONTOUR QUE LES AUTRES SYMBOLES. Nino : « j'aimerais que ça
 /// reproduise fidèlement les formes des angles/arrondis, que ce soit pour ce
 /// nouveau symbole comme pour tous ceux qu'on a mis jusque-là ». Le contour
 /// est donc la forme elle-même, reposée [kCopiesDuBord] fois en couronne à
 /// [kTraitPicto] de rayon — une vraie dilatation par un disque, comme pour les
-/// pictos et les mots.
+/// pictos et les mots — et, comme eux, il passe au BLANC autour d'un signe
+/// noir. Nino, montrant le retour au début sous Deep Grey : « pourquoi ce
+/// bouton ne prend pas le contour blanc ? » Il prend la couleur 2 du thème,
+/// devenue le noir : sa couronne noire ne le détachait plus de rien.
 class _PeintreSigne extends CustomPainter {
   const _PeintreSigne(this.couleur, this.tracer);
 
@@ -296,13 +299,13 @@ class _PeintreSigne extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final forme = tracer(size);
-    final noir = Paint()..color = const Color(0xFF000000);
+    final cerne = Paint()..color = contourDe(couleur);
     final rayon = S(kTraitPicto);
     for (var i = 0; i < kCopiesDuBord; i++) {
       final angle = 2 * math.pi * i / kCopiesDuBord;
       canvas.save();
       canvas.translate(rayon * math.cos(angle), rayon * math.sin(angle));
-      canvas.drawPath(forme, noir);
+      canvas.drawPath(forme, cerne);
       canvas.restore();
     }
     canvas.drawPath(forme, Paint()..color = couleur);

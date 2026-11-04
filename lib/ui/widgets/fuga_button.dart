@@ -82,6 +82,10 @@ const BorderSide kTraitDeTouche = BorderSide(
   width: kTraitPicto,
 );
 
+/// Ce même trait, autour d'une forme de [fond] : blanc si elle est noire.
+BorderSide traitDeTouche(Color fond) =>
+    BorderSide(color: contourDe(fond), width: kTraitPicto);
+
 /// L'encre d'un mot posé sur une touche de [fond].
 ///
 /// Blanche partout, comme depuis toujours — SAUF sur une touche noire, où

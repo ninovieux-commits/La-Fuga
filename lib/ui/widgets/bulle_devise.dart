@@ -148,7 +148,7 @@ class _BullePointue extends CustomPainter {
     // d'où le double, et rogné à la forme pour que la bulle ne grossisse pas
     // d'un cheveu — le même piège que pour les bulles de la messagerie.
     final trait = Paint()
-      ..color = const Color(0xFF000000)
+      ..color = contourDe(couleur)
       ..style = PaintingStyle.stroke
       ..strokeWidth = kTraitPicto * 2
       ..strokeJoin = StrokeJoin.round;
