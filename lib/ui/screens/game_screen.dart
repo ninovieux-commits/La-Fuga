@@ -895,6 +895,7 @@ class _GameScreenState extends State<GameScreen>
                           _game.captured[bottomCamp.opposite] ?? const [],
                       palette: palette,
                       hautEstBlanc: topCamp == Camp.blanc,
+                      theme: axes.pieces,
                     )
                   : _tickingPanel(palette, topCamp, mirrored: false),
               // Les deux lignes de prises tiennent dans la hauteur d'une pièce :
@@ -1162,6 +1163,7 @@ class _GameScreenState extends State<GameScreen>
       isWhite: camp == Camp.blanc,
       isTurn: _game.turn == camp && !_game.gameOver,
       captures: _game.captured[camp.opposite] ?? const [],
+      theme: Settings.instance.themeAxes.pieces,
       // Deep Grey a son portrait ; MA photo ne va qu'à MOI. En local à deux,
       // le second joueur n'est pas un compte : il garde la pièce par défaut.
       // Sans cette distinction, les deux avatars portaient ma photo.

@@ -336,6 +336,7 @@ class _ReplayScreenState extends State<ReplayScreen>
                       false,
                   captures:
                       _replay.current.captured[bottomCamp.opposite] ?? const [],
+                  theme: axes.pieces,
                   secondes: _vitesse,
                   enLecture: _enLecture,
                   onTempo: _setVitesse,
@@ -392,6 +393,7 @@ class _ReplayScreenState extends State<ReplayScreen>
       isWhite: camp == Camp.blanc,
       isTurn: _replay.current.turn == camp,
       captures: _replay.current.captured[camp.opposite] ?? const [],
+      theme: Settings.instance.themeAxes.pieces,
       score: _auto
           ? null
           : '0 / ${meta.objectif == 'partie' ? '1' : meta.objectif}',

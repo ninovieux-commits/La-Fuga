@@ -1105,6 +1105,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       isWhite: camp == Camp.blanc,
       isTurn: c.turn == camp && _g.status == CorrStatus.enCours,
       captures: c.captured[camp.opposite] ?? const [],
+      theme: Settings.instance.themeAxes.pieces,
       photo: isMine
           ? (OnlineService.instance.session?.photo ?? '')
           : _photoAdverse,

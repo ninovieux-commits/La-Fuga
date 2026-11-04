@@ -28,6 +28,7 @@ import 'picto_touche.dart';
 import 'bandeau_prises.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
+import 'theme_image_cache.dart';
 
 /// Encre des panneaux : le `(0.05, 0.05, 0.05)` de Kivy, sur le gris des
 /// menus.
@@ -39,23 +40,53 @@ const Color kResignRed = Color.fromRGBO(140, 26, 26, 1);
 /// Les pièces prises, dessinées en chevauchement — portage de
 /// `CapturesWidget`.
 class CapturesStrip extends StatelessWidget {
-  const CapturesStrip({super.key, required this.pieces, required this.palette});
+  const CapturesStrip({
+    super.key,
+    required this.pieces,
+    required this.palette,
+    this.theme,
+  });
 
   final List<Piece> pieces;
   final ThemePalette palette;
 
+  /// Le thème des PIÈCES — `Settings.themeAxes.pieces`.
+  ///
+  /// Nino : « les pièces mangées doivent toujours avoir le même design que
+  /// sur le plateau. Peu importe le thème. » Une pièce prise se dessinait
+  /// avec le seul rendu géométrique : sous un thème à images, la même pièce
+  /// était une image sur le plateau et un dessin dans le bandeau.
+  ///
+  /// Nul = rendu géométrique sans thème, ce qui reste le repli quand le
+  /// bandeau ne sait pas de quel thème il s'agit.
+  final String? theme;
+
   @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: Size.infinite,
-    painter: _CapturesPainter(pieces, palette),
-  );
+  Widget build(BuildContext context) {
+    final t = theme;
+    if (t == null) {
+      return CustomPaint(
+        size: Size.infinite,
+        painter: _CapturesPainter(pieces, palette, null, null),
+      );
+    }
+    return ThemeImagesBuilder(
+      theme: t,
+      builder: (context, images) => CustomPaint(
+        size: Size.infinite,
+        painter: _CapturesPainter(pieces, palette, images, t),
+      ),
+    );
+  }
 }
 
 class _CapturesPainter extends CustomPainter {
-  const _CapturesPainter(this.pieces, this.palette);
+  const _CapturesPainter(this.pieces, this.palette, this.images, this.theme);
 
   final List<Piece> pieces;
   final ThemePalette palette;
+  final LoadedThemeImages? images;
+  final String? theme;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -78,13 +109,23 @@ class _CapturesPainter extends CustomPainter {
         pieces[i],
         palette,
         outlineWidth: S(1),
+        images: images,
+        theme: theme,
+        // L'arc-en-ciel colore chaque pièce selon SA CASE, et une pièce
+        // prise n'en a plus. Son rang dans la bande tient ce rôle : les
+        // couleurs sont celles du plateau, et deux prises voisines ne se
+        // confondent pas.
+        rainbowFraction: rainbowFractionOf(i, 0),
       );
     }
   }
 
   @override
   bool shouldRepaint(_CapturesPainter old) =>
-      old.pieces.length != pieces.length || old.palette != palette;
+      old.pieces.length != pieces.length ||
+      old.palette != palette ||
+      old.images != images ||
+      old.theme != theme;
 }
 
 /// La touche carrée des rangées d'action — ↶, message rapide, drapeau.
@@ -206,6 +247,7 @@ class PlayerPanel extends StatelessWidget {
     this.onDraw,
     this.onResign,
     this.onMessageRapide,
+    this.theme,
   });
 
   final String name;
@@ -216,6 +258,9 @@ class PlayerPanel extends StatelessWidget {
 
   /// Pièces prises par ce joueur.
   final List<Piece> captures;
+
+  /// Le thème des pièces, pour que les prises aient le dessin du plateau.
+  final String? theme;
 
   final String photo;
 
@@ -482,7 +527,7 @@ class PlayerPanel extends StatelessWidget {
   Widget _actions(BuildContext context) => Row(
     children: [
       Expanded(
-        child: CapturesStrip(pieces: captures, palette: palette),
+        child: CapturesStrip(pieces: captures, palette: palette, theme: theme),
       ),
       // L'ANNULATION EN TÊTE, et c'est une question de place fixe. Nino :
       // « chaque bouton sur les écrans de jeux doit être fixé, ne jamais

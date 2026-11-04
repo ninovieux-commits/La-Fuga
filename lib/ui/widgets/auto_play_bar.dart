@@ -44,12 +44,16 @@ class AutoPlayBar extends StatelessWidget {
     this.photo = '',
     this.favori = false,
     this.onNameTap,
+    this.theme,
   });
 
   final ThemePalette palette;
 
   /// Les pièces sorties, comme dans le bandeau d'un joueur.
   final List<Piece> captures;
+
+  /// Le thème des pièces, pour que les prises aient le dessin du plateau.
+  final String? theme;
 
   /// Temps entre deux coups, en secondes.
   final double secondes;
@@ -140,7 +144,7 @@ class AutoPlayBar extends StatelessWidget {
   Widget _touches(double rangee) => Row(
     children: [
       Expanded(
-        child: CapturesStrip(pieces: captures, palette: palette),
+        child: CapturesStrip(pieces: captures, palette: palette, theme: theme),
       ),
       ToucheAction(
         tooltip: T('Début'),

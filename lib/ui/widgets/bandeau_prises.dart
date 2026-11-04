@@ -53,6 +53,7 @@ class BandeauPrises extends StatelessWidget {
     required this.hautEstBlanc,
     this.avecAnnuler = false,
     this.onAnnuler,
+    this.theme,
   });
 
   /// Les pièces prises par le camp du HAUT — donc celles de l'autre.
@@ -65,6 +66,9 @@ class BandeauPrises extends StatelessWidget {
 
   /// Quel camp occupe la ligne du haut : il donne sa couleur de fond.
   final bool hautEstBlanc;
+
+  /// Le thème des pièces, pour que les prises aient le dessin du plateau.
+  final String? theme;
 
   /// Cet écran a-t-il une touche d'annulation ? L'analyse n'en a pas ; les
   /// pré-coups, si.
@@ -86,7 +90,7 @@ class BandeauPrises extends StatelessWidget {
     height: S(kLignePrises),
     color: blanc ? palette.clairDim : palette.fonceDim,
     padding: EdgeInsets.symmetric(horizontal: S(8), vertical: S(3)),
-    child: CapturesStrip(pieces: pieces, palette: palette),
+    child: CapturesStrip(pieces: pieces, palette: palette, theme: theme),
   );
 
   @override

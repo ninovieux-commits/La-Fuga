@@ -636,6 +636,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       isWhite: camp == Camp.blanc,
       isTurn: _g.game.turn == camp && !_g.game.gameOver,
       captures: _g.game.captured[camp.opposite] ?? const [],
+      theme: Settings.instance.themeAxes.pieces,
       photo: isMine
           ? (OnlineService.instance.session?.photo ?? '')
           : _photoAdverse,

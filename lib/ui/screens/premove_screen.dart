@@ -214,6 +214,7 @@ class _PremoveScreenState extends State<PremoveScreen>
       prisesBas: _jeu.captured[campHaut] ?? const [],
       palette: palette,
       hautEstBlanc: campHaut == Camp.blanc,
+      theme: Settings.instance.themeAxes.pieces,
       // Nino : « j'aimerais le bouton pour annuler le coup en cours dans les
       // deux modes. » Ici le coup en cours est celui qu'on compose à la
       // main ; l'annuler rend la position d'avant, sans toucher aux
