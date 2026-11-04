@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../theme/themes.dart';
 import '../scale.dart';
 import 'picto_touche.dart';
 
@@ -35,6 +36,31 @@ const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 /// gris à elles le temps d'une étape — et, depuis la refonte du menu, TOUTE
 /// [FugaButton] à qui l'on ne donne pas de couleur.
 const Color kGrisTouche = Color.fromRGBO(128, 128, 128, 1);
+
+/// Épaisseur d'un VOYANT : la barre de séparation du menu, et le cadre qui
+/// entoure un aperçu de partie par correspondance.
+///
+/// Les deux disent la même chose — une partie attend votre coup — et Nino
+/// les veut de la même épaisseur : « le contour gris des aperçus de
+/// correspondance qui s'allume en couleur 1 quand c'est à nous de jouer
+/// (comme la barre de séparation) doit devenir de la même épaisseur que la
+/// barre de séparation en question. » Ce nombre est donc le leur, à tous
+/// les deux, et une seule valeur à changer si Nino la trouve encore mince.
+const double kEpaisseurDuVoyant = kTraitPicto * 10;
+
+/// La couleur d'un voyant ALLUMÉ.
+///
+/// C'est la couleur 1 du thème — sauf quand celle-ci EST le gris des
+/// touches. Le thème deepgrey peint ses deux couleurs en rgb(128, 128, 128),
+/// c'est-à-dire exactement [kGrisTouche] : allumé, le voyant y gardait la
+/// couleur qu'il a éteint, et ne disait plus rien. Nino : « en couleur
+/// système deepgrey ça s'allume en blanc (idem pour la barre de
+/// séparation). »
+///
+/// La règle se lit sur la COULEUR et non sur le nom du thème : un thème
+/// composé à la main qui tomberait sur ce gris-là est soigné du même coup.
+Color couleurAllumee(ThemePalette palette) =>
+    palette.clair == kGrisTouche ? Colors.white : palette.clair;
 
 /// Opacité d'une touche HORS SERVICE — le signe, partout dans l'application.
 ///

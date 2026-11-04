@@ -78,9 +78,9 @@ void main() {
     ];
   }
 
-  /// Hauteur intérieure d'une case de 178 de large : forme 7/8, moins la
-  /// marge de `S(6)` de chaque côté.
-  double innerHeight() => 178 * 8 / 7 - 2 * S(6);
+  /// Hauteur intérieure d'une case de 178 de large : forme 7/8, moins le
+  /// cadre, qui fait l'épaisseur d'un voyant de chaque côté.
+  double innerHeight() => 178 * 8 / 7 - 2 * S(kEpaisseurDuVoyant);
 
   testWidgets('un défi reçu : UNE touche, à 15 % de la case', (tester) async {
     // L'aperçu ne porte plus « Accepter » et « Refuser » : il annonce, et

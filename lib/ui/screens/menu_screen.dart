@@ -1784,16 +1784,16 @@ class MenuScreenState extends State<MenuScreen>
           // voyant doit se voir sans qu'on le cherche. Vu à ×2,5 sur les
           // dix-sept thèmes, essayé à ×3, revenu à ×2,5 : « finalement 2,5
           // c'était pas mal. »
-          height: S(kTraitPicto * 10),
+          height: S(kEpaisseurDuVoyant),
           decoration: BoxDecoration(
             // ÉTEINTE, ELLE EST GRISE COMME UNE TOUCHE, pas noire : elle
             // appartient au menu, et seul son contour est noir — comme pour
             // tout le reste. Nino : « la barre de séparation doit être grise
             // comme les touches du menu. Seul le contour doit être noir. »
-            color: attend ? palette.clair : kGrisTouche,
+            color: attend ? couleurAllumee(palette) : kGrisTouche,
             // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
             // ronds, et le restent si l'épaisseur change encore.
-            borderRadius: BorderRadius.circular(S(kTraitPicto * 5)),
+            borderRadius: BorderRadius.circular(S(kEpaisseurDuVoyant / 2)),
             // Le trait noir des touches, autour du voyant.
             border: const Border.fromBorderSide(kTraitDeTouche),
           ),
@@ -1843,8 +1843,12 @@ class MenuScreenState extends State<MenuScreen>
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: S(10),
-        crossAxisSpacing: S(10),
+        // PLUS D'AIR ENTRE LES PLATEAUX depuis que leur cadre a doublé
+        // d'épaisseur : deux cadres épais voisins se touchaient presque.
+        // Nino : « écarte un peu plus les plateaux les uns des autres au
+        // besoin. »
+        mainAxisSpacing: S(14),
+        crossAxisSpacing: S(14),
         childAspectRatio: 7 / 8,
       ),
       itemCount: count,

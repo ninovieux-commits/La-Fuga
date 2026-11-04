@@ -83,7 +83,13 @@ class CorrSlot extends StatelessWidget {
     final g = game;
     // Fond orange quand c'est à moi de jouer : la case se repère d'un coup
     // d'œil dans la grille.
-    final background = (g?.myTurn ?? false) ? palette.clair : kFugaGrey;
+    // Le cadre s'allume quand c'est à moi de jouer : la case se repère d'un
+    // coup d'œil dans la grille. Éteint, il est du gris de toutes les
+    // touches — Nino : « le gris quand ce n'est pas éclairé doit être le
+    // gris médian. »
+    final background = (g?.myTurn ?? false)
+        ? couleurAllumee(palette)
+        : kGrisTouche;
 
     return GestureDetector(
       onTap: onTap,
@@ -101,7 +107,12 @@ class CorrSlot extends StatelessWidget {
             border: const Border.fromBorderSide(kTraitDeTouche),
             borderRadius: BorderRadius.circular(S(10)),
           ),
-          padding: EdgeInsets.all(S(6)),
+          // L'ÉPAISSEUR DU VOYANT, et non six : ce cadre et la barre de
+          // séparation du menu disent la même chose, ils ont la même
+          // épaisseur. Le mini plateau rétrécit d'autant — Nino : « si
+          // vraiment tu n'as pas le choix tu peux les rétrécir très
+          // légèrement. »
+          padding: EdgeInsets.all(S(kEpaisseurDuVoyant)),
           child: Stack(
             fit: StackFit.expand,
             children: [
