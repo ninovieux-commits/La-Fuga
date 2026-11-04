@@ -57,14 +57,6 @@ import 'position_composer_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
 
-/// Marge, au bord de l'écran, de la bande où vivent les rangées de touches.
-///
-/// Les cadences la tenaient par deux marges emboîtées — S(14) sur la rangée,
-/// S(3) autour de chaque touche ; c'est leur somme, et elle a maintenant un
-/// nom, parce que la rangée des deux façons de jouer doit tomber EXACTEMENT
-/// au même alignement.
-const double kMargeDeLaBande = 17.0;
-
 /// Écart entre deux touches voisines d'une rangée de trois.
 const double kEcartDeLaBande = 6.0;
 
@@ -1767,10 +1759,17 @@ class MenuScreenState extends State<MenuScreen>
   /// un seul. Leurs largeurs additionnées diffèrent donc désormais d'un trou
   /// — c'est le prix d'un interstice unique, et c'est lui qui a été demandé
   /// en dernier.
+  ///
+  /// ET LA MARGE AU BORD DE L'ÉCRAN EST CE MÊME ÉCART. Elle valait S(17),
+  /// soit moins de la moitié ; la rangée paraissait donc collée aux deux
+  /// rebords. Nino : « j'aimerais que l'espace entre les boutons et l'écran
+  /// soit le même que l'espace entre toutes les touches. Il va donc falloir
+  /// que tu réduises la largeur des touches. » C'est bien ce qui arrive :
+  /// l'écart est posé le premier, les touches se partagent le reste.
   Widget _rangee({required List<Widget> touches, Key? cle}) {
     final ecart = intervalleDuMenu();
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: S(kMargeDeLaBande)),
+      padding: EdgeInsets.symmetric(horizontal: ecart),
       child: Row(
         key: cle,
         children: [

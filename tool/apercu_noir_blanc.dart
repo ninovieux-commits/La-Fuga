@@ -203,7 +203,7 @@ Future<void> main() async {
       final ecart = intervalleDuMenu();
 
       Widget rangee(List<Widget> touches) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: S(kMargeDeLaBande)),
+        padding: EdgeInsets.symmetric(horizontal: ecart),
         child: Row(
           children: [
             for (var i = 0; i < touches.length; i++) ...[

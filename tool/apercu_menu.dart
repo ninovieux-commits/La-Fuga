@@ -15,8 +15,10 @@ import 'package:flutter/services.dart' show FontLoader;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
+import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const Key _cadre = Key('ecran');
@@ -27,6 +29,84 @@ Future<void> main() async {
   // La cadence CHOISIE est celle du milieu : c'est la seule qui s'allume en
   // couleur 2, et donc la seule qui montre ce que devient une touche noire
   // sous Deep Grey.
+  // UN MESSAGE NON LU, pour voir la pastille là où Nino l'a vue de travers.
+  // Le menu est posé seul, sans `FugaApp`, parce qu'il faut pouvoir lui
+  // donner un service en ligne dont la boîte aux lettres a déjà reçu.
+  testWidgets('aperçu du menu avec un non-lu', (tester) async {
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues({
+      'lang_chosen': true,
+      'tuto_seen': true,
+      'theme': 'original',
+    });
+    await Settings.load();
+    await Translations.load('fr');
+    resetScale();
+    setScaleSize(const Size(393, 851));
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    addTearDown(resetScale);
+
+    await tester.runAsync(() async {
+      for (final (famille, chemin) in [
+        ('NotoSansCJK', 'assets/fonts/NotoSansCJKsc-Regular.otf'),
+        (
+          'Roboto',
+          '/opt/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
+        ),
+      ]) {
+        final police = FontLoader(famille)
+          ..addFont(
+            File(chemin).readAsBytes().then((o) => ByteData.view(o.buffer)),
+          );
+        await police.load();
+      }
+    });
+
+    final online = OnlineService();
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: _cadre,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(fontFamily: 'NotoSansCJK'),
+          home: MenuScreen(online: online),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    online.messages.receive({'de': 'mesange', 'texte': 'salut'});
+    await tester.pumpAndSettle();
+
+    await tester.runAsync(() async {
+      for (final asset in [
+        'assets/images/chat.webp',
+        'assets/images/podium.webp',
+        'assets/images/deepgrey_silhouette.webp',
+        'assets/images/plus.webp',
+        'assets/images/titre.webp',
+      ]) {
+        await precacheImage(
+          AssetImage(asset),
+          tester.element(find.byType(MaterialApp)),
+        );
+      }
+    });
+    await tester.pumpAndSettle();
+
+    Directory('tool/apercus').createSync(recursive: true);
+    final limite =
+        tester.renderObject(find.byKey(_cadre)) as RenderRepaintBoundary;
+    final octets = await tester.runAsync(() async {
+      final image = await limite.toImage(pixelRatio: 2);
+      return image.toByteData(format: ui.ImageByteFormat.png);
+    });
+    File(
+      'tool/apercus/menu_non_lu.png',
+    ).writeAsBytesSync(Uint8List.view(octets!.buffer));
+  });
+
   for (final (nom, theme, cadence) in [
     ('menu', 'original', null),
     ('menu_deepgrey', 'deepgrey', null),

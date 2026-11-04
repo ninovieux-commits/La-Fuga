@@ -18,11 +18,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
+import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/unread_dot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -67,6 +69,12 @@ void main() {
     fail('touche « $mot » introuvable');
   }
 
+  /// La boîte d'une des quatre grosses touches : le `Material` le plus
+  /// proche du mot qu'elle porte.
+  Rect grosse(WidgetTester tester, String mot) => tester.getRect(
+    find.ancestor(of: find.text(mot), matching: find.byType(Material)).first,
+  );
+
   testWidgets('l interstice est le même entre toutes les touches, en '
       'largeur aussi', (tester) async {
     await ouvre(tester);
@@ -99,6 +107,77 @@ void main() {
     }
   });
 
+  testWidgets('la bande est écartée du bord comme ses touches le sont '
+      'entre elles', (tester) async {
+    // Nino, deux traits rouges au bord de la capture : « j'aimerais que
+    // l'espace entre les boutons et l'écran soit le même que l'espace entre
+    // toutes les touches. Il va donc falloir que tu réduises la largeur des
+    // touches. » La marge valait S(17), soit moins de la moitié de
+    // l'interligne : les rangées paraissaient collées aux deux rebords.
+    await ouvre(tester);
+
+    final attendu = intervalleDuMenu();
+    final largeur = tester.view.physicalSize.width;
+    final marges = <String, double>{
+      'à gauche des cadences': touche(tester, '5 min').left,
+      'à droite des cadences': largeur - touche(tester, '30 min').right,
+      'à gauche de jouer en local': touche(tester, 'Jouer en local').left,
+      'à droite de jouer en ligne':
+          largeur - touche(tester, 'Jouer en ligne').right,
+    };
+    for (final m in marges.entries) {
+      expect(
+        m.value,
+        moreOrLessEquals(attendu, epsilon: 0.5),
+        reason:
+            '« ${m.key} » : ${m.value.toStringAsFixed(1)} au lieu de '
+            '${attendu.toStringAsFixed(1)}',
+      );
+    }
+  });
+
+  testWidgets('un message non lu ne rétrécit pas la touche Conversations', (
+    tester,
+  ) async {
+    // Nino : « gros souci avec le bouton conversations lorsqu'il y a un
+    // nouveau message. » La pile de la pastille lâchait les contraintes de
+    // la touche, qui se repliait sur la largeur de son mot — et la pastille
+    // flottait à côté d'elle, dans l'intervalle.
+    setScaleSize(const Size(393, 851));
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final online = OnlineService();
+    await tester.pumpWidget(MaterialApp(home: MenuScreen(online: online)));
+    await tester.pumpAndSettle();
+    final sans = grosse(tester, 'Conversations');
+
+    online.messages.receive({'de': 'mesange', 'texte': 'salut'});
+    await tester.pumpAndSettle();
+    expect(find.byType(PastilleNonLue), findsOneWidget);
+    final avec = grosse(tester, 'Conversations');
+
+    expect(
+      avec.width,
+      moreOrLessEquals(sans.width, epsilon: 0.5),
+      reason: 'la touche ne change pas de largeur quand la pastille paraît',
+    );
+    expect(
+      grosse(tester, 'Classement').left - avec.right,
+      moreOrLessEquals(intervalleDuMenu(), epsilon: 0.5),
+      reason: 'l intervalle entre les deux colonnes ne bouge pas non plus',
+    );
+    // Et la pastille est POSÉE SUR la touche, pas à côté.
+    final pastille = tester.getRect(find.byType(PastilleNonLue));
+    expect(
+      avec.contains(pastille.topLeft) &&
+          avec.contains(pastille.bottomRight - const Offset(0.5, 0.5)),
+      isTrue,
+      reason: 'la pastille doit tenir dans la touche',
+    );
+  });
+
   testWidgets('les deux rangées de la bande tombent au même alignement', (
     tester,
   ) async {
@@ -117,12 +196,6 @@ void main() {
     expect(local.width, moreOrLessEquals(ligne.width, epsilon: 0.5));
     expect(local.right, lessThan(ligne.left), reason: 'elles sont séparées');
   });
-
-  /// La boîte d'une des quatre grosses touches : le `Material` le plus
-  /// proche du mot qu'elle porte.
-  Rect grosse(WidgetTester tester, String mot) => tester.getRect(
-    find.ancestor(of: find.text(mot), matching: find.byType(Material)).first,
-  );
 
   testWidgets('l interligne du menu est partout le même', (tester) async {
     await ouvre(tester);

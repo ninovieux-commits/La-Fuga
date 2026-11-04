@@ -183,7 +183,7 @@ Future<void> main() async {
       final palette = paletteOf('deepgrey');
 
       Widget rangee(List<Widget> touches) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: S(kMargeDeLaBande)),
+        padding: EdgeInsets.symmetric(horizontal: ecart),
         child: Row(
           children: [
             for (var i = 0; i < touches.length; i++) ...[

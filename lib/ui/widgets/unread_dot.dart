@@ -113,7 +113,23 @@ class UnreadDot extends StatelessWidget {
         final cote = (place.isFinite ? place * kPartDeLaTouche : S(20))
             .clamp(S(11), S(22))
             .toDouble();
+        // LA PILE PASSE LES CONTRAINTES TELLES QUELLES.
+        //
+        // Nino, pastille en main : « gros souci avec le bouton
+        // conversations lorsqu'il y a un nouveau message. » La touche
+        // rétrécissait à la largeur de son mot dès qu'il y avait du
+        // non-lu, et la pastille flottait dans le vide à côté d'elle.
+        //
+        // Une `Stack` donne par défaut ([StackFit.loose]) des contraintes
+        // LÂCHES à ses enfants non positionnés : la touche, qui recevait
+        // jusque-là une largeur imposée par son `Expanded`, se mettait
+        // alors à prendre celle de son contenu. La pastille, elle, restait
+        // collée au bord de la pile — donc hors de la touche.
+        //
+        // `passthrough` rend les contraintes d'origine : avec elle, la
+        // pile se comporte exactement comme si elle n'était pas là.
         return Stack(
+          fit: StackFit.passthrough,
           children: [
             child,
             Positioned(
