@@ -48,7 +48,7 @@ void main() {
       'Jouer en local',
       'Jouer en ligne',
       'Conversations',
-      'Affronter Deep Grey',
+      nomInsecable('Affronter Deep Grey'),
       'Autres',
       'Parties par correspondance',
     ]) {
@@ -148,7 +148,7 @@ void main() {
   ) async {
     await bootApp(tester);
 
-    await tapVisible(tester, find.text('Affronter Deep Grey'));
+    await tapVisible(tester, find.text(nomInsecable('Affronter Deep Grey')));
     expect(find.text('Choisissez votre couleur'), findsOneWidget);
 
     await tapVisible(tester, find.text('Jouer avec les Blancs'));

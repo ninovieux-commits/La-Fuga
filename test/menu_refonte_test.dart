@@ -97,30 +97,60 @@ void main() {
     expect(local.right, lessThan(ligne.left), reason: 'elles sont séparées');
   });
 
-  testWidgets('la barre de séparation est restée exactement où elle était', (
+  /// La boîte d'une des quatre grosses touches : le `Material` le plus
+  /// proche du mot qu'elle porte.
+  Rect grosse(WidgetTester tester, String mot) => tester.getRect(
+    find.ancestor(of: find.text(mot), matching: find.byType(Material)).first,
+  );
+
+  testWidgets('l interligne du menu est partout le même', (tester) async {
+    await ouvre(tester);
+
+    final attendu = intervalleDuMenu();
+    final cadence = touche(tester, '15 min');
+    final local = touche(tester, 'Jouer en local');
+    final recherche = tester.getRect(find.byKey(kBarreRechercheKey));
+    final conversations = grosse(tester, 'Conversations');
+    final deepGrey = grosse(tester, nomInsecable('Affronter Deep Grey'));
+    final trait = tester.getRect(find.byType(AnimatedContainer).first);
+
+    final ecarts = <String, double>{
+      'cadences → jouer': local.top - cadence.bottom,
+      'jouer → recherche': recherche.top - local.bottom,
+      'recherche → grosses touches': conversations.top - recherche.bottom,
+      'entre les deux rangées de grosses touches':
+          deepGrey.top - conversations.bottom,
+      'grosses touches → barre': trait.top - deepGrey.bottom,
+    };
+    for (final e in ecarts.entries) {
+      expect(
+        e.value,
+        moreOrLessEquals(attendu, epsilon: 0.5),
+        reason:
+            '« ${e.key} » : ${e.value.toStringAsFixed(1)} au lieu de '
+            '${attendu.toStringAsFixed(1)}',
+      );
+    }
+  });
+
+  testWidgets('les deux colonnes sont écartées comme les deux rangées', (
     tester,
   ) async {
     await ouvre(tester);
-
-    // L'ancien menu : six touches larges entre la rangée des cadences et le
-    // trait, séparées de SH(0,012) + S(6), encadrées de SH(0,02) + S(6).
-    const gap = 6.0;
-    final avant =
-        SH(0.02) +
-        S(gap) +
-        6 * touchHeight() +
-        5 * (SH(0.012) + S(gap)) +
-        SH(0.02) +
-        S(gap);
-
-    final cadence = touche(tester, '15 min');
-    // Le trait : la seule barre arrondie et pleine largeur sous les touches.
-    final trait = tester.getRect(find.byType(AnimatedContainer).first);
-
+    final gauche = grosse(tester, 'Conversations');
+    final droite = grosse(tester, 'Classement');
     expect(
-      trait.top - cadence.bottom,
-      moreOrLessEquals(avant, epsilon: 0.5),
-      reason: 'le trait doit retomber à la même distance des cadences',
+      droite.left - gauche.right,
+      moreOrLessEquals(intervalleDuMenu(), epsilon: 0.5),
+    );
+  });
+
+  testWidgets('une grosse touche vaut deux touches ordinaires', (tester) async {
+    await ouvre(tester);
+    expect(
+      grosse(tester, 'Classement').height,
+      moreOrLessEquals(touchHeight() * 2, epsilon: 0.5),
+      reason: 'elle porte un dessin ET un mot, donc deux fois une touche',
     );
   });
 
@@ -131,7 +161,7 @@ void main() {
     final mots = [
       'Conversations',
       'Classement',
-      'Affronter Deep Grey',
+      nomInsecable('Affronter Deep Grey'),
       'Autres',
     ];
     final boites = [for (final m in mots) tester.getRect(find.text(m))];

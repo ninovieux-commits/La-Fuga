@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/main.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/screens/tuto_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,7 +46,7 @@ void main() {
 
     expect(find.text('Langue / Language'), findsNothing);
     expect(find.byType(TutoScreen), findsNothing);
-    expect(find.text('Affronter Deep Grey'), findsOneWidget);
+    expect(find.text(nomInsecable('Affronter Deep Grey')), findsOneWidget);
   });
 
   testWidgets('la langue choisie est celle de tous les écrans', (tester) async {

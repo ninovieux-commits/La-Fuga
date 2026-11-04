@@ -68,6 +68,34 @@ const double kMargeDeLaBande = 17.0;
 /// Écart entre deux touches voisines d'une rangée de trois.
 const double kEcartDeLaBande = 6.0;
 
+/// L'INTERLIGNE DU MENU : le même entre toutes ses rangées de touches.
+///
+/// Nino : « pour une raison que j'ignore il y a plus d'espace entre les
+/// touches cadence et les touches d'en dessous. En fait j'aimerais que
+/// l'intervalle entre les touches du menu soit toujours le même histoire
+/// d'être logique. »
+///
+/// Il y en avait DEUX, hérités de Kivy : `SH(0,02) + S(6)` autour d'un bloc
+/// de touches, `SH(0,012) + S(6)` entre deux touches d'un même bloc. Le menu
+/// n'ayant plus de blocs mais une suite de rangées, la distinction ne voulait
+/// plus rien dire — et elle se voyait. C'est le plus petit des deux qui
+/// reste, pour tous, y compris entre les quatre grosses touches et sous
+/// elles, jusqu'à la barre de séparation.
+double intervalleDuMenu() => SH(0.012) + S(kEcartDeLaBande);
+
+/// « Deep Grey » est un NOM : une touche ne le coupe pas en deux lignes.
+///
+/// L'espace insécable ne change ni ce qui est lu, ni ce qui est traduit — la
+/// clé reste « Affronter Deep Grey » — mais il décide OÙ la ligne se coupe :
+/// « Affronter » puis « Deep Grey », et non « Affronter Deep » puis
+/// « Grey ». Les dix langues portent ce nom tel quel, un seul remplacement
+/// les sert donc toutes.
+///
+/// Les essais qui cherchent ce texte à l'écran passent par cette fonction :
+/// c'est la forme AFFICHÉE, et `find.text` compare au caractère près.
+String nomInsecable(String texte) =>
+    texte.replaceAll('Deep Grey', 'Deep\u00A0Grey');
+
 /// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
 /// Ce qu'on veut faire d'un favori qu'on vient de toucher.
 enum FavoriteAction {
@@ -1461,7 +1489,7 @@ class MenuScreenState extends State<MenuScreen>
               ],
             ),
           ),
-          SizedBox(height: SH(0.02) + S(gap)),
+          SizedBox(height: intervalleDuMenu()),
 
           // LES DEUX FAÇONS DE JOUER, CÔTE À CÔTE, chacune une moitié.
           // Nino : « en local et en ligne prennent chacun la moitié de
@@ -1491,13 +1519,13 @@ class MenuScreenState extends State<MenuScreen>
               ],
             ),
           ),
-          SizedBox(height: SH(0.012) + S(gap)),
+          SizedBox(height: intervalleDuMenu()),
           // LA RECHERCHE REMONTE D'UNE RANGÉE : elle en a gagné une, puisque
           // les deux façons de jouer n'en occupent plus qu'une.
           _wide(_searchRow(palette)),
-          SizedBox(height: SH(0.012) + S(gap)),
+          SizedBox(height: intervalleDuMenu()),
           _wide(_quatreTouches(palette)),
-          SizedBox(height: SH(0.02) + S(gap)),
+          SizedBox(height: intervalleDuMenu()),
 
           _separateur(palette),
           SizedBox(height: SH(0.02)),
@@ -1544,23 +1572,20 @@ class MenuScreenState extends State<MenuScreen>
     );
   }
 
-  /// Hauteur d'une des quatre grosses touches — CALCULÉE, et non choisie.
+  /// Hauteur d'une des quatre grosses touches : DEUX touches ordinaires.
   ///
-  /// Nino : « la hauteur des touches doit être gérée de manière à ce que la
-  /// barre d'indication qui est en bas reste exactement au même endroit tout
-  /// en étant espacée des touches qui sont au-dessus exactement de la même
-  /// distance. »
+  /// Nino : « c'est vraiment trop chargé pour les yeux. Réduis la taille des
+  /// 4 gros boutons. »
   ///
-  /// Du bas de la rangée des cadences au trait de séparation, il y avait :
-  /// SH(0,02) + 5 × SH(0,012) + SH(0,02) d'écarts verticaux, 7 × S(6)
-  /// d'interlignes et six touches de SH(0,06) — soit SH(0,46) + S(42).
-  ///
-  /// Il y a maintenant deux rangées de touches et la grille, avec les mêmes
-  /// écarts : SH(0,184) + S(24) + H, où H est la hauteur totale de la
-  /// grille. Pour que le trait retombe au même endroit il faut donc
-  /// H = SH(0,276) + S(18) ; la grille étant deux rangées séparées d'un
-  /// écart, chaque touche vaut la moitié de ce qui reste.
-  double get _hauteurDesGrosses => (SH(0.276) + S(18) - S(kEcartDeLaBande)) / 2;
+  /// Elle était CALCULÉE pour que la barre de séparation ne bouge pas d'un
+  /// pixel — une soustraction à trois étages dont le résultat, 2,35 fois une
+  /// touche, ne voulait rien dire. Maintenant que l'interligne est unique,
+  /// c'est lui qui place la barre, et la touche peut prendre la hauteur
+  /// qu'elle MÉRITE : deux fois une touche ordinaire, puisqu'elle porte deux
+  /// choses — un dessin et un mot — là où une touche ordinaire n'en porte
+  /// qu'une. La barre remonte d'autant, et c'est précisément l'air qui
+  /// manquait.
+  double get _hauteurDesGrosses => touchHeight() * 2;
 
   /// Les quatre grosses touches, en deux sur deux, sous la recherche.
   ///
@@ -1574,7 +1599,10 @@ class MenuScreenState extends State<MenuScreen>
   /// doivent avoir le texte et le symbole en couleur 1 du thème,
   /// "classement" et "affronter Deep Grey" en couleur 2. »
   Widget _quatreTouches(ThemePalette palette) {
-    final ecart = S(kEcartDeLaBande);
+    // L'interligne du menu, entre les deux rangées comme entre les deux
+    // colonnes : une grille dont les écarts diffèrent d'un axe à l'autre se
+    // voit tout de suite.
+    final ecart = intervalleDuMenu();
     Widget deux(Widget gauche, Widget droite) => SizedBox(
       height: _hauteurDesGrosses,
       child: Row(
@@ -1628,7 +1656,7 @@ class MenuScreenState extends State<MenuScreen>
               secours: '☗',
               part: 1,
             ),
-            texte: T('Affronter Deep Grey'),
+            texte: nomInsecable(T('Affronter Deep Grey')),
             couleur: palette.fonce,
             onPressed: _startVsAi,
           ),
