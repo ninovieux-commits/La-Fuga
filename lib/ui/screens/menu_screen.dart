@@ -83,6 +83,13 @@ const double kEcartDeLaBande = 6.0;
 /// elles, jusqu'à la barre de séparation.
 double intervalleDuMenu() => SH(0.012) + S(kEcartDeLaBande);
 
+/// Part de sa place qu'occupe le symbole d'une des quatre grosses touches.
+///
+/// Nino : « multiplie les symboles des 4 grosses touches par 0,75, là c'est
+/// trop gros. » Ils remplissaient d'un bord à l'autre tout ce que le mot
+/// leur laissait, et la touche n'était plus qu'un dessin.
+const double kPartDuSymboleDesGrosses = 0.75;
+
 /// « Deep Grey » est un NOM : une touche ne le coupe pas en deux lignes.
 ///
 /// L'espace insécable ne change ni ce qui est lu, ni ce qui est traduit — la
@@ -1622,12 +1629,8 @@ class MenuScreenState extends State<MenuScreen>
             builder: (context, _) => UnreadDot(
               show: _online.messages.hasUnread,
               child: _grosseTouche(
-                symbole: (couleur) => PictoTouche(
-                  asset: 'assets/images/chat.webp',
-                  couleur: couleur,
-                  secours: '💬',
-                  part: 1,
-                ),
+                dessin: 'assets/images/chat.webp',
+                secours: '💬',
                 texte: T('Conversations'),
                 couleur: palette.clair,
                 onPressed: _openMessages,
@@ -1635,12 +1638,8 @@ class MenuScreenState extends State<MenuScreen>
             ),
           ),
           _grosseTouche(
-            symbole: (couleur) => PictoTouche(
-              asset: 'assets/images/podium.webp',
-              couleur: couleur,
-              secours: '1·2·3',
-              part: 1,
-            ),
+            dessin: 'assets/images/podium.webp',
+            secours: '1·2·3',
             texte: T('Classement'),
             couleur: palette.fonce,
             onPressed: _openClassement,
@@ -1650,19 +1649,16 @@ class MenuScreenState extends State<MenuScreen>
         deux(
           _grosseTouche(
             cle: _tourKeys['ai'],
-            symbole: (couleur) => PictoTouche(
-              asset: 'assets/images/deepgrey_silhouette.webp',
-              couleur: couleur,
-              secours: '☗',
-              part: 1,
-            ),
+            dessin: 'assets/images/deepgrey_silhouette.webp',
+            secours: '☗',
             texte: nomInsecable(T('Affronter Deep Grey')),
             couleur: palette.fonce,
             onPressed: _startVsAi,
           ),
           _grosseTouche(
             cle: _tourKeys['plus'],
-            symbole: _signePlus,
+            dessin: 'assets/images/plus.webp',
+            secours: '+',
             texte: T('Autres'),
             couleur: palette.clair,
             onPressed: _openPlus,
@@ -1681,7 +1677,8 @@ class MenuScreenState extends State<MenuScreen>
   /// Ici la place est partagée : au mot ce que deux lignes demandent, au
   /// symbole tout le reste.
   Widget _grosseTouche({
-    required Widget Function(Color) symbole,
+    required String dessin,
+    required String secours,
     required String texte,
     required Color couleur,
     required VoidCallback onPressed,
@@ -1717,7 +1714,14 @@ class MenuScreenState extends State<MenuScreen>
               padding: EdgeInsets.all(marge),
               child: Column(
                 children: [
-                  Expanded(child: symbole(couleur)),
+                  Expanded(
+                    child: PictoTouche(
+                      asset: dessin,
+                      couleur: couleur,
+                      secours: secours,
+                      part: kPartDuSymboleDesGrosses,
+                    ),
+                  ),
                   SizedBox(height: S(4)),
                   SizedBox(
                     height: hauteurDuMot,
@@ -1761,35 +1765,6 @@ class MenuScreenState extends State<MenuScreen>
       ),
     );
   }
-
-  /// Le gros « + » d'« Autres » — celui du bandeau fin du haut, où il ouvre
-  /// déjà le même genre de popup. Nino : « pour "autres" dessine un gros plus
-  /// comme dans le bandeau fin du haut ». Il n'y a pas de fichier pour
-  /// celui-là : c'est le glyphe de la police, comme dans le bandeau.
-  ///
-  /// Le glyphe « + » n'occupe qu'environ la moitié de son cadratin : écrit à
-  /// la taille de la place qu'on lui laisse, il y paraîtrait deux fois plus
-  /// petit que les trois dessins voisins. On l'écrit donc plus grand que sa
-  /// boîte, et on laisse déborder le blanc qui l'entoure — il ne se voit pas.
-  Widget _signePlus(Color couleur) => LayoutBuilder(
-    builder: (context, boite) => Center(
-      child: OverflowBox(
-        maxWidth: double.infinity,
-        maxHeight: double.infinity,
-        child: MotTouche(
-          texte: '+',
-          couleur: couleur,
-          style: TextStyle(
-            // Le double, puis ×0,7 : à ×2 il écrasait ses trois voisins.
-            // Nino : « le + est trop gros. Multiplie-le par 0,7. »
-            fontSize: boite.maxHeight * 2 * 0.7,
-            fontWeight: FontWeight.bold,
-            height: 1,
-          ),
-        ),
-      ),
-    ),
-  );
 
   Widget _searchRow(ThemePalette palette) => SizedBox(
     // Même épaisseur que les touches du menu — pour la bande ET pour le champ

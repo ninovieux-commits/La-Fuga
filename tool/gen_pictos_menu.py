@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fabrique les deux dessins qui manquaient au menu : le podium et Deep Grey.
+"""Fabrique les trois dessins qui manquaient au menu.
 
 Les quatre grosses touches du menu portent un symbole, comme en partie :
 `chat.webp` existait déjà pour « conversations », il fallait les deux autres.
@@ -16,7 +16,7 @@ Usage : python3 tool/gen_pictos_menu.py <podium_source.jpeg>
 """
 import sys
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 COTE = 192
 MARGE = 10
@@ -70,6 +70,30 @@ def silhouette_deepgrey():
     return blanc_sur_transparent(alpha)
 
 
+def plus():
+    """Le gros « + » d'« Autres », en DESSIN et non plus en lettre.
+
+    Nino : « il faut que le symbole + et le symbole silhouette de Deep Grey
+    soient à la même hauteur. » Une lettre ne sait pas dire la hauteur de
+    son glyphe — seulement celle de sa ligne, bien plus grande — alors qu'un
+    dessin cadré comme ses trois voisins tombe à la bonne taille tout seul.
+    On fabrique donc le signe À PARTIR DE LA POLICE DE L'APPLICATION, pour
+    qu'il reste celui du bandeau fin du haut, et on le range dans un carré
+    de 192 comme les autres.
+
+    L'épaisseur du trait imite le gras : la police n'a pas de fichier gras,
+    Flutter l'épaissit lui-meme, et 1,5 % du corps redonne le rapport
+    mesuré sur un rendu (barre = 0,19 de la hauteur).
+    """
+    corps = 400
+    police = ImageFont.truetype('assets/fonts/NotoSansCJKsc-Regular.otf', corps)
+    toile = Image.new('L', (corps * 3, corps * 3), 0)
+    ImageDraw.Draw(toile).text(
+        (corps * 1.5, corps * 1.5), '+', font=police, fill=255, anchor='mm',
+        stroke_width=round(corps * 0.015), stroke_fill=255)
+    return blanc_sur_transparent(toile)
+
+
 def ecrire(image, chemin):
     image.save(chemin, lossless=True, method=6, exact=True)
     print(chemin, image.size, 'bbox', image.split()[3].getbbox())
@@ -80,6 +104,7 @@ def main():
         raise SystemExit(__doc__)
     ecrire(podium(sys.argv[1]), 'assets/images/podium.webp')
     ecrire(silhouette_deepgrey(), 'assets/images/deepgrey_silhouette.webp')
+    ecrire(plus(), 'assets/images/plus.webp')
 
 
 if __name__ == '__main__':
