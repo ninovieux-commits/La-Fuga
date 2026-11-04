@@ -15,11 +15,11 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lafuga/ui/screens/menu_screen.dart';
 
-/// La hauteur de l'encre : la première et la dernière ligne non vides.
-Future<({int cote, int hauteurDeLEncre, int largeurDeLEncre})> mesure(
-  String chemin,
-) async {
+/// Les bords de l'encre : les premières et dernières lignes non vides.
+Future<({int cote, int hauteurDeLEncre, int largeurDeLEncre, int videDessous})>
+mesure(String chemin) async {
   final octets = await File(chemin).readAsBytes();
   final codec = await ui.instantiateImageCodec(octets);
   final image = (await codec.getNextFrame()).image;
@@ -40,6 +40,7 @@ Future<({int cote, int hauteurDeLEncre, int largeurDeLEncre})> mesure(
     cote: image.width,
     hauteurDeLEncre: bas! - haut! + 1,
     largeurDeLEncre: droite! - gauche! + 1,
+    videDessous: image.height - 1 - bas,
   );
 }
 
@@ -78,6 +79,23 @@ void main() {
         plusGrand,
         inInclusiveRange(170, 174),
         reason: '$nom : l encre doit remplir les 172 du dedans',
+      );
+    }
+  });
+
+  test('la table du sol commun dit la vérité des fichiers', () async {
+    // Le menu descend chaque dessin de ce qu'il laisse de vide sous lui,
+    // pour que les quatre posent sur le même sol. Ces nombres sont écrits à
+    // la main dans `menu_screen.dart` : ils doivent être une MESURE, et
+    // c'est ici qu'on la refait.
+    for (final e in kVideSousLeDessin.entries) {
+      final m = await mesure(e.key);
+      expect(
+        m.videDessous.toDouble(),
+        moreOrLessEquals(e.value, epsilon: 1),
+        reason:
+            '${e.key} laisse ${m.videDessous} de vide sous lui, la table '
+            'en annonce ${e.value.toStringAsFixed(0)}',
       );
     }
   });

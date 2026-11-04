@@ -83,6 +83,32 @@ const double kEcartDeLaBande = 6.0;
 /// elles, jusqu'à la barre de séparation.
 double intervalleDuMenu() => SH(0.012) + S(kEcartDeLaBande);
 
+/// Ce que chaque dessin laisse de vide SOUS lui, dans son carré de 192.
+///
+/// Un pictogramme est cadré sur son sujet, mais tous les sujets n'ont pas la
+/// même forme : le podium, large et plat, laisse 43 points sous lui, le chat
+/// 17, la silhouette et le « + » 10. Centrés dans leur touche, les quatre
+/// flottent donc à des hauteurs différentes, et les deux plus plats
+/// paraissent perchés. Nino : « descends un peu les symboles de
+/// conversations et classement à l'intérieur de la touche. »
+///
+/// On les repose tous sur LE MÊME SOL, celui des deux qui descendent le plus
+/// bas. Ces nombres sont une mesure, pas un réglage : `pictos_menu_test`
+/// les relit dans les fichiers et refuse de laisser la table mentir.
+const Map<String, double> kVideSousLeDessin = {
+  'assets/images/chat.webp': 17,
+  'assets/images/podium.webp': 43,
+  'assets/images/deepgrey_silhouette.webp': 10,
+  'assets/images/plus.webp': 10,
+};
+
+/// Le côté du carré dans lequel vit un dessin de touche.
+const double kCarreDuDessin = 192;
+
+/// La plus grande des deux — `dart:math` n'est pas importé ici, et une
+/// fonction nommée dit mieux ce qu'on veut qu'un `a > b ? a : b` en ligne.
+double hauteurMaximale(double a, double b) => a > b ? a : b;
+
 /// Part de sa place qu'occupe le symbole d'une des quatre grosses touches.
 ///
 /// Nino : « multiplie les symboles des 4 grosses touches par 0,75, là c'est
@@ -1431,110 +1457,169 @@ class MenuScreenState extends State<MenuScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Espace sous la zone du bouton Compte.
-          SizedBox(height: SH(0.06)),
-          GestureDetector(
-            onTap: _showStory,
-            child: Image.asset(
-              'assets/images/titre.webp',
-              height: SH(0.16),
-              fit: BoxFit.contain,
-            ),
-          ),
-          SizedBox(height: S(gap)),
-          GestureDetector(
-            onTap: _showStory,
-            // `logoAssetOf` et non le chemin à la main : trois thèmes ont
-            // un logo dont le fichier ne porte pas leur nom, et l'image
-            // manquante retombait silencieusement sur celle d'origine. Le
-            // médiéval et les fleurs n'ont jamais montré la leur.
-            child: Image.asset(
-              logoAssetOf(_axes.logo),
-              height: SH(0.13),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Image.asset(logoAssetOf(kDefaultTheme), height: SH(0.13)),
-            ),
-          ),
-          SizedBox(height: SH(0.02) + S(gap)),
-
+          // LE MENU TIENT EN UN ÉCRAN, PILE, et la barre de séparation en
+          // ferme le bas. Nino : « la barre de séparation doit arriver tout
+          // en bas de l'écran (les touches plus la barre de séparation
+          // doivent prendre tout l'écran, et on défile pour voir la partie
+          // du menu avec la correspondance). »
+          //
+          // La hauteur est donc IMPOSÉE, et l'air en trop se partage entre
+          // les TROIS vides du haut, chacun grandissant de ce qu'il pèse
+          // déjà. Tout donner au seul vide sous le logo faisait un trou —
+          // Nino : « c'est quoi cet énorme espace entre le logo et la
+          // cadence ? C'est abusé. [...] Si tu dois ajouter un peu d'espace
+          // entre le logo et la cadence, OK, d'accord, je veux bien. »
+          //
+          // Les `Spacer` ne touchent QUE la place libre : les trois écarts
+          // gardent leur valeur d'origine comme plancher et se partagent le
+          // reste dans leur proportion — 15 au-dessus du titre, 1 entre le
+          // titre et le logo, 6 sous le logo.
           SizedBox(
-            height: labelHeight(0.04, 17),
-            child: Center(
-              // EN COULEUR 1 DU THÈME, CERNÉ DE NOIR, comme les touches qu'il
-              // annonce. Nino : « le texte "cadence (min / joueur)" doit
-              // passer en couleur 1 du thème et prendre le contour noir. »
-              // L'encre presque noire des titres du menu lui venait de Kivy ;
-              // sur les fonds à image, elle se perdait dans les tourbillons.
-              child: MotTouche(
-                texte: T('Cadence (min / joueur)'),
-                couleur: palette.clair,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: SF(17)),
-              ),
+            // UN ÉCRAN PLEIN, OU CE QUE LE CONTENU DEMANDE SI C'EST PLUS :
+            // sur une fenêtre basse, forcer la hauteur de l'écran faisait
+            // déborder la colonne au lieu de la laisser défiler.
+            height: hauteurMaximale(
+              MediaQuery.sizeOf(context).height,
+              _hauteurDuPremierEcran(),
             ),
-          ),
-          SizedBox(height: S(gap)),
-          SizedBox(
-            // Épaisseur d'une touche, comme les grandes touches d'en dessous :
-            // une rangée plus fine se voyait tout de suite.
-            height: touchHeight(),
-            child: _rangee(
-              cle: _tourKeys['cad'],
-              touches: [
-                for (final c in Cadence.toutes)
-                  FugaButton(
-                    text: c.label,
-                    fontSize: SF(15),
-                    height: double.infinity,
-                    // ÉTEINTE, ELLE EST DU GRIS DE TOUTES LES TOUCHES. Nino :
-                    // « les touches de cadences ne changent que le fait de
-                    // prendre le contour noir sur le texte et le fond gris
-                    // médian quand elles ne sont pas sélectionnées. »
-                    color: _cadence == c ? palette.fonce : kGrisTouche,
-                    onPressed: () => setState(() => _cadence = c),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Espace sous la zone du bouton Compte.
+                SizedBox(height: SH(0.06)),
+                const Spacer(flex: 15),
+                // LE TITRE ET LE LOGO GARDENT LEUR TAILLE. Ils ont été
+                // `Flexible` le temps d'une étape, pour ne jamais déborder
+                // d'un écran trop court — mais `Flexible` les mettait en
+                // concurrence avec l'air du bas pour la place libre, et ils
+                // rapetissaient alors qu'il y avait de la place en trop.
+                // Nino : « pourquoi t'as complètement réduit la taille de la
+                // Fuga en haut ? Je t'ai pas dit de changer ça. Jamais. »
+                GestureDetector(
+                  onTap: _showStory,
+                  child: Image.asset(
+                    'assets/images/titre.webp',
+                    height: SH(0.16),
+                    fit: BoxFit.contain,
                   ),
+                ),
+                SizedBox(height: S(gap)),
+                const Spacer(flex: 1),
+                GestureDetector(
+                  onTap: _showStory,
+                  // `logoAssetOf` et non le chemin à la main : trois thèmes
+                  // ont un logo dont le fichier ne porte pas leur nom, et
+                  // l'image manquante retombait silencieusement sur celle
+                  // d'origine. Le médiéval et les fleurs n'ont jamais montré
+                  // la leur.
+                  child: Image.asset(
+                    logoAssetOf(_axes.logo),
+                    height: SH(0.13),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      logoAssetOf(kDefaultTheme),
+                      height: SH(0.13),
+                    ),
+                  ),
+                ),
+                SizedBox(height: SH(0.02) + S(gap)),
+                const Spacer(flex: 6),
+
+                SizedBox(
+                  height: labelHeight(0.04, 17),
+                  child: Center(
+                    // EN COULEUR 1 DU THÈME, CERNÉ DE NOIR, comme les touches qu'il
+                    // annonce. Nino : « le texte "cadence (min / joueur)" doit
+                    // passer en couleur 1 du thème et prendre le contour noir. »
+                    // L'encre presque noire des titres du menu lui venait de Kivy ;
+                    // sur les fonds à image, elle se perdait dans les tourbillons.
+                    child: MotTouche(
+                      texte: T('Cadence (min / joueur)'),
+                      // EN BLANC, comme toutes les écritures du menu. Nino : « je
+                      // t'avais demandé de passer toutes les écritures en blanc
+                      // aussi. Toutes les écritures du menu hein. » Les couleurs
+                      // du thème restent aux DESSINS, qui n'ont qu'elles pour se
+                      // distinguer ; un mot, lui, a déjà ses lettres.
+                      couleur: Colors.white,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: SF(17),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: S(gap)),
+                SizedBox(
+                  // Épaisseur d'une touche, comme les grandes touches d'en dessous :
+                  // une rangée plus fine se voyait tout de suite.
+                  height: touchHeight(),
+                  child: _rangee(
+                    cle: _tourKeys['cad'],
+                    touches: [
+                      for (final c in Cadence.toutes)
+                        FugaButton(
+                          text: c.label,
+                          fontSize: SF(15),
+                          height: double.infinity,
+                          // ÉTEINTE, ELLE EST DU GRIS DE TOUTES LES TOUCHES. Nino :
+                          // « les touches de cadences ne changent que le fait de
+                          // prendre le contour noir sur le texte et le fond gris
+                          // médian quand elles ne sont pas sélectionnées. »
+                          color: _cadence == c ? palette.fonce : kGrisTouche,
+                          onPressed: () => setState(() => _cadence = c),
+                        ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: intervalleDuMenu()),
+
+                // LES DEUX FAÇONS DE JOUER, CÔTE À CÔTE, chacune une moitié.
+                // Nino : « en local et en ligne prennent chacun la moitié de
+                // l'écran ». Elles gardent leur fond de thème et leur écriture
+                // blanche : « en local et en ligne restent telles quelles, en
+                // dehors du texte qui doit prendre le contour noir ».
+                SizedBox(
+                  height: touchHeight(),
+                  child: _rangee(
+                    touches: [
+                      FugaButton(
+                        key: _tourKeys['local'],
+                        text: T('Jouer en local'),
+                        color: palette.clair,
+                        height: double.infinity,
+                        fontSize: SF(16),
+                        onPressed: _startLocal,
+                      ),
+                      FugaButton(
+                        key: _tourKeys['online'],
+                        text: _libelleEnLigne(),
+                        color: palette.fonce,
+                        height: double.infinity,
+                        fontSize: SF(16),
+                        onPressed: _searching ? null : _playOnline,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: intervalleDuMenu()),
+                // LA RECHERCHE REMONTE D'UNE RANGÉE : elle en a gagné une, puisque
+                // les deux façons de jouer n'en occupent plus qu'une.
+                _wide(_searchRow(palette)),
+                SizedBox(height: intervalleDuMenu()),
+                _wide(_quatreTouches(palette)),
+                SizedBox(height: intervalleDuMenu()),
+
+                _separateur(palette),
+                // ET LE MÊME INTERSTICE SOUS ELLE QUE PARTOUT AILLEURS.
+                // Nino : « pas tout en bas de la page, contre le rebord de
+                // l'écran. Là, c'est nul à chier. Il doit y avoir le même
+                // espace entre la barre de séparation et le bord de l'écran
+                // qu'entre la barre de séparation et les touches qui sont
+                // au-dessus. »
+                SizedBox(height: intervalleDuMenu()),
               ],
             ),
           ),
-          SizedBox(height: intervalleDuMenu()),
-
-          // LES DEUX FAÇONS DE JOUER, CÔTE À CÔTE, chacune une moitié.
-          // Nino : « en local et en ligne prennent chacun la moitié de
-          // l'écran ». Elles gardent leur fond de thème et leur écriture
-          // blanche : « en local et en ligne restent telles quelles, en
-          // dehors du texte qui doit prendre le contour noir ».
-          SizedBox(
-            height: touchHeight(),
-            child: _rangee(
-              touches: [
-                FugaButton(
-                  key: _tourKeys['local'],
-                  text: T('Jouer en local'),
-                  color: palette.clair,
-                  height: double.infinity,
-                  fontSize: SF(16),
-                  onPressed: _startLocal,
-                ),
-                FugaButton(
-                  key: _tourKeys['online'],
-                  text: _libelleEnLigne(),
-                  color: palette.fonce,
-                  height: double.infinity,
-                  fontSize: SF(16),
-                  onPressed: _searching ? null : _playOnline,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: intervalleDuMenu()),
-          // LA RECHERCHE REMONTE D'UNE RANGÉE : elle en a gagné une, puisque
-          // les deux façons de jouer n'en occupent plus qu'une.
-          _wide(_searchRow(palette)),
-          SizedBox(height: intervalleDuMenu()),
-          _wide(_quatreTouches(palette)),
-          SizedBox(height: intervalleDuMenu()),
-
-          _separateur(palette),
           SizedBox(height: SH(0.02)),
 
           _corrHeader(palette),
@@ -1546,25 +1631,56 @@ class MenuScreenState extends State<MenuScreen>
     );
   }
 
+  /// La hauteur que le premier écran du menu demande VRAIMENT.
+  ///
+  /// Il en occupe un plein — c'est demandé — mais pas moins que ce que son
+  /// contenu réclame : sur une fenêtre large et basse, les mots et les
+  /// marges, qui se mesurent sur la LARGEUR, dépassaient la hauteur
+  /// disponible et la colonne débordait de trente-sept points.
+  ///
+  /// On fait donc la somme à la main. `IntrinsicHeight` l'aurait faite pour
+  /// nous, mais il interroge les dimensions intrinsèques de ses enfants, et
+  /// les `LayoutBuilder` des grosses touches ne savent pas y répondre.
+  ///
+  /// Cette somme doit suivre la colonne : tout écart se voit dans
+  /// `menu_refonte_test`, qui mesure le bas de la barre de séparation.
+  double _hauteurDuPremierEcran() {
+    const gap = 6.0;
+    final interligne = intervalleDuMenu();
+    return SH(0.06) + // sous le bandeau du haut
+        SH(0.16) + // le titre
+        S(gap) +
+        SH(0.13) + // le logo
+        SH(0.02) +
+        S(gap) +
+        labelHeight(0.04, 17) + // « Cadence (min / joueur) »
+        S(gap) +
+        3 * touchHeight() + // cadences, façons de jouer, recherche
+        2 * _hauteurDesGrosses + // les quatre grosses, en deux rangées
+        S(kEpaisseurDuVoyant) + // la barre de séparation
+        // Six : entre les quatre rangées (3), entre les deux rangées de
+        // grosses touches (1), sous la grille (1) et sous la barre (1).
+        6 * interligne;
+  }
+
   /// Les boutons principaux font 70 % de la largeur, centrés, comme en Kivy.
   Widget _wide(Widget child) =>
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
 
   /// Une rangée de touches, toutes de la même largeur, dans la bande.
   ///
-  /// Nino : « la largeur des deux touches additionnées doit être la même que
-  /// les trois touches de cadences additionnées au-dessus. »
+  /// L'ÉCART EST CELUI DE PARTOUT, et la largeur des touches s'y plie.
+  /// Nino : « j'aimerais que tu ajustes la largeur des touches de cadence et
+  /// des touches "en ligne" et "en local" pour que l'interstice soit le même
+  /// entre toutes les touches. »
   ///
-  /// Ce n'est pas l'écart qui est constant d'une rangée à l'autre, c'est la
-  /// SOMME des écarts. Trois touches laissent deux trous, deux touches n'en
-  /// laissent qu'un : à écart égal, la rangée de deux serait plus large d'un
-  /// trou que celle de trois, et les bords ne tomberaient pas ensemble. On
-  /// fixe donc le total — deux fois [kEcartDeLaBande] — et on le partage
-  /// entre les trous qu'il y a. La rangée de trois ne bouge pas d'un pixel,
-  /// celle de deux porte un trou double, et les deux additionnent la même
-  /// largeur de touche.
+  /// Les deux rangées gardent le même alignement à gauche et à droite ; ce
+  /// qui change, c'est que trois touches laissent deux trous et deux touches
+  /// un seul. Leurs largeurs additionnées diffèrent donc désormais d'un trou
+  /// — c'est le prix d'un interstice unique, et c'est lui qui a été demandé
+  /// en dernier.
   Widget _rangee({required List<Widget> touches, Key? cle}) {
-    final ecart = S(kEcartDeLaBande * 2) / (touches.length - 1);
+    final ecart = intervalleDuMenu();
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: S(kMargeDeLaBande)),
       child: Row(
@@ -1632,7 +1748,7 @@ class MenuScreenState extends State<MenuScreen>
                 dessin: 'assets/images/chat.webp',
                 secours: '💬',
                 texte: T('Conversations'),
-                couleur: palette.clair,
+                teinte: palette.clair,
                 onPressed: _openMessages,
               ),
             ),
@@ -1641,7 +1757,7 @@ class MenuScreenState extends State<MenuScreen>
             dessin: 'assets/images/podium.webp',
             secours: '1·2·3',
             texte: T('Classement'),
-            couleur: palette.fonce,
+            teinte: palette.fonce,
             onPressed: _openClassement,
           ),
         ),
@@ -1652,7 +1768,7 @@ class MenuScreenState extends State<MenuScreen>
             dessin: 'assets/images/deepgrey_silhouette.webp',
             secours: '☗',
             texte: nomInsecable(T('Affronter Deep Grey')),
-            couleur: palette.fonce,
+            teinte: palette.fonce,
             onPressed: _startVsAi,
           ),
           _grosseTouche(
@@ -1660,7 +1776,7 @@ class MenuScreenState extends State<MenuScreen>
             dessin: 'assets/images/plus.webp',
             secours: '+',
             texte: T('Autres'),
-            couleur: palette.clair,
+            teinte: palette.clair,
             onPressed: _openPlus,
           ),
         ),
@@ -1680,12 +1796,15 @@ class MenuScreenState extends State<MenuScreen>
     required String dessin,
     required String secours,
     required String texte,
-    required Color couleur,
+    required Color teinte,
     required VoidCallback onPressed,
     Key? cle,
   }) {
     final rayon = S(18);
     final marge = S(8);
+    // De combien ce dessin-ci doit descendre pour poser sur le sol commun.
+    final vide = kVideSousLeDessin[dessin] ?? 0;
+    final sol = kVideSousLeDessin.values.reduce((a, b) => a < b ? a : b);
     return Material(
       key: cle,
       color: kGrisTouche,
@@ -1715,11 +1834,26 @@ class MenuScreenState extends State<MenuScreen>
               child: Column(
                 children: [
                   Expanded(
-                    child: PictoTouche(
-                      asset: dessin,
-                      couleur: couleur,
-                      secours: secours,
-                      part: kPartDuSymboleDesGrosses,
+                    child: LayoutBuilder(
+                      builder: (context, place) {
+                        // Le dessin occupe un carré de ce côté-là ; le vide
+                        // qu'il laisse sous lui s'y réduit d'autant.
+                        final cote = place.maxHeight * kPartDuSymboleDesGrosses;
+                        final descente = (vide - sol) / kCarreDuDessin * cote;
+                        // `Transform` et non une marge : la marge rognerait
+                        // la place, donc le dessin, et il faudrait descendre
+                        // davantage pour un dessin plus petit. Ici rien ne
+                        // bouge que ce qu'on voit.
+                        return Transform.translate(
+                          offset: Offset(0, descente),
+                          child: PictoTouche(
+                            asset: dessin,
+                            couleur: teinte,
+                            secours: secours,
+                            part: kPartDuSymboleDesGrosses,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(height: S(4)),
@@ -1747,7 +1881,9 @@ class MenuScreenState extends State<MenuScreen>
                         ),
                         child: MotTouche(
                           texte: texte,
-                          couleur: couleur,
+                          // BLANC, comme toute écriture du menu : la couleur
+                          // du thème reste au dessin.
+                          couleur: Colors.white,
                           maxLines: 2,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -1824,7 +1960,7 @@ class MenuScreenState extends State<MenuScreen>
             ),
           ),
         ),
-        SizedBox(width: S(6)),
+        SizedBox(width: intervalleDuMenu()),
         // L'étoile est carrée : sa largeur suit la hauteur de la ligne.
         AspectRatio(
           aspectRatio: 1,
@@ -1911,7 +2047,7 @@ class MenuScreenState extends State<MenuScreen>
     child: Center(
       child: MotTouche(
         texte: T('Parties par correspondance'),
-        couleur: palette.fonce,
+        couleur: Colors.white,
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: SF(15)),
       ),
     ),

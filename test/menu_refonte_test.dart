@@ -57,36 +57,47 @@ void main() {
     fail('touche « $mot » introuvable');
   }
 
-  testWidgets('les deux façons de jouer additionnent la largeur des trois '
-      'cadences', (tester) async {
+  testWidgets('l interstice est le même entre toutes les touches, en '
+      'largeur aussi', (tester) async {
     await ouvre(tester);
 
+    final attendu = intervalleDuMenu();
     final cadences = [
       '5 min',
       '15 min',
       '30 min',
     ].map((m) => touche(tester, m)).toList();
-    final jouer = [
-      touche(tester, 'Jouer en local'),
-      touche(tester, 'Jouer en ligne'),
-    ];
+    final local = touche(tester, 'Jouer en local');
+    final ligne = touche(tester, 'Jouer en ligne');
+    final recherche = tester.getRect(find.byKey(kBarreRechercheKey));
+    final etoile = touche(tester, '★');
 
-    double somme(List<Rect> r) => r.fold<double>(0, (t, b) => t + b.width);
+    final ecarts = <String, double>{
+      'entre 5 et 15 min': cadences[1].left - cadences[0].right,
+      'entre 15 et 30 min': cadences[2].left - cadences[1].right,
+      'entre local et ligne': ligne.left - local.right,
+      'entre la recherche et l étoile': etoile.left - recherche.right,
+    };
+    for (final e in ecarts.entries) {
+      expect(
+        e.value,
+        moreOrLessEquals(attendu, epsilon: 0.5),
+        reason:
+            '« ${e.key} » : ${e.value.toStringAsFixed(1)} au lieu de '
+            '${attendu.toStringAsFixed(1)}',
+      );
+    }
+  });
 
-    expect(
-      somme(jouer),
-      moreOrLessEquals(somme(cadences), epsilon: 0.5),
-      reason: 'les deux touches doivent additionner la largeur des trois',
-    );
-    // Et elles tombent au même alignement, à gauche comme à droite.
-    expect(
-      jouer.first.left,
-      moreOrLessEquals(cadences.first.left, epsilon: 0.5),
-    );
-    expect(
-      jouer.last.right,
-      moreOrLessEquals(cadences.last.right, epsilon: 0.5),
-    );
+  testWidgets('les deux rangées de la bande tombent au même alignement', (
+    tester,
+  ) async {
+    await ouvre(tester);
+    final cadences = ['5 min', '30 min'].map((m) => touche(tester, m)).toList();
+    final local = touche(tester, 'Jouer en local');
+    final ligne = touche(tester, 'Jouer en ligne');
+    expect(local.left, moreOrLessEquals(cadences.first.left, epsilon: 0.5));
+    expect(ligne.right, moreOrLessEquals(cadences.last.right, epsilon: 0.5));
   });
 
   testWidgets('chacune des deux prend une moitié', (tester) async {
@@ -184,5 +195,31 @@ void main() {
     final etoile = touche(tester, '★');
     expect(boites[0].left, greaterThanOrEqualTo(recherche.left - 1));
     expect(boites[1].right, lessThanOrEqualTo(etoile.right + 1));
+  });
+
+  testWidgets('le menu tient en un écran, la barre en ferme le bas', (
+    tester,
+  ) async {
+    await ouvre(tester);
+    final trait = tester.getRect(find.byType(AnimatedContainer).first);
+    // Pas collée au rebord : le même interstice que partout. Nino : « il
+    // doit y avoir le même espace entre la barre de séparation et le bord de
+    // l'écran qu'entre la barre de séparation et les touches au-dessus. »
+    expect(
+      tester.view.physicalSize.height - trait.bottom,
+      moreOrLessEquals(intervalleDuMenu(), epsilon: 0.5),
+      reason:
+          'les touches et la barre prennent tout l écran, à un '
+          'interstice près',
+    );
+  });
+
+  testWidgets('le titre et le logo gardent leur taille', (tester) async {
+    await ouvre(tester);
+    expect(
+      tester.getSize(find.byType(Image).first).height,
+      moreOrLessEquals(SH(0.16), epsilon: 0.5),
+      reason: 'le titre ne se laisse pas rogner par la place qui manque',
+    );
   });
 }
