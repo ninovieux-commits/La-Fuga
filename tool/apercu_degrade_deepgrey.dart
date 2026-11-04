@@ -35,26 +35,75 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey _cadre = GlobalKey();
 
-/// Une touche dont le FOND est un dégradé : la touche ordinaire, rendue
+/// Un dégradé qui suit LA FORME de la touche.
+///
+/// Nino : « essaye de faire le dégradé de la forme de la touche. » Un
+/// dégradé radial dessine des ellipses : sur une touche large, ses lignes
+/// d'égale couleur n'ont rien à voir avec son contour. Ici on rentre dans la
+/// touche par petits pas, en redessinant le même rectangle arrondi de plus
+/// en plus serré — ses lignes d'égale couleur sont donc des copies de la
+/// touche elle-même, et le cœur se referme sur son axe.
+class _DegradeDeLaForme extends CustomPainter {
+  const _DegradeDeLaForme({
+    required this.bord,
+    required this.coeur,
+    required this.rayon,
+  });
+
+  /// La couleur du contour, et celle du cœur.
+  final Color bord;
+  final Color coeur;
+  final double rayon;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // On s'arrête au milieu : au-delà, le rectangle rentré n'a plus de
+    // surface et c'est l'axe de la touche.
+    final profondeur =
+        (size.width < size.height ? size.width : size.height) / 2;
+    // Un demi-point par pas : à l'écran, aucune marche ne se voit.
+    final pas = (profondeur * 2).ceil();
+    final forme = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(rayon),
+    );
+    for (var i = 0; i <= pas; i++) {
+      final part = i / pas;
+      final rentre = forme.deflate(profondeur * part);
+      if (rentre.width <= 0 || rentre.height <= 0) break;
+      canvas.drawRRect(rentre, Paint()..color = Color.lerp(bord, coeur, part)!);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DegradeDeLaForme vieux) =>
+      vieux.bord != bord || vieux.coeur != coeur || vieux.rayon != rayon;
+}
+
+/// Une touche dont le FOND suit sa forme : la touche ordinaire, rendue
 /// transparente, posée sur le dégradé. Son trait noir et son arrondi ne
 /// changent pas d'un cheveu.
 Widget _toucheDegradee({
   required String texte,
-  required Gradient degrade,
+  required Color bord,
+  required Color coeur,
   double? hauteur,
-}) => Container(
-  decoration: BoxDecoration(
-    gradient: degrade,
-    borderRadius: BorderRadius.circular(S(18)),
-  ),
-  child: FugaButton(
-    text: texte,
-    color: Colors.transparent,
-    height: hauteur ?? touchHeight(),
-    fontSize: SF(16),
-    onPressed: () {},
-  ),
-);
+}) {
+  final rayon = S(18);
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(rayon),
+    child: CustomPaint(
+      painter: _DegradeDeLaForme(bord: bord, coeur: coeur, rayon: rayon),
+      child: FugaButton(
+        text: texte,
+        color: Colors.transparent,
+        height: hauteur ?? touchHeight(),
+        fontSize: SF(16),
+        onPressed: () {},
+      ),
+    ),
+  );
+}
 
 /// Une des quatre grosses touches, telle que le menu la dessine.
 Widget _grosse(String dessin, String texte, Color teinte) {
@@ -92,17 +141,11 @@ Widget _grosse(String dessin, String texte, Color teinte) {
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final (nom, degrade) in [
-    // Blanc au centre, noir au bord.
-    (
-      'degrade_clair',
-      const RadialGradient(colors: [Colors.white, Colors.black], radius: 0.9),
-    ),
-    // Noir au centre, blanc au bord.
-    (
-      'degrade_sombre',
-      const RadialGradient(colors: [Colors.black, Colors.white], radius: 0.9),
-    ),
+  for (final (nom, bord, coeur) in [
+    // Blanc au cœur, noir au bord.
+    ('degrade_clair', Colors.black, Colors.white),
+    // Noir au cœur, blanc au bord.
+    ('degrade_sombre', Colors.white, Colors.black),
   ]) {
     testWidgets('aperçu $nom', (tester) async {
       // ignore: invalid_use_of_visible_for_testing_member
@@ -176,7 +219,8 @@ Future<void> main() async {
                         ),
                         _toucheDegradee(
                           texte: '15 min',
-                          degrade: degrade,
+                          bord: bord,
+                          coeur: coeur,
                           hauteur: double.infinity,
                         ),
                         FugaButton(
@@ -194,12 +238,14 @@ Future<void> main() async {
                       child: rangee([
                         _toucheDegradee(
                           texte: T('Jouer en local'),
-                          degrade: degrade,
+                          bord: bord,
+                          coeur: coeur,
                           hauteur: double.infinity,
                         ),
                         _toucheDegradee(
                           texte: T('Jouer en ligne'),
-                          degrade: degrade,
+                          bord: bord,
+                          coeur: coeur,
                           hauteur: double.infinity,
                         ),
                       ]),
