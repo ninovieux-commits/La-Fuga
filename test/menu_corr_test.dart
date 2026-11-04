@@ -158,7 +158,7 @@ void main() {
     await open(tester);
     expect(
       couleurDuTrait(tester),
-      kFugaGrey,
+      kGrisTouche,
       reason: 'rien ne nous attend : la barre reste grise',
     );
   });
@@ -208,7 +208,7 @@ void main() {
       'games': [game(statut: 'defi', myTurn: false, isDefieur: true)],
     };
     await open(tester);
-    expect(couleurDuTrait(tester), kFugaGrey);
+    expect(couleurDuTrait(tester), kGrisTouche);
   });
 
   testWidgets('une seule partie qui attend suffit à l allumer', (tester) async {

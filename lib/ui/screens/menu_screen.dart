@@ -55,9 +55,16 @@ import 'position_composer_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
 
-/// Encre des titres du menu : le `(0.15, 0.15, 0.15)` de Kivy, presque noir.
-/// Une couleur de thème les rendrait bleus sur certains fonds.
-const Color kMenuInk = Color.fromRGBO(38, 38, 38, 1);
+/// Marge, au bord de l'écran, de la bande où vivent les rangées de touches.
+///
+/// Les cadences la tenaient par deux marges emboîtées — S(14) sur la rangée,
+/// S(3) autour de chaque touche ; c'est leur somme, et elle a maintenant un
+/// nom, parce que la rangée des deux façons de jouer doit tomber EXACTEMENT
+/// au même alignement.
+const double kMargeDeLaBande = 17.0;
+
+/// Écart entre deux touches voisines d'une rangée de trois.
+const double kEcartDeLaBande = 6.0;
 
 /// Ce qu'on a choisi dans la liste des favoris : qui, et pour quoi faire.
 /// Ce qu'on veut faire d'un favori qu'on vient de toucher.
@@ -834,7 +841,7 @@ class MenuScreenState extends State<MenuScreen>
   Widget _ficheFavori(Person f, {required VoidCallback onPressed}) => SizedBox(
     height: kCoteActionFavori,
     child: Material(
-      color: kFugaGrey,
+      color: kGrisTouche,
       // Elle se touche pour défier : elle porte donc le trait noir comme les
       // autres touches, et comme les cartes de l'historique.
       shape: formeDeTouche(BorderRadius.circular(S(12))),
@@ -1058,6 +1065,11 @@ class MenuScreenState extends State<MenuScreen>
     await _refreshUnread();
   }
 
+  /// Le classement n'existe pas encore : ni écran chez nous, ni route chez le
+  /// serveur. La touche, elle, est demandée — alors elle le dit franchement
+  /// plutôt que de ne rien faire sous le doigt.
+  void _openClassement() => _say(T('Le classement arrive bientôt.'));
+
   Future<void> _openAccount() async {
     if (!await _requireLogin()) return;
     await _push(AccountScreen(online: _online));
@@ -1080,13 +1092,13 @@ class MenuScreenState extends State<MenuScreen>
                   (T('Tuto'), palette.clair, _openTuto),
                   (
                     T('Historique'),
-                    kFugaGrey,
+                    kGrisTouche,
                     () => _push(PartiesMenuScreen(online: _online)),
                   ),
-                  (T('Analyse'), kFugaGrey, _openAnalysis),
+                  (T('Analyse'), kGrisTouche, _openAnalysis),
                   (
                     T('Réglages'),
-                    kFugaGrey,
+                    kGrisTouche,
                     () => _push(const SettingsScreen()),
                   ),
                   (T('Soutenir les devs'), palette.clair, _openSupport),
@@ -1326,14 +1338,15 @@ class MenuScreenState extends State<MenuScreen>
           SizedBox(
             height: labelHeight(0.04, 17),
             child: Center(
-              child: Text(
-                T('Cadence (min / joueur)'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: SF(17),
-                  color: kMenuInk,
-                ),
+              // EN COULEUR 1 DU THÈME, CERNÉ DE NOIR, comme les touches qu'il
+              // annonce. Nino : « le texte "cadence (min / joueur)" doit
+              // passer en couleur 1 du thème et prendre le contour noir. »
+              // L'encre presque noire des titres du menu lui venait de Kivy ;
+              // sur les fonds à image, elle se perdait dans les tourbillons.
+              child: MotTouche(
+                texte: T('Cadence (min / joueur)'),
+                couleur: palette.clair,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: SF(17)),
               ),
             ),
           ),
@@ -1342,96 +1355,66 @@ class MenuScreenState extends State<MenuScreen>
             // Épaisseur d'une touche, comme les grandes touches d'en dessous :
             // une rangée plus fine se voyait tout de suite.
             height: touchHeight(),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: S(14)),
-              child: Row(
-                key: _tourKeys['cad'],
-                children: [
-                  for (final c in Cadence.toutes)
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: S(3)),
-                        child: FugaButton(
-                          text: c.label,
-                          fontSize: SF(15),
-                          height: double.infinity,
-                          color: _cadence == c ? palette.fonce : kFugaGrey,
-                          onPressed: () => setState(() => _cadence = c),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            child: _rangee(
+              cle: _tourKeys['cad'],
+              touches: [
+                for (final c in Cadence.toutes)
+                  FugaButton(
+                    text: c.label,
+                    fontSize: SF(15),
+                    height: double.infinity,
+                    // ÉTEINTE, ELLE EST DU GRIS DE TOUTES LES TOUCHES. Nino :
+                    // « les touches de cadences ne changent que le fait de
+                    // prendre le contour noir sur le texte et le fond gris
+                    // médian quand elles ne sont pas sélectionnées. »
+                    color: _cadence == c ? palette.fonce : kGrisTouche,
+                    onPressed: () => setState(() => _cadence = c),
+                  ),
+              ],
             ),
           ),
           SizedBox(height: SH(0.02) + S(gap)),
 
-          _wide(
-            FugaButton(
-              key: _tourKeys['local'],
-              text: T('Jouer en local'),
-              color: palette.clair,
-              height: touchHeight(),
-              fontSize: SF(16),
-              onPressed: _startLocal,
-            ),
-          ),
-          SizedBox(height: SH(0.012) + S(gap)),
-          _wide(
-            FugaButton(
-              key: _tourKeys['online'],
-              text: _libelleEnLigne(),
-              color: palette.fonce,
-              height: touchHeight(),
-              fontSize: SF(16),
-              onPressed: _searching ? null : _playOnline,
-            ),
-          ),
-          SizedBox(height: SH(0.012) + S(gap)),
-          _wide(_searchRow()),
-          SizedBox(height: SH(0.012) + S(gap)),
-          // Une pastille rouge, pas un compteur : l'intitulé ne bouge plus,
-          // et elle s'allume à l'instant où un message arrive.
-          _wide(
-            AnimatedBuilder(
-              animation: _online.messages,
-              builder: (context, _) => UnreadDot(
-                show: _online.messages.hasUnread,
-                child: FugaButton(
-                  text: T('Messages'),
-                  height: touchHeight(),
+          // LES DEUX FAÇONS DE JOUER, CÔTE À CÔTE, chacune une moitié.
+          // Nino : « en local et en ligne prennent chacun la moitié de
+          // l'écran ». Elles gardent leur fond de thème et leur écriture
+          // blanche : « en local et en ligne restent telles quelles, en
+          // dehors du texte qui doit prendre le contour noir ».
+          SizedBox(
+            height: touchHeight(),
+            child: _rangee(
+              touches: [
+                FugaButton(
+                  key: _tourKeys['local'],
+                  text: T('Jouer en local'),
+                  color: palette.clair,
+                  height: double.infinity,
                   fontSize: SF(16),
-                  onPressed: _openMessages,
+                  onPressed: _startLocal,
                 ),
-              ),
+                FugaButton(
+                  key: _tourKeys['online'],
+                  text: _libelleEnLigne(),
+                  color: palette.fonce,
+                  height: double.infinity,
+                  fontSize: SF(16),
+                  onPressed: _searching ? null : _playOnline,
+                ),
+              ],
             ),
           ),
           SizedBox(height: SH(0.012) + S(gap)),
-          _wide(
-            FugaButton(
-              key: _tourKeys['ai'],
-              text: T('Jouer contre Deep Grey'),
-              height: touchHeight(),
-              fontSize: SF(16),
-              onPressed: _startVsAi,
-            ),
-          ),
+          // LA RECHERCHE REMONTE D'UNE RANGÉE : elle en a gagné une, puisque
+          // les deux façons de jouer n'en occupent plus qu'une.
+          _wide(_searchRow(palette)),
           SizedBox(height: SH(0.012) + S(gap)),
-          _wide(
-            FugaButton(
-              key: _tourKeys['plus'],
-              text: T('Plus'),
-              height: touchHeight(),
-              fontSize: SF(16),
-              onPressed: _openPlus,
-            ),
-          ),
+          _wide(_quatreTouches(palette)),
           SizedBox(height: SH(0.02) + S(gap)),
 
           _separateur(palette),
           SizedBox(height: SH(0.02)),
 
-          _corrHeader(),
+          _corrHeader(palette),
           SizedBox(height: S(gap)),
           _corrGrid(palette),
           SizedBox(height: SH(0.03)),
@@ -1444,7 +1427,252 @@ class MenuScreenState extends State<MenuScreen>
   Widget _wide(Widget child) =>
       Center(child: FractionallySizedBox(widthFactor: 0.7, child: child));
 
-  Widget _searchRow() => SizedBox(
+  /// Une rangée de touches, toutes de la même largeur, dans la bande.
+  ///
+  /// Nino : « la largeur des deux touches additionnées doit être la même que
+  /// les trois touches de cadences additionnées au-dessus. »
+  ///
+  /// Ce n'est pas l'écart qui est constant d'une rangée à l'autre, c'est la
+  /// SOMME des écarts. Trois touches laissent deux trous, deux touches n'en
+  /// laissent qu'un : à écart égal, la rangée de deux serait plus large d'un
+  /// trou que celle de trois, et les bords ne tomberaient pas ensemble. On
+  /// fixe donc le total — deux fois [kEcartDeLaBande] — et on le partage
+  /// entre les trous qu'il y a. La rangée de trois ne bouge pas d'un pixel,
+  /// celle de deux porte un trou double, et les deux additionnent la même
+  /// largeur de touche.
+  Widget _rangee({required List<Widget> touches, Key? cle}) {
+    final ecart = S(kEcartDeLaBande * 2) / (touches.length - 1);
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: S(kMargeDeLaBande)),
+      child: Row(
+        key: cle,
+        children: [
+          for (var i = 0; i < touches.length; i++) ...[
+            if (i > 0) SizedBox(width: ecart),
+            Expanded(child: touches[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Hauteur d'une des quatre grosses touches — CALCULÉE, et non choisie.
+  ///
+  /// Nino : « la hauteur des touches doit être gérée de manière à ce que la
+  /// barre d'indication qui est en bas reste exactement au même endroit tout
+  /// en étant espacée des touches qui sont au-dessus exactement de la même
+  /// distance. »
+  ///
+  /// Du bas de la rangée des cadences au trait de séparation, il y avait :
+  /// SH(0,02) + 5 × SH(0,012) + SH(0,02) d'écarts verticaux, 7 × S(6)
+  /// d'interlignes et six touches de SH(0,06) — soit SH(0,46) + S(42).
+  ///
+  /// Il y a maintenant deux rangées de touches et la grille, avec les mêmes
+  /// écarts : SH(0,184) + S(24) + H, où H est la hauteur totale de la
+  /// grille. Pour que le trait retombe au même endroit il faut donc
+  /// H = SH(0,276) + S(18) ; la grille étant deux rangées séparées d'un
+  /// écart, chaque touche vaut la moitié de ce qui reste.
+  double get _hauteurDesGrosses => (SH(0.276) + S(18) - S(kEcartDeLaBande)) / 2;
+
+  /// Les quatre grosses touches, en deux sur deux, sous la recherche.
+  ///
+  /// Nino : « en dessous ça se sépare en quatre cases avec les symboles de
+  /// chacun comme en partie, sauf que là on écrit également. » Elles tiennent
+  /// dans la largeur des anciennes touches larges — « les quatre grosses
+  /// touches avec les symboles doivent être séparées et prendre la même
+  /// largeur que les actuelles touches » — c'est [_wide] qui la leur donne.
+  ///
+  /// LES COULEURS ALTERNENT EN DIAGONALE : « "conversations" et "autres"
+  /// doivent avoir le texte et le symbole en couleur 1 du thème,
+  /// "classement" et "affronter Deep Grey" en couleur 2. »
+  Widget _quatreTouches(ThemePalette palette) {
+    final ecart = S(kEcartDeLaBande);
+    Widget deux(Widget gauche, Widget droite) => SizedBox(
+      height: _hauteurDesGrosses,
+      child: Row(
+        children: [
+          Expanded(child: gauche),
+          SizedBox(width: ecart),
+          Expanded(child: droite),
+        ],
+      ),
+    );
+    return Column(
+      children: [
+        deux(
+          // La pastille rouge reste sur les conversations, et seulement là.
+          AnimatedBuilder(
+            animation: _online.messages,
+            builder: (context, _) => UnreadDot(
+              show: _online.messages.hasUnread,
+              child: _grosseTouche(
+                symbole: (couleur) => PictoTouche(
+                  asset: 'assets/images/chat.webp',
+                  couleur: couleur,
+                  secours: '💬',
+                  part: 1,
+                ),
+                texte: T('Conversations'),
+                couleur: palette.clair,
+                onPressed: _openMessages,
+              ),
+            ),
+          ),
+          _grosseTouche(
+            symbole: (couleur) => PictoTouche(
+              asset: 'assets/images/podium.webp',
+              couleur: couleur,
+              secours: '1·2·3',
+              part: 1,
+            ),
+            texte: T('Classement'),
+            couleur: palette.fonce,
+            onPressed: _openClassement,
+          ),
+        ),
+        SizedBox(height: ecart),
+        deux(
+          _grosseTouche(
+            cle: _tourKeys['ai'],
+            symbole: (couleur) => PictoTouche(
+              asset: 'assets/images/buste.webp',
+              couleur: couleur,
+              secours: '☗',
+              part: 1,
+            ),
+            texte: T('Affronter Deep Grey'),
+            couleur: palette.fonce,
+            onPressed: _startVsAi,
+          ),
+          _grosseTouche(
+            cle: _tourKeys['plus'],
+            symbole: _signePlus,
+            texte: T('Autres'),
+            couleur: palette.clair,
+            onPressed: _openPlus,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Une grosse touche : le symbole en haut, le mot en bas, tous deux de la
+  /// même couleur de thème et cernés de noir.
+  ///
+  /// Elle ne passe pas par [FugaButton] : celui-ci réduit son contenu d'un
+  /// bloc (`FittedBox`), ce qui laisse au symbole une largeur infinie à
+  /// remplir et empêche « affronter Deep Grey » de se couper en deux lignes.
+  /// Ici la place est partagée : au mot ce que deux lignes demandent, au
+  /// symbole tout le reste.
+  Widget _grosseTouche({
+    required Widget Function(Color) symbole,
+    required String texte,
+    required Color couleur,
+    required VoidCallback onPressed,
+    Key? cle,
+  }) {
+    final rayon = S(18);
+    final marge = S(8);
+    return Material(
+      key: cle,
+      color: kGrisTouche,
+      shape: formeDeTouche(BorderRadius.circular(rayon)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(rayon),
+        onTap: onPressed,
+        child: LayoutBuilder(
+          builder: (context, boite) {
+            final dedans = boite.maxHeight - 2 * marge;
+            // DEUX LIGNES, TOUJOURS : les quatre symboles se tiennent alors
+            // sur la même ligne d'horizon, que leur mot en prenne une ou
+            // deux. Le facteur 1,35 dépasse la hauteur de ligne d'une police
+            // (≈ 1,17) parce que la place RÉSERVÉE doit dépasser ce que le
+            // texte demande, jamais l'inverse — un mot qui déborde d'un
+            // dixième de point est un mot coupé.
+            const parLigne = 1.35;
+            // ET LA MOITIÉ DE LA TOUCHE AU PLUS. La hauteur d'une touche se
+            // mesure sur la HAUTEUR de l'écran, la taille d'un texte sur sa
+            // LARGEUR : sur une fenêtre large et basse, deux lignes à la
+            // taille normale ne tenaient plus dedans, et la colonne
+            // débordait. Le mot rapetisse alors plutôt que de déborder.
+            final voulue = SF(14) * parLigne * 2;
+            final hauteurDuMot = voulue < dedans / 2 ? voulue : dedans / 2;
+            return Padding(
+              padding: EdgeInsets.all(marge),
+              child: Column(
+                children: [
+                  Expanded(child: symbole(couleur)),
+                  SizedBox(height: S(4)),
+                  SizedBox(
+                    height: hauteurDuMot,
+                    // LE MOT RÉTRÉCIT PLUTÔT QUE D'ÊTRE COUPÉ, comme dans
+                    // [FugaButton] — et il rétrécit SANS perdre son retour à
+                    // la ligne : la largeur donnée au-dedans est celle de la
+                    // touche, donc « affronter Deep Grey » se coupe en deux
+                    // lignes d'abord, et ces deux lignes-là rapetissent
+                    // ensuite s'il le faut. Un `FittedBox` seul aurait offert
+                    // au texte une largeur infinie, et le mot serait sorti de
+                    // la touche en une seule ligne.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      // UNE LARGEUR MAXIMALE, ET NON UNE LARGEUR IMPOSÉE :
+                      // le mot prend la place de ses lettres, pas celle de
+                      // la touche. Imposée, elle décalait le contour — il se
+                      // dessine sur la largeur de la boîte, les lettres se
+                      // centrent dans celle-ci, et le mot se voyait DEUX
+                      // fois, le noir à gauche et le coloré au milieu.
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: boite.maxWidth - 2 * marge,
+                        ),
+                        child: MotTouche(
+                          texte: texte,
+                          couleur: couleur,
+                          maxLines: 2,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: hauteurDuMot / (parLigne * 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Le gros « + » d'« Autres » — celui du bandeau fin du haut, où il ouvre
+  /// déjà le même genre de popup. Nino : « pour "autres" dessine un gros plus
+  /// comme dans le bandeau fin du haut ».
+  ///
+  /// Le glyphe « + » n'occupe qu'environ la moitié de son cadratin : écrit à
+  /// la taille de la place qu'on lui laisse, il y paraîtrait deux fois plus
+  /// petit que les trois dessins voisins. On l'écrit donc au DOUBLE, et on
+  /// laisse déborder le blanc qui l'entoure — il ne se voit pas.
+  Widget _signePlus(Color couleur) => LayoutBuilder(
+    builder: (context, boite) => Center(
+      child: OverflowBox(
+        maxWidth: double.infinity,
+        maxHeight: double.infinity,
+        child: MotTouche(
+          texte: '+',
+          couleur: couleur,
+          style: TextStyle(
+            fontSize: boite.maxHeight * 2,
+            fontWeight: FontWeight.bold,
+            height: 1,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _searchRow(ThemePalette palette) => SizedBox(
     // Même épaisseur que les touches du menu — pour la bande ET pour le champ
     // lui-même : un `TextField` prend sinon la hauteur de son texte, et la
     // ligne paraissait fine à côté de l'étoile.
@@ -1473,7 +1701,10 @@ class MenuScreenState extends State<MenuScreen>
               alignment: Alignment.centerLeft,
               padding: EdgeInsets.symmetric(horizontal: S(12)),
               decoration: BoxDecoration(
-                color: kFugaGrey,
+                // Le gris de toutes les touches : la barre fait rangée avec
+                // l'étoile qui la suit, elles ne peuvent pas être de deux
+                // gris différents.
+                color: kGrisTouche,
                 borderRadius: BorderRadius.circular(S(12)),
               ),
               // En premier plan : une bordure de fond repousserait le champ
@@ -1509,7 +1740,11 @@ class MenuScreenState extends State<MenuScreen>
             fontSize: SF(18),
             height: double.infinity,
             radius: S(12),
-            textColor: const Color(0xFFFFD94D),
+            // EN COULEUR 1 DU THÈME, et cernée comme le reste — le cerne lui
+            // vient de la touche. Nino : « l'étoile (favoris) doit être en
+            // couleur 1 du thème et avoir le contour. » Son jaune à elle ne
+            // venait d'aucun thème.
+            textColor: palette.clair,
             onPressed: _openFavorites,
           ),
         ),
@@ -1555,7 +1790,7 @@ class MenuScreenState extends State<MenuScreen>
             // appartient au menu, et seul son contour est noir — comme pour
             // tout le reste. Nino : « la barre de séparation doit être grise
             // comme les touches du menu. Seul le contour doit être noir. »
-            color: attend ? palette.clair : kFugaGrey,
+            color: attend ? palette.clair : kGrisTouche,
             // LA MOITIÉ DE SA HAUTEUR : les bouts sont donc parfaitement
             // ronds, et le restent si l'épaisseur change encore.
             borderRadius: BorderRadius.circular(S(kTraitPicto * 5)),
@@ -1569,18 +1804,18 @@ class MenuScreenState extends State<MenuScreen>
 
   /// Le titre de la section. Plus de touche « Actualiser » à côté : la liste
   /// se tient à jour toute seule, comme sur les sites de jeu.
-  Widget _corrHeader() => SizedBox(
+  Widget _corrHeader(ThemePalette palette) => SizedBox(
     key: _tourKeys['corr'],
     height: labelHeight(0.04, 15),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        T('Parties par correspondance'),
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: SF(15),
-          color: kMenuInk,
-        ),
+    // AU MILIEU, EN COULEUR 2, CERNÉ. Nino : « "parties par correspondance"
+    // doit prendre la couleur 2 du thème et le contour noir, ainsi qu'être
+    // recentré au milieu de l'écran. » Collé à gauche, il pendait sous une
+    // grille, elle, centrée.
+    child: Center(
+      child: MotTouche(
+        texte: T('Parties par correspondance'),
+        couleur: palette.fonce,
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: SF(15)),
       ),
     ),
   );
@@ -1664,7 +1899,7 @@ class MenuScreenState extends State<MenuScreen>
                 text: _random ? 'Random' : T('Standard'),
                 fontSize: SF(14),
                 height: double.infinity,
-                color: _random ? palette.clair : kFugaGrey,
+                color: _random ? palette.clair : kGrisTouche,
                 textColor: _random ? Colors.black87 : Colors.white,
                 onPressed: () => setState(() => _random = !_random),
               ),

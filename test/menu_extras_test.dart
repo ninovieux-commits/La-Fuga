@@ -42,7 +42,7 @@ void main() {
 
   /// Les entrées secondaires vivent dans le volet « Plus », comme en Kivy.
   Future<void> openPlus(WidgetTester tester, String entry) async {
-    await tapVisible(tester, find.text('Plus'));
+    await tapVisible(tester, find.text('Autres'));
     await tapVisible(tester, find.text(entry));
   }
 
@@ -226,7 +226,7 @@ void main() {
     await bootApp(tester);
     expect(find.textContaining('Bientôt'), findsNothing);
 
-    await tapVisible(tester, find.text('Plus'));
+    await tapVisible(tester, find.text('Autres'));
     expect(find.text('Soutenir les devs'), findsOneWidget);
   });
 }

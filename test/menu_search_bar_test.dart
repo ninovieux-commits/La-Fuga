@@ -25,8 +25,12 @@ import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Le gris des touches et de la barre — `kFugaGrey`, rgb(89, 89, 89) — ou le
-/// TRAIT NOIR qui les borde désormais.
+/// Le gris des touches et de la barre — `kGrisTouche`, rgb(128, 128, 128) —
+/// ou le TRAIT NOIR qui les borde désormais.
+///
+/// C'était rgb(89, 89, 89) : la refonte du menu a donné à toutes les touches
+/// le gris médian du jeu. Nino : « tous les fonds de bouton doivent être le
+/// gris médian comme en partie. »
 ///
 /// Le trait compte : il est peint à l'intérieur du bord, donc les deux ou
 /// trois pixels du haut et du bas d'une touche sont noirs au lieu d'être
@@ -41,7 +45,7 @@ bool _estGris(ByteData image, int largeur, int x, int y) {
   final b = image.getUint8(i + 2);
   final noir = r < 40 && g < 40 && b < 40;
   return noir ||
-      ((r - 89).abs() < 14 && (g - 89).abs() < 14 && (b - 89).abs() < 14);
+      ((r - 128).abs() < 14 && (g - 128).abs() < 14 && (b - 128).abs() < 14);
 }
 
 /// Plus longue bande grise continue de la colonne `x`, cherchée UNIQUEMENT

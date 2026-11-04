@@ -45,7 +45,7 @@ void main() {
 
     expect(find.text('Langue / Language'), findsNothing);
     expect(find.byType(TutoScreen), findsNothing);
-    expect(find.text('Jouer contre Deep Grey'), findsOneWidget);
+    expect(find.text('Affronter Deep Grey'), findsOneWidget);
   });
 
   testWidgets('la langue choisie est celle de tous les écrans', (tester) async {

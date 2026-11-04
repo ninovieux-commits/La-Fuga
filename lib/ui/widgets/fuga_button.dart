@@ -11,6 +11,12 @@ import '../scale.dart';
 import 'picto_touche.dart';
 
 /// Gris des boutons secondaires — `COL_BTN_GREY` de Kivy.
+///
+/// IL N'EST PLUS LE GRIS PAR DÉFAUT D'UNE TOUCHE : [kGrisTouche] l'est. Nino,
+/// en refondant le menu : « tous les fonds de bouton doivent être le gris
+/// médian comme en partie. » Le menu et les popups vivaient sur un gris
+/// (89) plus sombre que celui du jeu (128) — deux gris pour une même chose.
+/// Celui-ci ne sert plus qu'aux fonds qui ne sont pas des touches.
 const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 
 /// Le gris de TOUTES les touches : pile à mi-chemin entre le noir et le
@@ -25,8 +31,9 @@ const Color kFugaGrey = Color.fromRGBO(89, 89, 89, 1);
 /// façon.
 ///
 /// « TOUTES » est à prendre au mot : les touches des deux bandeaux, les
-/// flèches du bas, et les touches secondaires des popups, qui avaient un
-/// gris à elles le temps d'une étape.
+/// flèches du bas, les touches secondaires des popups, qui avaient un
+/// gris à elles le temps d'une étape — et, depuis la refonte du menu, TOUTE
+/// [FugaButton] à qui l'on ne donne pas de couleur.
 const Color kGrisTouche = Color.fromRGBO(128, 128, 128, 1);
 
 /// Opacité d'une touche HORS SERVICE — le signe, partout dans l'application.
@@ -80,7 +87,7 @@ class FugaButton extends StatelessWidget {
     super.key,
     this.text = '',
     required this.onPressed,
-    this.color = kFugaGrey,
+    this.color = kGrisTouche,
     this.textColor = Colors.white,
     this.height,
     this.fontSize,
@@ -134,14 +141,18 @@ class FugaButton extends StatelessWidget {
             // texte ne vient jamais lécher le bord.
             child: FittedBox(
               fit: BoxFit.scaleDown,
+              // LE MOT PORTE LE TRAIT NOIR, comme les symboles. Nino :
+              // « toutes les écritures sur les boutons doivent avoir le
+              // contour comme en analyse. Idéalement tous les boutons de
+              // l'app avec des textes doivent avoir ce contour. » C'est donc
+              // ici qu'il se pose, dans LA touche, et non une fois par
+              // écran : une touche qui porte un mot le porte cerné.
               child:
                   enfant ??
-                  Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
+                  MotTouche(
+                    texte: text,
+                    couleur: textColor,
                     style: TextStyle(
-                      color: textColor,
                       fontSize: fontSize ?? SF(16),
                       fontWeight: FontWeight.bold,
                     ),

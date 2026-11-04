@@ -252,7 +252,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final bouton = find.ancestor(
-        of: find.text('Messages'),
+        of: find.text('Conversations'),
         matching: find.byType(UnreadDot),
       );
       expect(bouton, findsOneWidget);
@@ -271,7 +271,7 @@ void main() {
         reason: 'la pastille s allume sans qu on ait quitté le menu',
       );
       // L'intitulé ne porte plus de compteur.
-      expect(find.text('Messages'), findsOneWidget);
+      expect(find.text('Conversations'), findsOneWidget);
       expect(find.textContaining('(1)'), findsNothing);
     });
   });

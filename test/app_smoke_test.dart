@@ -47,9 +47,9 @@ void main() {
     for (final label in [
       'Jouer en local',
       'Jouer en ligne',
-      'Messages',
-      'Jouer contre Deep Grey',
-      'Plus',
+      'Conversations',
+      'Affronter Deep Grey',
+      'Autres',
       'Parties par correspondance',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
@@ -70,7 +70,7 @@ void main() {
 
   testWidgets('« Plus » ouvre le reste, comme en Kivy', (tester) async {
     await bootApp(tester);
-    await tapVisible(tester, find.text('Plus'));
+    await tapVisible(tester, find.text('Autres'));
 
     for (final label in [
       'Tuto',
@@ -118,7 +118,7 @@ void main() {
     tester,
   ) async {
     await bootApp(tester);
-    await tapVisible(tester, find.text('Plus'));
+    await tapVisible(tester, find.text('Autres'));
     await tapVisible(tester, find.text('Réglages'));
 
     expect(find.byType(SettingsScreen), findsOneWidget);
@@ -148,7 +148,7 @@ void main() {
   ) async {
     await bootApp(tester);
 
-    await tapVisible(tester, find.text('Jouer contre Deep Grey'));
+    await tapVisible(tester, find.text('Affronter Deep Grey'));
     expect(find.text('Choisissez votre couleur'), findsOneWidget);
 
     await tapVisible(tester, find.text('Jouer avec les Blancs'));
@@ -211,7 +211,7 @@ void main() {
   testWidgets('les messages demandent aussi un compte', (tester) async {
     await bootApp(tester);
 
-    await tapVisible(tester, find.text('Messages'));
+    await tapVisible(tester, find.text('Conversations'));
 
     expect(find.byType(LoginScreen), findsOneWidget);
   });

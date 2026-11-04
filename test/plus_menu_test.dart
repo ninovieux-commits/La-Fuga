@@ -31,9 +31,9 @@ void main() {
   Future<void> openPlus(WidgetTester tester) async {
     await tester.pumpWidget(const FugaApp());
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Plus'));
+    await tester.ensureVisible(find.text('Autres'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Plus'));
+    await tester.tap(find.text('Autres'));
     await tester.pumpAndSettle();
   }
 
