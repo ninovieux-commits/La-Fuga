@@ -27,13 +27,33 @@ final class BoardBackgroundPainter extends CustomPainter {
   const BoardBackgroundPainter({
     required this.geometry,
     required this.palette,
+    ThemePalette? paletteDuPlateau,
     this.images,
     this.motRalliement,
     this.ralliementEnEdition,
-  });
+  }) : _paletteDuPlateau = paletteDuPlateau;
 
   final BoardGeometry geometry;
+
+  /// Les couleurs de l'INTERFACE — l'axe « Général ». Les zones de
+  /// ralliement sont les couleurs 1 et 2 du joueur, pas celles du plateau.
   final ThemePalette palette;
+
+  final ThemePalette? _paletteDuPlateau;
+
+  /// Les couleurs du PLATEAU — l'axe « Plateau ».
+  ///
+  /// Nino : « le composeur de thème a des défauts. Par exemple, le plateau
+  /// ne se met pas bien à jour. » L'axe « Plateau » ne choisissait QUE
+  /// l'image de fond : sur les douze thèmes qui n'en ont pas, le prendre ne
+  /// changeait donc rien du tout, puisque la couleur du damier et celle de
+  /// la grille venaient de l'axe « Général ». Le composeur montrait pourtant
+  /// la couleur du thème choisi dans sa vignette, et promettait un
+  /// changement qui n'arrivait jamais.
+  ///
+  /// Nulle = l'ancien comportement, celui des écrans qui ne distinguent pas
+  /// les deux axes.
+  ThemePalette get plateau => _paletteDuPlateau ?? palette;
 
   /// Images du thème, quand il en a.
   final LoadedThemeImages? images;
@@ -106,7 +126,7 @@ final class BoardBackgroundPainter extends CustomPainter {
         Paint()..filterQuality = FilterQuality.medium,
       );
     } else {
-      canvas.drawRect(boardRect, Paint()..color = palette.board);
+      canvas.drawRect(boardRect, Paint()..color = plateau.board);
     }
 
     // LE BORD DU PLATEAU, en haut et en bas SEULEMENT.
@@ -136,7 +156,7 @@ final class BoardBackgroundPainter extends CustomPainter {
       );
 
     final gridPaint = Paint()
-      ..color = palette.grid
+      ..color = plateau.grid
       ..style = PaintingStyle.stroke
       ..strokeWidth = S(1);
     for (var c = 0; c < kCols; c++) {
@@ -152,7 +172,7 @@ final class BoardBackgroundPainter extends CustomPainter {
       boardRect.center.dx,
       boardRect.center.dy,
       g.cellSize * 0.42,
-      color: palette.grid,
+      color: plateau.grid,
       strokeWidth: S(1.6),
     );
 
@@ -286,6 +306,10 @@ final class BoardBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(BoardBackgroundPainter old) =>
       old.palette != palette ||
+      // L'AXE DU PLATEAU AUSSI, et il ne se devine pas depuis les autres :
+      // changer de plateau pour un thème SANS image ne touche ni `palette`
+      // ni `images`, et le décor restait tel quel à l'écran.
+      old.plateau != plateau ||
       old.images != images ||
       old.motRalliement != motRalliement ||
       old.ralliementEnEdition != ralliementEnEdition ||

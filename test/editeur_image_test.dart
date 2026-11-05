@@ -77,7 +77,12 @@ void main() {
     // repos et pas sur une machine chargée : l'éditeur en restait à sa roue
     // d'attente, la barre d'outils n'existait pas encore, et le test tombait
     // une fois sur vingt — au milieu de la suite complète, jamais seul.
-    for (var i = 0; i < 50; i++) {
+    //
+    // UNE SECONDE N'A PAS SUFFI NON PLUS : la suite tourne maintenant à
+    // plus de dix-sept cents essais, et la machine est d'autant plus
+    // chargée. Le budget passe à quatre secondes. Il ne coûte rien quand
+    // tout va bien — la boucle s'arrête dès que la roue disparaît.
+    for (var i = 0; i < 200; i++) {
       if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),

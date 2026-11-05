@@ -329,6 +329,9 @@ class _MiniBoard extends StatelessWidget {
         builder: (context, imagesPieces) => CustomPaint(
           painter: _MiniBoardPainter(
             board: board,
+            // LE DAMIER SUIT L'AXE « PLATEAU », comme sur le vrai plateau :
+            // un thème de plateau sans image ne changeait rien du tout.
+            paletteDuPlateau: paletteOf(boardTheme),
             // Mes pièces en bas, comme sur le plateau de jeu.
             flipped: g?.myCamp != Camp.noir,
             palette: palette,
@@ -347,6 +350,7 @@ class _MiniBoardPainter extends CustomPainter {
     required this.board,
     required this.flipped,
     required this.palette,
+    required this.paletteDuPlateau,
     required this.pieceTheme,
     this.images,
     this.pieceImages,
@@ -359,6 +363,10 @@ class _MiniBoardPainter extends CustomPainter {
   final Board? board;
   final bool flipped;
   final ThemePalette palette;
+
+  /// Les couleurs de l'axe « Plateau » : le damier et sa grille.
+  final ThemePalette paletteDuPlateau;
+
   final LoadedThemeImages? images;
 
   /// Images et NOM du thème des pièces. Le nom compte autant que les images :
@@ -388,14 +396,14 @@ class _MiniBoardPainter extends CustomPainter {
     } else {
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, Radius.circular(S(4))),
-        Paint()..color = palette.board,
+        Paint()..color = paletteDuPlateau.board,
       );
     }
 
     // Le quadrillage passe TOUJOURS par-dessus : les images de plateau ne
     // l'incluent pas.
     final grid = Paint()
-      ..color = palette.grid
+      ..color = paletteDuPlateau.grid
       ..strokeWidth = 0.7
       ..style = PaintingStyle.stroke;
     for (var c = 0; c <= kCols; c++) {
@@ -440,6 +448,7 @@ class _MiniBoardPainter extends CustomPainter {
       old.boardKey != boardKey ||
       old.flipped != flipped ||
       old.palette != palette ||
+      old.paletteDuPlateau != paletteDuPlateau ||
       old.images != images ||
       old.pieceImages != pieceImages ||
       // Le NOM en plus des images : aujourd'hui deepgrey a une image de

@@ -604,5 +604,6 @@
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "画面を下にスワイプすると通信対局になります：時間無制限で、登録済みのプレイヤーと対戦します。始めるには空の盤をタップし、お気に入りから相手を選びます そのあと開始局面を選びます：標準、Random、または自分で並べた局面。 区切りのバーは、一つ以上の対局であなたの手番のとき、または挑戦を送られたときに光ります。 タップすると対局一覧まで一気に移動します。",
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "「会話」には他のプレイヤーとのやり取りがまとまっています。メッセージが届くと小さな丸が光ります。",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "「ランキング」は上位30人のMéloを表示し、一番下に自分の行が固定されます。モードに従い、Randomでは Random のランキングになります。",
-  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "「その他」から、このチュートリアル、対局履歴、解析、設定、そして開発者を支援する（ゲームを助ける少額の寄付）にアクセスできます。"
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "「その他」から、このチュートリアル、対局履歴、解析、設定、そして開発者を支援する（ゲームを助ける少額の寄付）にアクセスできます。",
+  "Aperçu": "プレビュー"
 }

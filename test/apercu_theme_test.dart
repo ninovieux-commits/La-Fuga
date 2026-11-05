@@ -1,164 +1,138 @@
-/// Le thème des PIÈCES dans les aperçus.
+/// L'aperçu d'un thème tient dans ses quatre cases.
 ///
-/// Nino : « le changement de pièces (thème) vers deepgrey ne s'affiche pas
-/// dans les aperçus (aperçus corresp et aperçu de thème) ».
+/// Il montre quatre cases du damier avec une pièce sur chacune. L'image du
+/// plateau était posée DERRIÈRE, étalée sur toute la boîte : dès que la
+/// boîte n'était pas quatre fois plus large que haute — le composeur lui
+/// donne toute la largeur de l'écran —, le décor débordait des cases et
+/// l'aperçu ne ressemblait plus à un plateau.
 ///
-/// Deepgrey est le seul thème qui n'a AUCUNE image de pièce : il se
-/// reconnaît uniquement à son rendu, déclenché par le NOM du thème. Un
-/// aperçu qui ne transmet pas ce nom le dessine donc comme l'original, sans
-/// que rien ne le signale. On compte les pixels : deux thèmes différents
-/// doivent donner deux images différentes.
+/// Il sert aussi aux trois axes du composeur : les pièces, le plateau et les
+/// couleurs peuvent venir de trois thèmes différents.
 library;
 
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lafuga/engine/board.dart';
-import 'package:lafuga/engine/piece.dart';
-import 'package:lafuga/game/correspondence.dart';
-import 'package:lafuga/theme/theme_assets.dart';
+import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
-import 'package:lafuga/ui/widgets/corr_slot.dart';
-import 'package:lafuga/ui/widgets/piece_painter.dart';
+import 'package:lafuga/ui/widgets/theme_image_cache.dart';
+import 'package:lafuga/ui/widgets/theme_preview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Le peintre du mini-plateau d'un aperçu de correspondance.
-///
-/// On ne rasterise pas — `toImage` ne rend jamais la main dans un test de
-/// widget. On demande au peintre s'il VOIT la différence, ce qui est
-/// justement ce qui manquait : l'aperçu ne recevait pas le thème des
-/// pièces, donc deux thèmes donnaient le même peintre et rien ne se
-/// repeignait.
-Future<CustomPainter> _peintre(WidgetTester tester, Widget widget) async {
+const Key _cadre = Key('cadre');
+
+/// Le fond derrière l'aperçu : une couleur qu'aucun thème n'emploie.
+const Color _fond = Color(0xFFFF00FF);
+
+Future<({ByteData pixels, int largeur, int hauteur})> _rend(
+  WidgetTester tester,
+  Widget apercu, {
+  required Size boite,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
-      home: Center(child: SizedBox(width: 120, height: 120, child: widget)),
+      home: Scaffold(
+        body: Center(
+          child: RepaintBoundary(
+            key: _cadre,
+            child: ColoredBox(
+              color: _fond,
+              child: SizedBox(
+                width: boite.width,
+                height: boite.height,
+                child: apercu,
+              ),
+            ),
+          ),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
-  final peintres = tester
-      .widgetList<CustomPaint>(find.byType(CustomPaint))
-      .map((w) => w.painter)
-      .whereType<CustomPainter>()
-      .where((p) => p.runtimeType.toString().contains('MiniBoard'))
-      .toList();
-  expect(peintres, isNotEmpty, reason: 'mini-plateau introuvable');
-  return peintres.first;
+
+  late ByteData pixels;
+  late int largeur;
+  late int hauteur;
+  await tester.runAsync(() async {
+    final limite =
+        tester.renderObject(find.byKey(_cadre)) as RenderRepaintBoundary;
+    final rendu = await limite.toImage();
+    largeur = rendu.width;
+    hauteur = rendu.height;
+    pixels = (await rendu.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+  });
+  return (pixels: pixels, largeur: largeur, hauteur: hauteur);
+}
+
+Color _au(({ByteData pixels, int largeur, int hauteur}) r, int x, int y) {
+  final i = (y * r.largeur + x) * 4;
+  return Color.fromARGB(
+    255,
+    r.pixels.getUint8(i),
+    r.pixels.getUint8(i + 1),
+    r.pixels.getUint8(i + 2),
+  );
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() => setScaleSize(const Size(400, 800)));
-
-  test('deepgrey n a aucune image de pièce : seul son NOM le distingue', () {
-    // C'est la raison pour laquelle il disparaissait des aperçus.
-    expect(kThemeImages['deepgrey']!.hasPieceImages, isFalse);
-    expect(kThemeImages['medieval']!.hasPieceImages, isTrue);
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await Settings.load();
+    setScaleSize(const Size(393, 851));
+  });
+  tearDown(() {
+    resetScale();
+    ThemeImageCache.clear();
   });
 
-  test('sans son NOM, deepgrey se dessine comme l original', () async {
-    // La preuve par le pixel, au niveau du dessin : c'est le nom du thème
-    // qui change tout. Un aperçu qui ne le transmet pas retombe exactement
-    // sur l'original, sans que rien ne le signale.
-    Future<List<int>> rendre(String? theme) async {
-      final rec = ui.PictureRecorder();
-      final canvas = Canvas(rec);
-      canvas.drawRect(
-        const Rect.fromLTWH(0, 0, 60, 60),
-        Paint()..color = const Color(0xFF404040),
-      );
-      paintPiece(
-        canvas,
-        const Rect.fromLTWH(0, 0, 60, 60),
-        const Piece(PieceType.heritier, Camp.blanc),
-        paletteOf(theme ?? 'original'),
-        theme: theme,
-      );
-      final img = await rec.endRecording().toImage(60, 60);
-      final d = await img.toByteData();
-      return List<int>.generate(d!.lengthInBytes, d.getUint8);
-    }
-
-    int ecart(List<int> a, List<int> b) {
-      var n = 0;
-      for (var i = 0; i < a.length; i++) {
-        if (a[i] != b[i]) n++;
-      }
-      return n;
-    }
-
-    final original = await rendre('original');
-    expect(
-      ecart(original, await rendre('deepgrey')),
-      greaterThan(1000),
-      reason: 'deepgrey ne se dessine pas autrement',
-    );
-    expect(
-      ecart(original, await rendre(null)),
-      0,
-      reason: 'sans nom de thème, on retombe exactement sur l original',
-    );
-  });
-
-  testWidgets('l aperçu de correspondance suit le thème des PIÈCES', (
+  testWidgets('le décor du plateau ne déborde pas des quatre cases', (
     tester,
   ) async {
-    final jeu = CorrGame.fromJson(const {
-      'id': 'g1',
-      'statut': 'en_cours',
-      'adversaire': 'celia',
-      'ma_couleur': 'Blanc',
-      'turn': 'Blanc',
-      'my_turn': true,
-      'moves_text': '',
-      'objectif': 'partie',
-    });
+    // Fleur a une image de plateau : c'est elle qui débordait.
+    await tester.runAsync(() => ThemeImageCache.load('fleur'));
 
-    Widget slot(String pieces) => CorrSlot(
-      game: jeu,
-      palette: paletteOf('original'),
-      // Le plateau ne bouge PAS : seul l axe des pièces change.
-      boardTheme: 'original',
-      pieceTheme: pieces,
-      onTap: () {},
-      onAccept: (_) {},
-      onRefuse: (_) {},
-      onCancel: (_) {},
-      onRematch: (_) {},
-      onClose: (_) {},
-      onShow: (_) {},
-      onShowChallenge: (_) {},
+    // Deux fois plus large que haute : les cases font un quart de la
+    // largeur, donc la moitié de la hauteur. Il doit rester du fond
+    // au-dessus et au-dessous.
+    final r = await _rend(
+      tester,
+      const ThemePreview(theme: 'fleur'),
+      boite: const Size(200, 100),
     );
 
-    final avecOriginal = await _peintre(tester, slot('original'));
-    final avecDeepGrey = await _peintre(tester, slot('deepgrey'));
+    expect(_au(r, 100, 3), _fond, reason: 'au-dessus des cases');
+    expect(_au(r, 100, 96), _fond, reason: 'au-dessous des cases');
     expect(
-      avecDeepGrey.shouldRepaint(avecOriginal),
-      isTrue,
-      reason:
-          'l aperçu ne voit pas le thème des pièces : il prenait celui du '
-          'plateau',
+      _au(r, 4, 50),
+      isNot(_fond),
+      reason: 'la bande des cases, elle, est peinte',
     );
   });
 
-  testWidgets('et le plateau de l aperçu ne suit PAS l axe des pièces', (
-    tester,
-  ) async {
-    // La séparation doit marcher dans les deux sens : changer les pièces ne
-    // doit pas repeindre le plateau, et inversement.
-    final vide = CorrGame.fromJson(const {
-      'id': 'g2',
-      'statut': 'en_cours',
-      'adversaire': 'celia',
-      'ma_couleur': 'Blanc',
-      'turn': 'Blanc',
-      'my_turn': true,
-      'moves_text': '',
-      'objectif': 'partie',
+  testWidgets('les trois axes se composent', (tester) async {
+    // Le damier vient de l'axe « Plateau », pas de celui des pièces.
+    await tester.runAsync(() async {
+      await ThemeImageCache.load('original');
+      await ThemeImageCache.load('foret');
     });
-    expect(vide.initialBoard.at(3, 0), isNotNull, reason: 'plateau vide');
-    expect(Board.initial().at(3, 0), isNotNull);
+
+    final r = await _rend(
+      tester,
+      const ThemePreview(
+        theme: 'original',
+        themeDuPlateau: 'foret',
+        themeGeneral: 'original',
+      ),
+      boite: const Size(200, 50),
+    );
+
+    // Un coin de case, loin d'une pièce et de la grille : le damier nu.
+    expect(_au(r, 3, 46), paletteOf('foret').board);
   });
 }

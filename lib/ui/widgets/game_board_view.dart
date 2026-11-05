@@ -247,6 +247,12 @@ class _GameBoardViewState extends State<GameBoardView>
                   painter: BoardBackgroundPainter(
                     geometry: geometry,
                     palette: widget.palette,
+                    // LE DAMIER ET LA GRILLE SUIVENT L'AXE « PLATEAU ».
+                    // Les zones de ralliement, elles, restent aux couleurs
+                    // 1 et 2 du joueur : ce sont ses camps, pas son décor.
+                    paletteDuPlateau: widget.boardTheme == null
+                        ? null
+                        : paletteOf(widget.boardTheme!),
                     images: _boardImages,
                     motRalliement: widget.motRalliement,
                     ralliementEnEdition: widget.ralliementEnEdition,

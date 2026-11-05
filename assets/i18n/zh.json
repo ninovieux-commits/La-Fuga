@@ -604,5 +604,6 @@
   "Fais glisser l'écran vers le BAS pour la CORRESPONDANCE : des parties sans limite de temps, contre des joueurs enregistrés. Pour en lancer une, clique sur un plateau vide, choisis ton adversaire parmi tes favoris, puis la position de départ : standard, Random, ou une position que tu composes toi-même. La barre de séparation s'éclaire lorsque c'est à vous de jouer dans une ou plusieurs parties, ou lorsqu'on vous a envoyé un défi. Touche-la pour descendre d'un coup jusqu'aux parties.": "向下滑动屏幕进入通信对局：不限时的对局，对手为注册玩家。要开始一局，点击空棋盘，然后从收藏中选择对手 然后选择起始局面：标准、Random，或你自己摆的局面。 当你在一局或多局中轮到你走棋，或有人向你发出挑战时，分隔条会亮起。 点击它可直接跳到对局列表。",
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "“对话”汇集你与其他玩家的聊天。有新消息时，上面会亮起一个小圆点。",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "“排行榜”显示最高的三十个 Mélo，底部固定你自己的一行，便于比较。它跟随模式：在 Random 下显示 Random 排行榜。",
-  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“更多”可访问本教程、你的对局历史、分析、设置，以及支持开发者（一点小额捐赠来帮助游戏）。"
+  "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“更多”可访问本教程、你的对局历史、分析、设置，以及支持开发者（一点小额捐赠来帮助游戏）。",
+  "Aperçu": "预览"
 }

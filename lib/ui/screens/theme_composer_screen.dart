@@ -18,7 +18,9 @@ import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
+import '../widgets/picto_touche.dart';
 import '../widgets/profile_photo.dart';
+import '../widgets/theme_preview.dart';
 
 /// Les cinq axes, dans l'ordre de Kivy.
 const List<(String, String)> kThemeAxisLabels = [
@@ -39,6 +41,46 @@ class ThemeComposerScreen extends StatefulWidget {
 class _ThemeComposerScreenState extends State<ThemeComposerScreen>
     with SuitLesReglages {
   late ThemeAxes _axes = Settings.instance.themeAxes;
+
+  /// Un contrôleur par axe, pour AMENER LE CHOISI SOUS LES YEUX.
+  ///
+  /// Les rangées partaient toujours de la gauche : un thème choisi loin dans
+  /// la liste — Deep Grey est le dix-septième — restait hors de l'écran, et
+  /// le composeur s'ouvrait sans qu'on voie ce qu'on avait déjà.
+  final Map<String, ScrollController> _defilements = {
+    for (final (axis, _) in kThemeAxisLabels) axis: ScrollController(),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _montreLesChoisis());
+  }
+
+  @override
+  void dispose() {
+    for (final c in _defilements.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Largeur d'une vignette, marges comprises.
+  static double get _pasDuDefilement => S(78) + 2 * S(4);
+
+  /// Place chaque rangée sur son thème choisi, sans animation : à
+  /// l'ouverture, il n'y a rien à suivre des yeux.
+  void _montreLesChoisis() {
+    for (final (axis, _) in kThemeAxisLabels) {
+      final c = _defilements[axis];
+      if (c == null || !c.hasClients) continue;
+      final index = kThemeOrder.indexOf(_themeOf(axis));
+      if (index < 0) continue;
+      // Un peu AVANT lui : on voit qu'il y a de quoi remonter la liste.
+      final cible = (index - 1) * _pasDuDefilement;
+      c.jumpTo(cible.clamp(0.0, c.position.maxScrollExtent));
+    }
+  }
 
   String _themeOf(String axis) => switch (axis) {
     'pieces' => _axes.pieces,
@@ -71,7 +113,10 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
   Widget build(BuildContext context) {
     final palette = paletteOf(_axes.general);
 
+    // LE FOND SUIT CE QU'ON COMPOSE, pas ce qui est enregistré. Sans cela
+    // l'axe « Fond du menu » ne se voyait qu'après avoir appliqué.
     return FugaScaffold(
+      theme: _axes.menu,
       body: SafeArea(
         child: Column(
           children: [
@@ -89,6 +134,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
                 children: [
                   for (final (axis, label) in kThemeAxisLabels)
                     _section(axis, label),
+                  _apercuVivant(),
                 ],
               ),
             ),
@@ -126,6 +172,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
         SizedBox(
           height: S(104),
           child: ListView(
+            controller: _defilements[axis],
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: S(12)),
             children: [
@@ -156,17 +203,72 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
           children: [
             SizedBox(height: S(54), child: _preview(axis, theme)),
             SizedBox(height: S(4)),
-            Text(
-              T(kThemeLabels[theme] ?? theme),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.white, fontSize: SF(10)),
+            // CERNÉ, comme toute écriture de l'application. Nu, il
+            // disparaissait sur une vignette choisie dont la couleur 1 est
+            // le blanc — c'est le cas de Deep Grey.
+            //
+            // ET ENTIER : « Arc-en-ciel » et « Médiéval » sortaient coupés.
+            // Un nom rapetissé se lit encore ; un nom tranché, non.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: MotTouche(
+                texte: T(kThemeLabels[theme] ?? theme),
+                couleur: Colors.white,
+                style: TextStyle(fontSize: SF(10)),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  /// CE QUE ÇA DONNE, tout de suite et pour de vrai.
+  ///
+  /// Nino : « le composeur de thème a des défauts. Par exemple, le plateau
+  /// ne se met pas bien à jour. » Le composeur ne montrait que cinq rangées
+  /// de vignettes et une touche « Appliquer » : pour voir sa composition, il
+  /// fallait l'appliquer, sortir, et aller ouvrir une partie. La moitié
+  /// basse de l'écran était vide.
+  ///
+  /// Les quatre pièces sur leur damier répondent à trois axes à la fois — le
+  /// général pour les couleurs 1 et 2, les pièces pour leur dessin, le
+  /// plateau pour le damier — et le logo au sien. Le fond de la page, lui,
+  /// répond déjà à l'axe « Fond du menu ».
+  Widget _apercuVivant() => Padding(
+    padding: EdgeInsets.fromLTRB(S(16), S(16), S(16), S(4)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MotTouche(
+          texte: T('Aperçu'),
+          couleur: Colors.white,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: SF(13)),
+        ),
+        SizedBox(height: S(8)),
+        Row(
+          children: [
+            ProfilePhoto(photo: 'logo|${_axes.logo}', size: S(72)),
+            SizedBox(width: S(10)),
+            // QUATRE CASES CARRÉES, ET RIEN AUTOUR. L'aperçu dessine ses
+            // pièces dans des cases hautes comme la boîte ; étiré sur toute
+            // la largeur, le damier ne remplissait que le milieu et l'image
+            // du plateau débordait des deux côtés.
+            Expanded(
+              child: SizedBox(
+                height: S(72),
+                child: ThemePreview(
+                  theme: _axes.pieces,
+                  themeDuPlateau: _axes.board,
+                  themeGeneral: _axes.general,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 
   /// Aperçu d'un axe : ce que l'axe change, et rien d'autre.
   Widget _preview(String axis, String theme) {
@@ -188,12 +290,10 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
           child: asset == null
               // Sans image, l'axe ne change qu'une couleur : on la montre.
               ? Container(color: axis == 'menu' ? palette.menu : palette.board)
-              : Image.asset(
-                  asset,
-                  fit: BoxFit.cover,
-                  width: S(54),
-                  height: S(54),
-                ),
+              // SANS LARGEUR IMPOSÉE : la vignette d'un thème à image
+              // sortait plus étroite que celle d'un thème à couleur, et la
+              // rangée paraissait bancale.
+              : SizedBox.expand(child: Image.asset(asset, fit: BoxFit.cover)),
         );
       default:
         return _colorPreview(paletteOf(theme));
