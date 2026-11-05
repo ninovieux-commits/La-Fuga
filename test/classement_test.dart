@@ -29,19 +29,32 @@ import 'support/fake_realtime.dart';
 
 const Map<String, Object> _launched = {'lang_chosen': true, 'tuto_seen': true};
 
+/// Le serveur renvoie-t-il des EX AEQUO ? Mis à vrai par le seul test qui
+/// s'en occupe, remis à faux avant chacun.
+bool _exAequo = false;
+
 /// Un classement du serveur : des pseudos qui disent de quel mode ils sont.
 Map<String, dynamic> _classement({required bool random}) => {
   'ok': true,
   'random': random,
-  'joueurs': [
-    for (var i = 0; i < 3; i++)
-      {
-        'rang': i + 1,
-        'pseudo': random ? 'rnd$i' : 'std$i',
-        'melo': 1900 - i * 50,
-        'photo': '',
-      },
-  ],
+  'joueurs': _exAequo
+      ? [
+          // Deux mélos égaux, deux fois le même rang, et le suivant saute
+          // une place : c'est ce que le serveur calcule.
+          {'rang': 1, 'pseudo': 'std0', 'melo': 1900, 'photo': ''},
+          {'rang': 2, 'pseudo': 'std1', 'melo': 1850, 'photo': ''},
+          {'rang': 2, 'pseudo': 'std2', 'melo': 1850, 'photo': ''},
+          {'rang': 4, 'pseudo': 'std3', 'melo': 1700, 'photo': ''},
+        ]
+      : [
+          for (var i = 0; i < 3; i++)
+            {
+              'rang': i + 1,
+              'pseudo': random ? 'rnd$i' : 'std$i',
+              'melo': 1900 - i * 50,
+              'photo': '',
+            },
+        ],
   // Ma propre ligne : le serveur la calcule à part, avec mon vrai rang.
   'moi': {
     'rang': random ? 7 : 42,
@@ -62,6 +75,7 @@ void main() {
     SharedPreferences.setMockInitialValues(_launched);
     await Settings.load();
     await Translations.load('fr');
+    _exAequo = false;
 
     socket = FakeRealtime();
     demandes = [];
@@ -122,6 +136,25 @@ void main() {
       expect(find.text('${1900 - i * 50}'), findsOneWidget, reason: 'le mélo');
     }
     expect(demandes.single['random'], false);
+  });
+
+  testWidgets('deux mélos égaux portent deux fois le même rang', (
+    tester,
+  ) async {
+    // Nino : « les personnes qui ont le même mélo doivent avoir le même
+    // classement. » Le rang est CELUI DU SERVEUR, jamais le numéro de la
+    // ligne — c'est ce qui permet à deux lignes de porter le même.
+    _exAequo = true;
+    await ouvreLeClassement(tester);
+
+    expect(find.text('1'), findsOneWidget);
+    expect(
+      find.text('2'),
+      findsNWidgets(2),
+      reason: 'les deux joueurs à 1850 sont deuxièmes tous les deux',
+    );
+    expect(find.text('3'), findsNothing, reason: 'la place est sautée');
+    expect(find.text('4'), findsOneWidget);
   });
 
   testWidgets('le bandeau reste vivant : « standard » bascule le mode SANS '

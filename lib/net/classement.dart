@@ -2,9 +2,11 @@
 ///
 /// Le serveur rend les trente meilleurs d'un mode, déjà triés et déjà
 /// numérotés : le rang vient de LUI, et non du numéro de la ligne dans la
-/// liste. Deux joueurs à égalité ne feront jamais deux fois le même rang
-/// ici — le serveur les départage sur le pseudo — mais si cela devait
-/// changer un jour, l'App n'aurait rien à réapprendre.
+/// liste. C'est ce qui a permis aux EX AEQUO d'arriver sans rien changer
+/// ici. Nino : « les personnes qui ont le même mélo doivent avoir le même
+/// classement. » Deux joueurs à égalité portent donc deux fois le même
+/// rang, et celui qui les suit saute une place — la numérotation des
+/// compétitions, 1-2-2-4.
 library;
 
 final class RangClassement {
