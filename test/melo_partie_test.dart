@@ -337,8 +337,13 @@ void main() {
       expect(compte.envois, hasLength(1), reason: 'rangée tout de suite');
       expect(compte.envois.single.containsKey('melo1'), isFalse);
 
-      // Le serveur annonce le mélo.
-      socket.emit(FugaEvents.meloMaj, {'mon_melo': 1549, 'delta': 12});
+      // Le serveur annonce les DEUX mélos : le mien et celui d'en face.
+      socket.emit(FugaEvents.meloMaj, {
+        'mon_melo': 1549,
+        'delta': 12,
+        'son_melo': 1488,
+        'son_delta': -12,
+      });
       await tester.pumpAndSettle();
 
       expect(find.text(T('Mise à jour du mélo…')), findsNothing);
@@ -351,13 +356,54 @@ void main() {
       expect(compte.envois.last['melo1'], 1549, reason: 'le classement');
       expect(compte.envois.last['variation1'], 12, reason: 'et sa variation');
       expect(compte.envois.last['game_uid'], compte.envois.first['game_uid']);
+      expect(compte.envois.last['melo2'], 1488, reason: 'celui d en face');
+      expect(compte.envois.last['variation2'], -12);
       expect(compte.envois.last['nmc_text'], contains('[Melo1 "1549"]'));
       expect(compte.envois.last['nmc_text'], contains('[Variation1 "+12"]'));
+      expect(compte.envois.last['nmc_text'], contains('[Melo2 "1488"]'));
 
       // Une troisième annonce ne réécrit rien.
       socket.emit(FugaEvents.meloMaj, {'mon_melo': 1549, 'delta': 12});
       await tester.pumpAndSettle();
       expect(compte.envois, hasLength(2));
+    });
+
+    testWidgets('un serveur qui ne dit que mon mélo laisse l autre vide', (
+      tester,
+    ) async {
+      // Les champs `son_melo` et `son_delta` sont arrivés avec l'historique.
+      // Un serveur d'avant ne les envoie pas : la place de l'adversaire
+      // reste vide, et rien ne se devine.
+      final compte = _CompteEspion();
+      final tmp = Directory.systemTemp.createTempSync('lafuga_vieux');
+      addTearDown(() => tmp.deleteSync(recursive: true));
+      final socket = FakeSocket();
+      final partie = makeGame(socket: socket, cadence: Cadence.quinze);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: OnlineGameScreen(
+            game: partie,
+            myPseudo: 'nino',
+            archive: GameArchive(
+              account: compte,
+              local: LocalGamesStore(directory: tmp),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      socket.emit(FugaEvents.partieTerminee, {
+        'methode': 'fugue',
+        'loser_color': 'Noir',
+      });
+      await tester.pumpAndSettle();
+      socket.emit(FugaEvents.meloMaj, {'mon_melo': 1549, 'delta': 12});
+      await tester.pumpAndSettle();
+
+      expect(compte.envois.last['melo1'], 1549);
+      expect(compte.envois.last.containsKey('melo2'), isFalse);
+      expect(compte.envois.last.containsKey('variation2'), isFalse);
     });
 
     testWidgets('si l annonce ne vient jamais, rien ne casse', (tester) async {

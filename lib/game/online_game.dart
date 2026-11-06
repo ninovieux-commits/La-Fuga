@@ -155,6 +155,15 @@ class OnlineGame {
   int? newMelo;
   int? meloDelta;
 
+  /// CELUI DE L'ADVERSAIRE, que le serveur annonce aussi.
+  ///
+  /// Il les calcule tous les deux depuis toujours et n'en envoyait qu'un ;
+  /// `son_melo` et `son_delta` sont arrivés avec l'historique, qui écrit les
+  /// deux côtés. Nuls avec un serveur d'avant — l'historique laisse alors sa
+  /// place vide plutôt que de deviner.
+  int? newOpponentMelo;
+  int? opponentMeloDelta;
+
   /// Score du match en cours.
   int scoreBlanc = 0;
   int scoreNoir = 0;
@@ -268,6 +277,8 @@ class OnlineGame {
   void _onMelo(Map<String, dynamic> d) {
     newMelo = (d['mon_melo'] as num?)?.toInt();
     meloDelta = (d['delta'] as num?)?.toInt();
+    newOpponentMelo = (d['son_melo'] as num?)?.toInt();
+    opponentMeloDelta = (d['son_delta'] as num?)?.toInt();
     _notify(OnlineEvent.meloUpdated);
   }
 
@@ -396,6 +407,8 @@ class OnlineGame {
     readySent = false;
     newMelo = null;
     meloDelta = null;
+    newOpponentMelo = null;
+    opponentMeloDelta = null;
     chat.clear();
     _startTicking();
     _notify(OnlineEvent.nextGameStarted);

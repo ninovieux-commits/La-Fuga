@@ -775,6 +775,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           onlineGameId: id,
           myMelo: monMelo,
           myMeloDelta: monDelta,
+          // Ceux de l'adversaire, quand le serveur les dit. Un serveur
+          // d'avant ne les dit pas, et l'historique laisse sa place vide.
+          opponentMelo: _g.newOpponentMelo,
+          opponentMeloDelta: _g.opponentMeloDelta,
           now: date,
         ),
       ),
