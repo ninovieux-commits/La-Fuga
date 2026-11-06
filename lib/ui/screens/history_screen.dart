@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/translations.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
+import '../../game/nmc.dart';
 import '../../state/local_games.dart';
 import '../scale.dart';
 import '../widgets/fuga_background.dart';
@@ -340,8 +341,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       '1-0' || '0-1' => (
         _kDoubleMethods.contains(method) ? '*' : '#',
         switch (gagne) {
-          true => const Color.fromRGBO(77, 217, 77, 1),
-          false => const Color.fromRGBO(255, 84, 84, 1),
+          true => _kVertDuGain,
+          false => _kRougeDeLaPerte,
           null => _kGrisNeutre,
         },
       ),
@@ -359,7 +360,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
             size: S(22),
           ),
           SizedBox(width: S(4)),
-          Expanded(child: _names(player1, player2)),
+          Expanded(
+            child: _names(
+              player1,
+              player2,
+              // Le serveur ne les range pas encore ; le jour où il le fera,
+              // ces deux lignes les afficheront sans rien changer d'autre.
+              melo1: _entier(g['melo1']),
+              melo2: _entier(g['melo2']),
+            ),
+          ),
           SizedBox(width: S(4)),
           ProfilePhoto(
             photo: avatarPhotoFor(player2, '${g['joueur2_photo'] ?? ''}'),
@@ -398,15 +408,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _fileEntry(LocalGame game) {
     final meta = game.meta;
     final (String sym, Color symColor) = switch (meta.result) {
-      '1-0' => (
-        meta.points == '2' ? '*' : '#',
-        const Color.fromRGBO(77, 217, 77, 1),
-      ),
-      '0-1' => (
-        meta.points == '2' ? '*' : '#',
-        const Color.fromRGBO(255, 84, 84, 1),
-      ),
-      _ => ('½', const Color.fromRGBO(191, 191, 191, 1)),
+      '1-0' => (meta.points == '2' ? '*' : '#', _kVertDuGain),
+      '0-1' => (meta.points == '2' ? '*' : '#', _kRougeDeLaPerte),
+      _ => ('½', _kGrisNeutre),
     };
 
     return Row(
@@ -416,7 +420,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
             onTap: () => _openLocalGame(game),
             sym: sym,
             symColor: symColor,
-            names: _names(meta.player1, meta.player2),
+            names: _names(
+              meta.player1,
+              meta.player2,
+              melo1: meta.melo1,
+              melo2: meta.melo2,
+            ),
             date: meta.date,
             info: '${_cadenceLabel(meta.cadence)}  •  ${T(meta.method)}',
           ),
@@ -442,16 +451,72 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _names(String player1, String player2) => Text(
-    '$player1  vs  $player2',
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-    style: TextStyle(
+  /// Les deux noms, et CE QUE CHACUN A GAGNÉ OU PERDU AU MÉLO.
+  ///
+  /// Nino : « il faut que les mélos gagnés et perdus durant une partie
+  /// soient spécifiés dans l'historique, à côté des noms des joueurs. »
+  ///
+  /// La variation est écrite PLUS PETITE et en couleur, verte ou rouge, pour
+  /// qu'elle se lise comme une annotation du nom et non comme une partie du
+  /// nom. Absente, elle ne prend pas de place : une partie locale n'est pas
+  /// classée, et une partie en ligne n'a aujourd'hui que la variation du
+  /// joueur qui l'a enregistrée — le serveur n'annonce pas encore celle de
+  /// l'adversaire.
+  Widget _names(String player1, String player2, {int? melo1, int? melo2}) {
+    final nom = TextStyle(
       fontSize: SF(14),
       fontWeight: FontWeight.bold,
       color: Colors.white,
-    ),
-  );
+    );
+    TextSpan? variation(int? v) => v == null
+        ? null
+        : TextSpan(
+            text: ' ${NmcMeta.signe(v)}',
+            style: TextStyle(
+              fontSize: SF(11),
+              fontWeight: FontWeight.bold,
+              // ZÉRO N'EST NI L'UN NI L'AUTRE : une partie classée qui ne
+              // déplace rien se dit « +0 », en gris.
+              color: switch (v) {
+                > 0 => _kVertDuGain,
+                < 0 => _kRougeDeLaPerte,
+                _ => _kGrisNeutre,
+              },
+            ),
+          );
+    // SANS VARIATION, LA LIGNE RESTE CE QU'ELLE ÉTAIT : un texte simple.
+    // C'est le cas de toutes les parties jouées jusqu'ici, et de toutes
+    // celles de l'appareil, qui ne sont pas classées.
+    if (melo1 == null && melo2 == null) {
+      return Text(
+        '$player1  vs  $player2',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: nom,
+      );
+    }
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: player1),
+          ?variation(melo1),
+          const TextSpan(text: '  vs  '),
+          TextSpan(text: player2),
+          ?variation(melo2),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: nom,
+    );
+  }
+
+  /// Un entier venu du serveur, quelle que soit la façon dont il l'écrit.
+  static int? _entier(Object? v) => switch (v) {
+    final num n => n.toInt(),
+    final String t => int.tryParse(t.trim()),
+    _ => null,
+  };
 
   Widget _card({
     required VoidCallback onTap,
@@ -577,3 +642,9 @@ const Set<String> _kDoubleMethods = {'fugue', 'abandon', 'temps'};
 /// Le gris d'un symbole qui ne prend parti pour personne : une nulle, ou une
 /// partie où celui dont on lit l'historique n'est pas.
 const Color _kGrisNeutre = Color.fromRGBO(191, 191, 191, 1);
+
+/// Le vert d'un gain et le rouge d'une perte — ceux des symboles de
+/// résultat, repris par les variations de mélo pour que la carte ne parle
+/// que de deux couleurs.
+const Color _kVertDuGain = Color.fromRGBO(77, 217, 77, 1);
+const Color _kRougeDeLaPerte = Color.fromRGBO(255, 84, 84, 1);

@@ -20,6 +20,8 @@ final class NmcMeta {
     required this.points,
     this.random,
     this.position,
+    this.melo1,
+    this.melo2,
   });
 
   final String date;
@@ -55,6 +57,28 @@ final class NmcMeta {
   /// et chacun de ses coups atterrirait ailleurs.
   final String? position;
 
+  /// CE QUE CHAQUE JOUEUR A GAGNÉ OU PERDU AU MÉLO, dans cette partie.
+  ///
+  /// Nino : « il faut que les mélos gagnés et perdus durant une partie
+  /// soient spécifiés dans l'historique, à côté des noms des joueurs. »
+  /// C'est une VARIATION signée — `+12`, `-8` — et non un classement : le
+  /// classement du moment se lit ailleurs, la variation ne se lit nulle part
+  /// une fois la partie finie.
+  ///
+  /// [melo1] va avec [player1], [melo2] avec [player2] : c'est tout l'intérêt
+  /// de les numéroter pareil.
+  ///
+  /// Nulles tant qu'on ne les connaît pas. Une partie locale n'en a jamais —
+  /// rien n'est classé hors ligne — et en direct l'App ne reçoit AUJOURD'HUI
+  /// que la sienne : le serveur n'annonce pas celle de l'adversaire. La
+  /// place de l'autre est prête pour le jour où il le fera.
+  final int? melo1;
+  final int? melo2;
+
+  /// Une variation telle qu'elle s'écrit : `+12`, `-8`, `0`.
+  static String signe(int variation) =>
+      variation >= 0 ? '+$variation' : '$variation';
+
   Map<String, String> toFields() => {
     'Date': date,
     'Joueur1': player1,
@@ -67,6 +91,8 @@ final class NmcMeta {
     'Points': points,
     if (random != null) 'Random': random!,
     if (position != null) 'Position': position!,
+    if (melo1 != null) 'Melo1': signe(melo1!),
+    if (melo2 != null) 'Melo2': signe(melo2!),
   };
 
   /// Construit depuis les champs bruts de l'en-tête (clés en minuscules).
@@ -82,6 +108,10 @@ final class NmcMeta {
     points: f['points'] ?? '',
     random: f['random'],
     position: f['position'],
+    // `int.parse` lit le « + » de « +12 » depuis Dart 2 ; une valeur abîmée
+    // ne vaut pas un fichier refusé, elle vaut une variation inconnue.
+    melo1: int.tryParse(f['melo1'] ?? ''),
+    melo2: int.tryParse(f['melo2'] ?? ''),
   );
 }
 

@@ -6,6 +6,7 @@
 /// que la fin de partie fait apparaître dans le bandeau.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../i18n/translations.dart';
@@ -21,7 +22,7 @@ Future<void> showFinishDialog(
   required String title,
   required String body,
   String? winner,
-  String? meloLine,
+  ValueListenable<String?>? meloLine,
   required VoidCallback onMenu,
 }) => showDialog<void>(
   context: context,
@@ -50,17 +51,31 @@ Future<void> showFinishDialog(
                 : palette.clair,
           ),
         ),
-        if (meloLine != null) ...[
-          SizedBox(height: S(8)),
-          Text(
-            meloLine,
-            style: TextStyle(
-              fontSize: SF(15),
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+        // LA LIGNE DU MÉLO SE MET À JOUR TOUTE SEULE.
+        //
+        // Nino : « la mise à jour du mélo s'affiche mal et est faillible. »
+        // Elle était figée : le texte était calculé à l'ouverture du popup,
+        // or le mélo arrive du serveur APRÈS la fin de la partie. Le
+        // bandeau du joueur, lui, se redessinait — d'où l'incohérence vue à
+        // l'écran, « +12 » en bas et « Mise à jour du mélo… » au milieu.
+        if (meloLine != null)
+          ValueListenableBuilder<String?>(
+            valueListenable: meloLine,
+            builder: (context, texte, _) => texte == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: EdgeInsets.only(top: S(8)),
+                    child: Text(
+                      texte,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: SF(15),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
           ),
-        ],
         SizedBox(height: S(12)),
         FugaButton(
           text: T('Retour au menu'),

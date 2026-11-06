@@ -222,6 +222,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _ecouteMesBulles?.cancel();
     _ecouteEnveloppes?.cancel();
     unawaited(_bulles.close());
+    _guetDuMelo?.cancel();
+    _ligneDuMelo.dispose();
     _sounds.dispose();
     _g.dispose();
     super.dispose();
@@ -246,8 +248,42 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// Le popup de fin n'est montré qu'une fois par partie.
   bool _endShown = false;
 
-  /// Parties du match déjà rangées dans l'historique, par identifiant.
-  final Set<String> _archivedGames = {};
+  /// Parties du match déjà rangées dans l'historique, et la date sous
+  /// laquelle chacune l'a été.
+  ///
+  /// La date compte : une partie est rangée DEUX fois — une fois tout de
+  /// suite, pour ne jamais la perdre, une fois quand le mélo arrive, pour
+  /// l'ajouter. Les deux doivent porter la même date, sinon la seconde
+  /// n'est plus la même partie.
+  final Map<String, DateTime> _archivedGames = {};
+
+  /// Parties déjà rangées AVEC leur variation de mélo : on ne réécrit
+  /// qu'une fois.
+  final Set<String> _archivedAvecMelo = {};
+
+  /// Ce que dit le popup de fin au sujet du mélo, À L'INSTANT.
+  ///
+  /// Nino : « la mise à jour du mélo s'affiche mal et est faillible. » Le
+  /// popup calculait sa ligne une bonne fois à l'ouverture, or le mélo
+  /// arrive du serveur APRÈS la fin de la partie : il restait sur « Mise à
+  /// jour du mélo… » pendant que le bandeau, lui, affichait déjà « +12 ».
+  final ValueNotifier<String?> _ligneDuMelo = ValueNotifier(null);
+
+  /// Mon mélo AVANT le résultat, relevé à la seconde où la partie se
+  /// termine. Il sert de repli : si l'annonce du serveur se perd, on relit
+  /// le profil et la différence donne la variation.
+  int? _meloAvant;
+
+  /// Le guetteur : si l'annonce n'est pas là au bout de [_attenteDuMelo], on
+  /// va chercher le mélo nous-même.
+  Timer? _guetDuMelo;
+
+  /// Combien de temps on attend l'annonce avant d'aller voir soi-même.
+  ///
+  /// Six secondes : l'annonce arrive d'ordinaire dans la seconde, et six
+  /// laissent passer une poignée de main lente sans faire attendre celui
+  /// dont la socket est morte.
+  static const Duration _attenteDuMelo = Duration(seconds: 6);
 
   late final GameArchive _store = widget.archive ?? GameArchive();
 
@@ -258,6 +294,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     }
     if (event == OnlineEvent.nextGameStarted) {
       _endShown = false;
+      _guetDuMelo?.cancel();
+      _ligneDuMelo.value = null;
+      _meloAvant = null;
       _lastMove = null;
       _viewingIndex = null;
     }
@@ -290,14 +329,22 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
     if (_g.endReason != null && !_endShown) {
       _endShown = true;
+      // MON MÉLO D'AVANT, pendant qu'il est encore d'avant : l'annonce du
+      // serveur ne l'a pas encore remplacé, et c'est elle qu'on prépare à
+      // remplacer si elle se perd.
+      _meloAvant = _monMeloEnSession();
       _archive();
       // La partie est finie : le serveur a compté une victoire de plus pour
       // l'un de nous deux.
       unawaited(_rafraichirScore());
+      _guetteLeMelo();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showEnd();
       });
     }
+    // Le mélo a pu arriver dans cet événement-ci : la ligne du popup le dit
+    // aussitôt, et l'historique le garde.
+    _majLigneDuMelo();
   }
 
   /// Rejoue les coups depuis le départ pour retenir chaque position.
@@ -701,10 +748,18 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// en ligne n'entrait donc dans l'historique de personne. Chaque partie d'un
   /// match a son propre identifiant serveur, donc sa propre entrée — et le
   /// même des deux côtés.
-  void _archive() {
+  /// [monDelta] : ma variation de mélo, quand elle est connue. La partie est
+  /// rangée une première fois SANS elle — une partie qu'on perdrait parce
+  /// que le serveur tarde serait perdue pour de bon — puis une seconde fois
+  /// avec, sous le même identifiant et à la même date : le serveur la
+  /// remplace, il ne la double pas.
+  void _archive({int? monDelta}) {
     final id = _g.info.gameId;
-    if (id.isEmpty || _archivedGames.contains(id)) return;
-    _archivedGames.add(id);
+    if (id.isEmpty) return;
+    final premiere = !_archivedGames.containsKey(id);
+    if (!premiere && (monDelta == null || !_archivedAvecMelo.add(id))) return;
+    if (premiere && monDelta != null) _archivedAvecMelo.add(id);
+    final date = _archivedGames[id] ??= DateTime.now();
     unawaited(
       _store.store(
         buildOpponentArchive(
@@ -718,9 +773,63 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           cadence: _g.info.cadence,
           randomCode: _g.info.randomCode,
           onlineGameId: id,
+          myMeloDelta: monDelta,
+          now: date,
         ),
       ),
     );
+  }
+
+  /// Mon classement du MODE JOUÉ, tel que la session le porte.
+  int? _monMeloEnSession() {
+    final s = OnlineService.instance.session;
+    return _estRandom ? s?.meloRandom : s?.melo;
+  }
+
+  /// La ligne du mélo du popup de fin, et l'archive qui va avec.
+  void _majLigneDuMelo() {
+    final melo = _g.newMelo;
+    final delta = _g.meloDelta;
+    if (melo == null || delta == null) return;
+    _guetDuMelo?.cancel();
+    _ligneDuMelo.value = T('Mélo : %d  (%s%d)')
+        .replaceFirst('%d', '$melo')
+        .replaceFirst('%s', delta >= 0 ? '+' : '')
+        .replaceFirst('%d', '$delta');
+    _archive(monDelta: delta);
+  }
+
+  /// SI L'ANNONCE NE VIENT PAS, ON VA LA CHERCHER.
+  ///
+  /// Nino : « la mise à jour du mélo [...] est faillible. » `melo_maj` est un
+  /// événement : une socket coupée au mauvais moment, et il n'arrive jamais —
+  /// le popup restait alors sur « Mise à jour du mélo… » pour toujours.
+  ///
+  /// Au bout de [_attenteDuMelo], on relit le profil, qui porte les deux
+  /// classements. La différence avec celui d'avant donne la variation. Et si
+  /// elle est nulle — partie non classée, ou annonce vraiment perdue — on
+  /// écrit le classement sans variation plutôt que de faire attendre : un
+  /// nombre vrai vaut mieux qu'une promesse.
+  void _guetteLeMelo() {
+    _guetDuMelo?.cancel();
+    _guetDuMelo = Timer(_attenteDuMelo, () async {
+      if (!mounted || _g.meloDelta != null) return;
+      await OnlineService.instance.relitMelo();
+      if (!mounted || _g.meloDelta != null) return;
+      final apres = _monMeloEnSession();
+      final avant = _meloAvant;
+      if (apres == null) return;
+      if (avant != null && apres != avant) {
+        final delta = apres - avant;
+        _ligneDuMelo.value = T('Mélo : %d  (%s%d)')
+            .replaceFirst('%d', '$apres')
+            .replaceFirst('%s', delta >= 0 ? '+' : '')
+            .replaceFirst('%d', '$delta');
+        _archive(monDelta: delta);
+        return;
+      }
+      _ligneDuMelo.value = T('Mélo : %d').replaceFirst('%d', '$apres');
+    });
   }
 
   /// Fin de partie : le popup de Kivy. Si le match continue, il propose la
@@ -745,8 +854,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       return;
     }
 
-    final melo = _g.newMelo;
-    final delta = _g.meloDelta;
+    // La ligne part sur l'attente, et [_majLigneDuMelo] la remplace dès que
+    // le serveur répond — ou [_guetteLeMelo] s'il ne répond pas.
+    _ligneDuMelo.value ??= T('Mise à jour du mélo…');
+    _majLigneDuMelo();
     unawaited(
       showFinishDialog(
         context,
@@ -757,12 +868,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           null => null,
           final Camp w => w == _g.myCamp ? widget.myPseudo : _g.info.opponent,
         },
-        meloLine: (melo == null || delta == null)
-            ? T('Mise à jour du mélo…')
-            : T('Mélo : %d  (%s%d)')
-                  .replaceFirst('%d', '$melo')
-                  .replaceFirst('%s', delta >= 0 ? '+' : '')
-                  .replaceFirst('%d', '$delta'),
+        meloLine: _ligneDuMelo,
         onMenu: () {
           if (mounted) retourAuMenu(context);
         },
