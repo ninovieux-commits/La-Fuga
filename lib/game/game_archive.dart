@@ -235,6 +235,11 @@ class GameArchive {
           'joueur1': game.meta.player1,
           'joueur2': game.meta.player2,
           'resultat': game.meta.result,
+          // QUI TENAIT LES BLANCS. L'historique s'en sert pour poser un rond
+          // noir ou blanc devant chaque nom ; le serveur ne range pas encore
+          // la colonne, et l'App s'en passe en attendant — une partie jouée
+          // contre quelqu'un range toujours le Blanc en premier.
+          'blanc': game.meta.blanc,
           'methode': game.meta.method,
           'cadence': game.meta.cadence,
           'objectif': game.meta.objectif,

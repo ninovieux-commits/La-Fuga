@@ -53,6 +53,20 @@ List<String> _someMoves(int count) {
   return moves;
 }
 
+/// La ligne des noms, qu'elle soit un texte simple ou un texte composé.
+///
+/// Elle porte maintenant un rond de couleur devant chaque nom — Nino :
+/// « mets aussi un rond noir ou blanc avant le nom pour indiquer qui avait
+/// quelle couleur » — et les ronds sont des widgets posés dans le texte.
+/// `find.text` ne voit plus rien ; on cherche donc sur le texte NU, les
+/// ronds mis à part.
+Finder nomsDe(String texte) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      (w.textSpan?.toPlainText(includePlaceholders: false) ?? w.data ?? '') ==
+          texte,
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -102,7 +116,7 @@ void main() {
     await open(tester);
 
     expect(find.text('En local'), findsOneWidget);
-    expect(find.text('Nino  vs  Deep Grey'), findsOneWidget);
+    expect(nomsDe('Nino  vs  Deep Grey'), findsOneWidget);
     // Symbole de fin : la fugue vaut deux points, donc l'étoile.
     expect(find.text('*'), findsOneWidget);
     expect(find.textContaining('fugue'), findsOneWidget);
@@ -120,7 +134,7 @@ void main() {
     final carte = tester.widget<Material>(
       find
           .ancestor(
-            of: find.text('Nino  vs  Deep Grey'),
+            of: nomsDe('Nino  vs  Deep Grey'),
             matching: find.byType(Material),
           )
           .first,
@@ -143,7 +157,7 @@ void main() {
     await store.save(_meta, _someMoves(4), name: 'partie1');
     await open(tester);
 
-    await tester.tap(find.text('Nino  vs  Deep Grey'));
+    await tester.tap(nomsDe('Nino  vs  Deep Grey'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ReplayScreen), findsOneWidget);

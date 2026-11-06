@@ -27,6 +27,7 @@ import 'package:lafuga/net/socket_client.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:lafuga/ui/screens/online_game_screen.dart';
 import 'package:lafuga/ui/widgets/end_dialogs.dart';
+import 'package:lafuga/ui/widgets/fuga_header.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -405,12 +406,10 @@ void main() {
       );
       await ouvre(tester);
 
-      // Le nom, puis sa variation, puis l'autre nom et la sienne.
-      final lignes = tester.widgetList<Text>(find.byType(Text));
-      final riche = lignes.firstWhere(
-        (t) => t.textSpan?.toPlainText().contains('vs') ?? false,
-      );
-      expect(riche.textSpan!.toPlainText(), 'nino +12  vs  celia -12');
+      // Le nom, puis sa variation, puis l'autre nom et la sienne. Les ronds
+      // de couleur sont des widgets posés dans le texte : on lit le texte
+      // NU, eux mis à part.
+      expect(_ligneDesNoms(tester), 'nino +12  vs  celia -12');
     });
 
     testWidgets('sans variation, la ligne reste un texte simple', (
@@ -432,7 +431,123 @@ void main() {
         name: 'p1',
       );
       await ouvre(tester);
-      expect(find.text('nino  vs  celia'), findsOneWidget);
+      expect(_ligneDesNoms(tester), 'nino  vs  celia');
+    });
+
+    testWidgets('un rond dit qui tenait quelle couleur', (tester) async {
+      // Nino : « mets aussi un rond noir ou blanc avant le nom pour
+      // indiquer qui avait quelle couleur. »
+      await store.save(
+        const NmcMeta(
+          date: '2026-11-06 12:00',
+          player1: 'nino',
+          player2: 'celia',
+          // Les Blancs sont le SECOND nommé : le rond doit suivre le
+          // joueur, pas la place.
+          blanc: 'celia',
+          objectif: 'partie',
+          cadence: '5',
+          result: '0-1',
+          method: 'fugue',
+          points: '2',
+        ),
+        const ['Do1-Do2'],
+        name: 'p1',
+      );
+      await ouvre(tester);
+
+      final ronds = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.shape == BoxShape.circle)
+          .toList();
+      expect(ronds, hasLength(2), reason: 'un rond par joueur');
+      expect(ronds.first.color, Colors.black, reason: 'nino tenait les Noirs');
+      expect(
+        ronds.first.border!.top.color,
+        Colors.white,
+        reason: 'le cerne prend l autre couleur',
+      );
+      expect(ronds.last.color, Colors.white, reason: 'celia tenait les Blancs');
+      expect(ronds.last.border!.top.color, Colors.black);
+    });
+  });
+
+  group('Le titre des menus', () {
+    testWidgets('il n est plus en italique, et il est gravé', (tester) async {
+      // Nino : « je ne veux pas que les titres des menus soient marqués en
+      // italique. J'aimerais en revanche qu'ils aient l'air gravés. »
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: FugaHeader(
+              back: '< Retour',
+              title: 'En local',
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final titre = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.textSpan?.toPlainText() ?? w.data ?? '').contains('En local'),
+        ),
+      );
+      expect(titre.style!.fontStyle, isNot(FontStyle.italic));
+
+      // La gravure : l'ombre du creux en haut à gauche, la lèvre éclairée en
+      // bas à droite.
+      final reliefs = titre.style!.shadows!;
+      expect(reliefs, hasLength(2));
+      expect(reliefs.first.offset.dx, lessThan(0));
+      expect(reliefs.first.offset.dy, lessThan(0));
+      expect(reliefs.last.offset.dx, greaterThan(0));
+      expect(reliefs.last.offset.dy, greaterThan(0));
+      // Encre sombre : c'est la lèvre CLAIRE qu'on voit.
+      expect(reliefs.last.color.a, greaterThan(reliefs.first.color.a));
+    });
+
+    testWidgets('sur une encre claire, c est l ombre qui se voit', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: FugaHeader(
+              back: '< Retour',
+              title: 'Composer le thème',
+              titleColor: Colors.white,
+              bold: true,
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final titre = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.textSpan?.toPlainText() ?? w.data ?? '').contains('Composer'),
+        ),
+      );
+      final reliefs = titre.style!.shadows!;
+      expect(reliefs.first.color.a, greaterThan(reliefs.last.color.a));
     });
   });
 }
+
+/// La ligne des noms d'une carte, les ronds de couleur mis à part.
+String _ligneDesNoms(WidgetTester tester) => tester
+    .widgetList<Text>(find.byType(Text))
+    .map(
+      (t) =>
+          t.textSpan?.toPlainText(includePlaceholders: false) ?? t.data ?? '',
+    )
+    .firstWhere((s) => s.contains(' vs '));

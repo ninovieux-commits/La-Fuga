@@ -19,6 +19,7 @@ import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/nmc_dialog.dart';
+import '../widgets/picto_touche.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
 import 'replay_screen.dart';
@@ -368,6 +369,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               // ces deux lignes les afficheront sans rien changer d'autre.
               melo1: _entier(g['melo1']),
               melo2: _entier(g['melo2']),
+              blancEstLePremier: _blancEstLePremier(g),
             ),
           ),
           SizedBox(width: S(4)),
@@ -425,6 +427,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               meta.player2,
               melo1: meta.melo1,
               melo2: meta.melo2,
+              blancEstLePremier: meta.blanc == meta.player1,
             ),
             date: meta.date,
             info: '${_cadenceLabel(meta.cadence)}  •  ${T(meta.method)}',
@@ -462,7 +465,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// classée, et une partie en ligne n'a aujourd'hui que la variation du
   /// joueur qui l'a enregistrée — le serveur n'annonce pas encore celle de
   /// l'adversaire.
-  Widget _names(String player1, String player2, {int? melo1, int? melo2}) {
+  Widget _names(
+    String player1,
+    String player2, {
+    int? melo1,
+    int? melo2,
+    bool? blancEstLePremier,
+  }) {
     final nom = TextStyle(
       fontSize: SF(14),
       fontWeight: FontWeight.bold,
@@ -484,10 +493,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
               },
             ),
           );
-    // SANS VARIATION, LA LIGNE RESTE CE QU'ELLE ÉTAIT : un texte simple.
-    // C'est le cas de toutes les parties jouées jusqu'ici, et de toutes
-    // celles de l'appareil, qui ne sont pas classées.
-    if (melo1 == null && melo2 == null) {
+    // QUI TENAIT QUELLE COULEUR. Nino : « mets aussi un rond noir ou blanc
+    // avant le nom pour indiquer qui avait quelle couleur. » Le rond porte
+    // le cerne de l'AUTRE couleur, comme les pièces : sur le gris de la
+    // carte, un rond noir se perdrait dans le trait de la touche et un rond
+    // blanc dans le mot qui le suit.
+    //
+    // Inconnue — une partie de l'appareil rangée sur le compte, dont la
+    // liste du serveur ne dit pas qui était Blanc —, la couleur ne se
+    // devine pas : la ligne se passe alors de ronds.
+    InlineSpan? rond(bool? blanc) => blanc == null
+        ? null
+        : WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: EdgeInsets.only(right: S(4)),
+              child: Container(
+                width: SF(9),
+                height: SF(9),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: blanc ? Colors.white : Colors.black,
+                  border: Border.all(
+                    color: blanc ? Colors.black : Colors.white,
+                    width: S(kTraitPicto * 0.7),
+                  ),
+                ),
+              ),
+            ),
+          );
+    final premier = blancEstLePremier;
+    final rond1 = rond(premier);
+    final rond2 = rond(premier == null ? null : !premier);
+
+    // SANS RIEN À AJOUTER, LA LIGNE RESTE CE QU'ELLE ÉTAIT : un texte simple.
+    if (melo1 == null && melo2 == null && rond1 == null) {
       return Text(
         '$player1  vs  $player2',
         maxLines: 1,
@@ -498,9 +538,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Text.rich(
       TextSpan(
         children: [
+          ?rond1,
           TextSpan(text: player1),
           ?variation(melo1),
           const TextSpan(text: '  vs  '),
+          ?rond2,
           TextSpan(text: player2),
           ?variation(melo2),
         ],
@@ -509,6 +551,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
       overflow: TextOverflow.ellipsis,
       style: nom,
     );
+  }
+
+  /// Le premier nommé tenait-il les Blancs ?
+  ///
+  /// Le serveur le dira un jour dans une colonne `blanc` ; en attendant, une
+  /// partie JOUÉE CONTRE QUELQU'UN le dit d'elle-même : son archive range
+  /// toujours le Blanc en premier (`buildOpponentArchive`). Une partie de
+  /// l'appareil, elle, garde l'ordre d'affichage et ne dit rien — on ne
+  /// devine pas, on s'abstient.
+  static bool? _blancEstLePremier(Map<String, dynamic> g) {
+    final dit = g['blanc'];
+    if (dit != null && '$dit'.trim().isNotEmpty) {
+      return '$dit'.trim().toLowerCase() ==
+          '${g['joueur1'] ?? ''}'.trim().toLowerCase();
+    }
+    final uid = '${g['game_uid'] ?? ''}';
+    if (uid.startsWith('online_') || _isLegacyCorr(uid)) return true;
+    return null;
   }
 
   /// Un entier venu du serveur, quelle que soit la façon dont il l'écrit.

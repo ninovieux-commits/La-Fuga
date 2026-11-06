@@ -1,7 +1,13 @@
 /// Bandeau de titre des écrans secondaires — portage du `header` que tous les
 /// écrans de Kivy construisent à l'identique (`BoxLayout(size_hint=(1, 0.08))`
-/// avec un bouton de retour large de 110, le titre en italique noir au centre,
-/// et un vide de même largeur à droite pour que le titre reste centré).
+/// avec un bouton de retour large de 110, le titre au centre, et un vide de
+/// même largeur à droite pour que le titre reste centré).
+///
+/// LE TITRE N'EST PLUS EN ITALIQUE, IL EST GRAVÉ. Nino : « je ne veux pas que
+/// les titres des menus soient marqués en italique. J'aimerais en revanche
+/// qu'ils aient l'air gravés. » L'italique venait de Kivy et ne disait rien ;
+/// la gravure dit quelque chose — c'est un titre posé DANS la page, pas
+/// dessus.
 library;
 
 import 'dart:math' as math;
@@ -39,7 +45,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   /// Noir partout, sauf sur le composeur de thèmes où Kivy l'écrit en blanc.
   final Color titleColor;
 
-  /// Les titres en gras (messagerie, composeur) ne sont pas en italique.
+  /// Les titres en gras : la messagerie, le composeur.
   final bool bold;
 
   /// Le titre est le pseudo de quelqu'un, et il est dans MES favoris :
@@ -78,6 +84,41 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   /// police de l'appli : 1,43. Arrondie au-dessus, pour les accents.
   static const double _lineHeight = 1.45;
 
+  /// LE RELIEF D'UNE GRAVURE : le creux, puis la lèvre qu'il laisse.
+  ///
+  /// Une lettre gravée se lit à deux traits et non à un contour : l'ombre du
+  /// creux du côté d'où vient la lumière, et la lumière sur la lèvre de
+  /// l'autre côté. Ici la lumière vient d'en haut à gauche, comme partout
+  /// ailleurs dans l'application.
+  ///
+  /// Les deux traits s'échangent selon l'encre : sous une encre sombre
+  /// c'est la lèvre CLAIRE qui se voit, sous une encre claire c'est
+  /// l'ombre. Le même raisonnement que les cernes des touches, et il tombe
+  /// juste pour les deux titres que l'application écrit — noir sur le gris
+  /// des pages, blanc sur le composeur.
+  /// L'ÉPAISSEUR DU RELIEF SUIT LA LETTRE, et non l'écran : une gravure se
+  /// voit en proportion de ce qui est gravé. Un seizième de la hauteur de
+  /// police, et le trait reste net — pas de flou : une incision a un bord.
+  static List<Shadow> gravure(Color encre, double taille) {
+    final e = taille / 20;
+    // LE CREUX EST TOUJOURS EN HAUT À GAUCHE, LA LÈVRE EN BAS À DROITE : la
+    // lumière vient d'en haut à gauche, la paroi qui lui tourne le dos est
+    // dans l'ombre, celle d'en face la reçoit. Ce qui change avec l'encre,
+    // c'est LEQUEL DES DEUX se voit — la lèvre claire sous une encre
+    // sombre, l'ombre sous une encre claire.
+    final sombre = encre.computeLuminance() < 0.5;
+    return [
+      Shadow(
+        color: const Color(0xFF000000).withValues(alpha: sombre ? 0.22 : 0.65),
+        offset: Offset(-e / 2, -e / 2),
+      ),
+      Shadow(
+        color: const Color(0xFFFFFFFF).withValues(alpha: sombre ? 0.95 : 0.25),
+        offset: Offset(e, e),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) => SizedBox(
     height: preferredSize.height,
@@ -101,9 +142,9 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: SF(titleSize),
-                  fontStyle: bold ? FontStyle.normal : FontStyle.italic,
                   fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   color: titleColor,
+                  shadows: gravure(titleColor, SF(titleSize)),
                 ),
               ),
             ),
