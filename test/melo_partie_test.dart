@@ -57,8 +57,8 @@ void main() {
   });
   tearDown(resetScale);
 
-  group('Le .nmc garde la variation', () {
-    test('elle fait l aller-retour, signe compris', () {
+  group('Le .nmc garde le mélo et sa variation', () {
+    test('ils font l aller-retour, signe compris', () {
       const meta = NmcMeta(
         date: '2026-11-06 12:00',
         player1: 'nino',
@@ -69,16 +69,43 @@ void main() {
         result: '1-0',
         method: 'fugue',
         points: '2',
-        melo1: 12,
-        melo2: -12,
+        melo1: 1512,
+        melo2: 1488,
+        variation1: 12,
+        variation2: -12,
       );
       final texte = buildNmc(meta, const ['Do1-Do2']);
-      expect(texte, contains('[Melo1 "+12"]'));
-      expect(texte, contains('[Melo2 "-12"]'));
+      // Le classement SANS signe, la variation AVEC : c'est ce qui les
+      // distingue dans le fichier.
+      expect(texte, contains('[Melo1 "1512"]'));
+      expect(texte, contains('[Melo2 "1488"]'));
+      expect(texte, contains('[Variation1 "+12"]'));
+      expect(texte, contains('[Variation2 "-12"]'));
 
       final relu = parseNmc(texte).meta;
-      expect(relu.melo1, 12);
-      expect(relu.melo2, -12);
+      expect(relu.melo1, 1512);
+      expect(relu.melo2, 1488);
+      expect(relu.variation1, 12);
+      expect(relu.variation2, -12);
+    });
+
+    test('un vieux fichier où Melo1 portait la variation se relit', () {
+      // Le champ a porté la variation le temps d'une version. Le signe les
+      // sépare : un classement ne s'écrit jamais « +12 ».
+      const ancien =
+          '[Date "2026-11-05 10:00"]\n'
+          '[Joueur1 "nino"]\n'
+          '[Joueur2 "celia"]\n'
+          '[Blanc "nino"]\n'
+          '[Melo1 "+12"]\n'
+          '[Melo2 "-12"]\n'
+          '\n'
+          '1.Do1-Do2';
+      final relu = parseNmc(ancien).meta;
+      expect(relu.variation1, 12, reason: 'c était une variation');
+      expect(relu.variation2, -12);
+      expect(relu.melo1, isNull, reason: 'le classement n y était pas');
+      expect(relu.melo2, isNull);
     });
 
     test('sans variation, le fichier n en parle pas', () {
@@ -95,8 +122,9 @@ void main() {
       );
       final texte = buildNmc(meta, const ['Do1-Do2']);
       expect(texte, isNot(contains('Melo')));
+      expect(texte, isNot(contains('Variation')));
       expect(parseNmc(texte).meta.melo1, isNull);
-      expect(parseNmc(texte).meta.melo2, isNull);
+      expect(parseNmc(texte).meta.variation1, isNull);
     });
 
     test('une variation nulle s écrit « +0 », et se relit', () {
@@ -110,15 +138,15 @@ void main() {
         result: '½-½',
         method: 'nulle',
         points: '0',
-        melo1: 0,
+        variation1: 0,
       );
-      expect(buildNmc(meta, const []), contains('[Melo1 "+0"]'));
-      expect(parseNmc(buildNmc(meta, const [])).meta.melo1, 0);
+      expect(buildNmc(meta, const []), contains('[Variation1 "+0"]'));
+      expect(parseNmc(buildNmc(meta, const [])).meta.variation1, 0);
     });
   });
 
-  group('L archive range la variation du bon côté', () {
-    test('en Blanc, elle est la première', () {
+  group('L archive range le mélo du bon côté', () {
+    test('en Blanc, il est le premier', () {
       final a = buildOpponentArchive(
         myPseudo: 'nino',
         opponent: 'celia',
@@ -127,18 +155,17 @@ void main() {
         method: 'fugue',
         history: const ['Do1-Do2'],
         onlineGameId: 'g1',
+        myMelo: 1512,
         myMeloDelta: 12,
       );
       expect(a.meta.player1, 'nino');
-      expect(a.meta.melo1, 12);
-      expect(
-        a.meta.melo2,
-        isNull,
-        reason: 'celle de l adversaire est inconnue',
-      );
+      expect(a.meta.melo1, 1512);
+      expect(a.meta.variation1, 12);
+      expect(a.meta.melo2, isNull, reason: 'celui de l adversaire est inconnu');
+      expect(a.meta.variation2, isNull);
     });
 
-    test('en Noir, elle est la seconde', () {
+    test('en Noir, il est le second', () {
       final a = buildOpponentArchive(
         myPseudo: 'nino',
         opponent: 'celia',
@@ -147,11 +174,14 @@ void main() {
         method: 'fugue',
         history: const ['Do1-Do2'],
         onlineGameId: 'g1',
+        myMelo: 1492,
         myMeloDelta: -8,
       );
       expect(a.meta.player2, 'nino');
-      expect(a.meta.melo2, -8);
+      expect(a.meta.melo2, 1492);
+      expect(a.meta.variation2, -8);
       expect(a.meta.melo1, isNull);
+      expect(a.meta.variation1, isNull);
     });
 
     test('les deux partent au serveur quand on les a', () async {
@@ -170,16 +200,20 @@ void main() {
           method: 'fugue',
           history: const ['Do1-Do2'],
           onlineGameId: 'g1',
+          myMelo: 1512,
           myMeloDelta: 12,
+          opponentMelo: 1488,
           opponentMeloDelta: -12,
         ),
       );
-      expect(compte.envois.single['melo1'], 12);
-      expect(compte.envois.single['melo2'], -12);
+      expect(compte.envois.single['melo1'], 1512);
+      expect(compte.envois.single['melo2'], 1488);
+      expect(compte.envois.single['variation1'], 12);
+      expect(compte.envois.single['variation2'], -12);
       expect(
         compte.envois.single['nmc_text'],
-        contains('[Melo1 "+12"]'),
-        reason: 'le fichier la porte aussi, pas seulement le champ',
+        contains('[Variation1 "+12"]'),
+        reason: 'le fichier les porte aussi, pas seulement les champs',
       );
     });
 
@@ -202,7 +236,7 @@ void main() {
         ),
       );
       expect(compte.envois.single.containsKey('melo1'), isFalse);
-      expect(compte.envois.single.containsKey('melo2'), isFalse);
+      expect(compte.envois.single.containsKey('variation1'), isFalse);
     });
   });
 
@@ -314,9 +348,11 @@ void main() {
       // Et la partie est rangée une seconde fois, AVEC la variation, sous le
       // même identifiant : le serveur la remplace, il ne la double pas.
       expect(compte.envois, hasLength(2));
-      expect(compte.envois.last['melo1'], 12);
+      expect(compte.envois.last['melo1'], 1549, reason: 'le classement');
+      expect(compte.envois.last['variation1'], 12, reason: 'et sa variation');
       expect(compte.envois.last['game_uid'], compte.envois.first['game_uid']);
-      expect(compte.envois.last['nmc_text'], contains('[Melo1 "+12"]'));
+      expect(compte.envois.last['nmc_text'], contains('[Melo1 "1549"]'));
+      expect(compte.envois.last['nmc_text'], contains('[Variation1 "+12"]'));
 
       // Une troisième annonce ne réécrit rien.
       socket.emit(FugaEvents.meloMaj, {'mon_melo': 1549, 'delta': 12});
@@ -363,7 +399,7 @@ void main() {
     });
   });
 
-  group('L historique montre la variation', () {
+  group('L historique montre le mélo', () {
     late Directory tmp;
     late LocalGamesStore store;
 
@@ -386,7 +422,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('elle s écrit à côté du nom', (tester) async {
+    testWidgets('il s écrit à côté du nom, suivi de sa variation', (
+      tester,
+    ) async {
       await store.save(
         const NmcMeta(
           date: '2026-11-06 12:00',
@@ -398,18 +436,20 @@ void main() {
           result: '1-0',
           method: 'fugue',
           points: '2',
-          melo1: 12,
-          melo2: -12,
+          melo1: 1512,
+          melo2: 1488,
+          variation1: 12,
+          variation2: -12,
         ),
         const ['Do1-Do2'],
         name: 'p1',
       );
       await ouvre(tester);
 
-      // Le nom, puis sa variation, puis l'autre nom et la sienne. Les ronds
-      // de couleur sont des widgets posés dans le texte : on lit le texte
-      // NU, eux mis à part.
-      expect(_ligneDesNoms(tester), 'nino +12  vs  celia -12');
+      // Nino : « ajoute aussi le mélo des joueurs tel que : mesange 1500 -9
+      // vs nino 1512 +9 ». Les ronds de couleur sont des widgets posés dans
+      // le texte : on lit le texte NU, eux mis à part.
+      expect(_ligneDesNoms(tester), 'nino 1512 +12  vs  celia 1488 -12');
     });
 
     testWidgets('sans variation, la ligne reste un texte simple', (

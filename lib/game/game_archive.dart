@@ -106,6 +106,8 @@ ArchivedGame buildArchive({
   String? corrGameId,
   int? melo1,
   int? melo2,
+  int? variation1,
+  int? variation2,
   DateTime? now,
 }) {
   final at = now ?? DateTime.now();
@@ -127,6 +129,8 @@ ArchivedGame buildArchive({
     position: (position == null || position.isEmpty) ? null : position,
     melo1: melo1,
     melo2: melo2,
+    variation1: variation1,
+    variation2: variation2,
   );
 
   final content = buildNmc(meta, moves);
@@ -160,16 +164,21 @@ ArchivedGame buildOpponentArchive({
   String? position,
   String? onlineGameId,
   String? corrGameId,
+  int? myMelo,
   int? myMeloDelta,
+  int? opponentMelo,
   int? opponentMeloDelta,
   DateTime? now,
 }) {
   final blanc = myCamp == Camp.blanc ? myPseudo : opponent;
   final noir = myCamp == Camp.blanc ? opponent : myPseudo;
-  // LA VARIATION SUIT SON JOUEUR, et c'est le camp qui dit laquelle est
-  // première : l'en-tête range le Blanc d'abord.
-  final meloBlanc = myCamp == Camp.blanc ? myMeloDelta : opponentMeloDelta;
-  final meloNoir = myCamp == Camp.blanc ? opponentMeloDelta : myMeloDelta;
+  // LE MÉLO SUIT SON JOUEUR, et c'est le camp qui dit lequel est premier :
+  // l'en-tête range le Blanc d'abord.
+  final jeSuisBlanc = myCamp == Camp.blanc;
+  final meloBlanc = jeSuisBlanc ? myMelo : opponentMelo;
+  final meloNoir = jeSuisBlanc ? opponentMelo : myMelo;
+  final varBlanc = jeSuisBlanc ? myMeloDelta : opponentMeloDelta;
+  final varNoir = jeSuisBlanc ? opponentMeloDelta : myMeloDelta;
   return buildArchive(
     player1: blanc,
     player2: noir,
@@ -189,6 +198,8 @@ ArchivedGame buildOpponentArchive({
     corrGameId: corrGameId,
     melo1: meloBlanc,
     melo2: meloNoir,
+    variation1: varBlanc,
+    variation2: varNoir,
     now: now,
   );
 }
@@ -243,11 +254,14 @@ class GameArchive {
           'methode': game.meta.method,
           'cadence': game.meta.cadence,
           'objectif': game.meta.objectif,
-          // CE QUE CHACUN A GAGNÉ OU PERDU AU MÉLO. Le serveur ne les
-          // range pas encore ; le `.nmc` les porte déjà, et le jour où il
-          // les rangera il n'y aura rien à changer ici.
+          // LE MÉLO DE CHACUN APRÈS LA PARTIE, ET CE QU'IL Y A GAGNÉ OU
+          // PERDU. Le serveur ne les range pas encore ; le `.nmc` les porte
+          // déjà, et le jour où il les rangera il n'y aura rien à changer
+          // ici.
           if (game.meta.melo1 != null) 'melo1': game.meta.melo1,
           if (game.meta.melo2 != null) 'melo2': game.meta.melo2,
+          if (game.meta.variation1 != null) 'variation1': game.meta.variation1,
+          if (game.meta.variation2 != null) 'variation2': game.meta.variation2,
         });
       } else {
         await _local.save(game.meta, game.moves);

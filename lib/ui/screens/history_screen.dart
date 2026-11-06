@@ -369,6 +369,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               // ces deux lignes les afficheront sans rien changer d'autre.
               melo1: _entier(g['melo1']),
               melo2: _entier(g['melo2']),
+              variation1: _entier(g['variation1']),
+              variation2: _entier(g['variation2']),
               blancEstLePremier: _blancEstLePremier(g),
             ),
           ),
@@ -427,6 +429,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               meta.player2,
               melo1: meta.melo1,
               melo2: meta.melo2,
+              variation1: meta.variation1,
+              variation2: meta.variation2,
               blancEstLePremier: meta.blanc == meta.player1,
             ),
             date: meta.date,
@@ -470,6 +474,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String player2, {
     int? melo1,
     int? melo2,
+    int? variation1,
+    int? variation2,
     bool? blancEstLePremier,
   }) {
     final nom = TextStyle(
@@ -477,6 +483,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
       fontWeight: FontWeight.bold,
       color: Colors.white,
     );
+    // LE CLASSEMENT, PUIS CE QU'IL A FAIT. Nino : « ajoute aussi le mélo
+    // des joueurs tel que : mesange 1500 -9 vs nino 1512 +9 ». C'est le
+    // classement d'APRÈS la partie — celui que le popup de fin annonce —,
+    // et la variation qui l'a amené là.
+    TextSpan? classement(int? m) => m == null
+        ? null
+        : TextSpan(
+            text: ' $m',
+            style: TextStyle(fontSize: SF(11), fontWeight: FontWeight.normal),
+          );
     TextSpan? variation(int? v) => v == null
         ? null
         : TextSpan(
@@ -527,7 +543,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final rond2 = rond(premier == null ? null : !premier);
 
     // SANS RIEN À AJOUTER, LA LIGNE RESTE CE QU'ELLE ÉTAIT : un texte simple.
-    if (melo1 == null && melo2 == null && rond1 == null) {
+    if (melo1 == null &&
+        melo2 == null &&
+        variation1 == null &&
+        variation2 == null &&
+        rond1 == null) {
       return Text(
         '$player1  vs  $player2',
         maxLines: 1,
@@ -540,11 +560,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           ?rond1,
           TextSpan(text: player1),
-          ?variation(melo1),
+          ?classement(melo1),
+          ?variation(variation1),
           const TextSpan(text: '  vs  '),
           ?rond2,
           TextSpan(text: player2),
-          ?variation(melo2),
+          ?classement(melo2),
+          ?variation(variation2),
         ],
       ),
       maxLines: 1,

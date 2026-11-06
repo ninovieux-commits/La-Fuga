@@ -31,14 +31,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const Key _cadre = Key('ecran');
 
-/// Quatre parties : deux avec les deux variations, une avec la mienne seule
+/// Quatre parties : deux avec les deux classements, une avec le mien seul
 /// — ce que l'App sait aujourd'hui —, une sans, comme avant.
-const List<(String, String, String, String, int?, int?)> _parties = [
-  ('nino', 'celia', '1-0', 'fugue', 12, -12),
-  ('mesange', 'nino', '1-0', 'mat', -9, 9),
-  ('nino', 'Vem', '½-½', 'nulle', 0, null),
-  ('nino', 'lilou', '0-1', 'abandon', null, null),
-];
+///
+/// `(joueur1, joueur2, résultat, méthode, mélo1, var1, mélo2, var2)`.
+const List<(String, String, String, String, int?, int?, int?, int?)> _parties =
+    [
+      ('nino', 'celia', '1-0', 'fugue', 1512, 12, 1488, -12),
+      ('mesange', 'nino', '1-0', 'mat', 1500, -9, 1512, 9),
+      ('nino', 'Vem', '½-½', 'nulle', 1503, 0, null, null),
+      ('nino', 'lilou', '0-1', 'abandon', null, null, null, null),
+    ];
 
 Future<void> main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -79,7 +82,7 @@ Future<void> main() async {
     addTearDown(() => dossier.deleteSync(recursive: true));
     final store = LocalGamesStore(directory: dossier);
     var i = 0;
-    for (final (j1, j2, resultat, methode, m1, m2) in _parties) {
+    for (final (j1, j2, resultat, methode, m1, v1, m2, v2) in _parties) {
       await store.save(
         NmcMeta(
           date: '2026-11-0${6 - i} 1$i:30',
@@ -94,6 +97,8 @@ Future<void> main() async {
           points: methode == 'nulle' ? '0' : '2',
           melo1: m1,
           melo2: m2,
+          variation1: v1,
+          variation2: v2,
         ),
         const ['Do1-Do2', 'Do8-Do7'],
         name: 'partie$i',

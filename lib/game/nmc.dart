@@ -22,6 +22,8 @@ final class NmcMeta {
     this.position,
     this.melo1,
     this.melo2,
+    this.variation1,
+    this.variation2,
   });
 
   final String date;
@@ -57,23 +59,30 @@ final class NmcMeta {
   /// et chacun de ses coups atterrirait ailleurs.
   final String? position;
 
-  /// CE QUE CHAQUE JOUEUR A GAGNÉ OU PERDU AU MÉLO, dans cette partie.
+  /// LE MÉLO DE CHAQUE JOUEUR APRÈS CETTE PARTIE.
   ///
-  /// Nino : « il faut que les mélos gagnés et perdus durant une partie
-  /// soient spécifiés dans l'historique, à côté des noms des joueurs. »
-  /// C'est une VARIATION signée — `+12`, `-8` — et non un classement : le
-  /// classement du moment se lit ailleurs, la variation ne se lit nulle part
-  /// une fois la partie finie.
+  /// Nino : « ajoute aussi le mélo des joueurs tel que : mesange 1500 -9 vs
+  /// nino 1512 +9 ». Le classement QUI SUIT la partie, donc, celui que le
+  /// serveur annonce à la fin — le même que le popup de fin affiche.
   ///
-  /// [melo1] va avec [player1], [melo2] avec [player2] : c'est tout l'intérêt
-  /// de les numéroter pareil.
-  ///
-  /// Nulles tant qu'on ne les connaît pas. Une partie locale n'en a jamais —
-  /// rien n'est classé hors ligne — et en direct l'App ne reçoit AUJOURD'HUI
-  /// que la sienne : le serveur n'annonce pas celle de l'adversaire. La
-  /// place de l'autre est prête pour le jour où il le fera.
+  /// [melo1] va avec [player1], [melo2] avec [player2] : c'est tout
+  /// l'intérêt de les numéroter pareil.
   final int? melo1;
   final int? melo2;
+
+  /// CE QUE CHAQUE JOUEUR A GAGNÉ OU PERDU DANS CETTE PARTIE.
+  ///
+  /// Une variation signée — `+12`, `-8` — qui accompagne le classement.
+  /// Nulle part ailleurs : une fois la partie finie, elle ne se recalcule
+  /// pas.
+  ///
+  /// Les quatre sont nulles tant qu'on ne les connaît pas. Une partie locale
+  /// n'en a jamais — rien n'est classé hors ligne — et en direct l'App ne
+  /// reçoit AUJOURD'HUI que les siennes : le serveur n'annonce ni le
+  /// classement ni la variation de l'adversaire. La place de l'autre est
+  /// prête pour le jour où il le fera.
+  final int? variation1;
+  final int? variation2;
 
   /// Une variation telle qu'elle s'écrit : `+12`, `-8`, `0`.
   static String signe(int variation) =>
@@ -91,8 +100,10 @@ final class NmcMeta {
     'Points': points,
     if (random != null) 'Random': random!,
     if (position != null) 'Position': position!,
-    if (melo1 != null) 'Melo1': signe(melo1!),
-    if (melo2 != null) 'Melo2': signe(melo2!),
+    if (melo1 != null) 'Melo1': '$melo1',
+    if (melo2 != null) 'Melo2': '$melo2',
+    if (variation1 != null) 'Variation1': signe(variation1!),
+    if (variation2 != null) 'Variation2': signe(variation2!),
   };
 
   /// Construit depuis les champs bruts de l'en-tête (clés en minuscules).
@@ -109,10 +120,25 @@ final class NmcMeta {
     random: f['random'],
     position: f['position'],
     // `int.parse` lit le « + » de « +12 » depuis Dart 2 ; une valeur abîmée
-    // ne vaut pas un fichier refusé, elle vaut une variation inconnue.
-    melo1: int.tryParse(f['melo1'] ?? ''),
-    melo2: int.tryParse(f['melo2'] ?? ''),
+    // ne vaut pas un fichier refusé, elle vaut un champ inconnu.
+    melo1: _classement(f['melo1']),
+    melo2: _classement(f['melo2']),
+    variation1: int.tryParse(f['variation1'] ?? '') ?? _ancienne(f['melo1']),
+    variation2: int.tryParse(f['variation2'] ?? '') ?? _ancienne(f['melo2']),
   );
+
+  /// UN `Melo1` SIGNÉ EST UNE VARIATION, pas un classement.
+  ///
+  /// Le champ a porté la variation le temps d'une version — « Melo1 "+12" » —
+  /// avant que le classement ne vienne s'y mettre. Le signe les sépare sans
+  /// ambiguïté : un classement ne s'écrit jamais « +1512 ».
+  static bool _estSigne(String? v) =>
+      v != null && (v.startsWith('+') || v.startsWith('-'));
+
+  static int? _classement(String? v) =>
+      _estSigne(v) ? null : int.tryParse(v ?? '');
+
+  static int? _ancienne(String? v) => _estSigne(v) ? int.tryParse(v!) : null;
 }
 
 /// Une partie enregistrée : son en-tête et ses coups.

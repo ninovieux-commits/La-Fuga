@@ -753,7 +753,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   /// que le serveur tarde serait perdue pour de bon — puis une seconde fois
   /// avec, sous le même identifiant et à la même date : le serveur la
   /// remplace, il ne la double pas.
-  void _archive({int? monDelta}) {
+  void _archive({int? monMelo, int? monDelta}) {
     final id = _g.info.gameId;
     if (id.isEmpty) return;
     final premiere = !_archivedGames.containsKey(id);
@@ -773,6 +773,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           cadence: _g.info.cadence,
           randomCode: _g.info.randomCode,
           onlineGameId: id,
+          myMelo: monMelo,
           myMeloDelta: monDelta,
           now: date,
         ),
@@ -796,7 +797,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         .replaceFirst('%d', '$melo')
         .replaceFirst('%s', delta >= 0 ? '+' : '')
         .replaceFirst('%d', '$delta');
-    _archive(monDelta: delta);
+    _archive(monMelo: melo, monDelta: delta);
   }
 
   /// SI L'ANNONCE NE VIENT PAS, ON VA LA CHERCHER.
@@ -825,7 +826,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             .replaceFirst('%d', '$apres')
             .replaceFirst('%s', delta >= 0 ? '+' : '')
             .replaceFirst('%d', '$delta');
-        _archive(monDelta: delta);
+        _archive(monMelo: apres, monDelta: delta);
         return;
       }
       _ligneDuMelo.value = T('Mélo : %d').replaceFirst('%d', '$apres');
