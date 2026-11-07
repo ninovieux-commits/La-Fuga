@@ -78,6 +78,10 @@ import '../widgets/tampon_partie.dart';
 /// désigne rien dans le jeu, donc on ne le confond avec rien.
 const Color kBleuSelection = Color(0xFF2D9CFF);
 
+/// Le rouge de la croix qui supprime : la seule prise du cadre qui DÉFAIT
+/// quelque chose, et elle le dit.
+const Color kRougeSuppression = Color(0xFFD93232);
+
 /// La place laissée autour d'un cadre pour ses poignées.
 ///
 /// ELLE EST DANS LA BOÎTE DE L'OBJET, et c'est tout l'enjeu : une poignée
@@ -261,6 +265,12 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   /// Vrai tant qu'un doigt tient la poignée de rotation.
   bool _tourne = false;
 
+  /// Où le doigt s'est posé sur la croix de suppression.
+  ///
+  /// Un appui supprime, un glissement non : on ne jette pas un objet qu'on
+  /// essayait de déplacer en partant de son coin.
+  Offset? _doigtSurLaCroix;
+
   static const double kEpaisseurMin = 0.002;
   static const double kEpaisseurMax = 0.04;
 
@@ -369,11 +379,25 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
           onTap: () => setState(() => _choisi = null),
           onScaleStart: (d) {
             _zoomDepart = _zoom;
+            _tailleDepart = _choisi?.taille ?? 0;
             if (d.pointerCount == 1) _commence(d.localFocalPoint, boite);
           },
+          // DEUX DOIGTS VONT À L'OBJET CHOISI, OÙ QU'ON LES POSE.
+          //
+          // Nino : « l'action de pincée à deux doigts doit agir sur l'objet
+          // sélectionné même si on le fait ailleurs sur l'écran. Il ne doit
+          // faire zoomer l'image uniquement si aucun objet n'est
+          // sélectionné. » Pincer sur un petit objet demandait de viser un
+          // objet plus petit que deux doigts ; on pince désormais au large,
+          // et c'est l'objet qui répond.
           onScaleUpdate: (d) {
             if (d.pointerCount > 1) {
-              _zoome(d, boite);
+              final choisi = _choisi;
+              if (choisi != null) {
+                _redimensionne(choisi, d.scale);
+              } else {
+                _zoome(d, boite);
+              }
               return;
             }
             _continue(d.localFocalPoint, boite);
@@ -481,15 +505,17 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     );
   }
 
-  /// Les prises du cadre bleu : trois coins qui ne font que le montrer, la
-  /// poignée de rotation juste après le coin haut-droit, et — pour un
-  /// tampon — la touche qui échange les ronds, à droite du cadre.
+  /// Les prises du cadre bleu : deux coins qui ne font que le montrer, la
+  /// CROIX au coin haut-droit, la POIGNÉE DE ROTATION au coin bas-droit, et
+  /// — pour un tampon — la touche qui échange les ronds, à droite du cadre.
   ///
   /// Nino : « il doit y avoir une poignée de rotation juste après l'angle
   /// haut/droite des cadres de sélection. Agrandir et rétrécir doit se faire
-  /// en pinçant/dépinçant avec deux doigts. » Et : « le bouton d'inversion
-  /// noir/blanc ne doit pas être dans le bandeau d'outils, il doit
-  /// apparaître à droite du cadre lorsque le tampon est sélectionné. »
+  /// en pinçant/dépinçant avec deux doigts », puis « la poignée de rotation
+  /// doit finalement aller à l'angle du bas. Comme ça à l'angle du haut tu
+  /// mets une croix qui supprime l'objet sélectionné. » Et : « le bouton
+  /// d'inversion noir/blanc ne doit pas être dans le bandeau d'outils, il
+  /// doit apparaître à droite du cadre lorsque le tampon est sélectionné. »
   List<Widget> _poignees(ObjetPose o, Size boite, double margeDroite) {
     final cote = S(13);
     final marge = kMargeDesPoignees;
@@ -507,10 +533,15 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     return [
       Positioned(top: decal, left: decal, child: point()),
       Positioned(bottom: decal, left: decal, child: point()),
-      Positioned(bottom: decal, right: margeDroite - cote / 2, child: point()),
-      // LA POIGNÉE DE ROTATION, au-delà du coin haut-droit.
+      // LA CROIX QUI SUPPRIME, au coin haut-droit.
       Positioned(
         top: 0,
+        right: margeDroite - marge,
+        child: _croixDeSuppression(o, marge),
+      ),
+      // LA POIGNÉE DE ROTATION, au coin bas-droit.
+      Positioned(
+        bottom: 0,
         right: margeDroite - marge,
         // UN `Listener`, ET NON UNE PRISE DE PLUS : le détecteur de
         // l'objet suit les pincements, et un pincement accepte aussi UN
@@ -562,6 +593,49 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     ];
   }
 
+  /// LA CROIX QUI JETTE L'OBJET CHOISI.
+  ///
+  /// Nino : « à l'angle du haut tu mets une croix qui supprime l'objet
+  /// sélectionné. »
+  ///
+  /// Un `Listener` comme la poignée de rotation, et pour la même raison : le
+  /// détecteur de l'objet suit les pincements, et un pincement accepte aussi
+  /// un doigt — une prise de plus se ferait voler l'appui.
+  ///
+  /// ET SEULEMENT SUR UN APPUI : un doigt qui a glissé voulait déplacer
+  /// l'objet, pas le jeter. Un coin se touche par mégarde, et ce qu'on jette
+  /// ici ne se récupère pas.
+  Widget _croixDeSuppression(ObjetPose o, double marge) => Listener(
+    onPointerDown: (e) => _doigtSurLaCroix = e.position,
+    onPointerUp: (e) {
+      final depart = _doigtSurLaCroix;
+      _doigtSurLaCroix = null;
+      if (depart == null || (e.position - depart).distance > S(12)) return;
+      _supprime(o);
+    },
+    onPointerCancel: (_) => _doigtSurLaCroix = null,
+    child: Container(
+      width: marge,
+      height: marge,
+      decoration: BoxDecoration(
+        color: kRougeSuppression,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: S(1.5)),
+      ),
+      child: Icon(Icons.close, size: marge * 0.72, color: Colors.white),
+    ),
+  );
+
+  /// Retire l'objet, de la page ET de l'histoire des poses : « défaire » ne
+  /// doit pas chercher à retirer une seconde fois ce qui n'est plus là.
+  void _supprime(ObjetPose o) {
+    setState(() {
+      _objets.remove(o);
+      _ordre.remove(o);
+      if (identical(o, _choisi)) _choisi = null;
+    });
+  }
+
   // ── Le doigt sur l'objet ──────────────────────────────────────────────────
 
   void _prendLObjet(ObjetPose o) {
@@ -582,13 +656,24 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
         d.focalPointDelta.dy / boite.height,
       );
       if (d.pointerCount > 1) {
-        o.taille = (_tailleDepart * d.scale).clamp(0.02, 0.6);
+        o.taille = _tailleVisee(d.scale);
       }
       o.position = Offset(
         o.position.dx.clamp(0.0, 1.0),
         o.position.dy.clamp(0.0, 1.0),
       );
     });
+  }
+
+  /// La taille qu'un pincement d'échelle [echelle] demande, bornée.
+  double _tailleVisee(double echelle) =>
+      (_tailleDepart * echelle).clamp(0.02, 0.6);
+
+  /// Le pincement grandit ou rapetisse l'objet choisi, sans le déplacer :
+  /// on pince AILLEURS que sur lui, le centre des doigts n'a rien à dire de
+  /// sa place.
+  void _redimensionne(ObjetPose o, double echelle) {
+    setState(() => o.taille = _tailleVisee(echelle));
   }
 
   void _prendLaPoignee(ObjetPose o, Offset global, Size boite) {

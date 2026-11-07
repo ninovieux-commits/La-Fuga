@@ -549,35 +549,35 @@ void main() {
     });
   });
 
-  group('Le zoom', () {
-    double zoomActuel(WidgetTester tester) =>
-        tester.widget<Transform>(find.byKey(cleDuZoom)).transform.storage[0];
+  double zoomActuel(WidgetTester tester) =>
+      tester.widget<Transform>(find.byKey(cleDuZoom)).transform.storage[0];
 
-    /// Deux doigts qui s'écartent (ou se rapprochent) sur la surface.
-    ///
-    /// [depart] est l'écart initial entre les doigts : pour un pincement
-    /// vers l'intérieur il doit être assez grand pour qu'ils ne se croisent
-    /// pas — deux doigts qui se croisent s'écartent de nouveau, et le test
-    /// mesurerait l'inverse de ce qu'il croit.
-    Future<void> pince(
-      WidgetTester tester,
-      double ecart, {
-      double depart = 20,
-    }) async {
-      final centre = tester.getCenter(surface);
-      final g1 = await tester.startGesture(centre - Offset(depart, 0));
-      final g2 = await tester.startGesture(centre + Offset(depart, 0));
-      await tester.pump();
-      for (var i = 0; i < 6; i++) {
-        await g1.moveBy(Offset(-ecart / 6, 0));
-        await g2.moveBy(Offset(ecart / 6, 0));
-        await tester.pump();
-      }
-      await g1.up();
-      await g2.up();
+  /// Deux doigts qui s'écartent (ou se rapprochent) sur la surface.
+  ///
+  /// [depart] est l'écart initial entre les doigts : pour un pincement
+  /// vers l'intérieur il doit être assez grand pour qu'ils ne se croisent
+  /// pas — deux doigts qui se croisent s'écartent de nouveau, et le test
+  /// mesurerait l'inverse de ce qu'il croit.
+  Future<void> pince(
+    WidgetTester tester,
+    double ecart, {
+    double depart = 20,
+  }) async {
+    final centre = tester.getCenter(surface);
+    final g1 = await tester.startGesture(centre - Offset(depart, 0));
+    final g2 = await tester.startGesture(centre + Offset(depart, 0));
+    await tester.pump();
+    for (var i = 0; i < 6; i++) {
+      await g1.moveBy(Offset(-ecart / 6, 0));
+      await g2.moveBy(Offset(ecart / 6, 0));
       await tester.pump();
     }
+    await g1.up();
+    await g2.up();
+    await tester.pump();
+  }
 
+  group('Le zoom', () {
     // Nino : « lorsqu'on fait cette action alors que rien n'est sélectionné,
     // ça doit zoomer/dézoomer l'image. »
     testWidgets('deux doigts grossissent l image', (tester) async {
@@ -604,6 +604,141 @@ void main() {
         await pince(tester, 400);
       }
       expect(zoomActuel(tester), kZoomMax);
+    });
+  });
+
+  group('Les prises du cadre', () {
+    /// La hauteur des lettres du tampon : c'est elle que le pincement
+    /// change.
+    double tailleDuTampon(WidgetTester tester) =>
+        tester.widget<TamponPartie>(find.byType(TamponPartie)).taille;
+
+    Future<void> poseUnTampon(WidgetTester tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+    }
+
+    // Nino : « l'action de pincée à deux doigts doit agir sur l'objet
+    // sélectionné même si on le fait ailleurs sur l'écran. Il ne doit faire
+    // zoomer l'image uniquement si aucun objet n'est sélectionné. »
+    testWidgets('deux doigts loin de l objet le grandissent quand même', (
+      tester,
+    ) async {
+      await poseUnTampon(tester);
+      final avant = tailleDuTampon(tester);
+      final zoomAvant = zoomActuel(tester);
+
+      // Le centre de la surface : le tampon, lui, est posé tout en bas.
+      await pince(tester, 200);
+
+      expect(tailleDuTampon(tester), greaterThan(avant));
+      expect(
+        zoomActuel(tester),
+        zoomAvant,
+        reason: 'l image ne doit pas bouger tant qu un objet est choisi',
+      );
+    });
+
+    testWidgets('sans rien de choisi, les deux doigts reviennent à l image', (
+      tester,
+    ) async {
+      await poseUnTampon(tester);
+      final taille = tailleDuTampon(tester);
+
+      // Un appui dans un coin range le cadre.
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+
+      await pince(tester, 200);
+      expect(zoomActuel(tester), greaterThan(1));
+      expect(tailleDuTampon(tester), taille, reason: 'l objet n a pas bougé');
+    });
+
+    // Nino : « la poignée de rotation doit finalement aller à l'angle du
+    // bas. Comme ça à l'angle du haut tu mets une croix. »
+    testWidgets('la croix est en haut, la rotation en bas, du même côté', (
+      tester,
+    ) async {
+      await poseUnTampon(tester);
+      final croix = tester.getCenter(find.byIcon(Icons.close));
+      final rotation = tester.getCenter(find.byIcon(Icons.rotate_right));
+
+      expect(
+        rotation.dy,
+        greaterThan(croix.dy),
+        reason: 'la rotation est sous la croix',
+      );
+      expect(
+        (rotation.dx - croix.dx).abs(),
+        lessThan(1),
+        reason: 'les deux sont du même côté',
+      );
+    });
+
+    // Nino : « une croix qui supprime l'objet sélectionné. »
+    testWidgets('la croix jette l objet choisi', (tester) async {
+      await poseUnTampon(tester);
+      expect(find.byType(TamponPartie), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      expect(find.byType(TamponPartie), findsNothing);
+    });
+
+    testWidgets('mais un doigt qui glisse depuis la croix ne jette rien', (
+      tester,
+    ) async {
+      // Un coin se touche par mégarde, et ce qu'on jette ne se récupère pas.
+      await poseUnTampon(tester);
+      await tester.drag(find.byIcon(Icons.close), const Offset(50, 50));
+      await tester.pump();
+      expect(find.byType(TamponPartie), findsOneWidget);
+    });
+  });
+
+  group('Le tampon choisi montre ce qui se corrige', () {
+    /// Les cadres de champ : les boîtes arrondies et cernées qui entourent
+    /// la date et les deux noms.
+    int champs(WidgetTester tester) => tester
+        .widgetList<Container>(
+          find.descendant(
+            of: find.byType(TamponPartie),
+            matching: find.byType(Container),
+          ),
+        )
+        .where((c) {
+          final d = c.decoration;
+          return d is BoxDecoration &&
+              d.border != null &&
+              d.borderRadius != null;
+        })
+        .length;
+
+    // Nino : « lorsqu'un tampon est sélectionné, les données modifiables
+    // doivent apparaître dans des genres de barre de recherche pour qu'on
+    // comprenne que c'est modifiable. »
+    testWidgets('trois champs quand il est choisi, aucun sinon', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      expect(
+        champs(tester),
+        3,
+        reason: 'la date et les deux noms, chacun dans son champ',
+      );
+
+      // Rangé, le tampon redevient ce qu'il sera sur l'image envoyée.
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+
+      expect(champs(tester), 0);
     });
   });
 

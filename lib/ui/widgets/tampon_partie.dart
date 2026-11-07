@@ -96,10 +96,40 @@ class TamponPartie extends StatelessWidget {
   final VoidCallback? surGauche;
   final VoidCallback? surDroite;
 
-  /// Enveloppe un morceau d'une prise, si prise il y a.
+  /// Enveloppe un morceau d'une prise, si prise il y a — ET LE MONTRE.
+  ///
+  /// Nino : « lorsqu'un tampon est sélectionné, les données modifiables
+  /// doivent apparaître dans des genres de barre de recherche pour qu'on
+  /// comprenne que c'est modifiable. » Rien ne distinguait un mot qu'on
+  /// peut corriger d'un mot qui est là : il fallait le savoir pour le
+  /// toucher.
+  ///
+  /// Le cadre ne paraît QUE quand le morceau est prenable, c'est-à-dire
+  /// quand le tampon est choisi. Posé, puis désélectionné, le tampon
+  /// redevient ce qu'il sera sur l'image envoyée : trois lignes nues.
   Widget _prenable(Widget enfant, VoidCallback? quoiFaire) => quoiFaire == null
       ? enfant
-      : GestureDetector(onTap: quoiFaire, child: enfant);
+      : GestureDetector(
+          onTap: quoiFaire,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: taille * 0.3,
+              vertical: taille * 0.1,
+            ),
+            decoration: BoxDecoration(
+              // Un fond à peine plus clair que le voile du tampon, et un
+              // trait de l'encre : de quoi lire un champ sans que le champ
+              // se lise plus que le mot.
+              color: const Color(0x26FFFFFF),
+              borderRadius: BorderRadius.circular(taille * 0.3),
+              border: Border.all(
+                color: encre.withValues(alpha: 0.8),
+                width: taille * 0.055,
+              ),
+            ),
+            child: enfant,
+          ),
+        );
 
   @override
   Widget build(BuildContext context) {
