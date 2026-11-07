@@ -121,6 +121,28 @@ const Key cleDuZoom = ValueKey('zoom de l image');
 /// doigts ne grossit donc que de 40 % — on vise le pixel sans se battre.
 const double kLenteurDuZoom = 0.4;
 
+/// La plus petite et la plus grande hauteur de lettres d'un objet, en
+/// fraction de la hauteur de l'image.
+///
+/// Nino : « les objets doivent pouvoir être rétrécis plus que ça ». Le
+/// plancher valait un cinquantième de la hauteur — un tampon y tenait
+/// encore la moitié de la largeur. Il descend maintenant plus de trois fois
+/// plus bas : de quoi signer une image dans un coin.
+const double kTailleMin = 0.006;
+const double kTailleMax = 0.6;
+
+/// La lenteur du redimensionnement : Nino, « mais un peu plus lentement pour
+/// plus de précision ».
+///
+/// La pincée est amortie EN PROPORTION, et non en écart : un pincement qui
+/// double l'écart des doigts ne grandit l'objet que de moitié (racine de
+/// deux), et un pincement qui le divise par quatre ne le divise que par
+/// deux. Amortir l'écart comme le fait le zoom marcherait pour grandir,
+/// mais pas pour rétrécir : on ne peut pas rapprocher ses doigts de plus
+/// que leur écart, donc une pincée ne descendrait jamais sous la moitié,
+/// quel que soit le nombre de pincées. Ici les pincées se composent.
+const double kLenteurDeLaTaille = 0.5;
+
 /// Un trait tracé au doigt.
 final class TraitDessine {
   TraitDessine(this.couleur, this.epaisseur);
@@ -713,9 +735,12 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     });
   }
 
-  /// La taille qu'un pincement d'échelle [echelle] demande, bornée.
+  /// La taille qu'un pincement d'échelle [echelle] demande : amortie par
+  /// [kLenteurDeLaTaille], puis bornée.
   double _tailleVisee(double echelle) =>
-      (_tailleDepart * echelle).clamp(0.02, 0.6);
+      (_tailleDepart * math.pow(echelle, kLenteurDeLaTaille))
+          .clamp(kTailleMin, kTailleMax)
+          .toDouble();
 
   /// Le pincement grandit ou rapetisse l'objet choisi, sans le déplacer :
   /// on pince AILLEURS que sur lui, le centre des doigts n'a rien à dire de
@@ -1169,16 +1194,24 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
           T('Texte à poser'),
           style: const TextStyle(color: Colors.white),
         ),
+        // ON VA À LA LIGNE. Nino : « quand on fait un texte on doit
+        // pouvoir aller à la ligne ». La touche d'entrée du clavier pose
+        // donc un retour au lieu de fermer la fenêtre — c'est la touche
+        // « Poser » qui ferme. Le champ montre six lignes et fait défiler
+        // les suivantes, pour ne pas chasser les touches de l'écran.
         content: TextField(
           controller: controleur,
           autofocus: true,
-          maxLength: 60,
+          maxLength: 120,
+          minLines: 1,
+          maxLines: 6,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: T('Votre texte…'),
             hintStyle: const TextStyle(color: Colors.white38),
           ),
-          onSubmitted: (v) => Navigator.of(context).pop(v),
         ),
         actions: [
           TextButton(

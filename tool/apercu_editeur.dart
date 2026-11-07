@@ -84,13 +84,17 @@ Future<void> main() async {
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'Roboto'),
-        home: RepaintBoundary(
+        // LA LIMITE EST AU-DESSUS DU NAVIGATEUR, pour que les fenêtres
+        // (celle du texte à poser) entrent dans la photographie : une
+        // fenêtre vit dans l'« overlay », donc au-dessus de `home`.
+        builder: (context, child) => RepaintBoundary(
           key: _cadre,
           child: DefaultTextStyle(
             style: const TextStyle(fontFamily: 'Roboto'),
-            child: EditeurImageScreen(image: photo, moi: 'Nino', lui: 'celia'),
+            child: child!,
           ),
         ),
+        home: EditeurImageScreen(image: photo, moi: 'Nino', lui: 'celia'),
       ),
     );
     await tester.runAsync(() async {
@@ -101,19 +105,49 @@ Future<void> main() async {
     });
     await tester.pumpAndSettle();
 
+    Directory('tool/apercus').createSync(recursive: true);
+    Future<void> ecrit(String nom) async {
+      final limite =
+          _cadre.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final octets = await tester.runAsync(() async {
+        final image = await limite.toImage(pixelRatio: 2.5);
+        return image.toByteData(format: ui.ImageByteFormat.png);
+      });
+      File(
+        'tool/apercus/$nom.png',
+      ).writeAsBytesSync(Uint8List.view(octets!.buffer));
+    }
+
+    // LA FENÊTRE DU TEXTE, avec ses retours à la ligne.
+    await tester.tap(find.byTooltip('Texte'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'Belle partie !\nÀ la revoyure,\nNino',
+    );
+    await tester.pumpAndSettle();
+    await ecrit('editeur_texte');
+    await tester.tap(find.text('Poser'));
+    await tester.pumpAndSettle();
+
     // Le tampon, posé : il arrive sélectionné, donc dans son cadre bleu.
     await tester.tap(find.byTooltip('Tampon'));
     await tester.pumpAndSettle();
 
-    Directory('tool/apercus').createSync(recursive: true);
-    final limite =
-        _cadre.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final octets = await tester.runAsync(() async {
-      final image = await limite.toImage(pixelRatio: 2.5);
-      return image.toByteData(format: ui.ImageByteFormat.png);
-    });
-    File(
-      'tool/apercus/editeur.png',
-    ).writeAsBytesSync(Uint8List.view(octets!.buffer));
+    // ET RÉTRÉCI : deux doigts qui se rapprochent, loin de lui.
+    final centre = tester.getCenter(find.byType(Image));
+    final g1 = await tester.startGesture(centre - const Offset(90, 0));
+    final g2 = await tester.startGesture(centre + const Offset(90, 0));
+    await tester.pump();
+    for (var i = 0; i < 6; i++) {
+      await g1.moveBy(const Offset(12, 0));
+      await g2.moveBy(const Offset(-12, 0));
+      await tester.pump();
+    }
+    await g1.up();
+    await g2.up();
+    await tester.pumpAndSettle();
+
+    await ecrit('editeur');
   });
 }

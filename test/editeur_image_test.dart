@@ -657,6 +657,46 @@ void main() {
       expect(tailleDuTampon(tester), taille, reason: 'l objet n a pas bougé');
     });
 
+    // Nino : « mais un peu plus lentement pour plus de précision ».
+    testWidgets('la pincée suit les doigts, mais plus lentement', (
+      tester,
+    ) async {
+      await poseUnTampon(tester);
+      final avant = tailleDuTampon(tester);
+
+      // Les doigts partent à quarante l'un de l'autre et finissent à quatre
+      // cent quarante : onze fois plus loin.
+      await pince(tester, 200);
+
+      final apres = tailleDuTampon(tester);
+      expect(apres, greaterThan(avant));
+      expect(
+        apres / avant,
+        lessThan(11 * 0.5),
+        reason: 'l objet ne doit pas suivre les doigts au pied de la lettre',
+      );
+    });
+
+    // Nino : « les objets doivent pouvoir être rétrécis plus que ça ».
+    testWidgets('et on rétrécit bien plus petit qu avant', (tester) async {
+      await poseUnTampon(tester);
+      final avant = tailleDuTampon(tester);
+
+      for (var i = 0; i < 8; i++) {
+        await pince(tester, -80, depart: 100);
+      }
+
+      // `TamponPartie.taille` est en pixels : le plancher est une fraction
+      // de la hauteur de l'image.
+      final plancher = kTailleMin * tester.getSize(surface).height;
+      expect(tailleDuTampon(tester), moreOrLessEquals(plancher, epsilon: 0.01));
+      expect(
+        plancher,
+        lessThan(avant / 3),
+        reason: 'le plancher doit être bien sous le tampon d origine',
+      );
+    });
+
     // Nino : « la poignée de rotation doit finalement aller à l'angle du
     // bas. Comme ça à l'angle du haut tu mets une croix. »
     testWidgets('la croix est en haut, la rotation en bas, du même côté', (
@@ -838,6 +878,32 @@ void main() {
   });
 
   group("L'objet posé", () {
+    // Nino : « quand on fait un texte on doit pouvoir aller à la ligne ».
+    testWidgets('un texte garde ses retours à la ligne', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Texte'));
+      await tester.pumpAndSettle();
+
+      final champ = tester.widget<TextField>(find.byType(TextField));
+      expect(
+        champ.maxLines,
+        greaterThan(1),
+        reason: 'le champ doit montrer plusieurs lignes',
+      );
+      expect(champ.keyboardType, TextInputType.multiline);
+      expect(
+        champ.textInputAction,
+        TextInputAction.newline,
+        reason: 'la touche d entrée pose un retour, elle ne valide pas',
+      );
+
+      await tester.enterText(find.byType(TextField), 'Haut\nBas');
+      await tester.tap(find.text('Poser'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Haut\nBas'), findsOneWidget);
+    });
+
     testWidgets('un texte arrive sélectionné, dans son cadre bleu', (
       tester,
     ) async {
