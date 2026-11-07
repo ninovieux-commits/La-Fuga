@@ -151,7 +151,9 @@ void main() {
       await ouvrir(tester);
       final centre = tester.getCenter(surface);
 
-      // UN TRAIT.
+      // UN TRAIT — pinceau en main, puisqu'il ne l'est plus tout seul.
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
       await tester.dragFrom(centre, const Offset(0, 40));
       await tester.pump();
       expect(traits(tester).length, 1);
@@ -188,6 +190,10 @@ void main() {
       await tester.pump();
       expect(find.byType(TamponPartie), findsOneWidget);
 
+      // Le tampon a reposé le pinceau et garde son cadre : on reprend l'un,
+      // ce qui range l'autre.
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
       await tester.dragFrom(centre, const Offset(0, 40));
       await tester.pump();
       expect(traits(tester).length, 1);
@@ -201,6 +207,114 @@ void main() {
       await tester.tap(find.byTooltip('Défaire'));
       await tester.pump();
       expect(find.byType(TamponPartie), findsNothing);
+    });
+  });
+
+  // Nino : « quand on fait un texte ou un tampon, on reste sur pinceau.
+  // Résultat : ça fait des points et des traits à chaque manipulation. Le
+  // pinceau doit être activé que lorsqu'on a cliqué sur pinceau, et il doit
+  // arrêter de peindre quand un objet est sélectionné. »
+  group('Le pinceau ne peint que si on l a pris', () {
+    testWidgets('une photo qu on ouvre ne se salit pas au premier doigt', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+
+      // Et une fois pris, il peint.
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester).length, 1);
+    });
+
+    testWidgets('poser un tampon repose le pinceau', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      // On range son cadre : il ne reste donc que l'outil pour empêcher le
+      // trait, et il doit suffire.
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+    });
+
+    testWidgets('poser un texte aussi', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Texte'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Polly');
+      await tester.tap(find.text('Poser'));
+      await tester.pumpAndSettle();
+
+      final boite = tester.getRect(surface);
+      await tester.tapAt(Offset(boite.left + 4, boite.top + 4));
+      await tester.pump();
+
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+    });
+
+    testWidgets('et un objet choisi suspend le pinceau', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      // Le pinceau en main range le cadre bleu...
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+      expect(
+        tester.widgetList<Container>(find.byType(Container)).any((c) {
+          final d = c.decoration;
+          return d is BoxDecoration && d.border?.top.color == kBleuSelection;
+        }),
+        isFalse,
+        reason: 'prendre le pinceau quitte l objet',
+      );
+
+      // ... et le tampon repris le suspend de nouveau.
+      await tester.tap(find.byType(TamponPartie));
+      await tester.pump();
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+    });
+
+    testWidgets('la gomme non plus ne gomme pas sous un cadre bleu', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+      final centre = tester.getCenter(surface);
+      await tester.dragFrom(centre, const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester).length, 1);
+
+      await tester.tap(find.byTooltip('Gomme'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      // Le tampon est choisi : le doigt ne doit rien reprendre.
+      await tester.dragFrom(centre, const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester).length, 1);
     });
   });
 

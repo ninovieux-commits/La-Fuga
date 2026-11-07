@@ -264,7 +264,17 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   /// même ceux posés avant le dernier trait.
   final List<Object> _ordre = [];
 
-  Outil _outil = Outil.dessin;
+  /// L'outil en main — ou AUCUN, et le doigt ne laisse alors rien.
+  ///
+  /// Nino : « quand on fait un texte ou un tampon, on reste sur pinceau.
+  /// Résultat : ça fait des points et des traits à chaque manipulation. Le
+  /// pinceau doit être activé que lorsqu'on a cliqué sur pinceau, et il
+  /// doit arrêter de peindre quand un objet est sélectionné. »
+  ///
+  /// Il part donc vide : une photo qu'on ouvre ne se salit pas au premier
+  /// doigt. Poser un texte ou un tampon le repose, et le cadre bleu le
+  /// suspend tant qu'il est là.
+  Outil? _outil;
   Color _encre = const Color(0xFFFF2D2D);
 
   /// L'épaisseur des PROCHAINS traits — Nino : « le mode dessin doit donner
@@ -795,7 +805,24 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
 
   // ── Le doigt sur l'image ──────────────────────────────────────────────────
 
+  /// Vrai quand un doigt posé sur l'image ne doit NI tracer NI gommer :
+  /// aucun outil en main, ou un objet dans son cadre bleu.
+  ///
+  /// Le cadre bleu se manipule au doigt — on pousse l'objet, on l'attrape
+  /// par un coin, on le rate d'un cheveu — et chacun de ces gestes laissait
+  /// un point ou un trait sur la photo.
+  bool get _leDoigtNePeintPas => _outil == null || _choisi != null;
+
+  /// Prendre le pinceau ou la gomme RANGE LE CADRE BLEU : on ne peut pas
+  /// vouloir peindre et garder un objet choisi, puisque l'un empêche
+  /// l'autre. C'est aussi la façon de quitter un objet sans viser le vide.
+  void _prendLOutil(Outil outil) => setState(() {
+    _outil = outil;
+    _choisi = null;
+  });
+
   void _commence(Offset ou, Size boite) {
+    if (_leDoigtNePeintPas) return;
     final f = Offset(ou.dx / boite.width, ou.dy / boite.height);
     if (_outil == Outil.gomme) {
       _gomme(f);
@@ -809,6 +836,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   }
 
   void _continue(Offset ou, Size boite) {
+    if (_leDoigtNePeintPas) return;
     final f = Offset(ou.dx / boite.width, ou.dy / boite.height);
     if (_outil == Outil.gomme) {
       _gomme(f);
@@ -891,7 +919,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
               Icons.brush,
               T('Dessin'),
               actif: _outil == Outil.dessin,
-              onTap: () => setState(() => _outil = Outil.dessin),
+              onTap: () => _prendLOutil(Outil.dessin),
             ),
             // UNE VRAIE GOMME, et non la baguette magique de Material :
             // Nino, « la gomme doit avoir une image de gomme plutôt que
@@ -904,7 +932,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
                 encre: _outil == Outil.gomme ? Colors.black : Colors.white,
               ),
               actif: _outil == Outil.gomme,
-              onTap: () => setState(() => _outil = Outil.gomme),
+              onTap: () => _prendLOutil(Outil.gomme),
             ),
             _outilTouche(Icons.title, T('Texte'), onTap: _ajouterDuTexte),
             _outilTouche(
@@ -1078,6 +1106,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
         _objets.removeWhere(dejaLa.contains);
         _ordre.removeWhere(dejaLa.contains);
         if (dejaLa.any((o) => identical(o, _choisi))) _choisi = null;
+        _outil = null;
       });
       return;
     }
@@ -1091,6 +1120,9 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       _objets.add(pose);
       _ordre.add(pose);
       _choisi = pose;
+      // LE PINCEAU SE REPOSE : on vient de poser un tampon, pas de
+      // commencer un dessin.
+      _outil = null;
     });
   }
 
@@ -1235,6 +1267,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     setState(() {
       _objets.add(pose);
       _ordre.add(pose);
+      _outil = null;
       // IL ARRIVE DANS SON CADRE BLEU : « on ajoute un texte ou un tampon,
       // celui-ci apparaît dans un cadre bleu ». On le place donc au doigt
       // tout de suite, sans avoir à le choisir d'abord.
