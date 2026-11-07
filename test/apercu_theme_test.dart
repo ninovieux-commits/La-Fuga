@@ -124,15 +124,53 @@ void main() {
 
     final r = await _rend(
       tester,
-      const ThemePreview(
-        theme: 'original',
-        themeDuPlateau: 'foret',
-        themeGeneral: 'original',
-      ),
+      const ThemePreview(theme: 'original', themeDuPlateau: 'foret'),
       boite: const Size(200, 50),
     );
 
     // Un coin de case, loin d'une pièce et de la grille : le damier nu.
     expect(_au(r, 3, 46), paletteOf('foret').board);
+  });
+
+  // Nino : « les pièces affichées dans l'aperçu sont en fonction de la
+  // couleur générale au lieu de pièces ».
+  testWidgets('les pièces sont aux couleurs de LEUR axe', (tester) async {
+    /// Compte les pixels d'une couleur dans tout le rendu.
+    int combien(
+      ({ByteData pixels, int largeur, int hauteur}) r,
+      Color couleur,
+    ) {
+      var n = 0;
+      for (var y = 0; y < r.hauteur; y++) {
+        for (var x = 0; x < r.largeur; x++) {
+          if (_au(r, x, y) == couleur) n++;
+        }
+      }
+      return n;
+    }
+
+    // Hémo pour les pièces, forêt pour le plateau : ni l'un ni l'autre ne
+    // doit porter les couleurs d'un troisième thème.
+    final r = await _rend(
+      tester,
+      const ThemePreview(theme: 'hemo', themeDuPlateau: 'foret'),
+      boite: const Size(200, 50),
+    );
+
+    expect(
+      combien(r, paletteOf('hemo').clair),
+      greaterThan(0),
+      reason: 'la pièce blanche porte le clair de hémo',
+    );
+    expect(
+      combien(r, paletteOf('hemo').fonce),
+      greaterThan(0),
+      reason: 'la pièce noire porte le foncé de hémo',
+    );
+    expect(
+      combien(r, paletteOf('foret').clair),
+      0,
+      reason: 'le thème du plateau ne colore pas les pièces',
+    );
   });
 }

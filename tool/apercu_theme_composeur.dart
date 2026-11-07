@@ -34,6 +34,10 @@ Future<void> main() async {
       'composeur_theme_deepgrey',
       'deepgrey|deepgrey|deepgrey|deepgrey|deepgrey',
     ),
+    // Général et pièces séparés, plateau étoile : l'aperçu doit montrer les
+    // pièces de l'axe « Pièces », sur le ciel de l'axe « Plateau ».
+    ('composeur_theme_etoile', 'royal|etoile|etoile|etoile|etoile'),
+    ('composeur_theme_axes', 'royal|hemo|foret|ocean|etoile'),
   ]) {
     testWidgets('aperçu du $nom', (tester) async {
       // ignore: invalid_use_of_visible_for_testing_member

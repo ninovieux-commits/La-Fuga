@@ -260,7 +260,6 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
                 child: ThemePreview(
                   theme: _axes.pieces,
                   themeDuPlateau: _axes.board,
-                  themeGeneral: _axes.general,
                 ),
               ),
             ),

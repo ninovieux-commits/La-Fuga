@@ -23,22 +23,16 @@ const List<Piece> kPreviewPieces = [
 ];
 
 class ThemePreview extends StatelessWidget {
-  const ThemePreview({
-    super.key,
-    required this.theme,
-    this.themeDuPlateau,
-    this.themeGeneral,
-  });
+  const ThemePreview({super.key, required this.theme, this.themeDuPlateau});
 
   /// Le thème des PIÈCES. Seul, il vaut pour les trois axes montrés ici.
   final String theme;
 
   /// L'axe « Plateau » : le damier, sa grille, son image. Nul = [theme].
+  ///
+  /// L'axe « Général », lui, n'a rien à faire ici : un aperçu ne montre
+  /// qu'un bout de damier et ses pièces, et les deux viennent d'ailleurs.
   final String? themeDuPlateau;
-
-  /// L'axe « Général » : les couleurs 1 et 2 que portent les pièces.
-  /// Nul = [theme].
-  final String? themeGeneral;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +47,10 @@ class ThemePreview extends StatelessWidget {
         builder: (context, images) => CustomPaint(
           size: Size.infinite,
           painter: _PreviewPainter(
-            palette: paletteOf(themeGeneral ?? theme),
+            // LES PIÈCES SONT AUX COULEURS DE LEUR AXE. Elles prenaient
+            // celles de l'axe « Général » : choisir « Pièces : Hémo » ne
+            // changeait rien tant que le thème n'avait pas d'images.
+            palette: paletteOf(theme),
             paletteDuPlateau: paletteOf(plateau),
             theme: theme,
             images: images,

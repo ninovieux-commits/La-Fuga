@@ -192,11 +192,16 @@ const Map<String, ThemePalette> kThemes = {
     menu: Color.fromRGBO(199, 230, 250, 1),
     grid: Color.fromRGBO(140, 178, 217, 1),
   ),
+  // LES DEUX JAUNES SONT INVERSÉS — Nino : « le jaune clair et le jaune
+  // foncé du thème étoiles doivent être inversés ». Le jaune vif va donc
+  // aux pièces noires, qui le portent sur un corps bleu nuit, et le jaune
+  // sourd aux pièces blanches, dont le corps est crème : chacun sur le
+  // fond qui le fait lire.
   'etoile': ThemePalette(
-    clair: Color.fromRGBO(255, 217, 51, 1),
-    fonce: Color.fromRGBO(191, 153, 20, 1),
-    clairDim: Color.fromRGBO(115, 102, 31, 1),
-    fonceDim: Color.fromRGBO(76, 61, 10, 1),
+    clair: Color.fromRGBO(191, 153, 20, 1),
+    fonce: Color.fromRGBO(255, 217, 51, 1),
+    clairDim: Color.fromRGBO(76, 61, 10, 1),
+    fonceDim: Color.fromRGBO(115, 102, 31, 1),
     board: Color.fromRGBO(15, 15, 26, 1),
     menu: Color.fromRGBO(26, 26, 41, 1),
     grid: Color.fromRGBO(64, 59, 26, 1),

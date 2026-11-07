@@ -153,6 +153,19 @@ void paintPiece(
   final box = Rect.fromLTWH(rect.left + pad, rect.top + pad, inner, inner);
   final centre = rect.center;
 
+  // LA COULEUR D'UNE PIÈCE VIENT DE L'AXE « PIÈCES », pas du général.
+  //
+  // Nino : « les pièces affichées dans l'aperçu sont en fonction de la
+  // couleur générale au lieu de pièces ». C'était vrai partout, pas
+  // seulement dans l'aperçu : [palette] arrive des écrans, et tous prennent
+  // la palette générale. Choisir « Pièces : Hémo » par-dessus un général
+  // « Forêt » ne changeait alors RIEN sur un thème sans images — l'axe
+  // n'agissait que sur les thèmes dessinés.
+  //
+  // On corrige ici, au seul endroit où une pièce prend sa couleur : le nom
+  // de son thème y est déjà, à côté de ses images.
+  final couleurs = theme == null ? palette : paletteOf(theme);
+
   // Thème deepgrey : corps gris pour tout le monde, détails en blanc (pièces
   // blanches) ou noir (pièces noires) — les camps restent lisibles.
   final isDeepGrey = theme == 'deepgrey';
@@ -164,12 +177,16 @@ void paintPiece(
       ? kDeepGreyBody
       : (piece.camp == Camp.blanc
             ? FugaColors.whitePiece
-            : FugaColors.blackPiece);
+            // LES PIÈCES NOIRES DU THÈME ÉTOILE SONT BLEU FONCÉ : son
+            // plateau est un ciel de nuit (15, 15, 26) et le corps noir
+            // ordinaire (18, 18, 33) s'y fondait — on les voyait à leur
+            // signe, pas à leur forme.
+            : (theme == 'etoile' ? kBleuDEtoile : FugaColors.blackPiece));
   final accent = isDeepGrey
       ? detail
       : (theme == 'arcenciel' && rainbowFraction != null
             ? rainbowColor(rainbowFraction)
-            : (piece.camp == Camp.blanc ? palette.clair : palette.fonce));
+            : (piece.camp == Camp.blanc ? couleurs.clair : couleurs.fonce));
   final stroke =
       outline ??
       (isDeepGrey
@@ -505,6 +522,10 @@ void paintPieceContour(
 
 /// Corps gris des pièces du thème deepgrey.
 const Color kDeepGreyBody = Color(0xFF808080);
+
+/// Corps des pièces noires du thème étoile : un bleu de nuit, assez clair
+/// pour se détacher de son plateau presque noir.
+const Color kBleuDEtoile = Color.fromRGBO(31, 46, 115, 1);
 
 /// Les huit couleurs du thème « arc-en-ciel » — portage de `RAINBOW_PALETTE`.
 const List<Color> kRainbowPalette = [
