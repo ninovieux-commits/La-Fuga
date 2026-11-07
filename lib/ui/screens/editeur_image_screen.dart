@@ -95,6 +95,21 @@ const Color kRougeSuppression = Color(0xFFD93232);
 /// touches.
 double get kMargeDesPoignees => touchHeight() * 0.55;
 
+/// LES CRANS DE LA ROTATION : tous les quarts de tour, et les moitiés.
+///
+/// Nino : « la rotation doit avoir des "aimants" tous les 45 degrés (par
+/// exemple quand on est à 85 degrés ça nous fixe tout seul à 90 en faisant
+/// apparaître une ligne droite le long de l'écran). » Une ligne droite se
+/// vise mal à la main : l'aimant la donne.
+const double kCranDeRotation = math.pi / 4;
+
+/// La portée de l'aimant : à moins de huit degrés d'un cran, on s'y colle.
+///
+/// Huit, et non trois : l'exemple de Nino demande que 85 degrés tombent sur
+/// 90. Et non vingt : il reste alors trente degrés libres entre deux crans,
+/// de quoi poser un angle qu'on a choisi.
+const double kAimantDeRotation = 8 * math.pi / 180;
+
 /// Le plus grand grossissement de l'image en cours de retouche.
 const double kZoomMax = 4;
 
@@ -265,6 +280,12 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   /// Vrai tant qu'un doigt tient la poignée de rotation.
   bool _tourne = false;
 
+  /// L'angle du cran auquel on est collé, le temps qu'on y reste.
+  ///
+  /// C'est lui que la ligne de repère suit. Nul : on tourne librement, et
+  /// il n'y a pas de ligne.
+  double? _aimant;
+
   /// Où le doigt s'est posé sur la croix de suppression.
   ///
   /// Un appui supprime, un glissement non : on ne jette pas un objet qu'on
@@ -416,6 +437,23 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
                 child: CustomPaint(painter: PeintreDesTraits(_traits)),
               ),
               for (final o in _objets) _poseLObjet(o, boite),
+              // LA LIGNE DE L'AIMANT, par-dessus le reste : c'est elle qui
+              // dit qu'on est droit. `IgnorePointer`, car elle traverse le
+              // cadre et ses prises.
+              if (_aimant != null && _choisi != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: PeintreDAimant(
+                        centre: Offset(
+                          _choisi!.position.dx * boite.width,
+                          _choisi!.position.dy * boite.height,
+                        ),
+                        angle: _aimant!,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );
@@ -559,8 +597,8 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
           onPointerMove: (e) {
             if (_tourne) _tourneLaPoignee(o, e.position, boite);
           },
-          onPointerUp: (_) => _tourne = false,
-          onPointerCancel: (_) => _tourne = false,
+          onPointerUp: (_) => _lacheLaPoignee(),
+          onPointerCancel: (_) => _lacheLaPoignee(),
           child: Container(
             width: marge,
             height: marge,
@@ -639,6 +677,16 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
   // ── Le doigt sur l'objet ──────────────────────────────────────────────────
 
   void _prendLObjet(ObjetPose o) {
+    // LA POIGNÉE A LA MAIN, ET ELLE LA GARDE.
+    //
+    // Le détecteur de l'objet suit les pincements, et un pincement accepte
+    // aussi un doigt : dès que le doigt posé sur la poignée BOUGE, ce
+    // détecteur s'éveille et passe par ici. Il y remettait l'angle de
+    // départ à l'angle COURANT, sans toucher à la direction de départ — et
+    // la rotation se mettait alors à compter double, puis triple. C'est
+    // l'autre moitié du « je n'arrive pas à pivoter » : la poignée partait
+    // en avance sur le doigt.
+    if (_tourne) return;
     _tailleDepart = o.taille;
     _angleDepart = o.angle;
   }
@@ -684,10 +732,27 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
 
   /// LA POIGNÉE NE FAIT QUE TOURNER. La taille se prend à deux doigts : une
   /// poignée qui ferait les deux change l'une quand on cherche l'autre.
+  ///
+  /// ET ELLE S'AIMANTE TOUS LES QUARTS DE TOUR. Voir [kCranDeRotation] : à
+  /// moins de [kAimantDeRotation] d'un cran, l'objet s'y pose et une ligne
+  /// le dit. Au-delà, l'angle reste celui du doigt — l'aimant aide, il
+  /// n'impose pas.
   void _tourneLaPoignee(ObjetPose o, Offset global, Size boite) {
     final v = _versLeCentre(o, global, boite);
     if (v == Offset.zero) return;
-    setState(() => o.angle = _angleDepart + (v.direction - _directionDepart));
+    final brut = _angleDepart + (v.direction - _directionDepart);
+    final cran = (brut / kCranDeRotation).roundToDouble() * kCranDeRotation;
+    final colle = (brut - cran).abs() <= kAimantDeRotation;
+    setState(() {
+      o.angle = colle ? cran : brut;
+      _aimant = colle ? cran : null;
+    });
+  }
+
+  /// Le doigt quitte la poignée : la ligne de repère s'en va avec lui.
+  void _lacheLaPoignee() {
+    _tourne = false;
+    if (_aimant != null) setState(() => _aimant = null);
   }
 
   /// Le vecteur qui va du centre de l'objet au doigt, dans le repère de la
@@ -1202,6 +1267,42 @@ Future<Uint8List> composeLImage(GlobalKey surface) async {
 /// Les points sont rangés en FRACTION de la boîte : c'est ce qui fait qu'un
 /// trait tracé sur un écran de téléphone tombe au même endroit dans le
 /// fichier, qui en fait deux fois plus.
+/// LA LIGNE DE L'AIMANT : une droite qui traverse l'écran par le centre de
+/// l'objet, à l'angle du cran où il vient de se poser.
+///
+/// Nino : « en faisant apparaître une ligne droite le long de l'écran ».
+/// Elle ne vit que le temps où le doigt tient la poignée ET où l'objet est
+/// collé : elle est la preuve qu'il est droit, pas une décoration.
+class PeintreDAimant extends CustomPainter {
+  const PeintreDAimant({required this.centre, required this.angle});
+
+  /// Le centre de l'objet, dans le repère de la surface.
+  final Offset centre;
+
+  /// L'angle du cran, en radians.
+  final double angle;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Assez long pour sortir de la boîte par les deux bouts, quel que soit
+    // l'angle : la somme des deux côtés dépasse toujours la diagonale.
+    final portee = size.width + size.height;
+    final sens = Offset(math.cos(angle), math.sin(angle)) * portee;
+    canvas.drawLine(
+      centre - sens,
+      centre + sens,
+      Paint()
+        ..color = kBleuSelection
+        ..strokeWidth = S(1.5)
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(PeintreDAimant vieux) =>
+      vieux.centre != centre || vieux.angle != angle;
+}
+
 class PeintreDesTraits extends CustomPainter {
   const PeintreDesTraits(this.traits);
 

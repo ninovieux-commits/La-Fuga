@@ -164,24 +164,20 @@ class TamponPartie extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _prenable(
-                _camp(
-                  tampon.gauche,
-                  blanc: tampon.blancAGauche,
-                  rond: rond,
-                  encre: encre,
-                ),
-                surGauche,
+              _camp(
+                tampon.gauche,
+                blanc: tampon.blancAGauche,
+                rond: rond,
+                encre: encre,
+                quoiFaire: surGauche,
               ),
               SizedBox(width: taille * 0.7),
-              _prenable(
-                _camp(
-                  tampon.droite,
-                  blanc: !tampon.blancAGauche,
-                  rond: rond,
-                  encre: encre,
-                ),
-                surDroite,
+              _camp(
+                tampon.droite,
+                blanc: !tampon.blancAGauche,
+                rond: rond,
+                encre: encre,
+                quoiFaire: surDroite,
               ),
             ],
           ),
@@ -192,11 +188,17 @@ class TamponPartie extends StatelessWidget {
 
   /// Un nom et son rond. Le rond porte toujours un trait de l'autre couleur :
   /// sans lui, le noir disparaîtrait dans le voile sombre.
+  ///
+  /// LE ROND RESTE DEHORS. Nino : « les points noirs et blancs ne doivent
+  /// pas être inclus. » Le champ dit « ceci se corrige » ; or le rond ne se
+  /// corrige pas ici — il s'échange avec la touche à droite du cadre. Seul
+  /// le NOM entre dans le champ.
   Widget _camp(
     String nom, {
     required bool blanc,
     required double rond,
     required Color encre,
+    VoidCallback? quoiFaire,
   }) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -213,15 +215,18 @@ class TamponPartie extends StatelessWidget {
         ),
       ),
       SizedBox(width: rond * 0.4),
-      Text(
-        nom,
-        maxLines: 1,
-        style: TextStyle(
-          color: encre,
-          fontSize: taille,
-          fontWeight: FontWeight.bold,
-          height: 1.1,
+      _prenable(
+        Text(
+          nom,
+          maxLines: 1,
+          style: TextStyle(
+            color: encre,
+            fontSize: taille,
+            fontWeight: FontWeight.bold,
+            height: 1.1,
+          ),
         ),
+        quoiFaire,
       ),
     ],
   );

@@ -8,6 +8,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -697,6 +698,70 @@ void main() {
       await tester.pump();
       expect(find.byType(TamponPartie), findsOneWidget);
     });
+
+    // Nino : « la rotation doit avoir des "aimants" tous les 45 degrés (par
+    // exemple quand on est à 85 degrés ça nous fixe tout seul à 90 en
+    // faisant apparaître une ligne droite le long de l'écran). »
+    testWidgets('la rotation s aimante tous les 45 degrés', (tester) async {
+      /// La transformation qui porte le tampon : celle de sa rotation.
+      Finder laRotation() => find
+          .ancestor(
+            of: find.byType(TamponPartie),
+            matching: find.byType(Transform),
+          )
+          .first;
+
+      double angle(WidgetTester t) {
+        final m = t.widget<Transform>(laRotation()).transform.storage;
+        return math.atan2(m[1], m[0]);
+      }
+
+      Finder laLigne() => find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is PeintreDAimant,
+      );
+
+      await poseUnTampon(tester);
+      final centre = tester.getCenter(laRotation());
+      final poignee = tester.getCenter(find.byIcon(Icons.rotate_right));
+      final bras = poignee - centre;
+      final depart = bras.direction;
+      final rayon = bras.distance;
+
+      /// Pose le doigt à [vise] radians de sa position de départ, vu du
+      /// centre de l'objet.
+      Future<void> tourneDe(TestGesture g, double vise) async {
+        final d = depart + vise;
+        await g.moveTo(centre + Offset(math.cos(d), math.sin(d)) * rayon);
+        await tester.pump();
+      }
+
+      final doigt = await tester.startGesture(poignee);
+      await tester.pump();
+
+      // LOIN D'UN CRAN : l'angle est celui du doigt, et rien ne s'affiche.
+      await tourneDe(doigt, 20 * math.pi / 180);
+      expect(
+        angle(tester),
+        moreOrLessEquals(20 * math.pi / 180, epsilon: 0.01),
+        reason: 'à vingt degrés, l aimant ne doit pas tirer',
+      );
+      expect(laLigne(), findsNothing);
+
+      // PRÈS D'UN CRAN : on s'y colle, et la ligne le dit.
+      await tourneDe(doigt, 43 * math.pi / 180);
+      expect(
+        angle(tester),
+        moreOrLessEquals(math.pi / 4, epsilon: 0.001),
+        reason: 'quarante-trois degrés doivent tomber sur quarante-cinq',
+      );
+      expect(laLigne(), findsOneWidget);
+
+      // ET LA LIGNE S'EN VA AVEC LE DOIGT.
+      await doigt.up();
+      await tester.pump();
+      expect(angle(tester), moreOrLessEquals(math.pi / 4, epsilon: 0.001));
+      expect(laLigne(), findsNothing);
+    });
   });
 
   group('Le tampon choisi montre ce qui se corrige', () {
@@ -739,6 +804,36 @@ void main() {
       await tester.pump();
 
       expect(champs(tester), 0);
+    });
+
+    // Nino : « les points noirs et blancs ne doivent pas être inclus. » Le
+    // champ dit « ceci se corrige » ; le rond, lui, s'échange ailleurs.
+    testWidgets('le rond du camp reste hors du champ', (tester) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Tampon'));
+      await tester.pumpAndSettle();
+
+      final encadres = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byType(TamponPartie),
+              matching: find.byType(Container),
+            ),
+          )
+          .where((c) {
+            final d = c.decoration;
+            return d is BoxDecoration &&
+                d.border != null &&
+                d.borderRadius != null;
+          });
+      expect(encadres, hasLength(3));
+      for (final champ in encadres) {
+        expect(
+          champ.child,
+          isA<Text>(),
+          reason: 'un champ ne contient que son mot',
+        );
+      }
     });
   });
 
