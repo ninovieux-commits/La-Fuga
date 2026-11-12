@@ -59,6 +59,7 @@ class CorrGameScreen extends StatefulWidget {
     required this.game,
     required this.service,
     required this.myPseudo,
+    this.voisines = const [],
     this.visiteur = false,
     this.archive,
     this.initialBoard,
@@ -67,6 +68,20 @@ class CorrGameScreen extends StatefulWidget {
 
   final CorrGame game;
   final CorrespondenceService service;
+
+  /// Les parties ouvrables, DANS L'ORDRE DU MENU — celles qu'un glissement
+  /// va chercher.
+  ///
+  /// Nino : « lorsque je suis sur une partie par correspondance, que je
+  /// puisse faire glisser l'écran vers la droite ou vers la gauche pour
+  /// aller sur les parties qui sont avant ou après dans la liste. [...] il
+  /// n'y a aucun mouvement de glisser accepté dans le jeu », et c'est vrai :
+  /// on prend une pièce, puis on touche sa case d'arrivée. Le glissement
+  /// est donc libre, et il ne coûte aucun geste de jeu.
+  ///
+  /// Vide — ou sans la partie courante — il n'y a rien à glisser. C'est le
+  /// cas en mode visiteur, et pour une partie ouverte depuis un profil.
+  final List<CorrGame> voisines;
 
   /// Le joueur dont c'est la partie. En mode visiteur, c'est CELUI QU'ON
   /// REGARDE : la partie est rendue de son point de vue, ses pièces en bas.
@@ -529,6 +544,100 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       !_isViewing &&
       _controller != null;
 
+  // ── Glisser d'une partie à l'autre ───────────────────────────────────────
+
+  /// La part de la largeur qu'il faut parcourir pour changer de partie.
+  ///
+  /// Un quart : assez pour qu'un doigt qui dérape sur le plateau ne change
+  /// rien, assez peu pour que le geste reste court. Un geste VIF y échappe —
+  /// on lance l'écran, on ne le traîne pas — à condition d'avoir quand même
+  /// bougé : sans ce plancher, une tape un peu glissante suffirait.
+  static const double kPartDuGlissement = 0.25;
+  static const double kVitesseDuGlissement = 600;
+  static const double kPlancherDuGlissement = 16;
+
+  /// Ce que le doigt a parcouru depuis le début du geste.
+  double _glissee = 0;
+
+  /// La partie à [sens] rangs d'ici — `1` la suivante, `-1` la précédente.
+  /// Nulle au bout de la liste, ou si la partie courante n'y est pas.
+  CorrGame? _voisine(int sens) {
+    final rang = widget.voisines.indexWhere((g) => g.id == widget.game.id);
+    if (rang < 0) return null;
+    final cible = rang + sens;
+    if (cible < 0 || cible >= widget.voisines.length) return null;
+    return widget.voisines[cible];
+  }
+
+  bool get _peutGlisser => _voisine(1) != null || _voisine(-1) != null;
+
+  void _debutDuGlissement(DragStartDetails d) {
+    _glissee = 0;
+    // LE DOIGT A DÉJÀ TOUCHÉ LE PLATEAU. La case part au contact — c'est
+    // voulu, le plateau doit répondre au doigt — donc le temps qu'on sache
+    // que ce geste est un glissement, une pièce a pu être prise. On défait
+    // cette prise : un glissement ne doit rien laisser derrière lui, qu'il
+    // aboutisse ou non.
+    //
+    // Seulement ce qui n'est pas encore parti : un coup envoyé au serveur
+    // n'est plus à nous.
+    final c = _controller;
+    if (c != null && _canPlay && c.cancelCurrentMove()) setState(() {});
+  }
+
+  void _glisse(DragUpdateDetails d) => _glissee += d.delta.dx;
+
+  void _finDuGlissement(DragEndDetails d) {
+    if (_sending) return;
+    final largeur = MediaQuery.sizeOf(context).width;
+    final vitesse = d.velocity.pixelsPerSecond.dx.abs();
+    final parcours = _glissee.abs();
+    final assez =
+        parcours > largeur * kPartDuGlissement ||
+        (vitesse > kVitesseDuGlissement && parcours > S(kPlancherDuGlissement));
+    if (!assez) return;
+
+    // Vers la GAUCHE, la suivante : elle arrive par la droite, comme une
+    // page qu'on tourne. [sens] dit les deux à la fois — le rang dans la
+    // liste, et le bord par lequel l'écran entre.
+    final sens = _glissee < 0 ? 1 : -1;
+    final partie = _voisine(sens);
+    if (partie == null) return;
+    Navigator.of(context).pushReplacement(_glissementVers(partie, sens));
+  }
+
+  /// La route de la partie voisine : le même écran, qui entre par le bord
+  /// d'où elle vient.
+  ///
+  /// UN ÉCRAN NEUF plutôt qu'un changement de partie sur place : cet écran
+  /// tient une pendule, un flux de bulles, un contrôleur de coups et une
+  /// relecture, tous montés dans `initState`. Les refaire à la main d'une
+  /// partie à l'autre, c'est tenir deux fois la même liste.
+  Route<void> _glissementVers(
+    CorrGame partie,
+    int sens,
+  ) => PageRouteBuilder<void>(
+    transitionDuration: const Duration(milliseconds: 220),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (context, animation, secondaryAnimation) => CorrGameScreen(
+      game: partie,
+      service: widget.service,
+      myPseudo: widget.myPseudo,
+      voisines: widget.voisines,
+      visiteur: widget.visiteur,
+      archive: widget.archive,
+      sounds: widget.sounds,
+    ),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        SlideTransition(
+          position: Tween<Offset>(
+            begin: Offset(sens.toDouble(), 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          child: child,
+        ),
+  );
+
   Future<void> _onTapCell(Cell cell) async {
     if (!_canPlay) return;
     final c = _controller!;
@@ -799,74 +908,100 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       // laissée au-dessus mangeait de la place au plateau.
       body: SafeArea(
         top: false,
-        child: c == null
-            ? Column(
-                children: [
-                  _bar(palette, flipped),
-                  const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
+        child: _glissant(
+          child: c == null
+              ? Column(
+                  children: [
+                    _bar(palette, flipped),
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                )
+              : GameLayout(
+                  // Les messages de l'adversaire passent dans SON bandeau,
+                  // rognés à lui : ni le plateau ni les touches n'en voient
+                  // rien.
+                  topOverlay: BullesEnJeu(
+                    flux: _bulles.stream,
+                    palette: paletteDe(widget.game.opponent),
+                    mienne: palette,
                   ),
-                ],
-              )
-            : GameLayout(
-                // Les messages de l'adversaire passent dans SON bandeau,
-                // rognés à lui : ni le plateau ni les touches n'en voient
-                // rien.
-                topOverlay: BullesEnJeu(
-                  flux: _bulles.stream,
-                  palette: paletteDe(widget.game.opponent),
-                  mienne: palette,
+                  topBar: _bar(palette, flipped),
+                  topPanel: _panel(
+                    palette,
+                    flipped ? Camp.noir : Camp.blanc,
+                    c,
+                  ),
+                  // Une question à laquelle il faut répondre ne se laisse pas
+                  // recouvrir par un message qui passe.
+                  topPanelDevant: _offreDeNulleAMontrer,
+                  board: GameBoardView(
+                    board: _shownBoard ?? c.board,
+                    palette: palette,
+                    flipped: flipped,
+                    onTapCell: _onTapCell,
+                    selected: _isViewing ? null : c.selected,
+                    groupSelection: _isViewing ? const {} : c.groupSelection,
+                    highlighted: _isViewing
+                        ? const {}
+                        : c.availablePushCells.toSet(),
+                    lastMove: _shownLastMove,
+                    // La fugue clôt la partie : en revoyant un coup passé,
+                    // l'Héritier n'a pas encore rejoint son ralliement.
+                    fuguedHeirs: _isViewing
+                        ? const <Camp, Cell>{}
+                        : c.casesDeFugue,
+                    pieceTheme: axes.pieces,
+                    boardTheme: axes.board,
+                    slides: slides,
+                    slideJumpPath: slideJumpPath,
+                    slideToken: slideToken,
+                    slideDuration: slideDuration,
+                  ),
+                  bottomPanel: _panel(
+                    palette,
+                    flipped ? Camp.blanc : Camp.noir,
+                    c,
+                  ),
+                  moveStrip: MoveStrip(
+                    // Nos propres coups compris : le bandeau n'affichait que
+                    // ceux que le serveur avait déjà renvoyés, donc le dernier
+                    // coup joué manquait jusqu'à la relecture suivante.
+                    moves: _allMoves(),
+                    activeIndex: _viewingIndex,
+                    color: _campColor(
+                      palette,
+                      flipped ? Camp.blanc : Camp.noir,
+                    ),
+                    palette: palette,
+                    // Les flèches et le bandeau ne faisaient RIEN : on ne
+                    // pouvait pas revoir un coup sans quitter la partie.
+                    onSelect: _viewMove,
+                    randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
+                  ),
                 ),
-                topBar: _bar(palette, flipped),
-                topPanel: _panel(palette, flipped ? Camp.noir : Camp.blanc, c),
-                // Une question à laquelle il faut répondre ne se laisse pas
-                // recouvrir par un message qui passe.
-                topPanelDevant: _offreDeNulleAMontrer,
-                board: GameBoardView(
-                  board: _shownBoard ?? c.board,
-                  palette: palette,
-                  flipped: flipped,
-                  onTapCell: _onTapCell,
-                  selected: _isViewing ? null : c.selected,
-                  groupSelection: _isViewing ? const {} : c.groupSelection,
-                  highlighted: _isViewing
-                      ? const {}
-                      : c.availablePushCells.toSet(),
-                  lastMove: _shownLastMove,
-                  // La fugue clôt la partie : en revoyant un coup passé,
-                  // l'Héritier n'a pas encore rejoint son ralliement.
-                  fuguedHeirs: _isViewing
-                      ? const <Camp, Cell>{}
-                      : c.casesDeFugue,
-                  pieceTheme: axes.pieces,
-                  boardTheme: axes.board,
-                  slides: slides,
-                  slideJumpPath: slideJumpPath,
-                  slideToken: slideToken,
-                  slideDuration: slideDuration,
-                ),
-                bottomPanel: _panel(
-                  palette,
-                  flipped ? Camp.blanc : Camp.noir,
-                  c,
-                ),
-                moveStrip: MoveStrip(
-                  // Nos propres coups compris : le bandeau n'affichait que
-                  // ceux que le serveur avait déjà renvoyés, donc le dernier
-                  // coup joué manquait jusqu'à la relecture suivante.
-                  moves: _allMoves(),
-                  activeIndex: _viewingIndex,
-                  color: _campColor(palette, flipped ? Camp.blanc : Camp.noir),
-                  palette: palette,
-                  // Les flèches et le bandeau ne faisaient RIEN : on ne
-                  // pouvait pas revoir un coup sans quitter la partie.
-                  onSelect: _viewMove,
-                  randomCode: _g.randomCode.isEmpty ? null : _g.randomCode,
-                ),
-              ),
+        ),
       ),
     );
   }
+
+  /// L'écran, sous la main qui le fait glisser — ou tel quel s'il n'y a
+  /// nulle part où aller.
+  ///
+  /// La prise est au-dessus de tout, donc elle voit tous les doigts ; mais
+  /// elle est aussi la PLUS HAUTE, donc un bandeau qui défile ou un curseur
+  /// qu'on pousse l'emportent sur elle — Flutter donne le geste au plus
+  /// profond. Le plateau, lui, n'écoute que les contacts : il ne dispute
+  /// rien.
+  Widget _glissant({required Widget child}) => !_peutGlisser
+      ? child
+      : GestureDetector(
+          onHorizontalDragStart: _debutDuGlissement,
+          onHorizontalDragUpdate: _glisse,
+          onHorizontalDragEnd: _finDuGlissement,
+          child: child,
+        );
 
   /// Peut-on préparer ses pré-coups ? Seulement quand c'est à l'ADVERSAIRE de
   /// jouer : prejouer quand on a soi-même le trait n'attendrait rien.

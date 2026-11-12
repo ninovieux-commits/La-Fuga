@@ -8,13 +8,11 @@
 /// nom du thème des pièces lui est déjà donné.
 library;
 
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/engine/piece.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/widgets/piece_painter.dart';

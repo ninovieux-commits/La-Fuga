@@ -1077,6 +1077,14 @@ class MenuScreenState extends State<MenuScreen>
           game: game,
           service: _corr,
           myPseudo: _online.pseudo ?? T('Moi'),
+          // CE QUI EST AVANT ET APRÈS, dans l'ordre de la grille : un
+          // glissement y mène sans repasser par le menu. Les défis en
+          // attente n'en sont pas — ils n'ont pas de plateau à montrer,
+          // mais un écran de réponse.
+          voisines: [
+            for (final g in _corrGames)
+              if (g.status != CorrStatus.defi) g,
+          ],
         ),
       ),
     );
