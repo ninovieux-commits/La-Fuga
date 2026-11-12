@@ -2,9 +2,11 @@
 ///
 /// Nino : « quand on envoie un smiley seul il apparaît en plus gros. »
 ///
-/// Toutes les messageries font cela, et toutes le font pour un petit nombre :
-/// un émoji seul s'affiche très grand, deux un peu moins, trois encore moins,
-/// et au-delà le message redevient du texte ordinaire. On suit la même règle.
+/// Les autres messageries rapetissent les dessins quand il y en a plusieurs.
+/// Pas ici — Nino : « je veux pas que ça rétrécisse quand il y en a
+/// plusieurs, je trouve ça naze. » Un dessin fait donc toujours la même
+/// taille, seul ou en rangée, et une rangée trop longue passe à la ligne au
+/// lieu de maigrir.
 ///
 /// ## Ce qui compte pour un émoji
 ///
@@ -20,20 +22,8 @@
 /// Dart pur, sans Flutter.
 library;
 
-/// Le grossissement d'un dessin seul : toute la place est pour lui.
-const double kEmojiGrossiMax = 3.0;
-
-/// Le plancher. Un message qui n'est QUE des dessins ne redevient jamais du
-/// texte ordinaire — Nino : « quand on envoie que des smileys ou que des
-/// images ça doit aussi le mettre en plus gros ». Passé une poignée, on
-/// cesse simplement de rapetisser.
-const double kEmojiGrossiMin = 1.5;
-
-/// Ce que chaque dessin supplémentaire coûte aux autres.
-///
-/// Un quart : il redonne exactement l'escalier d'avant — 3,0 pour un dessin,
-/// 2,4 pour deux, 2,0 pour trois — et le prolonge au lieu de s'arrêter net.
-const double kEmojiPasGrossi = 0.25;
+/// La taille d'un dessin, seul ou en rangée.
+const double kEmojiGrossi = 3.0;
 
 /// Caractères qui s'accrochent à l'émoji précédent sans en faire un nouveau.
 bool _estModificateur(int r) =>
@@ -155,24 +145,10 @@ int compteEmojisSeuls(String texte) {
 
 /// Le multiplicateur de taille pour un message de [n] dessins.
 ///
-/// Décroît avec le nombre, comme partout ailleurs : un dessin seul est le
-/// plus gros, et chaque voisin lui prend de la place. Mais il ne retombe
-/// jamais à la taille du texte — une rangee de smileys reste une rangee de
-/// smileys, pas une phrase.
+/// Le même pour tous : un dessin seul et une rangée de dessins font la même
+/// taille. Ils rapetissaient à mesure qu'ils étaient nombreux, comme dans
+/// les autres messageries, et Nino n'en veut pas.
 ///
 /// Sert aux émojis comme aux images : ce sont les mêmes dessins pour l'œil,
 /// donc la même règle.
-double grossissementDe(int n) {
-  if (n <= 0) return 1;
-  final facteur = kEmojiGrossiMax / (1 + (n - 1) * kEmojiPasGrossi);
-  return facteur < kEmojiGrossiMin ? kEmojiGrossiMin : facteur;
-}
-
-/// Le message doit-il s'afficher en gros, et à quelle taille.
-///
-/// Rend le multiplicateur à appliquer à la taille du texte, ou `null` quand
-/// le message n'est pas fait QUE d'émojis.
-double? grossissementEmoji(String texte) {
-  final n = compteEmojisSeuls(texte);
-  return n == 0 ? null : grossissementDe(n);
-}
+double grossissementDe(int n) => n <= 0 ? 1 : kEmojiGrossi;

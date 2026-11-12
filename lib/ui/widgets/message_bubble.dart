@@ -28,12 +28,12 @@
 ///
 /// ## Que des dessins
 ///
-/// Un message qui n'est fait QUE d'émojis, ou QUE d'images, sort de sa bulle
-/// et s'affiche en grand, comme dans toutes les messageries : une bulle
-/// autour d'un dessin ne sert à rien. Plus il y en a, plus ils sont petits,
-/// mais ils ne redeviennent jamais de la taille du texte — Nino : « quand on
-/// envoie que des smileys ou que des images ça doit aussi le mettre en plus
-/// gros ». Voir `grossissementDe` dans `texte_emoji.dart`.
+/// Un message qui n'est fait QUE de dessins — émojis du clavier, images de
+/// l'application, ou les deux mêlés — sort de sa bulle et s'affiche en
+/// grand, comme dans toutes les messageries : une bulle autour d'un dessin
+/// ne sert à rien. Ils gardent la même taille quel qu'en soit le nombre, et
+/// une rangée trop longue passe à la ligne. Voir `grossissementDe` dans
+/// `texte_emoji.dart`.
 ///
 /// ## Une pièce
 ///
@@ -126,7 +126,7 @@ class MessageBubble extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
         child: SizedBox.square(
-          dimension: tailleDUnEmoji(SF(16) * kEmojiGrossiMax),
+          dimension: tailleDUnEmoji(SF(16) * kEmojiGrossi),
           child: PictoTouche(
             asset: 'assets/images/enveloppe.webp',
             couleur: palette.fonce,
@@ -136,38 +136,31 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    // Un message qui n'est QUE des images se montre en grand, sans bulle,
-    // exactement comme un émoji seul — et quel qu'en soit le nombre.
-    final images = compteImagesSeules(texte);
-    if (images > 0 && !echoue) {
-      // Les mêmes tailles qu'un émoji seul, mesurées de la même façon.
-      final taille = tailleDUnEmoji(SF(16) * grossissementDe(images));
+    // RIEN QUE DES DESSINS : en grand, sans bulle, dans l'ordre où ils ont
+    // été écrits — qu'ils viennent du clavier ou de l'application.
+    //
+    // Les deux cas étaient séparés, et c'est ce qui faisait le défaut que
+    // Nino rapporte : « uniquement des smileys [...] uniquement les images
+    // de l'App aussi. Par contre si je mélange les deux ça le met dans une
+    // bulle. » Un seul compte, un seul rendu.
+    //
+    // `Text.rich` plutôt qu'un `Wrap` de jetons : il mêle les images au
+    // texte sans en changer l'ordre, et il passe à la ligne tout seul.
+    final dessins = compteDessinsSeuls(texte);
+    if (dessins > 0 && !echoue) {
+      final taille = SF(16) * grossissementDe(dessins);
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
           ),
-          // Wrap, et non Row : une pleine rangée de jetons passe à la ligne
-          // au lieu de déborder de l'écran.
-          child: Wrap(
-            alignment: deMoi ? WrapAlignment.end : WrapAlignment.start,
-            children: [
-              for (final m in decoupeMessage(texte))
-                if (m.texte == null)
-                  ProfilePhoto(photo: _photoDe(m), size: taille),
-            ],
+          child: Text.rich(
+            TextSpan(children: _morceaux(texte, taille)),
+            style: TextStyle(fontSize: taille),
+            textAlign: deMoi ? TextAlign.right : TextAlign.left,
           ),
         ),
-      );
-    }
-
-    final grossi = grossissementEmoji(texte);
-    // Un émoji seul se passe de bulle : rien à encadrer.
-    if (grossi != null && !echoue) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
-        child: Text(texte, style: TextStyle(fontSize: SF(16) * grossi)),
       );
     }
 

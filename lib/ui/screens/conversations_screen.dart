@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../game/date_locale.dart';
 import '../../i18n/translations.dart';
 import '../../net/filet_relecture.dart';
 import '../../net/avatar_photos.dart';
@@ -898,19 +899,107 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// montrer — la conversation, ou seulement ce qu'on vient d'écrire —
   /// c'est la liste qui passe, chargement ou pas. Sinon on pouvait écrire et
   /// envoyer sans RIEN voir, le champ et la touche étant, eux, toujours là.
+  /// Le rang du message dont l'heure est affichée, s'il y en a un.
+  ///
+  /// Nino : « j'aimerai que lorsqu'on clique sur un message, smiley ou image
+  /// de l'App envoyé ou reçu, ça nous indique la date et l'heure du message
+  /// (idem pour les "a envoyé une enveloppe") ». Un seul à la fois : c'est
+  /// une question qu'on pose à un message, pas une colonne de dates.
+  int? _heureMontree;
+
+  /// L'heure d'un message, sous lui, du côté d'où il vient.
+  ///
+  /// Rien du tout si on ne la connaît pas : les messages d'avant n'en
+  /// portaient pas, et une heure inventée vaudrait moins que le silence.
+  Widget? _heureDe(ChatMessage m) {
+    final quand = m.date;
+    if (quand == null) return null;
+    final jour = dateEcriteSelon(quand, Translations.current.language);
+    final h = quand.hour.toString().padLeft(2, '0');
+    final mn = quand.minute.toString().padLeft(2, '0');
+    return Padding(
+      padding: EdgeInsets.only(
+        top: S(2),
+        left: m.fromMe ? 0 : S(8),
+        right: m.fromMe ? S(8) : 0,
+      ),
+      // Un fond sombre et un texte clair : la conversation se lit par-dessus
+      // une image, et aucune couleur de thème n'y tient toute seule.
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: S(6), vertical: S(2)),
+        decoration: BoxDecoration(
+          color: const Color(0xB3000000),
+          borderRadius: BorderRadius.circular(S(6)),
+        ),
+        child: Text(
+          '$jour · $h:$mn',
+          style: TextStyle(color: Colors.white, fontSize: SF(11)),
+        ),
+      ),
+    );
+  }
+
+  /// Au-delà, le doigt ne tape plus : il tient, et le texte s'apprête à se
+  /// laisser sélectionner.
+  static const Duration _appuiBref = Duration(milliseconds: 400);
+
+  /// L'heure paraît, ou s'en va. Un second appui la referme.
+  void _basculeLHeure(int rang) =>
+      setState(() => _heureMontree = _heureMontree == rang ? null : rang);
+
+  /// Où et quand le doigt s'est posé sur un message.
+  Offset? _doigtPoseA;
+  DateTime? _doigtPoseQuand;
+
+  /// Un message, et l'heure sous lui quand on la lui a demandée.
+  ///
+  /// UN `Listener`, ET NON UNE PRISE DE GESTE. Une bulle contient du texte
+  /// SÉLECTIONNABLE, qui a sa propre prise, plus profonde : elle gagne
+  /// l'arène, et une prise posée au-dessus ne voit qu'un appui sur deux. Un
+  /// `Listener` ne dispute rien à personne — il reçoit les doigts, un point.
+  ///
+  /// À nous, donc, de dire ce qu'est un appui : posé et relevé au même
+  /// endroit, et sans traîner. Un doigt qui part fait défiler la liste ; un
+  /// doigt qui reste ouvre les poignées de sélection du texte. Ni l'un ni
+  /// l'autre ne demande l'heure.
+  Widget _avecSonHeure(ChatMessage m, int rang, Widget corps) {
+    final heure = _heureMontree == rang ? _heureDe(m) : null;
+    return Listener(
+      onPointerDown: (e) {
+        _doigtPoseA = e.position;
+        _doigtPoseQuand = DateTime.now();
+      },
+      onPointerUp: (e) {
+        final ou = _doigtPoseA;
+        final quand = _doigtPoseQuand;
+        _doigtPoseA = null;
+        _doigtPoseQuand = null;
+        if (ou == null || quand == null) return;
+        final bref = DateTime.now().difference(quand) < _appuiBref;
+        final surPlace = (e.position - ou).distance < S(12);
+        if (bref && surPlace) _basculeLHeure(rang);
+      },
+      child: Column(
+        crossAxisAlignment: m.fromMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [corps, if (heure != null) heure],
+      ),
+    );
+  }
+
   Widget _conversation(ThemePalette palette, ThemePalette mienne) {
     if (_messages.isNotEmpty || _enVol.isNotEmpty) {
       return ListView.builder(
         controller: _scroll,
         padding: EdgeInsets.all(S(10)),
         itemCount: _messages.length + _enVol.length,
-        itemBuilder: (context, i) => _bubble(
-          i < _messages.length
+        itemBuilder: (context, i) {
+          final m = i < _messages.length
               ? _messages[i]
-              : _enVol[i - _messages.length].commeMessage,
-          palette,
-          mienne,
-        ),
+              : _enVol[i - _messages.length].commeMessage;
+          return _avecSonHeure(m, i, _bubble(m, i, palette, mienne));
+        },
       );
     }
     if (_loading) return const Center(child: CircularProgressIndicator());
@@ -940,7 +1029,12 @@ class _ConversationScreenState extends State<ConversationScreen>
   /// Elle portait une petite photo à côté d'elle, répétée à chaque message.
   /// Les photos sont maintenant en bas, une seule fois et en grand : la
   /// conversation respire, et le texte gagne la place qu'elles prenaient.
-  Widget _bubble(ChatMessage m, ThemePalette sienne, ThemePalette mienne) {
+  Widget _bubble(
+    ChatMessage m,
+    int rang,
+    ThemePalette sienne,
+    ThemePalette mienne,
+  ) {
     // L'AVIS D'ENVOI SUIT LE FIL, et ce n'est pas une bulle. Nino : « quand
     // quelqu'un envoie une enveloppe, il doit y avoir écrit "a envoyé une
     // enveloppe" en dessous de la dernière bulle (suivant le fil de la
@@ -1506,6 +1600,11 @@ class _EnVol {
 
   final String texte;
 
+  /// L'heure de l'envoi. Celle de la machine, et non celle du serveur : il
+  /// n'a pas encore répondu, et un message qu'on vient d'écrire ne peut pas
+  /// dire « heure inconnue ».
+  final DateTime quand = DateTime.now();
+
   /// Le serveur a répondu « reçu » : il paraîtra dans sa prochaine liste.
   bool confirme = false;
 
@@ -1514,5 +1613,5 @@ class _EnVol {
   bool echoue = false;
 
   ChatMessage get commeMessage =>
-      ChatMessage(text: texte, fromMe: true, pending: !echoue);
+      ChatMessage(text: texte, fromMe: true, pending: !echoue, date: quand);
 }

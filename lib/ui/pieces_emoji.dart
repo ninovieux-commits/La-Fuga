@@ -38,6 +38,7 @@
 library;
 
 import '../engine/piece.dart';
+import 'texte_emoji.dart';
 
 /// Le code court d'un thème dans un jeton.
 ///
@@ -312,18 +313,30 @@ MorceauMessage _deLImage(RegExpMatch trouve) {
 /// Vrai si le message contient au moins une image.
 bool contientUneImage(String texte) => _motifJeton.hasMatch(texte);
 
-/// Combien d'images, si le message n'est QUE des images — zéro sinon.
+/// Combien de DESSINS, si le message n'est fait que de dessins — zéro sinon.
 ///
-/// Comme pour les émojis : un message qui ne dit rien d'autre se montre en
-/// grand, et sans bulle autour.
-int compteImagesSeules(String texte) {
-  var images = 0;
+/// Un dessin, c'est une image de l'application comme un émoji du clavier :
+/// l'œil n'y voit pas deux espèces. Nino : « quand il y a uniquement des
+/// smileys ça fait le bon truc. Uniquement les images de l'App aussi. Par
+/// contre malheureusement si je mélange les deux ça le met dans une bulle. »
+///
+/// Chacun comptait de son côté — [compteImagesSeules] refusait un émoji,
+/// [compteEmojisSeuls] refusait un jeton — et un message qui les mélangeait
+/// n'était donc « que des images » pour personne. Ici, on compte les deux.
+int compteDessinsSeuls(String texte) {
+  var dessins = 0;
   for (final morceau in decoupeMessage(texte)) {
     if (morceau.texte == null) {
-      images++;
-    } else if (morceau.texte!.trim().isNotEmpty) {
-      return 0;
+      dessins++;
+      continue;
     }
+    final reste = morceau.texte!.trim();
+    if (reste.isEmpty) continue;
+    final emojis = compteEmojisSeuls(reste);
+    // Un mot, un chiffre, un point : le message a quelque chose à dire, et
+    // ce qui se dit va dans une bulle.
+    if (emojis == 0) return 0;
+    dessins += emojis;
   }
-  return images;
+  return dessins;
 }

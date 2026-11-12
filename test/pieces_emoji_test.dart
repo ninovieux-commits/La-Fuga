@@ -179,12 +179,20 @@ void main() {
     });
   });
 
-  group('Un message qui n est QUE des pièces', () {
-    test('se compte, comme les émojis', () {
-      expect(compteImagesSeules('[Soldat]'), 1);
-      expect(compteImagesSeules('[Soldat] [Garde Noir]'), 2);
-      expect(compteImagesSeules('[Soldat] et [Garde]'), 0);
-      expect(compteImagesSeules('bonjour'), 0);
+  group('Un message qui n est QUE des dessins', () {
+    test('se compte, images et émojis ensemble', () {
+      expect(compteDessinsSeuls('[Soldat]'), 1);
+      expect(compteDessinsSeuls('[Soldat] [Garde Noir]'), 2);
+      expect(compteDessinsSeuls('[Soldat] et [Garde]'), 0);
+      expect(compteDessinsSeuls('bonjour'), 0);
+    });
+
+    // Nino : « si je mélange les deux ça le met dans une bulle. »
+    test('et les deux espèces se mélangent', () {
+      expect(compteDessinsSeuls('😀[Soldat]'), 2);
+      expect(compteDessinsSeuls('[Soldat] 😀 😀 [Garde Noir]'), 4);
+      expect(compteDessinsSeuls('😀😀'), 2, reason: 'des émojis seuls aussi');
+      expect(compteDessinsSeuls('😀 bravo [Soldat]'), 0, reason: 'un mot');
     });
   });
 
@@ -256,11 +264,10 @@ void main() {
       expect(find.byType(ProfilePhoto), findsNWidgets(3));
     });
 
-    testWidgets('une pleine rangée reste grosse', (tester) async {
-      // Nino : « quand on envoie que des smileys ou que des images ça doit
-      // aussi le mettre en plus gros ». Sept pièces rapetissent donc par
-      // rapport à une seule, mais pas jusqu'à la taille qu'elles auraient
-      // dans une phrase.
+    testWidgets('une pleine rangée ne rapetisse pas', (tester) async {
+      // Nino : « je veux pas que ça rétrécisse quand il y en a plusieurs, je
+      // trouve ça naze. » Sept pièces font donc la taille d'une seule, et la
+      // rangée passe à la ligne si elle ne tient pas.
       await pose(tester, '[Soldat] ' * 7);
       final photos = tester
           .widgetList<ProfilePhoto>(find.byType(ProfilePhoto))
@@ -270,11 +277,35 @@ void main() {
       await pose(tester, '[Soldat]');
       final seule = tester.widget<ProfilePhoto>(find.byType(ProfilePhoto));
 
-      expect(photos.first.size, lessThan(seule.size));
+      expect(photos.first.size, seule.size);
       expect(
         photos.first.size,
         greaterThan(tailleDUnEmoji(SF(16))),
         reason: 'plus grosse que dans une phrase',
+      );
+    });
+
+    // Nino : « si je mélange les deux ça le met dans une bulle. Il faut
+    // corriger ça. »
+    testWidgets('émojis et pièces mêlés sortent de la bulle ensemble', (
+      tester,
+    ) async {
+      await pose(tester, '😀[Soldat]😀');
+      final photo = tester.widget<ProfilePhoto>(find.byType(ProfilePhoto));
+
+      await pose(tester, '[Soldat]');
+      final seule = tester.widget<ProfilePhoto>(find.byType(ProfilePhoto));
+      expect(photo.size, seule.size, reason: 'la même taille que seule');
+
+      // Et pas de bulle autour : aucun fond coloré arrondi.
+      await pose(tester, '😀[Soldat]😀');
+      expect(
+        tester.widgetList<Container>(find.byType(Container)).any((c) {
+          final d = c.decoration;
+          return d is BoxDecoration && d.borderRadius != null;
+        }),
+        isFalse,
+        reason: 'un message de dessins n a pas de bulle',
       );
     });
 
@@ -578,9 +609,9 @@ void main() {
     });
 
     test('une image seule se montre en grand, comme un émoji', () {
-      expect(compteImagesSeules('[logo|foret]'), 1);
-      expect(compteImagesSeules('[deepgrey] [Soldat]'), 2);
-      expect(compteImagesSeules('[deepgrey] bonjour'), 0);
+      expect(compteDessinsSeuls('[logo|foret]'), 1);
+      expect(compteDessinsSeuls('[deepgrey] [Soldat]'), 2);
+      expect(compteDessinsSeuls('[deepgrey] bonjour'), 0);
     });
 
     test('un jeton se construit depuis la photo, sans la retoucher', () {
