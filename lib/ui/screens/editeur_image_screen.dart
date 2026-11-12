@@ -1217,6 +1217,12 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
 
   /// Du texte — et des émojis, que le clavier du téléphone offre déjà.
   Future<void> _ajouterDuTexte() async {
+    // LA TOUCHE REPOSE LE PINCEAU, pas la pose du texte. Nino : « quand on
+    // clique sur texte ou tampon, ça ne doit pas rester sur gomme ou
+    // pinceau en même temps ». Le tampon le faisait déjà, puisqu'il se pose
+    // d'un coup ; le texte attendait sa fenêtre, et une fenêtre qu'on
+    // referme sans rien écrire rendait la main au pinceau.
+    if (_outil != null) setState(() => _outil = null);
     final controleur = TextEditingController();
     final texte = await showDialog<String>(
       context: context,

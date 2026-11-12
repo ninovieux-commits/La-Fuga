@@ -250,6 +250,25 @@ void main() {
       expect(traits(tester), isEmpty);
     });
 
+    testWidgets('et la touche Texte le repose avant même sa fenêtre', (
+      tester,
+    ) async {
+      await ouvrir(tester);
+      await tester.tap(find.byTooltip('Dessin'));
+      await tester.pump();
+
+      // On ouvre la fenêtre et on l'annule : rien n'est posé, et le pinceau
+      // ne doit pas être revenu en main pour autant.
+      await tester.tap(find.byTooltip('Texte'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      await tester.dragFrom(tester.getCenter(surface), const Offset(0, 40));
+      await tester.pump();
+      expect(traits(tester), isEmpty);
+    });
+
     testWidgets('poser un texte aussi', (tester) async {
       await ouvrir(tester);
       await tester.tap(find.byTooltip('Dessin'));
