@@ -18,6 +18,7 @@ import 'package:lafuga/game/date_locale.dart';
 import 'package:lafuga/game/enveloppe.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
+import 'package:lafuga/net/message_hub.dart';
 import 'package:lafuga/net/messages.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/net/online_service.dart';
@@ -69,6 +70,20 @@ void main() {
       expect(dateDuMessage(''), isNull);
       expect(dateDuMessage('bonjour'), isNull);
       expect(dateDuMessage(0), isNull);
+    });
+  });
+
+  // Le serveur donne la même heure au direct : `message_recu` porte son
+  // `created_at`. Sans cela, un message arrivé sous les yeux restait muet
+  // jusqu'à la relecture suivante.
+  test('le direct porte l heure du serveur', () {
+    final hub = MessageHub();
+    IncomingMessage? recu;
+    hub.incoming.listen((m) => recu = m);
+    hub.receive({'de': 'toto', 'texte': 'coucou', 'created_at': 1762950000});
+    return Future<void>.delayed(Duration.zero, () {
+      expect(recu, isNotNull);
+      expect(recu!.quand, dateDuMessage(1762950000));
     });
   });
 

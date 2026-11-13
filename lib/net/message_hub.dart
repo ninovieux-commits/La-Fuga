@@ -17,7 +17,10 @@ import 'online_client.dart';
 import 'socket_client.dart';
 
 /// Un message qui vient d'arriver.
-typedef IncomingMessage = ({String from, String text});
+///
+/// [quand] est l'heure du serveur, quand il la donne : un message arrivé en
+/// direct doit pouvoir dire la sienne sans attendre la relecture.
+typedef IncomingMessage = ({String from, String text, DateTime? quand});
 
 /// Un message que je viens d'envoyer, et à qui.
 typedef OutgoingMessage = ({String to, String text});
@@ -87,7 +90,11 @@ class MessageHub extends ChangeNotifier {
     final from = '${data['de'] ?? ''}'.trim();
     if (from.isEmpty) return;
     _unread[from] = (_unread[from] ?? 0) + 1;
-    _incoming.add((from: from, text: '${data['texte'] ?? ''}'));
+    _incoming.add((
+      from: from,
+      text: '${data['texte'] ?? ''}',
+      quand: dateDuMessage(data['created_at']),
+    ));
     notifyListeners();
   }
 

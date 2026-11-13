@@ -660,7 +660,15 @@ class _ConversationScreenState extends State<ConversationScreen>
     // Le direct vient de livrer : la relecture peut attendre.
     _filet.note();
     setState(
-      () => _messages.add(ChatMessage(text: message.text, fromMe: false)),
+      () => _messages.add(
+        ChatMessage(
+          text: message.text,
+          fromMe: false,
+          // Le direct porte l'heure du serveur ; à défaut, celle d'ici —
+          // il vient d'arriver, la seconde près suffit.
+          date: message.quand ?? DateTime.now(),
+        ),
+      ),
     );
     _declareLu();
     _scrollToEnd();
