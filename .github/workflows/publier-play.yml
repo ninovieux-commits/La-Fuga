@@ -1,0 +1,99 @@
+name: Préparer la publication (AAB signé)
+
+# À LA MAIN, ET SEULEMENT À LA MAIN. Ce n'est pas une compilation de
+# vérification — c'est le fichier qu'on dépose sur le Play Store. On le
+# demande quand on veut publier, pas à chaque commit.
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Ce que cette version apporte (pour le récapitulatif)"
+        type: string
+        default: ""
+
+env:
+  FLUTTER_VERSION: "3.35.5"
+
+jobs:
+  aab:
+    name: Bundle Android signé
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupérer les dépendances
+        run: flutter pub get
+
+      # LA CLÉ N'EXISTE QUE LE TEMPS DU BUILD. Elle arrive des secrets du
+      # dépôt, s'écrit hors de l'arborescence suivie par git, et part avec la
+      # machine. Sans elle, on s'arrête ici plutôt que de produire un bundle
+      # signé par la clé de debug, que Google refuserait de toute façon.
+      - name: Poser la clé de signature
+        env:
+          CLE: ${{ secrets.CLE_SIGNATURE_BASE64 }}
+          MDP: ${{ secrets.CLE_SIGNATURE_MDP }}
+          ALIAS: ${{ secrets.CLE_SIGNATURE_ALIAS }}
+        run: |
+          if [ -z "$CLE" ] || [ -z "$MDP" ] || [ -z "$ALIAS" ]; then
+            echo "::error::Les secrets CLE_SIGNATURE_BASE64, CLE_SIGNATURE_MDP et CLE_SIGNATURE_ALIAS doivent être posés. Voir outils/cle_de_signature.sh."
+            exit 1
+          fi
+          echo "$CLE" | base64 -d > "$RUNNER_TEMP/lafuga-upload.jks"
+          cat > android/key.properties <<EOF
+          storeFile=$RUNNER_TEMP/lafuga-upload.jks
+          storePassword=$MDP
+          keyPassword=$MDP
+          keyAlias=$ALIAS
+          EOF
+
+      # LE NUMÉRO DE BUILD NE RECULE JAMAIS : Google refuse un bundle dont le
+      # numéro n'est pas supérieur au précédent. `run_number` est commun à
+      # tous les ateliers du dépôt, donc il ne fait que monter.
+      - name: Compiler le bundle
+        id: build
+        run: |
+          BASE="$(grep '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)"
+          flutter build appbundle --release \
+            --build-name="$BASE" --build-number="${{ github.run_number }}"
+          echo "aab=build/app/outputs/bundle/release/app-release.aab" >> "$GITHUB_OUTPUT"
+          echo "version=$BASE (build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
+
+      - name: Ranger la clé
+        if: always()
+        run: rm -f android/key.properties "$RUNNER_TEMP/lafuga-upload.jks"
+
+      - name: Vérifier la signature
+        run: |
+          AAB="${{ steps.build.outputs.aab }}"
+          # Un bundle signé par la clé de debug porte « CN=Android Debug ».
+          # Mieux vaut l'apprendre ici que dans la console de Google.
+          if unzip -p "$AAB" META-INF/*.RSA 2>/dev/null | keytool -printcert 2>/dev/null | grep -q "Android Debug"; then
+            echo "::error::Ce bundle est signé par la clé de DEBUG. Il ne peut pas être publié."
+            exit 1
+          fi
+          echo "### Bundle prêt" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version : **${{ steps.build.outputs.version }}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Taille : **$(du -h "$AAB" | cut -f1)**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit : \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Note : ${{ inputs.note }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publier le bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: lafuga-aab-${{ github.run_number }}
+          path: ${{ steps.build.outputs.aab }}
+          if-no-files-found: error
+          retention-days: 90

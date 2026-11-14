@@ -1,8 +1,26 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// LA CLÉ DE PUBLICATION, quand elle est là.
+//
+// `android/key.properties` nomme la clé et dit ses mots de passe ; il est
+// ignoré par git, comme le fichier `.jks` lui-même — le dépôt est public.
+// Absent, on signe avec la clé de debug : un APK de test se compile sans
+// aucun secret, ici comme sur GitHub, et c'est ce qui fait tourner la
+// compilation à chaque commit.
+//
+// Un APK signé par la clé de debug ne peut PAS être publié, et Google ne
+// l'accepterait pas : la clé de debug est la même pour tout le monde.
+val fichierDeCle = rootProject.file("key.properties")
+val cle = Properties().apply {
+    if (fichierDeCle.exists()) FileInputStream(fichierDeCle).use { load(it) }
 }
 
 android {
@@ -33,11 +51,24 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("publication") {
+            if (fichierDeCle.exists()) {
+                keyAlias = cle.getProperty("keyAlias")
+                keyPassword = cle.getProperty("keyPassword")
+                storeFile = file(cle.getProperty("storeFile"))
+                storePassword = cle.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Signé avec la clé de debug pour l'instant, comme le faisait
-            // buildozer. À remplacer par une vraie clé avant publication.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (fichierDeCle.exists()) {
+                signingConfigs.getByName("publication")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
