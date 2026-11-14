@@ -19,10 +19,14 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! gh auth status >/dev/null 2>&1; then
-  echo "Ton serveur n'est pas encore connecté à GitHub. Lance :" >&2
-  echo "  gh auth login --hostname github.com --git-protocol https --web" >&2
-  echo "puis relance ce script." >&2
+# UN JETON DANS L'ENVIRONNEMENT SUFFIT, et c'est la voie la plus courte :
+# `gh auth login --with-token` exige en plus le droit `read:org`, dont
+# déposer un secret n'a que faire. `gh` lit `GH_TOKEN` et s'en contente.
+if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] &&
+   ! gh auth status >/dev/null 2>&1; then
+  echo "Aucun accès à GitHub. Donne un jeton au script :" >&2
+  echo "  read -rsp 'Jeton : ' GH_TOKEN && echo && export GH_TOKEN" >&2
+  echo "puis relance-le." >&2
   exit 1
 fi
 
