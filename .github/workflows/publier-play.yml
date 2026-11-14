@@ -11,6 +11,11 @@ on:
         type: string
         default: ""
 
+permissions:
+  # `gh release` attache le bundle à une publication du dépôt : un lien
+  # direct, sans archive à décompresser sur un téléphone.
+  contents: write
+
 env:
   FLUTTER_VERSION: "3.35.5"
 
@@ -74,21 +79,38 @@ jobs:
         if: always()
         run: rm -f android/key.properties "$RUNNER_TEMP/lafuga-upload.jks"
 
+      # QUI A SIGNÉ, EXACTEMENT. La première version cherchait « Android
+      # Debug » dans `META-INF/*.RSA` : si le motif ne désignait aucun
+      # fichier, elle ne trouvait rien et laissait donc passer n'importe
+      # quoi — un contrôle qui ne peut qu'approuver n'en est pas un. On
+      # trouve ici le fichier de signature quel qu'il soit, on exige qu'il
+      # existe, et on écrit l'empreinte du certificat : c'est elle que
+      # Google montrera au dépôt, et elle doit être la même à chaque fois.
       - name: Vérifier la signature
         run: |
           AAB="${{ steps.build.outputs.aab }}"
-          # Un bundle signé par la clé de debug porte « CN=Android Debug ».
-          # Mieux vaut l'apprendre ici que dans la console de Google.
-          if unzip -p "$AAB" META-INF/*.RSA 2>/dev/null | keytool -printcert 2>/dev/null | grep -q "Android Debug"; then
+          SIG="$(unzip -l "$AAB" | grep -oE 'META-INF/[^ ]+\.(RSA|DSA|EC)$' | head -1)"
+          if [ -z "$SIG" ]; then
+            echo "::error::Ce bundle ne porte aucune signature."
+            exit 1
+          fi
+          CERT="$(unzip -p "$AAB" "$SIG" | keytool -printcert)"
+          echo "$CERT"
+          if echo "$CERT" | grep -q "Android Debug"; then
             echo "::error::Ce bundle est signé par la clé de DEBUG. Il ne peut pas être publié."
             exit 1
           fi
+          EMPREINTE="$(echo "$CERT" | grep -i 'SHA256:' | head -1 | sed 's/.*SHA256: *//')"
+          PROPRIETAIRE="$(echo "$CERT" | grep -i '^Owner:' | head -1 | sed 's/^[Oo]wner: *//')"
+          echo "empreinte=$EMPREINTE" >> "$GITHUB_OUTPUT"
           echo "### Bundle prêt" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- Version : **${{ steps.build.outputs.version }}**" >> "$GITHUB_STEP_SUMMARY"
           echo "- Taille : **$(du -h "$AAB" | cut -f1)**" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit : \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Note : ${{ inputs.note }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Signé par : \`$PROPRIETAIRE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Empreinte SHA-256 : \`$EMPREINTE\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publier le bundle
         uses: actions/upload-artifact@v4
@@ -97,3 +119,23 @@ jobs:
           path: ${{ steps.build.outputs.aab }}
           if-no-files-found: error
           retention-days: 90
+
+      # ET UN LIEN DIRECT. L'artefact ci-dessus arrive dans une archive zip,
+      # qu'il faut ouvrir avant de pouvoir déposer le bundle sur le Play
+      # Store — pénible depuis un téléphone. La publication, elle, offre le
+      # fichier tel quel.
+      - name: Attacher le bundle à une publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          AAB="${{ steps.build.outputs.aab }}"
+          NOM="lafuga-${{ github.run_number }}.aab"
+          cp "$AAB" "$NOM"
+          gh release create "bundle-${{ github.run_number }}" "$NOM" \
+            --title "Bundle ${{ steps.build.outputs.version }}" \
+            --notes "Bundle Android signé, prêt à déposer sur le Play Store.
+
+          Commit : ${{ github.sha }}
+          ${{ inputs.note }}" \
+            --latest=false
+          echo "- Téléchargement : $(gh release view "bundle-${{ github.run_number }}" --json url --jq .url)" >> "$GITHUB_STEP_SUMMARY"
