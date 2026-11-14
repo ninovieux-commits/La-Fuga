@@ -8,7 +8,9 @@
 #
 # Ce que le script fait :
 #   1. il demande un mot de passe, sans l'afficher ;
-#   2. il fabrique `lafuga-upload.jks`, valable cent ans ;
+#   2. il fabrique `lafuga-upload.jks`, valable cent ans — RSA 2048, la
+#      taille que Google demande, et un pavé base64 deux fois plus court à
+#      recopier qu'avec une clé de 4096 ;
 #   3. il affiche le fichier encodé en base64, à coller dans un secret GitHub.
 #
 # Ce qu'il n'écrit nulle part : le mot de passe.
@@ -21,7 +23,7 @@ ALIAS="upload"
 
 if ! command -v keytool >/dev/null 2>&1; then
   echo "keytool est introuvable. Installe un JDK :" >&2
-  echo "  sudo apt update && sudo apt install -y default-jdk-headless" >&2
+  echo "  sudo apt update && sudo apt install -y default-jre-headless" >&2
   exit 1
 fi
 
@@ -48,7 +50,7 @@ fi
 
 keytool -genkeypair \
   -alias "$ALIAS" \
-  -keyalg RSA -keysize 4096 -validity 36500 \
+  -keyalg RSA -keysize 2048 -validity 36500 \
   -keystore "$SORTIE" \
   -storetype PKCS12 \
   -storepass "$MDP" -keypass "$MDP" \
