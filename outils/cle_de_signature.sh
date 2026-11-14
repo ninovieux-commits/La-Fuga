@@ -9,9 +9,14 @@
 # Ce que le script fait :
 #   1. il demande un mot de passe, sans l'afficher ;
 #   2. il fabrique `lafuga-upload.jks`, valable cent ans — RSA 2048, la
-#      taille que Google demande, et un pavé base64 deux fois plus court à
-#      recopier qu'avec une clé de 4096 ;
-#   3. il affiche le fichier encodé en base64, à coller dans un secret GitHub.
+#      taille que Google demande ;
+#   3. il en écrit la version base64 dans un fichier, lisible par lui seul.
+#
+# IL N'AFFICHE RIEN DE SECRET. La première version imprimait le base64 à
+# l'écran, « à coller dans GitHub » : une copie d'écran, un copier-coller de
+# terminal, et la clé se retrouve dans une conversation. Une consigne ne
+# protège pas contre ça — il faut que le secret ne passe pas par l'écran.
+# C'est `deposer_la_cle.sh` qui l'envoie à GitHub, sans le montrer.
 #
 # Ce qu'il n'écrit nulle part : le mot de passe.
 #
@@ -59,18 +64,20 @@ keytool -genkeypair \
 unset MDP MDP2
 chmod 600 "$SORTIE"
 
+B64="$SORTIE.b64"
+base64 -w0 "$SORTIE" > "$B64"
+chmod 600 "$B64"
+
 echo
 echo "Clé écrite : $SORTIE"
-echo "SAUVEGARDE-LA. Perdue, elle ne se refabrique pas, et une application"
-echo "publiée ne peut plus être mise à jour sans elle."
+echo "Version base64 : $B64  ($(wc -c < "$B64") octets)"
 echo
-echo "Dans GitHub → Settings → Secrets and variables → Actions, ajoute :"
+echo "SAUVEGARDE LA CLÉ. Google garde la vraie clé de signature de son côté,"
+echo "donc celle-ci se remplace en cas de perte — mais par une demande à"
+echo "Google, et on s'en passera volontiers."
 echo
-echo "  CLE_SIGNATURE_ALIAS      = $ALIAS"
-echo "  CLE_SIGNATURE_MDP        = (le mot de passe que tu viens de taper)"
-echo "  CLE_SIGNATURE_BASE64     = (le pavé ci-dessous, en entier)"
+echo "Rien de secret n'a été affiché. La suite dépose la clé dans GitHub"
+echo "sans la montrer :"
 echo
-echo "----- début du pavé base64 -----"
-base64 -w0 "$SORTIE"
-echo
-echo "----- fin du pavé base64 -----"
+echo "  curl -fsSLO https://raw.githubusercontent.com/ninovieux-commits/La-Fuga/main/outils/deposer_la_cle.sh"
+echo "  bash ~/deposer_la_cle.sh"
