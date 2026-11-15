@@ -559,6 +559,20 @@ class _CorrGameScreenState extends State<CorrGameScreen>
   /// Ce que le doigt a parcouru depuis le début du geste.
   double _glissee = 0;
 
+  /// LE GESTE A VRAIMENT COMMENCÉ À GLISSER, et la prise faite au contact a
+  /// déjà été défaite. Un seul réveil par geste.
+  bool _glissementEveille = false;
+
+  /// Ce qu'il faut parcourir pour qu'un doigt posé devienne un glissement.
+  ///
+  /// ZÉRO NE MARCHE PAS, et c'est tout le bug : quand une prise de geste est
+  /// SEULE à se disputer un doigt, Flutter la déclare vainqueur sans
+  /// attendre le moindre mouvement. `onHorizontalDragStart` se déclenchait
+  /// donc sur une simple tape, et ce qu'on y défaisait — la pièce prise au
+  /// contact — l'était dans la même image. On touchait une pièce et rien ne
+  /// se passait : plus moyen de jouer un coup par correspondance.
+  static const double kEveilDuGlissement = 12;
+
   /// La partie à [sens] rangs d'ici — `1` la suivante, `-1` la précédente.
   /// Nulle au bout de la liste, ou si la partie courante n'y est pas.
   CorrGame? _voisine(int sens) {
@@ -573,19 +587,27 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
   void _debutDuGlissement(DragStartDetails d) {
     _glissee = 0;
+    _glissementEveille = false;
+  }
+
+  void _glisse(DragUpdateDetails d) {
+    _glissee += d.delta.dx;
+    if (_glissementEveille || _glissee.abs() <= S(kEveilDuGlissement)) return;
+    _glissementEveille = true;
     // LE DOIGT A DÉJÀ TOUCHÉ LE PLATEAU. La case part au contact — c'est
     // voulu, le plateau doit répondre au doigt — donc le temps qu'on sache
     // que ce geste est un glissement, une pièce a pu être prise. On défait
     // cette prise : un glissement ne doit rien laisser derrière lui, qu'il
     // aboutisse ou non.
     //
-    // Seulement ce qui n'est pas encore parti : un coup envoyé au serveur
+    // Mais seulement une fois qu'il GLISSE pour de bon : une tape n'est pas
+    // un glissement de zéro pixel, et la défaire rendait le jeu impossible.
+    //
+    // Et seulement ce qui n'est pas encore parti : un coup envoyé au serveur
     // n'est plus à nous.
     final c = _controller;
     if (c != null && _canPlay && c.cancelCurrentMove()) setState(() {});
   }
-
-  void _glisse(DragUpdateDetails d) => _glissee += d.delta.dx;
 
   void _finDuGlissement(DragEndDetails d) {
     if (_sending) return;

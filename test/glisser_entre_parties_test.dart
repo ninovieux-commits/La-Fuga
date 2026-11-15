@@ -26,7 +26,9 @@ import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/net/api_client.dart';
 import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/state/settings.dart';
+import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
+import 'package:lafuga/ui/widgets/board_geometry.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,6 +49,11 @@ void main() {
     });
     await Settings.load();
     await Translations.load('fr');
+    // UNE FENÊTRE DE TÉLÉPHONE. Par défaut un test mesure 800 × 600 — une
+    // forme qu'aucun téléphone n'a, et où le plateau, dont la case vaut un
+    // septième de la largeur, déborde très au-delà de sa boîte. Une tape
+    // calculée sur sa géométrie tombait alors hors de l'écran.
+    setScaleSize(const Size(393, 851));
 
     service = CorrespondenceService(
       OnlineClient(
@@ -62,6 +69,7 @@ void main() {
       ),
     );
   });
+  tearDown(resetScale);
 
   CorrGame partie(String id, String adversaire, {String coups = ''}) =>
       CorrGame.fromJson({
@@ -83,6 +91,9 @@ void main() {
     int i, {
     List<CorrGame>? voisines,
   }) async {
+    tester.view.physicalSize = const Size(393, 851);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         home: CorrGameScreen(
@@ -190,6 +201,48 @@ void main() {
 
     expect(montree(tester), 'g1');
     expect(defilement.offset, greaterThan(0), reason: 'c est lui qui a bougé');
+  });
+
+  // LE BUG QUE CES TESTS N'ONT PAS VU, et qui a empêché Nino de jouer :
+  // « je n'arrive plus à jouer dans mes parties corresp, j'ai beau cliquer
+  // sur des pièces ça ne fait rien ».
+  //
+  // Les autres tests d'ici appellent `onTapCell` à la main : ils ne posent
+  // jamais un vrai doigt sur le plateau, donc ils ne traversent pas la prise
+  // de glissement. Celui-ci tape pour de bon, sur une vraie case.
+  testWidgets('une tape sur une pièce la prend, et la garde', (tester) async {
+    await ouvrir(tester, 0);
+
+    final vue = tester.widget<GameBoardView>(find.byType(GameBoardView));
+    final boite = tester.getRect(find.byType(GameBoardView));
+    final g = BoardGeometry(
+      size: boite.size,
+      flipped: vue.flipped,
+      rall: vue.board.rall,
+    );
+
+    // Une pièce à moi : je joue les Blancs et c'est mon tour.
+    Cell? mienne;
+    for (var c = 0; c < kCols && mienne == null; c++) {
+      for (var r = 0; r < kRows; r++) {
+        if (vue.board.at(c, r)?.camp == Camp.blanc) {
+          mienne = Cell(c, r);
+          break;
+        }
+      }
+    }
+    expect(mienne, isNotNull, reason: 'test vain : aucune pièce blanche');
+
+    await tester.tapAt(
+      boite.topLeft + g.cellRect(mienne!.col, mienne.row).center,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<GameBoardView>(find.byType(GameBoardView)).selected,
+      mienne,
+      reason: 'une tape doit prendre la pièce, et rien ne doit la relâcher',
+    );
   });
 
   // Le plateau prend la pièce au contact : le glissement doit la relâcher.
