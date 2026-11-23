@@ -976,6 +976,7 @@ cache pas.
 | `patch_glissee.py` | la vitesse de glissée dans le compte ; zéro est un choix, pas une absence |
 | `patch_profil_theme.py` | `/get_profile` rend `theme` : la conversation s'habille du décor de l'interlocuteur |
 | `patch_plafond_messages.py` | une boîte garde ses 200 derniers messages ; les plus anciens sont effacés |
+| `patch_push_fiable.py` | une notification perdue est réessayée trois fois ; un échec s'écrit dans le journal, avec l'appareil et le titre |
 | `patch_profil_favori.py` | `/get_profile` rend `is_favorite` et `is_blocked` : la touche sait quoi dire |
 | `patch_profil_parties.py` | `/corr_list_public` : les parties en cours d'un autre joueur, sur son profil |
 | `tests/` | tous les tests de cette page (`tests/README.md`) |
