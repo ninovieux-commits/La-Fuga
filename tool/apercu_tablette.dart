@@ -105,6 +105,9 @@ Future<void> main() async {
       'lang_chosen': true,
       'tuto_seen': true,
       'theme': 'original',
+      // L'aperçu dessine les deux : le plateau tel qu'il arrive, puis le
+      // même après un pincement.
+      'plateau_en_grand': false,
     });
     await Settings.load();
     await Translations.load('fr');
@@ -179,5 +182,16 @@ Future<void> main() async {
     File(
       'tool/apercus/plateau_tablette.png',
     ).writeAsBytesSync(Uint8List.view(octets!.buffer));
+
+    // ET LE MÊME EN GRAND, comme si deux doigts s'étaient écartés.
+    await Settings.instance.setPlateauEnGrand(true);
+    await tester.pumpAndSettle();
+    final grand = await tester.runAsync(() => limite.toImage(pixelRatio: 2));
+    final octetsGrands = await tester.runAsync(
+      () => grand!.toByteData(format: ui.ImageByteFormat.png),
+    );
+    File(
+      'tool/apercus/plateau_tablette_grand.png',
+    ).writeAsBytesSync(Uint8List.view(octetsGrands!.buffer));
   });
 }

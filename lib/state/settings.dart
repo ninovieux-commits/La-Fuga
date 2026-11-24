@@ -52,6 +52,9 @@ abstract final class SettingsKeys {
   static const onlinePseudo = 'online_pseudo';
   static const onlineMelo = 'online_melo';
   static const onlineMeloRandom = 'online_melo_random';
+
+  /// Le plateau prend-il tout ce que les bandeaux peuvent lui céder ?
+  static const plateauEnGrand = 'plateau_en_grand';
 }
 
 /// Réglages de l'application.
@@ -97,6 +100,14 @@ class Settings {
     return _instance = Settings._(prefs);
   }
 
+  /// Les réglages sont-ils chargés ?
+  ///
+  /// Pour les rares endroits qui savent se passer d'eux : une MISE EN PAGE
+  /// doit se dessiner même dans un test qui ne les a pas chargés, et un
+  /// réglage d'affichage absent vaut son défaut. Partout ailleurs, on veut
+  /// le plantage net de [instance].
+  static bool get chargees => _instance != null;
+
   /// Instance déjà chargée. Lance une erreur si [load] n'a pas été appelé :
   /// mieux vaut un plantage net au démarrage qu'un réglage silencieusement
   /// perdu.
@@ -115,6 +126,22 @@ class Settings {
 
   Future<void> setTheme(String value) async {
     await _prefs.setString(SettingsKeys.theme, value);
+    (reglagesVisibles as _Reglages).previens();
+  }
+
+  /// LE PLATEAU EN GRAND : les bandeaux lui cèdent tout ce qu'ils peuvent.
+  ///
+  /// Sur un téléphone, le plateau occupe déjà toute la largeur et les
+  /// bandeaux lui ont donné le peu qui lui manquait : ce réglage n'y change
+  /// donc rien. Sur une tablette, large, il reste beaucoup à prendre.
+  ///
+  /// Le choix se garde d'une partie à l'autre : c'est une façon de voir, pas
+  /// un geste à refaire chaque fois.
+  bool get plateauEnGrand =>
+      _prefs.getBool(SettingsKeys.plateauEnGrand) ?? false;
+
+  Future<void> setPlateauEnGrand(bool value) async {
+    await _prefs.setBool(SettingsKeys.plateauEnGrand, value);
     (reglagesVisibles as _Reglages).previens();
   }
 

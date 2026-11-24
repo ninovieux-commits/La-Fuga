@@ -12,11 +12,16 @@
 /// est mangée par le panneau.
 library;
 
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../engine/board.dart';
 
+import '../../state/settings.dart';
 import '../scale.dart';
+import '../suit_les_reglages.dart';
 
 /// Les parts de hauteur d'un écran de jeu : 7 + 12 + 66 + 12 + 7 = 104.
 const int kPartsEcran = 104;
@@ -29,6 +34,34 @@ const int kPartsEcran = 104;
 /// où le plateau dépasse de bien plus — les bandeaux gardent leur hauteur :
 /// les rétrécir à moitié ne réglerait rien et couperait leur contenu.
 const double kBandeauRetraitMax = 0.2;
+
+/// Ce qu'un bandeau cède au plateau QUAND ON LE DEMANDE, en écartant deux
+/// doigts — autant que ce qu'il cède de lui-même, et pas davantage.
+///
+/// On a essayé la moitié, puis le tiers, puis le quart : à chaque fois le
+/// bandeau de la lecture automatique débordait, et `tool/apercu_tablette.dart`
+/// le mesurait — dix-huit points, puis six et demi, puis trois.
+///
+/// LA RAISON N'EST PAS LA HAUTEUR DU BANDEAU, C'EST LA TAILLE DE CE QU'IL
+/// CONTIENT. Tout le dessin de l'application est mis à l'échelle sur la
+/// LARGEUR de l'écran : sur une tablette de 800 points, un texte et une
+/// touche font deux fois leur taille de téléphone, quand l'écran n'est
+/// qu'une fois et demie plus haut. Les bandeaux y sont donc déjà pleins
+/// avant qu'on leur demande quoi que ce soit, et ce n'est pas ici que cela
+/// se corrige.
+///
+/// Ce qui change en grand n'est donc pas CE QU'ILS CÈDENT, mais QUAND : de
+/// leur plein gré ils ne cèdent que si cela suffit à tout combler — jamais
+/// le cas sur une tablette, où ils gardaient alors toute leur hauteur. En
+/// grand, ils donnent ce qu'ils peuvent même quand cela ne suffit pas.
+const double kBandeauRetraitGrand = kBandeauRetraitMax;
+
+/// Ce qu'un pincement doit valoir pour agrandir, et pour revenir.
+///
+/// Un cinquième d'écart : assez pour qu'un doigt qui dérape ne change rien,
+/// assez peu pour que le geste reste court.
+const double kPinceAgrandit = 1.2;
+const double kPinceReduit = 1 / kPinceAgrandit;
 
 /// Parts prises par un bandeau de joueur.
 const int kPartsBandeauJoueur = 12;
@@ -87,6 +120,9 @@ class GameLayout extends StatefulWidget {
     this.topPanelDevant = false,
     this.topHeight,
     this.bottomHeight,
+    this.surGlissementDebut,
+    this.surGlissementSuite,
+    this.surGlissementFin,
   });
 
   final Widget topBar;
@@ -145,11 +181,58 @@ class GameLayout extends StatefulWidget {
   /// d'un bandeau de joueur mangerait le plateau pour rien.
   final double? bottomHeight;
 
+  /// UN DOIGT QUI GLISSE, quand l'écran en fait quelque chose.
+  ///
+  /// La correspondance s'en sert pour passer d'une partie à l'autre. C'est
+  /// ici que la prise est posée, et nulle part ailleurs : pendant un
+  /// pincement les doigts s'écartent horizontalement, et une prise de
+  /// glissement posée par-dessus gagnerait la main avant celle du
+  /// pincement — on changerait de partie en voulant agrandir le plateau.
+  /// Une seule prise, donc, qui distingue un doigt de deux.
+  final void Function(ScaleStartDetails)? surGlissementDebut;
+  final void Function(ScaleUpdateDetails)? surGlissementSuite;
+  final void Function(ScaleEndDetails)? surGlissementFin;
+
   @override
   State<GameLayout> createState() => _GameLayoutState();
 }
 
-class _GameLayoutState extends State<GameLayout> {
+class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
+  /// L'écart des doigts est lu DEPUIS LE DÉBUT du pincement : `scale` vaut
+  /// toujours un à la pose, et croît ou décroît ensuite. On ne bascule
+  /// qu'une fois par geste — sans quoi un pincement un peu ample ferait
+  /// l'aller et le retour.
+  bool _bascule = false;
+
+  /// Le plateau est-il en grand ? Faux quand les réglages ne sont pas
+  /// chargés : une mise en page doit se dessiner quand même.
+  bool get _enGrand => Settings.chargees && Settings.instance.plateauEnGrand;
+
+  void _debut(ScaleStartDetails d) {
+    _bascule = false;
+    if (d.pointerCount < 2) widget.surGlissementDebut?.call(d);
+  }
+
+  void _suite(ScaleUpdateDetails d) {
+    if (d.pointerCount < 2) {
+      widget.surGlissementSuite?.call(d);
+      return;
+    }
+    if (_bascule || !Settings.chargees) return;
+    final enGrand = _enGrand;
+    if (!enGrand && d.scale >= kPinceAgrandit) {
+      _bascule = true;
+      unawaited(Settings.instance.setPlateauEnGrand(true));
+    } else if (enGrand && d.scale <= kPinceReduit) {
+      _bascule = true;
+      unawaited(Settings.instance.setPlateauEnGrand(false));
+    }
+  }
+
+  void _fin(ScaleEndDetails d) {
+    if (d.pointerCount < 2 && !_bascule) widget.surGlissementFin?.call(d);
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
@@ -190,8 +273,31 @@ class _GameLayoutState extends State<GameLayout> {
         // rétrécir quand même les abîmerait sans rien régler — le « ∞ » du
         // chrono n'y tenait plus. Quand le manque dépasse ce qu'ils ont à
         // donner, ils gardent leur hauteur.
-        if (manque > 0 && manque <= (top + bottom) * kBandeauRetraitMax) {
-          final part = manque / (top + bottom);
+        // ET LE PINCEMENT LEUR EN FAIT CÉDER DAVANTAGE. Nino, devant sa
+        // tablette : « avec éventuellement une touche pour placer le plateau
+        // en grand [...] ou un geste (le geste générique pour agrandir) ».
+        // Ce qu'ils peuvent donner sans devenir illisibles, au lieu du
+        // cinquième qu'ils donnent d'eux-mêmes.
+        final enGrand = _enGrand;
+        final cedable =
+            (top + bottom) *
+            (enGrand ? kBandeauRetraitGrand : kBandeauRetraitMax);
+        // TOUT CE QU'ILS PEUVENT EN GRAND, RIEN DU TOUT SINON.
+        //
+        // D'eux-mêmes, les bandeaux ne cèdent que si ce qu'ils ont suffit à
+        // combler TOUT le manque : à moitié rétrécis pour un plateau qui
+        // déborderait encore, ils seraient abîmés pour rien. Sur une
+        // tablette le manque dépasse toujours ce qu'ils ont, donc ils
+        // gardent leur hauteur — c'est le défaut d'origine.
+        //
+        // Quand on le demande, la question change : le plateau ne déborde
+        // plus jamais, il se contente de ce qu'on lui donne. Chaque point
+        // cédé est donc un point de gagné, et ils donnent ce qu'ils peuvent.
+        final aCeder = enGrand
+            ? math.min(manque, cedable)
+            : (manque <= cedable ? manque : 0.0);
+        if (manque > 0 && aCeder > 0) {
+          final part = aCeder / (top + bottom);
           top -= top * part;
           bottom -= bottom * part;
         }
@@ -199,46 +305,58 @@ class _GameLayoutState extends State<GameLayout> {
 
       final board = box.maxHeight - 2 * bar - top - bottom;
 
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Column(
-            children: [
-              SizedBox(height: bar, child: widget.topBar),
-              if (widget.notice != null) widget.notice!,
-              if (widget.topPanel != null)
-                SizedBox(
-                  height: top,
-                  child: widget.topOverlay == null
-                      ? widget.topPanel
-                      : ClipRect(
-                          child: Stack(
-                            children: widget.topPanelDevant
-                                ? [
-                                    Positioned.fill(child: widget.topOverlay!),
-                                    Positioned.fill(child: widget.topPanel!),
-                                  ]
-                                : [
-                                    Positioned.fill(child: widget.topPanel!),
-                                    Positioned.fill(child: widget.topOverlay!),
-                                  ],
+      return GestureDetector(
+        // `opaque` : le fond entre les bandeaux compte lui aussi, et le
+        // plateau n'écoute que les contacts — il ne dispute rien.
+        behavior: HitTestBehavior.opaque,
+        onScaleStart: _debut,
+        onScaleUpdate: _suite,
+        onScaleEnd: _fin,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Column(
+              children: [
+                SizedBox(height: bar, child: widget.topBar),
+                if (widget.notice != null) widget.notice!,
+                if (widget.topPanel != null)
+                  SizedBox(
+                    height: top,
+                    child: widget.topOverlay == null
+                        ? widget.topPanel
+                        : ClipRect(
+                            child: Stack(
+                              children: widget.topPanelDevant
+                                  ? [
+                                      Positioned.fill(
+                                        child: widget.topOverlay!,
+                                      ),
+                                      Positioned.fill(child: widget.topPanel!),
+                                    ]
+                                  : [
+                                      Positioned.fill(child: widget.topPanel!),
+                                      Positioned.fill(
+                                        child: widget.topOverlay!,
+                                      ),
+                                    ],
+                            ),
                           ),
-                        ),
-                ),
-              SizedBox(height: board),
-              if (widget.bottomPanel != null)
-                SizedBox(height: bottom, child: widget.bottomPanel),
-              SizedBox(height: bar, child: widget.moveStrip),
-            ],
-          ),
-          Positioned(
-            top: bar + top,
-            left: 0,
-            right: 0,
-            height: board,
-            child: widget.board,
-          ),
-        ],
+                  ),
+                SizedBox(height: board),
+                if (widget.bottomPanel != null)
+                  SizedBox(height: bottom, child: widget.bottomPanel),
+                SizedBox(height: bar, child: widget.moveStrip),
+              ],
+            ),
+            Positioned(
+              top: bar + top,
+              left: 0,
+              right: 0,
+              height: board,
+              child: widget.board,
+            ),
+          ],
+        ),
       );
     },
   );
