@@ -554,6 +554,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             palette: palette,
             flipped: flipped,
             onTapCell: _onTapCell,
+            // EN IMMERSION, LE TEMPS S'ÉCRIT DANS LES RALLIEMENTS : il n'y a
+            // plus de bandeau pour le porter.
+            chronoHaut: Settings.instance.immersion
+                ? _g.clock.displayFor(topCamp)
+                : null,
+            chronoBas: Settings.instance.immersion
+                ? _g.clock.displayFor(bottomCamp)
+                : null,
             selected: _isViewing ? null : _g.game.selected,
             groupSelection: _isViewing ? const {} : _g.game.groupSelection,
             highlighted: _isViewing

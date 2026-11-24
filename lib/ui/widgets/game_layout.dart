@@ -13,7 +13,6 @@
 library;
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -34,27 +33,6 @@ const int kPartsEcran = 104;
 /// où le plateau dépasse de bien plus — les bandeaux gardent leur hauteur :
 /// les rétrécir à moitié ne réglerait rien et couperait leur contenu.
 const double kBandeauRetraitMax = 0.2;
-
-/// Ce qu'un bandeau cède au plateau QUAND ON LE DEMANDE, en écartant deux
-/// doigts — autant que ce qu'il cède de lui-même, et pas davantage.
-///
-/// On a essayé la moitié, puis le tiers, puis le quart : à chaque fois le
-/// bandeau de la lecture automatique débordait, et `tool/apercu_tablette.dart`
-/// le mesurait — dix-huit points, puis six et demi, puis trois.
-///
-/// LA RAISON N'EST PAS LA HAUTEUR DU BANDEAU, C'EST LA TAILLE DE CE QU'IL
-/// CONTIENT. Tout le dessin de l'application est mis à l'échelle sur la
-/// LARGEUR de l'écran : sur une tablette de 800 points, un texte et une
-/// touche font deux fois leur taille de téléphone, quand l'écran n'est
-/// qu'une fois et demie plus haut. Les bandeaux y sont donc déjà pleins
-/// avant qu'on leur demande quoi que ce soit, et ce n'est pas ici que cela
-/// se corrige.
-///
-/// Ce qui change en grand n'est donc pas CE QU'ILS CÈDENT, mais QUAND : de
-/// leur plein gré ils ne cèdent que si cela suffit à tout combler — jamais
-/// le cas sur une tablette, où ils gardaient alors toute leur hauteur. En
-/// grand, ils donnent ce qu'ils peuvent même quand cela ne suffit pas.
-const double kBandeauRetraitGrand = kBandeauRetraitMax;
 
 /// Ce qu'un pincement doit valoir pour agrandir, et pour revenir.
 ///
@@ -204,9 +182,9 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
   /// l'aller et le retour.
   bool _bascule = false;
 
-  /// Le plateau est-il en grand ? Faux quand les réglages ne sont pas
+  /// Sommes-nous en immersion ? Faux quand les réglages ne sont pas
   /// chargés : une mise en page doit se dessiner quand même.
-  bool get _enGrand => Settings.chargees && Settings.instance.plateauEnGrand;
+  bool get _immersion => Settings.chargees && Settings.instance.immersion;
 
   void _debut(ScaleStartDetails d) {
     _bascule = false;
@@ -219,13 +197,13 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
       return;
     }
     if (_bascule || !Settings.chargees) return;
-    final enGrand = _enGrand;
-    if (!enGrand && d.scale >= kPinceAgrandit) {
+    final immersion = _immersion;
+    if (!immersion && d.scale >= kPinceAgrandit) {
       _bascule = true;
-      unawaited(Settings.instance.setPlateauEnGrand(true));
-    } else if (enGrand && d.scale <= kPinceReduit) {
+      unawaited(Settings.instance.setImmersion(true));
+    } else if (immersion && d.scale <= kPinceReduit) {
       _bascule = true;
-      unawaited(Settings.instance.setPlateauEnGrand(false));
+      unawaited(Settings.instance.setImmersion(false));
     }
   }
 
@@ -240,10 +218,19 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / kPartsEcran;
       final bar = unit * kPartsBarre;
-      var top = widget.topPanel == null
+      // EN IMMERSION, LES BANDEAUX DE JOUEUR N'EXISTENT PAS.
+      //
+      // Nino : « quand on agrandit le plateau par pincement, les bandeaux
+      // disparaissent ». C'est ce qui rend la chose automatique : ce qui
+      // n'est plus affiché n'a plus à rentrer, donc aucune forme d'écran ne
+      // peut la prendre en défaut. Les deux bandes fines restent — les
+      // touches du haut et les coups du bas —, sans quoi on ne pourrait ni
+      // mettre en pause, ni écrire, ni revoir un coup.
+      final avecBandeaux = !_immersion;
+      var top = widget.topPanel == null || !avecBandeaux
           ? 0.0
           : (widget.topHeight ?? unit * kPartsBandeauJoueur);
-      var bottom = widget.bottomPanel == null
+      var bottom = widget.bottomPanel == null || !avecBandeaux
           ? 0.0
           : (widget.bottomHeight ?? unit * widget.bottomParts);
 
@@ -278,10 +265,7 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
         // en grand [...] ou un geste (le geste générique pour agrandir) ».
         // Ce qu'ils peuvent donner sans devenir illisibles, au lieu du
         // cinquième qu'ils donnent d'eux-mêmes.
-        final enGrand = _enGrand;
-        final cedable =
-            (top + bottom) *
-            (enGrand ? kBandeauRetraitGrand : kBandeauRetraitMax);
+        final cedable = (top + bottom) * kBandeauRetraitMax;
         // TOUT CE QU'ILS PEUVENT EN GRAND, RIEN DU TOUT SINON.
         //
         // D'eux-mêmes, les bandeaux ne cèdent que si ce qu'ils ont suffit à
@@ -293,11 +277,8 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
         // Quand on le demande, la question change : le plateau ne déborde
         // plus jamais, il se contente de ce qu'on lui donne. Chaque point
         // cédé est donc un point de gagné, et ils donnent ce qu'ils peuvent.
-        final aCeder = enGrand
-            ? math.min(manque, cedable)
-            : (manque <= cedable ? manque : 0.0);
-        if (manque > 0 && aCeder > 0) {
-          final part = aCeder / (top + bottom);
+        if (manque > 0 && manque <= cedable) {
+          final part = manque / (top + bottom);
           top -= top * part;
           bottom -= bottom * part;
         }
@@ -319,7 +300,7 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
               children: [
                 SizedBox(height: bar, child: widget.topBar),
                 if (widget.notice != null) widget.notice!,
-                if (widget.topPanel != null)
+                if (widget.topPanel != null && avecBandeaux)
                   SizedBox(
                     height: top,
                     child: widget.topOverlay == null
@@ -343,7 +324,7 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
                           ),
                   ),
                 SizedBox(height: board),
-                if (widget.bottomPanel != null)
+                if (widget.bottomPanel != null && avecBandeaux)
                   SizedBox(height: bottom, child: widget.bottomPanel),
                 SizedBox(height: bar, child: widget.moveStrip),
               ],

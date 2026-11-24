@@ -1,9 +1,14 @@
-/// Le plateau en grand : les bandeaux cèdent davantage, au pincement.
+/// Le mode immersion : les bandeaux disparaissent, au pincement.
 ///
-/// Nino, devant sa tablette : « avec éventuellement une touche pour placer le
-/// plateau en grand comme sur l'image. Ou un geste (le geste générique pour
-/// agrandir) ». Il a choisi le geste seul, et que les bandeaux s'amincissent
-/// plutôt que d'être recouverts — ainsi le nom et le chrono restent lisibles.
+/// Nino : « quand on agrandit le plateau par pincement, les bandeaux
+/// disparaissent et on passe en mode "immersion". En revanche sans aucune
+/// action de la part du joueur le plateau est réduit pour laisser les
+/// bandeaux. [...] En mode immersion les chronos doivent être affichés dans
+/// le ralliement. »
+///
+/// C'est ce qui rend la chose automatique, et c'est pour cela qu'amincir les
+/// bandeaux ne suffisait pas : ce qui n'est plus affiché n'a plus à rentrer,
+/// donc aucune forme d'écran ne peut la prendre en défaut.
 ///
 /// Deux choses se vérifient ici, et la seconde est la raison pour laquelle la
 /// prise de geste a déménagé : un pincement écarte les doigts HORIZONTALEMENT,
@@ -24,7 +29,11 @@ import 'package:lafuga/net/online_client.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/corr_game_screen.dart';
+import 'package:lafuga/engine/board.dart';
+import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/ui/widgets/board_geometry.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
+import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Une tablette : large par rapport à sa hauteur. C'est là que les bandeaux
@@ -122,20 +131,25 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('sur une tablette, écarter les doigts agrandit le plateau', (
+  testWidgets('écarter les doigts fait disparaître les bandeaux', (
     tester,
   ) async {
     await ouvrir(tester, kTablette);
     final avant = hauteurDuPlateau(tester);
-    expect(Settings.instance.plateauEnGrand, isFalse);
+    expect(Settings.instance.immersion, isFalse);
 
     await pince(tester, 2);
 
-    expect(Settings.instance.plateauEnGrand, isTrue);
+    expect(Settings.instance.immersion, isTrue);
     expect(
       hauteurDuPlateau(tester),
       greaterThan(avant),
-      reason: 'les bandeaux ont cédé de la hauteur au plateau',
+      reason: 'les bandeaux ont rendu toute leur hauteur au plateau',
+    );
+    expect(
+      find.byType(PlayerPanel),
+      findsNothing,
+      reason: 'les bandeaux de joueur ont disparu',
     );
   });
 
@@ -144,10 +158,10 @@ void main() {
     final normal = hauteurDuPlateau(tester);
 
     await pince(tester, 2);
-    expect(Settings.instance.plateauEnGrand, isTrue);
+    expect(Settings.instance.immersion, isTrue);
 
     await pince(tester, 0.5);
-    expect(Settings.instance.plateauEnGrand, isFalse);
+    expect(Settings.instance.immersion, isFalse);
     expect(hauteurDuPlateau(tester), normal);
   });
 
@@ -155,25 +169,89 @@ void main() {
   testWidgets('le choix survit à la fermeture de l écran', (tester) async {
     await ouvrir(tester, kTablette);
     await pince(tester, 2);
-    expect(Settings.instance.plateauEnGrand, isTrue);
+    expect(Settings.instance.immersion, isTrue);
 
     await tester.pumpWidget(const SizedBox());
     await ouvrir(tester, kTablette);
-    expect(Settings.instance.plateauEnGrand, isTrue);
+    expect(Settings.instance.immersion, isTrue);
   });
 
-  // Nino : « donc que rien ne change sur tel ».
-  testWidgets('sur un téléphone, le pincement ne change rien', (tester) async {
+  // Nino : « sur mon téléphone et les autres téléphones de taille normale ça
+  // doit rester identique à ce qu'on a déjà. » C'est l'état PAR DÉFAUT qui
+  // doit être identique : sans rien demander, les bandeaux sont là.
+  testWidgets('un téléphone s ouvre avec ses bandeaux, comme avant', (
+    tester,
+  ) async {
+    await ouvrir(tester, kTelephone);
+    expect(find.byType(PlayerPanel), findsNWidgets(2));
+    expect(Settings.instance.immersion, isFalse);
+  });
+
+  // Et le geste y marche aussi : il n'y a pas de raison de le refuser.
+  testWidgets('et le pincement y fait de la place au plateau', (tester) async {
     await ouvrir(tester, kTelephone);
     final avant = hauteurDuPlateau(tester);
 
     await pince(tester, 2);
 
-    expect(
-      hauteurDuPlateau(tester),
-      avant,
-      reason: 'les bandeaux avaient déjà donné tout ce qui manquait',
-    );
+    expect(find.byType(PlayerPanel), findsNothing);
+    expect(hauteurDuPlateau(tester), greaterThan(avant));
+  });
+
+  // Nino : « en mode immersion les chronos doivent être affichés dans le
+  // ralliement. » Sans bandeau pour les porter, c'est là qu'ils vont.
+  group('Les chronos dans les ralliements', () {
+    Future<BoardGeometry> poseLePlateau(
+      WidgetTester tester, {
+      String? haut,
+      String? bas,
+      bool flipped = true,
+    }) async {
+      setScaleSize(kTelephone);
+      const boite = Size(350, 500);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: boite.width,
+                height: boite.height,
+                child: GameBoardView(
+                  board: Board.initial(),
+                  palette: paletteOf('original'),
+                  flipped: flipped,
+                  onTapCell: (_) {},
+                  chronoHaut: haut,
+                  chronoBas: bas,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return BoardGeometry(size: boite, flipped: flipped);
+    }
+
+    testWidgets('chacun dans sa bande, en haut et en bas', (tester) async {
+      final g = await poseLePlateau(tester, haut: '5:00', bas: '4:59');
+      final plateau = tester.getRect(find.byType(GameBoardView));
+
+      for (final (texte, indice) in [('5:00', 0), ('4:59', kExtRows - 1)]) {
+        final mot = tester.getRect(find.text(texte));
+        final bande = g.rowToY(g.indexToRow(indice));
+        expect(
+          mot.center.dy - plateau.top,
+          closeTo(bande + g.cellSize / 2, g.cellSize / 2),
+          reason: '$texte doit être dans la bande de ralliement',
+        );
+      }
+    });
+
+    testWidgets('et rien du tout quand on ne les donne pas', (tester) async {
+      await poseLePlateau(tester);
+      expect(find.text('5:00'), findsNothing);
+    });
   });
 
   // LA RAISON DU DÉMÉNAGEMENT DE LA PRISE.

@@ -53,8 +53,8 @@ abstract final class SettingsKeys {
   static const onlineMelo = 'online_melo';
   static const onlineMeloRandom = 'online_melo_random';
 
-  /// Le plateau prend-il tout ce que les bandeaux peuvent lui céder ?
-  static const plateauEnGrand = 'plateau_en_grand';
+  /// Le plateau seul, sans les bandeaux de joueur.
+  static const immersion = 'immersion';
 }
 
 /// Réglages de l'application.
@@ -129,19 +129,26 @@ class Settings {
     (reglagesVisibles as _Reglages).previens();
   }
 
-  /// LE PLATEAU EN GRAND : les bandeaux lui cèdent tout ce qu'ils peuvent.
+  /// MODE IMMERSION : les bandeaux de joueur disparaissent, le plateau prend
+  /// toute la place, et les chronos vont dans les zones de ralliement.
   ///
-  /// Sur un téléphone, le plateau occupe déjà toute la largeur et les
-  /// bandeaux lui ont donné le peu qui lui manquait : ce réglage n'y change
-  /// donc rien. Sur une tablette, large, il reste beaucoup à prendre.
+  /// Nino : « quand on agrandit le plateau par pincement, les bandeaux
+  /// disparaissent et on passe en mode "immersion". En revanche sans aucune
+  /// action de la part du joueur le plateau est réduit pour laisser les
+  /// bandeaux. »
+  ///
+  /// C'est la seule façon de tenir sur N'IMPORTE QUELLE forme d'écran : ce
+  /// qui n'est plus affiché n'a plus à rentrer. Amincir les bandeaux ne
+  /// marchait que sur les écrans où leur contenu avait de la marge, et sur
+  /// une tablette il n'en a aucune — tout le dessin est mis à l'échelle sur
+  /// la largeur, donc un texte y fait deux fois sa taille de téléphone.
   ///
   /// Le choix se garde d'une partie à l'autre : c'est une façon de voir, pas
   /// un geste à refaire chaque fois.
-  bool get plateauEnGrand =>
-      _prefs.getBool(SettingsKeys.plateauEnGrand) ?? false;
+  bool get immersion => _prefs.getBool(SettingsKeys.immersion) ?? false;
 
-  Future<void> setPlateauEnGrand(bool value) async {
-    await _prefs.setBool(SettingsKeys.plateauEnGrand, value);
+  Future<void> setImmersion(bool value) async {
+    await _prefs.setBool(SettingsKeys.immersion, value);
     (reglagesVisibles as _Reglages).previens();
   }
 

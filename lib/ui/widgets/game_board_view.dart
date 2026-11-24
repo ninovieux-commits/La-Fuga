@@ -12,6 +12,7 @@ import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'board_painter.dart';
+import 'fuga_button.dart';
 import 'picto_touche.dart';
 import 'theme_image_cache.dart';
 
@@ -36,6 +37,8 @@ class GameBoardView extends StatefulWidget {
     this.ralliementEnEdition,
     this.ralliementsTouchables = false,
     this.slideDuration = Duration.zero,
+    this.chronoHaut,
+    this.chronoBas,
   });
 
   final Board board;
@@ -90,6 +93,19 @@ class GameBoardView extends StatefulWidget {
   /// Dans le composeur : les deux rangées de ralliement répondent au doigt,
   /// même vides — sinon une zone qu'on a vidée ne se rouvre jamais.
   final bool ralliementsTouchables;
+
+  /// LES CHRONOS, ÉCRITS DANS LES ZONES DE RALLIEMENT.
+  ///
+  /// En immersion, les bandeaux de joueur n'existent plus, et c'est là que
+  /// le temps s'affiche. Nino : « en mode immersion les chronos doivent être
+  /// affichés dans le ralliement. »
+  ///
+  /// [chronoHaut] est celui de la zone du HAUT de l'écran, [chronoBas] celle
+  /// du bas — comme les bandeaux qu'ils remplacent, et donc sans avoir à
+  /// raisonner sur les camps ni sur le sens du plateau. Nuls hors
+  /// immersion : le bandeau les porte déjà.
+  final String? chronoHaut;
+  final String? chronoBas;
 
   /// Durée du glissement — le réglage « Vitesse de glissée des pièces ».
   /// Nulle : les pièces se posent d'un coup, comme le mode « Instantané ».
@@ -308,6 +324,40 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
+              // LES CHRONOS DANS LES RALLIEMENTS, quand il n'y a plus de
+              // bandeau pour les porter. Ils sont écrits par-dessus la bande
+              // de leur camp, cernés comme tout ce qui s'écrit sur une
+              // couleur : `encreSurTouche` donne l'encre, et `MotTouche` le
+              // contour qui la détache.
+              for (final (indice, texte) in [
+                (0, widget.chronoHaut),
+                (kExtRows - 1, widget.chronoBas),
+              ])
+                if (texte != null && texte.isNotEmpty)
+                  Positioned(
+                    left: geometry.originX,
+                    width: geometry.cellSize * kCols,
+                    top: geometry.rowToY(geometry.indexToRow(indice)),
+                    height: geometry.cellSize,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: MotTouche(
+                          texte: texte,
+                          couleur: encreSurTouche(
+                            geometry.indexToRow(indice) == kRows
+                                ? widget.palette.clair
+                                : widget.palette.fonce,
+                          ),
+                          style: TextStyle(
+                            fontSize: geometry.cellSize * 0.5,
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
               // LE CHEVRON DE LA MENEUSE, dans la couche des widgets.
               //
               // C'est un symbole de touche comme les autres — couleur du

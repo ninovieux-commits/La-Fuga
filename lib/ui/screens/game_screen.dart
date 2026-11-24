@@ -346,6 +346,15 @@ class _GameScreenState extends State<GameScreen>
   final ValueNotifier<int> _seconds = ValueNotifier(0);
 
   /// Un panneau qui se refait à chaque seconde, et lui seul.
+  /// Le temps à écrire dans la zone de ralliement de [camp], ou rien.
+  ///
+  /// Rien hors immersion — le bandeau l'affiche déjà — et rien en analyse,
+  /// où aucune pendule ne tourne.
+  String? _chronoDuRalliement(Camp camp) =>
+      widget.analysis || !Settings.instance.immersion
+      ? null
+      : _clock.displayFor(camp);
+
   Widget _tickingPanel(
     ThemePalette palette,
     Camp camp, {
@@ -906,6 +915,11 @@ class _GameScreenState extends State<GameScreen>
                 palette: palette,
                 flipped: flipped,
                 onTapCell: _onTapCell,
+                // EN IMMERSION, LE TEMPS S'ÉCRIT DANS LES RALLIEMENTS : il
+                // n'y a plus de bandeau pour le porter. En analyse il n'y a
+                // pas de pendule du tout.
+                chronoHaut: _chronoDuRalliement(topCamp),
+                chronoBas: _chronoDuRalliement(bottomCamp),
                 selected: _isViewing ? null : _game.selected,
                 groupSelection: _isViewing ? const {} : _game.groupSelection,
                 highlighted: _isViewing
