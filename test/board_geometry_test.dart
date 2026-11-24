@@ -108,6 +108,60 @@ void main() {
     });
   });
 
+  // Nino : « sur tablette, l'écran n'a pas la même forme (plus large comparé
+  // au long) et ça rend n'importe comment. Il faudrait que le plateau prenne
+  // tout le large de l'écran quand il le peut (donc que rien ne change sur
+  // tel) mais qu'il se réduise lorsqu'il n'y a pas la place, de manière à ne
+  // jamais manger sur les bandeaux. »
+  group('Le plateau tient dans sa boîte', () {
+    test('sur un téléphone, la largeur gagne et rien ne change', () {
+      // La place que `GameLayout` donne au plateau sur un écran de 393 × 851,
+      // une fois que les bandeaux lui ont cédé ce qui lui manquait : elle
+      // vaut EXACTEMENT sa hauteur naturelle. C'est pourquoi la correction
+      // ne se voit pas sur un téléphone.
+      const boite = Size(393, 393 * kExtRows / kCols);
+      final g = BoardGeometry(size: boite, flipped: true);
+      expect(g.cellSize, closeTo(393 / kCols, 1e-9));
+      expect(g.originX, closeTo(0, 1e-9));
+      expect(g.originY, closeTo(0, 1e-9));
+    });
+
+    test('sur une tablette, la hauteur limite et le plateau se centre', () {
+      // Large et courte : la hauteur naturelle du plateau dépasserait de
+      // cinq cents points, et il venait peindre sur les deux bandeaux.
+      const boite = Size(1200, 700);
+      final g = BoardGeometry(size: boite, flipped: true);
+      expect(g.cellSize, closeTo(700 / kExtRows, 1e-9));
+      expect(g.originY, closeTo(0, 1e-9), reason: 'il tient en hauteur');
+      expect(g.originX, greaterThan(0), reason: 'et il est centré');
+      expect(g.originX * 2 + g.cellSize * kCols, closeTo(1200, 1e-9));
+    });
+
+    test('et quelle que soit la forme, il ne déborde jamais', () {
+      for (final boite in const [
+        Size(393, 561),
+        Size(360, 514),
+        Size(800, 600),
+        Size(1200, 700),
+        Size(1536, 1100),
+      ]) {
+        final g = BoardGeometry(size: boite, flipped: true);
+        expect(g.originX, greaterThanOrEqualTo(-1e-9), reason: '$boite');
+        expect(g.originY, greaterThanOrEqualTo(-1e-9), reason: '$boite');
+        expect(
+          g.originY + g.boardHeight,
+          lessThanOrEqualTo(boite.height + 1e-9),
+          reason: '$boite : le bas du plateau mord sur le bandeau',
+        );
+        expect(
+          g.originX + g.cellSize * kCols,
+          lessThanOrEqualTo(boite.width + 1e-9),
+          reason: '$boite',
+        );
+      }
+    });
+  });
+
   test('les 10 rangées dessinées sont distinctes et contiguës', () {
     final g = BoardGeometry(size: size, flipped: true);
     final ys = [for (var i = 0; i < kExtRows; i++) g.rowToY(g.indexToRow(i))];

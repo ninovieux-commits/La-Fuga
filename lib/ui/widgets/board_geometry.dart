@@ -7,6 +7,7 @@
 /// de la zone dessinée**, ce qui est indépendant du sens de l'axe.
 library;
 
+import 'dart:math' as math;
 import 'dart:ui';
 
 import '../../engine/board.dart';
@@ -14,10 +15,24 @@ import '../../engine/piece.dart';
 
 /// Conversion entre cases de jeu et pixels écran.
 ///
-/// Le plateau occupe toute la largeur : la taille de case est calée dessus.
-/// Les 8 rangées jouables plus les 2 zones de ralliement font [kExtRows] cases
-/// de haut ; si cela dépasse la hauteur allouée, les zones de ralliement
-/// débordent volontairement dans les cadres d'information.
+/// LE PLATEAU PREND LA LARGEUR QUAND IL PEUT, ET LA HAUTEUR LE LIMITE SINON.
+///
+/// Huit rangées jouables plus deux zones de ralliement font [kExtRows] cases
+/// de haut pour [kCols] de large : le plateau est donc dix septièmes plus
+/// haut que large. La taille de case se calait sur la largeur seule, et sur
+/// un téléphone cela tombe juste — les bandeaux cèdent au plateau ce qui lui
+/// manque, et la place qu'il reçoit vaut exactement sa hauteur naturelle.
+///
+/// Sur une tablette, non. Nino : « sur tablette, l'écran n'a pas la même
+/// forme et ça rend n'importe comment ». Plus large par rapport à sa hauteur,
+/// elle donne au plateau une largeur dont la hauteur naturelle dépasse de
+/// très loin la place disponible — bien plus que ce que les bandeaux peuvent
+/// rendre —, et le plateau venait peindre par-dessus eux : le nom du joueur,
+/// son chrono et ses touches disparaissaient sous les zones de ralliement.
+///
+/// La case vaut donc le plus petit des deux : un septième de la largeur, ou
+/// un dixième de la hauteur. Le plateau est centré dans ce qui reste. Sur un
+/// téléphone c'est la largeur qui gagne, au pixel près, et rien ne change.
 ///
 /// Quand [flipped] est vrai, les Blancs sont en bas. Quand il est faux (vue du
 /// joueur Noir), le plateau est tourné à 180° comme aux échecs : colonnes
@@ -29,9 +44,16 @@ final class BoardGeometry {
     this.rall = Ralliements.standard,
     this.rangeeOuverte,
     this.ralliementsTouchables = false,
-  }) : cellSize = size.width / kCols,
-       originX = 0,
-       originY = (size.height - (size.width / kCols) * kExtRows) / 2;
+  }) : cellSize = _cote(size),
+       originX = (size.width - _cote(size) * kCols) / 2,
+       originY = (size.height - _cote(size) * kExtRows) / 2;
+
+  /// Le côté d'une case : la largeur quand elle rentre, la hauteur sinon.
+  ///
+  /// Une hauteur infinie — une boîte qui ne contraint pas — redonne la
+  /// largeur, c'est-à-dire ce que faisait la version d'avant.
+  static double _cote(Size size) =>
+      math.min(size.width / kCols, size.height / kExtRows);
 
   final Size size;
   final bool flipped;
