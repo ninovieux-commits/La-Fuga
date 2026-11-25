@@ -343,7 +343,6 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                     FugaButton(
                       text: T('Valider la position'),
                       color: palette.clair,
-                      textColor: Colors.black,
                       onPressed: _valider,
                     ),
                   ],
@@ -506,9 +505,9 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
               Texte(
                 _trait == Camp.blanc ? T('Blancs') : T('Noirs'),
                 style: TextStyle(
-                  // Le mot porte sa propre couleur : c'est ce qui rend la
-                  // touche lisible d'un coup d'œil.
-                  color: _trait == Camp.blanc ? Colors.white : Colors.black,
+                  // Blanc dans les deux cas : c'est le rond à côté qui porte
+                  // la couleur du camp, et plus le mot.
+                  color: Colors.white,
                   fontSize: SF(15),
                   fontWeight: FontWeight.bold,
                 ),
@@ -532,7 +531,9 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
               style: TextStyle(color: Colors.white, fontSize: SF(12)),
               decoration: InputDecoration(
                 hintText: T('Coller un code .fug'),
-                hintStyle: TextStyle(color: palette.clairDim, fontSize: SF(12)),
+                // Gris clair, et non la couleur du thème : certaines sont
+                // trop sombres pour s écrire.
+                hintStyle: TextStyle(color: Colors.white70, fontSize: SF(12)),
                 filled: true,
                 fillColor: kBarButtonDark,
                 border: OutlineInputBorder(

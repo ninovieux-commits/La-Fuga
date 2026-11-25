@@ -522,7 +522,7 @@ class _PremoveScreenState extends State<PremoveScreen>
     child: Texte(
       notation,
       style: TextStyle(
-        color: mienne ? Colors.black : Colors.white,
+        color: Colors.white,
         fontSize: SF(13),
         fontWeight: FontWeight.bold,
       ),

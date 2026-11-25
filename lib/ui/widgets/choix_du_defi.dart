@@ -54,7 +54,6 @@ Future<TypeDeDefi?> demandeLeTypeDeDefi(BuildContext context, String pseudo) {
         FugaButton(
           text: T('En direct'),
           color: palette.clair,
-          textColor: Colors.black,
           onPressed: DefiRelais.pret
               ? () => Navigator.of(context).pop(TypeDeDefi.direct)
               : null,

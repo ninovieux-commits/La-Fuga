@@ -178,7 +178,8 @@ class MessageBubble extends StatelessWidget {
     // écran à l'autre. Qui parle se lit toujours au côté, au coin presque
     // droit de la bulle et au visage d'en dessous.
     final fond = echoue ? const Color.fromRGBO(120, 40, 40, 1) : palette.clair;
-    final encre = echoue ? Colors.white : Colors.black;
+    // BLANCHE, cernée de noir : la règle de toute l'application.
+    const encre = Colors.white;
     final rayon = Radius.circular(S(18));
     final pointe = Radius.circular(S(4));
     final coins = BorderRadius.only(

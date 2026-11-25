@@ -219,7 +219,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                 child: FugaButton(
                   text: T('Nouveau'),
                   color: paletteOf(axes.general).clair,
-                  textColor: Colors.black,
                   fontSize: SF(14),
                   onPressed: () => unawaited(_nouveau()),
                 ),
@@ -231,7 +230,8 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                   : _error != null
                   ? _notice(
                       _error!,
-                      color: const Color.fromRGBO(153, 77, 77, 1),
+                      // Un rouge CLAIR : le sombre ne s écrit plus.
+                      color: const Color.fromRGBO(230, 138, 138, 1),
                     )
                   : conversations.isEmpty
                   ? _notice(T('Aucune conversation pour le moment.'))
@@ -248,7 +248,8 @@ class _ConversationsScreenState extends State<ConversationsScreen>
     );
   }
 
-  Widget _notice(String text, {Color color = const Color(0xFF666666)}) =>
+  /// Le gris clair des notices : elles sont discrètes, pas sombres.
+  Widget _notice(String text, {Color color = const Color(0xFFCCCCCC)}) =>
       Padding(
         padding: EdgeInsets.all(S(20)),
         child: Align(
@@ -1671,7 +1672,12 @@ class _ConversationScreenState extends State<ConversationScreen>
               // bulles, qui portent la même couleur.
               style: FilledButton.styleFrom(
                 backgroundColor: palette.clair,
-                foregroundColor: Colors.black,
+                // BLANC, comme tout le reste. Nino : « il ne doit plus y
+                // avoir de texte en noir du coup, tous les textes doivent
+                // être blancs ou gris. » Le mot avait été mis en noir
+                // pour chasser le bleu d'usine de Material ; c'est le
+                // blanc cerné qui s'en charge maintenant.
+                foregroundColor: Colors.white,
                 side: kTraitDeTouche,
                 padding: EdgeInsets.symmetric(horizontal: S(16)),
                 minimumSize: Size(0, touchHeight() * 0.9),

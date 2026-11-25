@@ -508,7 +508,6 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
                 ? () => lancerUnDefi(context, profile.pseudo)
                 : null,
             couleur: paletteOf(_axes.general).clair,
-            encre: Colors.black,
           ),
         ),
         SizedBox(width: S(8)),

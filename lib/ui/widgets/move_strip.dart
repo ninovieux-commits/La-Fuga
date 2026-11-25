@@ -235,7 +235,7 @@ class _MoveStripState extends State<MoveStrip> {
   }
 
   /// Un demi-coup : sa notation, touchable pour revenir dessus. Le demi-coup
-  /// regardé s'écrit en noir, les autres en blanc.
+  /// regardé s'écrit en blanc, les autres en gris.
   Widget _half(int index, String notation, bool actif) => TextButton(
     key: _cleDe(index),
     onPressed: () => widget.onSelect(index),
@@ -243,7 +243,9 @@ class _MoveStripState extends State<MoveStrip> {
       minimumSize: Size.zero,
       padding: EdgeInsets.symmetric(horizontal: S(3)),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      foregroundColor: actif ? Colors.black : Colors.white,
+      // Le coup regardé s'écrit en BLANC, les autres en gris : ils
+      // étaient noir et blanc, et le noir n'a plus cours.
+      foregroundColor: actif ? Colors.white : Colors.white60,
     ),
     child: Texte(
       notation,

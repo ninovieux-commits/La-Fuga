@@ -86,19 +86,21 @@ const BorderSide kTraitDeTouche = BorderSide(
 BorderSide traitDeTouche(Color fond) =>
     BorderSide(color: contourDe(fond), width: kTraitPicto);
 
-/// L'encre d'un mot posé sur une touche de [fond].
+/// L'encre d'un mot posé sur une touche : BLANCHE, quelle que soit la
+/// touche.
 ///
-/// Blanche partout, comme depuis toujours — SAUF sur une touche noire, où
-/// le mot prend le noir de la touche et se lit par son seul contour blanc.
-/// Nino, devant la maquette de Deep Grey : « l'écriture doit être blanc sur
-/// blanc avec contours noirs pour la couleur 1, et noir sur noir avec les
-/// contours blancs pour la couleur 2 », puis « aaah c'est parfait ».
+/// Elle se renversait sur une touche noire — « noir sur noir avec les
+/// contours blancs pour la couleur 2 », l'écriture en négatif de la maquette
+/// de Deep Grey. Nino, en revoyant l'application entière : « il ne doit plus
+/// y avoir de texte en noir du coup, tous les textes doivent être blancs ou
+/// gris. [...] Mets tous les textes en blanc à contour noir ou gris à
+/// contour noir, c'est mieux. » Et il demandait au passage pourquoi
+/// « Défier » s'écrivait en négatif.
 ///
-/// Sur la couleur 1 — le blanc — cela ne change rien : le mot était déjà
-/// blanc. Aucun autre thème n'a d'accent assez sombre pour basculer, si
-/// bien que cette règle ne se voit que là où Nino l'a demandée.
-Color encreSurTouche(Color fond) =>
-    estNoire(fond) ? fond : const Color(0xFFFFFFFF);
+/// Le blanc se lit sur une touche noire comme sur une touche claire — c'est
+/// le contour noir qui l'y tient. Le paramètre reste : les appelants le
+/// nomment, et la règle change ici.
+Color encreSurTouche(Color fond) => const Color(0xFFFFFFFF);
 
 /// La forme d'une touche : son arrondi, avec le trait DEDANS.
 ///

@@ -338,7 +338,6 @@ class _PlayerCardState extends State<_PlayerCard> {
       _touche(
         texte: T('Défier'),
         couleur: widget.palette.clair,
-        encre: Colors.black,
         horsService: !DefiRelais.disponible,
         onPressed: () => Navigator.of(context).pop(widget.pseudo),
       ),

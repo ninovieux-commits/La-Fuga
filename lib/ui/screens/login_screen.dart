@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
   /// Ligne d'état sous le bouton : rouge pour une erreur, bleue pendant
   /// l'attente, verte au succès — comme `status_lbl`.
   String _status = '';
-  Color _statusColor = const Color.fromRGBO(179, 26, 26, 1);
+  Color _statusColor = const Color.fromRGBO(240, 140, 140, 1);
 
   @override
   void dispose() {
@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
     final password = _password.text;
     if (pseudo.isEmpty || password.isEmpty) {
       setState(() {
-        _statusColor = const Color.fromRGBO(179, 26, 26, 1);
+        _statusColor = const Color.fromRGBO(240, 140, 140, 1);
         _status = T('Pseudo et mot de passe requis');
       });
       return;
@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
 
     setState(() {
       _busy = true;
-      _statusColor = const Color.fromRGBO(51, 51, 128, 1);
+      _statusColor = const Color.fromRGBO(160, 160, 240, 1);
       _status = T('Connexion au serveur...');
     });
 
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
     if (error != null) {
       setState(() {
         _busy = false;
-        _statusColor = const Color.fromRGBO(179, 26, 26, 1);
+        _statusColor = const Color.fromRGBO(240, 140, 140, 1);
         _status = error;
       });
       return;
@@ -111,11 +111,32 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _statusColor = const Color.fromRGBO(26, 153, 26, 1);
+      _statusColor = const Color.fromRGBO(130, 225, 130, 1);
       _status = T('Connecté');
     });
     Navigator.of(context).pop(true);
   }
+
+  /// L'habit d'un champ de saisie : le gris des touches, son trait noir, et
+  /// l'invite en gris clair.
+  InputDecoration _champ(String invite) => InputDecoration(
+    hintText: invite,
+    hintStyle: const TextStyle(color: Colors.white70),
+    filled: true,
+    fillColor: kGrisTouche,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(S(8)),
+      borderSide: kTraitDeTouche,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(S(8)),
+      borderSide: kTraitDeTouche,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(S(8)),
+      borderSide: kTraitDeTouche,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                   fontSize: SF(28),
                   fontWeight: FontWeight.bold,
                   fontStyle: FontStyle.italic,
-                  color: const Color.fromRGBO(13, 13, 13, 1),
+                  color: const Color(0xFFFFFFFF),
                 ),
               ),
               SizedBox(height: S(18)),
@@ -169,15 +190,14 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                 controller: _pseudo,
                 autocorrect: false,
                 enableSuggestions: false,
-                // Champs blancs : le texte saisi doit être noir, sinon il est
-                // illisible avec le thème sombre de l'application.
-                style: TextStyle(color: Colors.black, fontSize: SF(16)),
-                decoration: InputDecoration(
-                  hintText: T('Pseudo'),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: const OutlineInputBorder(),
-                ),
+                // DES CHAMPS GRIS, DES LETTRES BLANCHES. Ils étaient
+                // blancs, donc leur texte noir — Nino : « il ne doit plus y
+                // avoir de texte en noir du coup, tous les textes doivent
+                // être blancs ou gris. » Un champ clair ne peut pas porter
+                // un mot blanc : c'est le champ qui change, et il prend le
+                // gris des touches, trait noir compris.
+                style: TextStyle(color: Colors.white, fontSize: SF(16)),
+                decoration: _champ(T('Pseudo')),
               ),
               SizedBox(height: S(12)),
               Row(
@@ -186,13 +206,8 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                     child: TextField(
                       controller: _password,
                       obscureText: !_passwordShown,
-                      style: TextStyle(color: Colors.black, fontSize: SF(16)),
-                      decoration: InputDecoration(
-                        hintText: T('Mot de passe'),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: const OutlineInputBorder(),
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: SF(16)),
+                      decoration: _champ(T('Mot de passe')),
                       onSubmitted: (_) => _submit(),
                     ),
                   ),
@@ -214,13 +229,8 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  style: TextStyle(color: Colors.black, fontSize: SF(16)),
-                  decoration: InputDecoration(
-                    hintText: T('Email (optionnel)'),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: const OutlineInputBorder(),
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: SF(16)),
+                  decoration: _champ(T('Email (optionnel)')),
                 ),
               ],
               SizedBox(height: S(24)),

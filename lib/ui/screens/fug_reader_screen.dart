@@ -215,7 +215,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
                         decoration: InputDecoration(
                           hintText: 'B\nsgshgsg\ngnnnnns\n…',
                           hintStyle: TextStyle(
-                            color: palette.clairDim,
+                            color: Colors.white70,
                             fontSize: SF(13),
                             fontFamily: 'monospace',
                           ),
@@ -249,7 +249,6 @@ class _FugReaderScreenState extends State<FugReaderScreen>
                           child: FugaButton(
                             text: T('Lire'),
                             color: palette.clair,
-                            textColor: Colors.black,
                             onPressed: _lire,
                           ),
                         ),

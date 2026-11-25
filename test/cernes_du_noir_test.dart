@@ -213,17 +213,22 @@ void main() {
     expect(claire.noirs, greaterThan(20), reason: 'son trait reste noir');
   });
 
-  testWidgets('sur une touche noire, le mot s écrit en noir', (tester) async {
-    // Nino : « noir sur noir avec les contours blancs pour la couleur 2. »
-    // Sur la couleur 1 de Deep Grey — le blanc — rien ne change : le mot
-    // était déjà blanc.
-    expect(encreSurTouche(const Color(0xFF000000)), const Color(0xFF000000));
-    expect(encreSurTouche(const Color(0xFFFFFFFF)), const Color(0xFFFFFFFF));
-    expect(encreSurTouche(kGrisTouche), const Color(0xFFFFFFFF));
-    expect(
-      encreSurTouche(paletteOf('medieval').fonce),
+  // L'ÉCRITURE EN NÉGATIF N'EST PLUS. Elle venait de la maquette de Deep
+  // Grey — « noir sur noir avec les contours blancs pour la couleur 2 » —,
+  // puis Nino a revu l'application entière : « il ne doit plus y avoir de
+  // texte en noir du coup, tous les textes doivent être blancs ou gris. [...]
+  // Mets tous les textes en blanc à contour noir ou gris à contour noir,
+  // c'est mieux. »
+  testWidgets('sur une touche noire, le mot s écrit en BLANC', (tester) async {
+    for (final fond in [
+      const Color(0xFF000000),
       const Color(0xFFFFFFFF),
-    );
+      kGrisTouche,
+      paletteOf('medieval').fonce,
+      paletteOf('deepgrey').fonce,
+    ]) {
+      expect(encreSurTouche(fond), const Color(0xFFFFFFFF));
+    }
 
     await tester.pumpWidget(
       MaterialApp(
@@ -238,6 +243,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     final mot = tester.widget<MotTouche>(find.byType(MotTouche));
-    expect(mot.couleur, const Color(0xFF000000));
+    expect(mot.couleur, const Color(0xFFFFFFFF));
+    expect(
+      contourDe(mot.couleur),
+      const Color(0xFF000000),
+      reason: 'et son contour est noir, comme partout',
+    );
   });
 }

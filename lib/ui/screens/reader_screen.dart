@@ -91,7 +91,7 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: SF(13),
-                  color: const Color.fromRGBO(26, 26, 26, 1),
+                  color: const Color(0xFFCCCCCC),
                 ),
               ),
             ),
@@ -104,10 +104,11 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
                   maxLines: null,
                   minLines: null,
                   textAlignVertical: TextAlignVertical.top,
-                  style: TextStyle(fontSize: SF(13), color: Colors.black),
+                  // Gris et blanc, comme tous les champs de l'application.
+                  style: TextStyle(fontSize: SF(13), color: Colors.white),
                   decoration: const InputDecoration(
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: kGrisTouche,
                     border: OutlineInputBorder(),
                     hintText:
                         '[Date "..."]\n[Joueur1 "..."]\n...\n\n'

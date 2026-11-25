@@ -238,10 +238,11 @@ class EnteteProfil extends StatelessWidget {
     final texte = vide ? _sansDevise : devise.trim();
     final corps = TexteRemplissant(
       texte,
-      // Encre NOIRE : la bulle est claire depuis que toutes les bulles de
-      // l'application portent la première couleur du thème.
+      // Encre BLANCHE, cernée de noir — comme tout ce que l'application
+      // écrit, bulle claire ou non. Nino : « tous les textes doivent être
+      // blancs ou gris. »
       style: TextStyle(
-        color: vide ? Colors.black54 : Colors.black,
+        color: vide ? Colors.white70 : Colors.white,
         fontStyle: vide ? FontStyle.italic : FontStyle.normal,
       ),
       tailleMin: SF(10),

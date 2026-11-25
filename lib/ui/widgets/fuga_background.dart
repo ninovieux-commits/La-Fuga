@@ -26,14 +26,16 @@ const String kSansFond = '';
 /// Thèmes dont le fond est trop clair pour qu'on écrive dessus sans voile.
 ///
 /// Le voile blanc est celui de Kivy. Il vaut partout où ce fond est montré —
-/// la page entière, mais aussi la tranche qu'en prend le bandeau du profil —
-/// et il décide de la couleur de l'encre : noire sur un fond voilé, blanche
-/// ailleurs.
+/// la page entière, mais aussi la tranche qu'en prend le bandeau du profil.
 const Set<String> kThemesVoiles = {'fleur', 'dragon'};
 
-/// L'encre lisible sur le fond de ce thème.
-Color encreSurFond(String theme) =>
-    kThemesVoiles.contains(theme) ? Colors.black : Colors.white;
+/// L'encre lisible sur le fond d'un thème : BLANCHE, sur tous.
+///
+/// Elle se renversait en noir sur les deux fonds voilés, les plus clairs.
+/// Nino : « il ne doit plus y avoir de texte en noir du coup, tous les
+/// textes doivent être blancs ou gris. » Le blanc tient sur un fond clair —
+/// c'est son contour noir qui l'y tient, et tout texte le porte désormais.
+Color encreSurFond(String theme) => Colors.white;
 
 class FugaBackground extends StatelessWidget {
   const FugaBackground({super.key, required this.child, this.theme});

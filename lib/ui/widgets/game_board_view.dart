@@ -16,11 +16,19 @@ import 'picto_touche.dart';
 import 'theme_image_cache.dart';
 import 'texte.dart';
 
-/// La plaque sous un chrono d'immersion : du blanc qu'on voit à travers.
+/// La plaque sous un chrono d'immersion : du NOIR qu'on voit à travers.
 ///
-/// Assez opaque pour qu'une écriture noire s'y lise sur un plateau sombre,
+/// Assez opaque pour qu'une écriture blanche s'y lise sur un plateau clair,
 /// assez transparente pour qu'on voie la case dessous.
-const Color kPlaqueDuChrono = Color(0xB8FFFFFF);
+///
+/// Elle était blanche et son chrono noir — Nino l'avait dessinée ainsi : « le
+/// chrono doit être sur un soulignage rectangle blanc transparent pour rester
+/// lisible peu importe le thème. » Puis, en revoyant l'application : « il ne
+/// doit plus y avoir de texte en noir du coup, tous les textes doivent être
+/// blancs ou gris. » Un chrono blanc sur une plaque blanche ne se lirait pas
+/// : c'est donc la plaque qui se renverse, et le soulignage fait toujours son
+/// travail.
+const Color kPlaqueDuChrono = Color(0xB8000000);
 
 class GameBoardView extends StatefulWidget {
   const GameBoardView({
@@ -364,7 +372,7 @@ class _GameBoardViewState extends State<GameBoardView>
                           child: Texte(
                             texte,
                             style: TextStyle(
-                              color: const Color(0xFF000000),
+                              color: const Color(0xFFFFFFFF),
                               fontSize: geometry.cellSize * 0.42,
                               fontWeight: FontWeight.bold,
                               fontFeatures: const [

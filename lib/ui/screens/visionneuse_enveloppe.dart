@@ -128,7 +128,6 @@ class _VisionneuseEnveloppeState extends State<VisionneuseEnveloppe>
             child: FugaButton(
               text: T('Modifier et renvoyer'),
               color: palette.clair,
-              textColor: Colors.black,
               fontSize: SF(14),
               onPressed: _travaille ? null : () => unawaited(_renvoyer()),
             ),

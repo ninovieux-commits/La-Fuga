@@ -301,7 +301,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _notice(String text, {Color color = const Color(0xFF4D4D4D)}) =>
+  /// Le gris clair des notices : elles sont discrètes, pas sombres.
+  Widget _notice(String text, {Color color = const Color(0xFFCCCCCC)}) =>
       Padding(
         padding: EdgeInsets.all(S(24)),
         child: Align(

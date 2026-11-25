@@ -30,13 +30,31 @@ import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/history_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/game/correspondence.dart';
+import 'package:lafuga/ui/screens/challenge_screen.dart';
+import 'package:lafuga/ui/screens/fug_reader_screen.dart';
+import 'package:lafuga/ui/screens/game_screen.dart';
+import 'package:lafuga/ui/screens/login_screen.dart';
+import 'package:lafuga/ui/screens/parties_menu_screen.dart';
+import 'package:lafuga/ui/screens/position_composer_screen.dart';
+import 'package:lafuga/ui/screens/reader_screen.dart';
+import 'package:lafuga/ui/screens/replay_screen.dart';
 import 'package:lafuga/ui/screens/settings_screen.dart';
+import 'package:lafuga/ui/screens/theme_composer_screen.dart';
+import 'package:lafuga/ui/screens/tuto_screen.dart';
 import 'package:lafuga/ui/theme_fuga.dart';
 import 'package:lafuga/ui/widgets/player_card.dart';
 import 'package:lafuga/ui/widgets/texte.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
+
+/// Sous cette clarté, une encre n'est plus « blanche ou grise ».
+///
+/// Un gris moyen — `Colors.grey`, 0x9E9E9E — vaut 0,35 ; le blanc vaut 1 ;
+/// le noir, 0. La barre est placée juste en dessous du gris le plus sombre
+/// que l'application écrit.
+const double kEncreLaPlusSombre = 0.2;
 
 /// Les deux seuls fichiers qui ont le droit d'écrire `Text(` : celui qui
 /// pose le contour, et celui qui le dessine.
@@ -164,15 +182,28 @@ void main() {
     });
     tearDown(resetScale);
 
-    /// Chaque mot peint à l'écran, et ce qu'il porte autour.
+    /// Chaque mot peint à l'écran : son contour, et son encre.
+    ///
+    /// Nino : « il ne doit plus y avoir de texte en noir du coup, tous les
+    /// textes doivent être blancs ou gris. [...] Mets tous les textes en
+    /// blanc à contour noir ou gris à contour noir, c'est mieux. »
     void relisTout(WidgetTester tester) {
       final nus = <String>[];
+      final sombres = <String>[];
       for (final t in tester.widgetList<Text>(find.byType(Text))) {
         final style = t.style;
-        if (style?.shadows != null && style!.shadows!.isNotEmpty) continue;
-        nus.add('« ${t.data ?? t.textSpan?.toPlainText() ?? '?'} »');
+        final mot = '« ${t.data ?? t.textSpan?.toPlainText() ?? '?'} »';
+        if (style?.shadows == null || style!.shadows!.isEmpty) {
+          nus.add(mot);
+          continue;
+        }
+        final encre = style.color;
+        if (encre != null && encre.computeLuminance() < kEncreLaPlusSombre) {
+          sombres.add('$mot ${encre.toString()}');
+        }
       }
       expect(nus, isEmpty, reason: 'ces mots n ont pas de contour : $nus');
+      expect(sombres, isEmpty, reason: 'ces mots sont trop sombres : $sombres');
     }
 
     Future<void> pose(WidgetTester tester, Widget ecran) async {
@@ -216,13 +247,89 @@ void main() {
       relisTout(tester);
     });
 
+    testWidgets('la connexion, et ses champs de saisie', (tester) async {
+      await pose(tester, LoginScreen(online: online));
+      relisTout(tester);
+    });
+
+    testWidgets('le menu des parties', (tester) async {
+      await pose(tester, PartiesMenuScreen(online: online));
+      relisTout(tester);
+    });
+
+    testWidgets('le lecteur de .nmc', (tester) async {
+      await pose(tester, const ReaderScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('le lecteur de .fug', (tester) async {
+      await pose(tester, const FugReaderScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('le composeur de thème', (tester) async {
+      await pose(tester, const ThemeComposerScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('le composeur de position', (tester) async {
+      await pose(tester, const PositionComposerScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('le tutoriel', (tester) async {
+      await pose(tester, const TutoScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('une partie relue', (tester) async {
+      await pose(
+        tester,
+        const ReplayScreen(
+          nmc:
+              '[Date "2026-10-14"]\n'
+              '[Joueur1 "nino"]\n'
+              '[Joueur2 "mesange"]\n'
+              '[Blanc "nino"]\n'
+              '[Cadence "15"]\n\n'
+              '1.Do2-Do3/Do7-Do6',
+        ),
+      );
+      relisTout(tester);
+    });
+
+    testWidgets('une partie en local', (tester) async {
+      await pose(tester, const GameScreen());
+      relisTout(tester);
+    });
+
+    testWidgets('un défi reçu, en grand', (tester) async {
+      await pose(
+        tester,
+        ChallengeScreen(
+          game: CorrGame.fromJson(const {
+            'id': 'g1',
+            'statut': 'defi',
+            'adversaire': 'mesange',
+            'ma_couleur': 'Blanc',
+            'turn': 'Blanc',
+            'my_turn': false,
+            'moves_text': '',
+            'objectif': 'partie',
+          }),
+        ),
+      );
+      relisTout(tester);
+    });
+
     testWidgets('la fiche d un joueur', (tester) async {
       await pose(
         tester,
         Builder(
           builder: (context) => Scaffold(
             body: Center(
-              child: FilledButton(
+              child: TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
                 onPressed: () => showPlayerCard(
                   context,
                   online: online,

@@ -31,9 +31,12 @@ import 'profile_photo.dart';
 import 'theme_image_cache.dart';
 import 'texte.dart';
 
-/// Encre des panneaux : le `(0.05, 0.05, 0.05)` de Kivy, sur le gris des
-/// menus.
-const Color kPanelInk = Color.fromRGBO(13, 13, 13, 1);
+/// Encre des panneaux : BLANCHE, cernée de noir.
+///
+/// C'était le `(0.05, 0.05, 0.05)` de Kivy — presque du noir — sur le gris
+/// des menus. Nino, en revoyant l'application : « il ne doit plus y avoir de
+/// texte en noir du coup, tous les textes doivent être blancs ou gris. »
+const Color kPanelInk = Color(0xFFFFFFFF);
 
 /// Rouge du bouton d'abandon — `(0.55, 0.1, 0.1)`.
 const Color kResignRed = Color.fromRGBO(140, 26, 26, 1);

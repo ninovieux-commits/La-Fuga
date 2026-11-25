@@ -281,9 +281,11 @@ void main() {
       );
     });
 
-    // Nino : « le chrono doit être sur un soulignage rectangle blanc
-    // transparent pour rester lisible peu importe le thème. »
-    testWidgets('sur une plaque blanche translucide', (tester) async {
+    // Nino : « le chrono doit être sur un soulignage rectangle [...]
+    // transparent pour rester lisible peu importe le thème », puis « il ne
+    // doit plus y avoir de texte en noir » — le soulignage s'est donc
+    // renversé, et le chrono avec lui.
+    testWidgets('sur une plaque sombre translucide', (tester) async {
       await poseLePlateau(tester, haut: '5:00');
       final plaques = tester
           .widgetList<Container>(find.byType(Container))
@@ -297,7 +299,7 @@ void main() {
         lessThan(1.0),
         reason: 'on doit voir la case au travers',
       );
-      expect(kPlaqueDuChrono.r, 1.0, reason: 'et elle est blanche');
+      expect(kPlaqueDuChrono.r, 0.0, reason: 'et elle est sombre');
     });
 
     testWidgets('et rien du tout quand on ne les donne pas', (tester) async {

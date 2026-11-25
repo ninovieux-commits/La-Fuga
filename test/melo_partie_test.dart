@@ -570,6 +570,11 @@ void main() {
             appBar: FugaHeader(
               back: '< Retour',
               title: 'En local',
+              // UNE ENCRE SOMBRE, que l'application n'écrit plus — « il ne
+              // doit plus y avoir de texte en noir » — mais dont la gravure
+              // garde la règle : c'est le relief qui change de côté selon
+              // l'encre, et les deux cas se vérifient encore.
+              titleColor: Colors.black,
               onBack: () {},
             ),
           ),

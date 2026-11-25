@@ -106,7 +106,7 @@ class _TutoScreenState extends State<TutoScreen>
             style: TextStyle(
               fontSize: SF(15),
               fontWeight: FontWeight.bold,
-              color: const Color.fromRGBO(38, 38, 38, 1),
+              color: const Color(0xFFFFFFFF),
             ),
           ),
         ],
@@ -190,7 +190,7 @@ class _TutoScreenState extends State<TutoScreen>
         T(text),
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: const Color(0xFF000000),
+          color: const Color(0xFFFFFFFF),
           fontSize: SF(30),
           fontWeight: FontWeight.bold,
         ),
@@ -213,7 +213,7 @@ class _TutoScreenState extends State<TutoScreen>
       child: Texte(
         T(_tuto.text),
         textAlign: TextAlign.center,
-        style: TextStyle(color: const Color(0xFF1F1F1F), fontSize: SF(15)),
+        style: TextStyle(color: const Color(0xFFFFFFFF), fontSize: SF(15)),
       ),
     ),
   );

@@ -194,7 +194,7 @@ final class BoardBackgroundPainter extends CustomPainter {
         '${r + 1}',
         Offset(cell.left + cs * 0.08, cell.bottom - cs * 0.04),
         fontSize: math.max(10, cs * 0.20),
-        color: const Color(0xFF000000),
+        color: const Color(0xFFFFFFFF),
         anchor: _Anchor.bottomLeft,
       );
     }

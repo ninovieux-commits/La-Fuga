@@ -26,7 +26,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     required this.onBack,
     this.titleSize = 28,
-    this.titleColor = Colors.black,
+    this.titleColor = Colors.white,
     this.bold = false,
     this.favori = false,
     this.onTitleTap,

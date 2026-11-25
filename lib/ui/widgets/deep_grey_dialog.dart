@@ -34,7 +34,6 @@ Future<Camp?> askDeepGreyCamp(BuildContext context) => showDialog<Camp>(
               child: FugaButton(
                 text: T('Blancs'),
                 color: const Color.fromRGBO(235, 235, 235, 1),
-                textColor: Colors.black,
                 fontSize: SF(16),
                 onPressed: () => Navigator.of(context).pop(Camp.blanc),
               ),

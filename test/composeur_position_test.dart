@@ -257,7 +257,7 @@ void main() {
   });
 
   group('La touche du trait', () {
-    testWidgets('elle dit Blancs, puis Noirs, et porte la couleur du mot', (
+    testWidgets('elle dit Blancs, puis Noirs, en blanc dans les deux cas', (
       tester,
     ) async {
       await ouvrir(tester);
@@ -275,8 +275,10 @@ void main() {
       expect(find.text('Blancs'), findsNothing);
       expect(
         tester.widget<Text>(find.text('Noirs')).style?.color,
-        Colors.black,
-        reason: 'le mot « Noirs » s écrit en noir',
+        Colors.white,
+        reason:
+            'en BLANC lui aussi : Nino — « il ne doit plus y avoir de texte '
+            'en noir » —, et c est le rond à côté qui porte la couleur du camp',
       );
     });
   });
