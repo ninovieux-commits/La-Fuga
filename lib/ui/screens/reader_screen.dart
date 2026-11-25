@@ -91,7 +91,7 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: SF(13),
-                  color: const Color(0xFFCCCCCC),
+                  color: const Color(0xFFFFFFFF),
                 ),
               ),
             ),

@@ -49,12 +49,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
 
-/// Sous cette clarté, une encre n'est plus « blanche ou grise ».
+/// Ce qui n'est pas un mot, et garde donc sa couleur : des SYMBOLES écrits
+/// avec une police, faute d'un dessin. L'étoile des favoris est en couleur 1
+/// du thème — Nino : « l'étoile (favoris) doit être en couleur 1 du thème et
+/// avoir le contour » — et le « + » des parties de même.
+const Set<String> kSymboles = {'★', '+'};
+
+/// L'encre de TOUT texte de l'application : du blanc, et rien d'autre.
 ///
-/// Un gris moyen — `Colors.grey`, 0x9E9E9E — vaut 0,35 ; le blanc vaut 1 ;
-/// le noir, 0. La barre est placée juste en dessous du gris le plus sombre
-/// que l'application écrit.
-const double kEncreLaPlusSombre = 0.2;
+/// Nino : « en fait disons blanc à contour noir de partout. Absolument tous
+/// les textes doivent être blanc à contour noir. Comme ça c'est réglé. »
+const Color kEncreAttendue = Color(0xFFFFFFFF);
 
 /// Les deux seuls fichiers qui ont le droit d'écrire `Text(` : celui qui
 /// pose le contour, et celui qui le dessine.
@@ -183,10 +188,6 @@ void main() {
     tearDown(resetScale);
 
     /// Chaque mot peint à l'écran : son contour, et son encre.
-    ///
-    /// Nino : « il ne doit plus y avoir de texte en noir du coup, tous les
-    /// textes doivent être blancs ou gris. [...] Mets tous les textes en
-    /// blanc à contour noir ou gris à contour noir, c'est mieux. »
     void relisTout(WidgetTester tester) {
       final nus = <String>[];
       final sombres = <String>[];
@@ -198,12 +199,17 @@ void main() {
           continue;
         }
         final encre = style.color;
-        if (encre != null && encre.computeLuminance() < kEncreLaPlusSombre) {
+        if (kSymboles.contains(t.data)) continue;
+        if (encre != null && encre != kEncreAttendue) {
           sombres.add('$mot ${encre.toString()}');
         }
       }
       expect(nus, isEmpty, reason: 'ces mots n ont pas de contour : $nus');
-      expect(sombres, isEmpty, reason: 'ces mots sont trop sombres : $sombres');
+      expect(
+        sombres,
+        isEmpty,
+        reason: 'ces mots ne sont pas blancs : $sombres',
+      );
     }
 
     Future<void> pose(WidgetTester tester, Widget ecran) async {

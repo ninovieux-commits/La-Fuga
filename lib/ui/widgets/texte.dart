@@ -14,18 +14,24 @@
 /// interdit `Text(` ailleurs, pour que la prochaine ligne écrite le porte
 /// aussi.
 ///
-/// ## La couleur du contour se déduit de l'encre
+/// ## BLANC, CERNÉ DE NOIR. Toujours.
 ///
-/// Noir autour d'un mot clair, BLANC autour d'un mot sombre — la règle de
-/// [contourDe], celle des symboles et des touches. `Texte` la suit tout seul
-/// : il résout le style comme Flutter le fera — celui qu'il porte, fondu dans
-/// celui qui descend du `DefaultTextStyle` — et lit l'encre qui en sort.
-/// C'est pour cela qu'il fait ce travail ici et non chez l'appelant : au
-/// moment d'écrire `Texte(...)`, on ne sait pas toujours de quelle couleur il
-/// sortira.
+/// Nino, après un premier tour où l'encre suivait son fond : « en fait disons
+/// blanc à contour noir de partout. Absolument tous les textes doivent être
+/// blanc à contour noir. Comme ça c'est réglé. »
 ///
-/// Un style qui porte DÉJÀ des ombres est laissé tel quel : la gravure des
-/// titres ([FugaHeader]) et les ombres portées restent ce qu'elles sont.
+/// C'est donc réglé ici, et une fois pour toutes : la couleur qu'un appelant
+/// donne à son texte est IGNORÉE. Plus de gris de notice, plus de vert
+/// « en ligne », plus de rouge d'erreur — le mot est blanc, et son contour
+/// noir le tient sur n'importe quel fond, clair ou sombre.
+///
+/// Ce qui reste coloré n'est pas du texte mais un SIGNE, écrit avec une
+/// police faute d'un dessin : l'étoile des favoris, le « + » d'une case
+/// vide, le `*` qui dit une partie gagnée. Ceux-là passent `symbole: true`
+/// et gardent la couleur qui les fait parler.
+///
+/// Un style qui porte DÉJÀ des ombres garde son relief : la gravure des
+/// titres ([FugaHeader]) reste ce qu'elle est.
 library;
 
 import 'package:flutter/material.dart';
@@ -49,6 +55,7 @@ class Texte extends StatelessWidget {
     this.textHeightBehavior,
     this.selectionColor,
     this.strutStyle,
+    this.symbole = false,
   }) : span = null;
 
   const Texte.rich(
@@ -67,6 +74,7 @@ class Texte extends StatelessWidget {
     this.textHeightBehavior,
     this.selectionColor,
     this.strutStyle,
+    this.symbole = false,
   }) : data = null;
 
   final String? data;
@@ -85,20 +93,22 @@ class Texte extends StatelessWidget {
   final Color? selectionColor;
   final StrutStyle? strutStyle;
 
-  /// L'encre par défaut, quand ni le style ni ce qui descend n'en nomment
-  /// une : c'est celle de `Text` lui-même.
-  static const Color _encreParDefaut = Color(0xFFFFFFFF);
+  /// CE N'EST PAS UN MOT, mais un signe dont la couleur dit quelque chose :
+  /// il garde la sienne. Tout le reste est blanc.
+  final bool symbole;
 
-  /// Le style final, cerné — tel que Flutter le calculera, en avance.
+  /// L'encre de TOUT texte de l'application.
+  static const Color kEncre = Color(0xFFFFFFFF);
+
+  /// Le style final — blanc, cerné de noir.
   TextStyle _cerne(BuildContext context) {
     final herite = DefaultTextStyle.of(context).style;
     final fusion = style == null
         ? herite
         : (style!.inherit ? herite.merge(style) : style!);
-    if (fusion.shadows != null) return fusion;
-    return fusion.copyWith(
-      shadows: contourDesLettres(fusion.color ?? _encreParDefaut),
-    );
+    final encre = symbole ? (fusion.color ?? kEncre) : kEncre;
+    if (fusion.shadows != null) return fusion.copyWith(color: encre);
+    return fusion.copyWith(color: encre, shadows: contourDesLettres(encre));
   }
 
   @override

@@ -26,11 +26,14 @@ Size _tailleDeTouche() => Size(0, touchHeight());
 /// le leur, et un style sans ombres garde celles du thème : le contour leur
 /// vient donc d'ici.
 ///
-/// Noir : les écrans de l'application sont sombres et leurs lettres claires.
-/// Un mot sombre, lui, porte son propre contour — voir [contourDesLettres].
+/// BLANCHES, aussi : Nino — « absolument tous les textes doivent être blanc
+/// à contour noir ». [Texte] s'en charge pour l'application ; ici pour ce
+/// que Material tire du thème sans passer par lui.
 TextTheme _cerne(TextTheme t) {
-  TextStyle? c(TextStyle? s) =>
-      s?.copyWith(shadows: contourDesLettres(const Color(0xFFFFFFFF)));
+  TextStyle? c(TextStyle? s) => s?.copyWith(
+    color: const Color(0xFFFFFFFF),
+    shadows: contourDesLettres(const Color(0xFFFFFFFF)),
+  );
   return TextTheme(
     displayLarge: c(t.displayLarge),
     displayMedium: c(t.displayMedium),
@@ -67,6 +70,12 @@ ThemeData themeFuga() {
     // les touches plates d'un micromenu. Sans cela, elles gardaient la
     // hauteur minimale de Material, deux fois plus fine que les touches
     // du menu.
+    // L'INVITE D'UN CHAMP DE SAISIE EST BLANCHE ELLE AUSSI. Sans cela elle
+    // prend le gris que Material choisit, et c'est le seul mot de
+    // l'application qui échappait à la règle.
+    inputDecorationTheme: const InputDecorationTheme(
+      hintStyle: TextStyle(color: Color(0xFFFFFFFF)),
+    ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(minimumSize: _tailleDeTouche()),
     ),

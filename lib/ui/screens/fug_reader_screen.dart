@@ -215,7 +215,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
                         decoration: InputDecoration(
                           hintText: 'B\nsgshgsg\ngnnnnns\n…',
                           hintStyle: TextStyle(
-                            color: Colors.white70,
+                            color: Colors.white,
                             fontSize: SF(13),
                             fontFamily: 'monospace',
                           ),

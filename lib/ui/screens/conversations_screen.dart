@@ -248,8 +248,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
     );
   }
 
-  /// Le gris clair des notices : elles sont discrètes, pas sombres.
-  Widget _notice(String text, {Color color = const Color(0xFFCCCCCC)}) =>
+  Widget _notice(String text, {Color color = const Color(0xFFFFFFFF)}) =>
       Padding(
         padding: EdgeInsets.all(S(20)),
         child: Align(
@@ -1648,7 +1647,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: T('Votre message…'),
-                  hintStyle: const TextStyle(color: Colors.white38),
+                  hintStyle: const TextStyle(color: Colors.white),
                   border: const OutlineInputBorder(),
                   isDense: true,
                 ),

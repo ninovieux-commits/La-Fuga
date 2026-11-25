@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
   /// l'invite en gris clair.
   InputDecoration _champ(String invite) => InputDecoration(
     hintText: invite,
-    hintStyle: const TextStyle(color: Colors.white70),
+    hintStyle: const TextStyle(color: Colors.white),
     filled: true,
     fillColor: kGrisTouche,
     border: OutlineInputBorder(

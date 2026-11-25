@@ -531,9 +531,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
               style: TextStyle(color: Colors.white, fontSize: SF(12)),
               decoration: InputDecoration(
                 hintText: T('Coller un code .fug'),
-                // Gris clair, et non la couleur du thème : certaines sont
-                // trop sombres pour s écrire.
-                hintStyle: TextStyle(color: Colors.white70, fontSize: SF(12)),
+                hintStyle: TextStyle(color: Colors.white, fontSize: SF(12)),
                 filled: true,
                 fillColor: kBarButtonDark,
                 border: OutlineInputBorder(

@@ -235,7 +235,7 @@ class _MoveStripState extends State<MoveStrip> {
   }
 
   /// Un demi-coup : sa notation, touchable pour revenir dessus. Le demi-coup
-  /// regardé s'écrit en blanc, les autres en gris.
+  /// regardé s'écrit en gras, les autres en maigre.
   Widget _half(int index, String notation, bool actif) => TextButton(
     key: _cleDe(index),
     onPressed: () => widget.onSelect(index),
@@ -243,13 +243,18 @@ class _MoveStripState extends State<MoveStrip> {
       minimumSize: Size.zero,
       padding: EdgeInsets.symmetric(horizontal: S(3)),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      // Le coup regardé s'écrit en BLANC, les autres en gris : ils
-      // étaient noir et blanc, et le noir n'a plus cours.
-      foregroundColor: actif ? Colors.white : Colors.white60,
+      foregroundColor: Colors.white,
     ),
+    // TOUS BLANCS, et le coup regardé se distingue par sa GRAISSE. Nino :
+    // « absolument tous les textes doivent être blanc à contour noir. » Il
+    // s'écrivait en noir, puis en blanc quand les autres passaient au gris ;
+    // la couleur ne peut plus rien dire, c'est donc le gras qui le dit.
     child: Texte(
       notation,
-      style: TextStyle(fontSize: SF(14), fontWeight: FontWeight.bold),
+      style: TextStyle(
+        fontSize: SF(14),
+        fontWeight: actif ? FontWeight.bold : FontWeight.normal,
+      ),
     ),
   );
 

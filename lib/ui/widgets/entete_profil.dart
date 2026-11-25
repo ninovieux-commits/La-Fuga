@@ -242,7 +242,7 @@ class EnteteProfil extends StatelessWidget {
       // écrit, bulle claire ou non. Nino : « tous les textes doivent être
       // blancs ou gris. »
       style: TextStyle(
-        color: vide ? Colors.white70 : Colors.white,
+        color: Colors.white,
         fontStyle: vide ? FontStyle.italic : FontStyle.normal,
       ),
       tailleMin: SF(10),

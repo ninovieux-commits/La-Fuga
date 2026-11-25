@@ -2058,7 +2058,7 @@ class MenuScreenState extends State<MenuScreen>
                 // texte, donc plus rien qui puisse imposer une autre hauteur.
                 decoration: InputDecoration.collapsed(
                   hintText: T('Rechercher un joueur…'),
-                  hintStyle: TextStyle(color: Colors.white70, fontSize: SF(13)),
+                  hintStyle: TextStyle(color: Colors.white, fontSize: SF(13)),
                 ),
                 onSubmitted: (_) => _searchPlayer(),
               ),
@@ -2286,7 +2286,7 @@ class MenuScreenState extends State<MenuScreen>
                 fontSize: SF(14),
                 height: double.infinity,
                 color: _random ? palette.clair : kGrisTouche,
-                textColor: _random ? Colors.black87 : Colors.white,
+                textColor: Colors.white,
                 onPressed: () => setState(() => _random = !_random),
               ),
             ),

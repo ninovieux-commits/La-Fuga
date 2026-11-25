@@ -377,9 +377,7 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
         child: FugaButton(
           text: T('Choisir'),
           color: _couleur,
-          textColor: _couleur.computeLuminance() > 0.5
-              ? Colors.black
-              : Colors.white,
+          textColor: Colors.white,
           fontSize: SF(15),
           height: double.infinity,
           onPressed: () => Navigator.of(context).pop(_couleur),

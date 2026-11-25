@@ -503,12 +503,15 @@ class GameTopBar extends StatelessWidget {
   /// le texte reçoit une place infinie et ne va donc jamais à la ligne tout
   /// seul. On lui impose la largeur utile de la touche, il s'y replie, et le
   /// `FittedBox` ne réduit plus que ce qui dépasse encore.
-  /// Le libellé d'une touche à MOTS, traité comme un symbole : la couleur
-  /// claire du thème, et le même fin trait noir que les dessins.
+  /// Le libellé d'une touche à MOTS : BLANC, cerné de noir.
+  ///
+  /// Il prenait la couleur claire du thème, comme les symboles d'à côté.
+  /// Nino : « absolument tous les textes doivent être blanc à contour noir ».
+  /// Les dessins gardent la leur — un symbole n'est pas un mot.
   Widget _etiquette(String label, double fontSize, double? width, int lignes) {
     final texte = MotTouche(
       texte: label,
-      couleur: palette.clair,
+      couleur: Colors.white,
       maxLines: lignes,
       style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
     );
