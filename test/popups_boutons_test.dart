@@ -228,7 +228,7 @@ void main() {
 
     testWidgets('« Enregistrer » quand il n est pas favori', (tester) async {
       await ouvreFiche(tester);
-      expect(find.widgetWithText(FugaButton, T('Ajouter')), findsOneWidget);
+      expect(find.widgetWithText(FugaButton, T('Favori')), findsOneWidget);
       expect(find.widgetWithText(FugaButton, T('Retirer')), findsNothing);
     });
   });
@@ -336,7 +336,7 @@ void main() {
       await s.online.client.login('Nino', 'mdp');
       await ouvre(tester, online: s.online);
       expect(find.text(T('Retirer')), findsOneWidget);
-      expect(find.text(T('Ajouter')), findsNothing);
+      expect(find.text(T('Favori')), findsNothing);
     });
 
     testWidgets('et la touche FAIT ce qu elle annonce', (tester) async {
@@ -355,7 +355,7 @@ void main() {
       // qui le dit, et il suffit.
       await ouvre(tester, pseudo: 'Nino');
       expect(find.widgetWithText(FugaButton, T('Profil')), findsOneWidget);
-      for (final texte in [T('Défier'), T('Ajouter'), T('Bloquer')]) {
+      for (final texte in [T('Défier'), T('Favori'), T('Bloquer')]) {
         expect(find.text(texte), findsNothing);
       }
     });

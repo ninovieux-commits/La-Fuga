@@ -347,15 +347,16 @@ class _PlayerCardState extends State<_PlayerCard> {
         couleur: widget.palette.fonce,
         onPressed: _openChat,
       ),
-    // GRISE, ET ELLE DIT « AJOUTER ». Nino : « la touche enregistrer doit
-    // être grise et plutôt dire ajouter. » « Enregistrer » disait le geste
-    // du serveur, pas celui du joueur : on n'enregistre rien, on ajoute
-    // quelqu'un à ses favoris. Et la couleur du thème la mettait au rang de
-    // « Défier », alors qu'elle n'engage à rien — le gris des touches
-    // ordinaires lui va.
+    // LA MÊME TOUCHE QUE SUR LE PROFIL, au mot et à la couleur près. Nino :
+    // « elle doit dire favori, ce doit être la même touche que lorsqu'on est
+    // sur le profil du coup. » Le profil dit « Favori », puis « Retirer »
+    // une fois qu'il l'est ; la fiche disait « Enregistrer », qui nommait le
+    // geste du serveur et non celui du joueur. Deux touches pour un seul
+    // geste, c'était une de trop.
     if (!_moi)
       _touche(
-        texte: _favorite ? T('Retirer') : T('Ajouter'),
+        texte: _favorite ? T('Retirer') : T('Favori'),
+        couleur: widget.palette.fonce,
         onPressed: _busy ? null : _toggleFavorite,
       ),
     if (!_moi)

@@ -357,6 +357,43 @@ void main() {
       expect(find.widgetWithText(FugaButton, T('En direct')), findsOneWidget);
     });
 
+    // Nino : « elle doit dire favori, ce doit être la même touche que
+    // lorsqu'on est sur le profil du coup. »
+    testWidgets('sa touche de favori est CELLE du profil', (tester) async {
+      reponses['/get_profile'] = profil();
+      await ecran(tester, AccountScreen(online: online, pseudo: 'mesange'));
+      final surLeProfil = tester.widget<FugaButton>(
+        find.widgetWithText(FugaButton, T('Favori')),
+      );
+
+      // Et la fiche, ouverte ailleurs, porte la même.
+      await ecran(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showPlayerCard(
+                  context,
+                  online: online,
+                  palette: paletteOf(Settings.instance.themeAxes.general),
+                  pseudo: 'mesange',
+                ),
+                child: const Text('ouvrir'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+
+      final dansLaFiche = tester.widget<FugaButton>(
+        find.widgetWithText(FugaButton, T('Favori')),
+      );
+      expect(dansLaFiche.color, surLeProfil.color);
+    });
+
     testWidgets('rien de tout cela sur MON profil', (tester) async {
       reponses['/get_profile'] = profil(pseudo: 'nino', moi: true);
       await ecran(tester, AccountScreen(online: online));
