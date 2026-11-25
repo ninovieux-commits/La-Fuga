@@ -123,17 +123,6 @@ jobs:
       # distingue le build qui porte un correctif de celui qui le précède :
       # on a perdu trois échanges à chercher un bug dans un APK trop vieux
       # pour le contenir.
-      # POUR TOUS LES APPAREILS, et non pour le seul ARM 64 bits.
-      #
-      # L'APK ne portait que les bibliothèques `arm64-v8a` : sur un appareil
-      # 32 bits — beaucoup de tablettes, et les téléphones d'avant 2017 — il
-      # n'y a rien à exécuter, et Android refuse l'installation avec la même
-      # phrase que pour une signature : « l'appli n'a pas été installée ».
-      # Nino, sur un appareil où elle n'avait jamais été installée : « je
-      # peux pas le désinstaller vu que je suis pas arrivé à l'installer. »
-      #
-      # Il les porte maintenant toutes. Il pèse une quinzaine de mégaoctets
-      # de plus, et il s'installe partout.
       - name: Compiler l'APK
         id: build
         run: |
@@ -148,7 +137,7 @@ jobs:
             echo "Mode release"
             MODE=release
           fi
-          flutter build apk --"$MODE" \
+          flutter build apk --"$MODE" --target-platform android-arm64 \
             --build-name="$BASE-$COURT" --build-number="${{ github.run_number }}"
           SORTIE="build/app/outputs/flutter-apk/app-$MODE.apk"
           FINAL="build/app/outputs/flutter-apk/lafuga-$MODE-$COURT.apk"
