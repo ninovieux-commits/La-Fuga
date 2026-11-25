@@ -77,6 +77,40 @@ jobs:
       - name: Récupérer les dépendances
         run: flutter pub get
 
+      # UNE SIGNATURE QUI NE CHANGE PAS D'UN APK À L'AUTRE.
+      #
+      # Sans clé, Gradle signe avec la clé de DEBUG — et cette clé-là est
+      # fabriquée par la machine qui compile, donc elle change d'un build à
+      # l'autre. Android, lui, refuse d'installer une mise à jour qui n'est
+      # pas signée comme celle qu'elle remplace, et le dit en trois mots :
+      # « l'appli n'a pas été installée ». Nino : « y a aucune raison, aucun
+      # problème, juste ça s'installe pas. »
+      #
+      # On pose donc la clé d'envoi du dépôt quand elle existe : les APK
+      # s'installent alors les uns par-dessus les autres, sans désinstaller.
+      # Sur une pull request venue d'un fork, les secrets sont vides — on
+      # retombe sur la clé de debug et le build passe quand même.
+      - name: Poser la clé de signature
+        id: cle
+        env:
+          CLE: ${{ secrets.CLE_SIGNATURE_BASE64 }}
+          MDP: ${{ secrets.CLE_SIGNATURE_MDP }}
+          ALIAS: ${{ secrets.CLE_SIGNATURE_ALIAS }}
+        run: |
+          if [ -z "$CLE" ] || [ -z "$MDP" ] || [ -z "$ALIAS" ]; then
+            echo "Aucune clé d'envoi : signature de debug (l'APK ne s'installera pas par-dessus un autre)."
+            echo "signature=debug" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$CLE" | base64 -d > "$RUNNER_TEMP/lafuga-upload.jks"
+          cat > android/key.properties <<EOF
+          storeFile=$RUNNER_TEMP/lafuga-upload.jks
+          storePassword=$MDP
+          keyPassword=$MDP
+          keyAlias=$ALIAS
+          EOF
+          echo "signature=envoi" >> "$GITHUB_OUTPUT"
+
       # RELEASE PAR DÉFAUT. Un APK debug fait tourner Dart en JIT, assertions
       # comprises, et le moteur de rendu sans ses raccourcis : l'IA réfléchit
       # plusieurs fois plus longtemps, les animations sautent et le toucher
@@ -112,6 +146,12 @@ jobs:
           echo "nom=lafuga-apk-$MODE-$COURT" >> "$GITHUB_OUTPUT"
           echo "version=$BASE-$COURT ($MODE, build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
 
+      # La clé part avec la machine, quoi qu'il arrive — et avant même que
+      # l'APK soit rangé.
+      - name: Ranger la clé
+        if: always()
+        run: rm -f android/key.properties "$RUNNER_TEMP/lafuga-upload.jks"
+
       - name: Récapitulatif
         if: always()
         run: |
@@ -124,6 +164,15 @@ jobs:
             echo "- Taille : **$TAILLE**" >> "$GITHUB_STEP_SUMMARY"
             echo "- Commit : \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
             echo "- Version affichée par Android : **${{ steps.build.outputs.version }}**" >> "$GITHUB_STEP_SUMMARY"
+            # QUI A SIGNÉ : c'est ce qui décide si l'APK s'installera
+            # par-dessus le précédent.
+            if [ "${{ steps.cle.outputs.signature }}" = "envoi" ]; then
+              echo "- Signature : **clé d'envoi** — s'installe par-dessus un APK signé de la même clé" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- Signature : **clé de debug** — il faut désinstaller l'application avant de l'installer" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            EMPREINTE="$(keytool -printcert -jarfile "$APK" 2>/dev/null | grep -m1 'SHA256:' | sed 's/.*SHA256: *//')"
+            [ -n "$EMPREINTE" ] && echo "- Empreinte du signataire : \`$EMPREINTE\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### APK introuvable" >> "$GITHUB_STEP_SUMMARY"
             echo "Attendu à \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
