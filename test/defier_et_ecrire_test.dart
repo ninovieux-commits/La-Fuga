@@ -34,6 +34,7 @@ import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
 import 'package:lafuga/ui/widgets/choix_du_defi.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
+import 'package:lafuga/ui/widgets/fuga_popup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
@@ -45,6 +46,8 @@ void main() {
   late Map<String, Map<String, dynamic>> reponses;
   late OnlineService online;
   late FakeRealtime socket;
+
+  const ecranTeste = Size(393, 851);
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({
@@ -337,6 +340,48 @@ void main() {
       await tester.tap(find.widgetWithText(FugaButton, T('Nouveau')));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FugaButton, 'celia'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConversationScreen), findsOneWidget);
+    });
+
+    // Nino : « si il y a beaucoup de favoris, ça défile ? »
+    testWidgets('avec vingt favoris, le popup DÉFILE au lieu de déborder', (
+      tester,
+    ) async {
+      reponses['/list_conversations'] = {'ok': true, 'conversations': const []};
+      reponses['/list_favorites'] = {
+        'ok': true,
+        'favorites': [
+          for (var i = 0; i < 20; i++)
+            {'pseudo': 'joueur$i', 'melo': 1500, 'online': false},
+        ],
+      };
+      await ecran(tester, ConversationsScreen(online: online));
+      await tester.tap(find.widgetWithText(FugaButton, T('Nouveau')));
+      await tester.pumpAndSettle();
+
+      // Il ne dépasse pas de l'écran : sa hauteur est plafonnée.
+      // La PARTIE QUI DÉFILE, et non la boîte du `Dialog`, qui occupe tout
+      // l'écran pour centrer sa carte dedans.
+      final popup = tester.getRect(
+        find.descendant(
+          of: find.byType(FugaPopup),
+          matching: find.byType(SingleChildScrollView),
+        ),
+      );
+      expect(popup.height, lessThanOrEqualTo(ecranTeste.height * 0.7 + 1));
+      expect(popup.top, greaterThanOrEqualTo(0));
+      expect(popup.bottom, lessThanOrEqualTo(ecranTeste.height));
+
+      // Le premier est là, le dernier attend VRAIMENT plus bas : son rang
+      // tombe sous le bord du popup, et seul un défilement l'amène.
+      expect(find.widgetWithText(FugaButton, 'joueur0'), findsOneWidget);
+      final dernier = find.widgetWithText(FugaButton, 'joueur19');
+      expect(tester.getRect(dernier).top, greaterThan(popup.bottom));
+      await tester.scrollUntilVisible(dernier, 80);
+      await tester.pumpAndSettle();
+      await tester.tap(dernier);
       await tester.pumpAndSettle();
 
       expect(find.byType(ConversationScreen), findsOneWidget);
