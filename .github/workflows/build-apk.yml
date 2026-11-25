@@ -171,8 +171,18 @@ jobs:
             else
               echo "- Signature : **clé de debug** — il faut désinstaller l'application avant de l'installer" >> "$GITHUB_STEP_SUMMARY"
             fi
-            EMPREINTE="$(keytool -printcert -jarfile "$APK" 2>/dev/null | grep -m1 'SHA256:' | sed 's/.*SHA256: *//')"
-            [ -n "$EMPREINTE" ] && echo "- Empreinte du signataire : \`$EMPREINTE\`" >> "$GITHUB_STEP_SUMMARY"
+            # `if`, et non `[ … ] && echo` : une liste qui finit par un
+            # test FAUX rend 1, et l'étape entière échoue là-dessus. Les
+            # deux derniers builds ont été marqués en échec alors que leur
+            # APK était bon et déjà rangé — le récapitulatif mentait sur le
+            # build qu'il résume.
+            EMPREINTE="$(keytool -printcert -jarfile "$APK" 2>/dev/null | grep -m1 'SHA256:' | sed 's/.*SHA256: *//' || true)"
+            if [ -n "$EMPREINTE" ]; then
+              echo "- Empreinte du signataire : \`$EMPREINTE\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            # Le hash du fichier : de quoi vérifier qu'un APK transféré d'un
+            # appareil à l'autre est intact.
+            echo "- SHA-256 de l'APK : \`$(sha256sum "$APK" | cut -d' ' -f1)\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### APK introuvable" >> "$GITHUB_STEP_SUMMARY"
             echo "Attendu à \`$APK\`" >> "$GITHUB_STEP_SUMMARY"
