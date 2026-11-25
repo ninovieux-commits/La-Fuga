@@ -12,9 +12,14 @@ import '../../game/last_move.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
 import 'board_painter.dart';
-import 'fuga_button.dart';
 import 'picto_touche.dart';
 import 'theme_image_cache.dart';
+
+/// La plaque sous un chrono d'immersion : du blanc qu'on voit à travers.
+///
+/// Assez opaque pour qu'une écriture noire s'y lise sur un plateau sombre,
+/// assez transparente pour qu'on voie la case dessous.
+const Color kPlaqueDuChrono = Color(0xB8FFFFFF);
 
 class GameBoardView extends StatefulWidget {
   const GameBoardView({
@@ -324,34 +329,47 @@ class _GameBoardViewState extends State<GameBoardView>
                   ),
                 ),
               ),
-              // LES CHRONOS DANS LES RALLIEMENTS, quand il n'y a plus de
-              // bandeau pour les porter. Ils sont écrits par-dessus la bande
-              // de leur camp, cernés comme tout ce qui s'écrit sur une
-              // couleur : `encreSurTouche` donne l'encre, et `MotTouche` le
-              // contour qui la détache.
+              // LES CHRONOS DANS LES RALLIEMENTS, à droite, et sur une
+              // plaque blanche translucide.
+              //
+              // Nino : « les chronos en immersion doivent être à droite dans
+              // l'espace prévu pour le ralliement [...] le chrono doit être
+              // sur un soulignage rectangle blanc transparent pour rester
+              // lisible peu importe le thème. » La plaque est ce qui rend la
+              // règle universelle : dix-sept thèmes et autant d'images de
+              // plateau, et aucune couleur d'encre ne les traverse tous.
               for (final (indice, texte) in [
                 (0, widget.chronoHaut),
                 (kExtRows - 1, widget.chronoBas),
               ])
                 if (texte != null && texte.isNotEmpty)
                   Positioned(
-                    left: geometry.originX,
-                    width: geometry.cellSize * kCols,
+                    right: geometry.originX,
                     top: geometry.rowToY(geometry.indexToRow(indice)),
                     height: geometry.cellSize,
                     child: IgnorePointer(
                       child: Center(
-                        child: MotTouche(
-                          texte: texte,
-                          couleur: encreSurTouche(
-                            geometry.indexToRow(indice) == kRows
-                                ? widget.palette.clair
-                                : widget.palette.fonce,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: geometry.cellSize * 0.14,
+                            vertical: geometry.cellSize * 0.05,
                           ),
-                          style: TextStyle(
-                            fontSize: geometry.cellSize * 0.5,
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: const [FontFeature.tabularFigures()],
+                          decoration: BoxDecoration(
+                            color: kPlaqueDuChrono,
+                            borderRadius: BorderRadius.circular(
+                              geometry.cellSize * 0.18,
+                            ),
+                          ),
+                          child: Text(
+                            texte,
+                            style: TextStyle(
+                              color: const Color(0xFF000000),
+                              fontSize: geometry.cellSize * 0.42,
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
                         ),
                       ),

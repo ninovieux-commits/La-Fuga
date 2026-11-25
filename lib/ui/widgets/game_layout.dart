@@ -217,16 +217,18 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
       // 7 + 12 + 66 + 12 + 7 = 104 parts. Sans les bandeaux, leurs 12 parts
       // reviennent au plateau : il n'y a pas de bande vide à regarder.
       final unit = box.maxHeight / kPartsEcran;
-      final bar = unit * kPartsBarre;
+      final barre = unit * kPartsBarre;
       // EN IMMERSION, LES BANDEAUX DE JOUEUR N'EXISTENT PAS.
       //
       // Nino : « quand on agrandit le plateau par pincement, les bandeaux
       // disparaissent ». C'est ce qui rend la chose automatique : ce qui
       // n'est plus affiché n'a plus à rentrer, donc aucune forme d'écran ne
-      // peut la prendre en défaut. Les deux bandes fines restent — les
-      // touches du haut et les coups du bas —, sans quoi on ne pourrait ni
-      // mettre en pause, ni écrire, ni revoir un coup.
+      // peut la prendre en défaut. Et les deux bandes fines s'en vont avec
+      // le reste — Nino : « les bandeaux fins doivent disparaître aussi,
+      // c'est un mode immersion ». Il ne reste que le plateau, du haut de
+      // l'écran jusqu'en bas ; un pincement vers l'intérieur rend tout.
       final avecBandeaux = !_immersion;
+      final bar = avecBandeaux ? barre : 0.0;
       var top = widget.topPanel == null || !avecBandeaux
           ? 0.0
           : (widget.topHeight ?? unit * kPartsBandeauJoueur);
@@ -260,23 +262,15 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
         // rétrécir quand même les abîmerait sans rien régler — le « ∞ » du
         // chrono n'y tenait plus. Quand le manque dépasse ce qu'ils ont à
         // donner, ils gardent leur hauteur.
-        // ET LE PINCEMENT LEUR EN FAIT CÉDER DAVANTAGE. Nino, devant sa
-        // tablette : « avec éventuellement une touche pour placer le plateau
-        // en grand [...] ou un geste (le geste générique pour agrandir) ».
-        // Ce qu'ils peuvent donner sans devenir illisibles, au lieu du
-        // cinquième qu'ils donnent d'eux-mêmes.
         final cedable = (top + bottom) * kBandeauRetraitMax;
-        // TOUT CE QU'ILS PEUVENT EN GRAND, RIEN DU TOUT SINON.
+        // TOUT OU RIEN.
         //
-        // D'eux-mêmes, les bandeaux ne cèdent que si ce qu'ils ont suffit à
-        // combler TOUT le manque : à moitié rétrécis pour un plateau qui
-        // déborderait encore, ils seraient abîmés pour rien. Sur une
-        // tablette le manque dépasse toujours ce qu'ils ont, donc ils
-        // gardent leur hauteur — c'est le défaut d'origine.
-        //
-        // Quand on le demande, la question change : le plateau ne déborde
-        // plus jamais, il se contente de ce qu'on lui donne. Chaque point
-        // cédé est donc un point de gagné, et ils donnent ce qu'ils peuvent.
+        // Les bandeaux ne cèdent que si ce qu'ils ont suffit à combler TOUT
+        // le manque : à moitié rétrécis pour un plateau qui déborderait
+        // encore, ils seraient abîmés pour rien. Sur une tablette le manque
+        // dépasse toujours ce qu'ils ont, donc ils gardent leur hauteur et
+        // c'est au joueur d'écarter les doigts s'il veut le plateau en
+        // grand.
         if (manque > 0 && manque <= cedable) {
           final part = manque / (top + bottom);
           top -= top * part;
@@ -298,8 +292,8 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
           children: [
             Column(
               children: [
-                SizedBox(height: bar, child: widget.topBar),
-                if (widget.notice != null) widget.notice!,
+                if (avecBandeaux) SizedBox(height: bar, child: widget.topBar),
+                if (widget.notice != null && avecBandeaux) widget.notice!,
                 if (widget.topPanel != null && avecBandeaux)
                   SizedBox(
                     height: top,
@@ -323,10 +317,17 @@ class _GameLayoutState extends State<GameLayout> with SuitLesReglages {
                             ),
                           ),
                   ),
-                SizedBox(height: board),
+                // `width` : LA PILE PREND SA LARGEUR DE CETTE COLONNE, et
+                // en immersion il ne lui reste que ce trou — les bandeaux,
+                // qui s'étendaient, sont partis. Sans cela la colonne ne
+                // mesure plus rien de large, la pile non plus, et le
+                // plateau, pourtant `left: 0, right: 0`, se dessine sur
+                // zéro pixel de large.
+                SizedBox(height: board, width: double.infinity),
                 if (widget.bottomPanel != null && avecBandeaux)
                   SizedBox(height: bottom, child: widget.bottomPanel),
-                SizedBox(height: bar, child: widget.moveStrip),
+                if (avecBandeaux)
+                  SizedBox(height: bar, child: widget.moveStrip),
               ],
             ),
             Positioned(

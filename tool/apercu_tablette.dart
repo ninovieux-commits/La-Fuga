@@ -34,8 +34,10 @@ import 'package:lafuga/game/sound_player.dart';
 import 'package:lafuga/i18n/translations.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/theme_assets.dart';
+import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/replay_screen.dart';
+import 'package:lafuga/ui/widgets/game_board_view.dart';
 import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,8 +47,9 @@ const Size _ecran = Size(800, 1280);
 /// rangée vide et on ne voit pas où vont les pièces mangées.
 ///
 /// On la joue ici même, en préférant à chaque coup celui qui éjecte, et on
-/// écrit ses notations comme un `.nmc`.
-String _nmcAvecPrises({int demiCoups = 24}) {
+/// écrit ses notations comme un `.nmc` — avec le plateau où elle s'arrête,
+/// pour l'aperçu des chronos, qui dessine le plateau seul.
+({String nmc, Board plateau}) _nmcAvecPrises({int demiCoups = 24}) {
   final jeu = MoveController(board: Board.initial());
   final hasard = math.Random(7);
   for (var i = 0; i < demiCoups && !jeu.gameOver; i++) {
@@ -73,15 +76,20 @@ String _nmcAvecPrises({int demiCoups = 24}) {
     final noir = i + 1 < jeu.history.length ? '/${jeu.history[i + 1]}' : '';
     lignes.add('${i ~/ 2 + 1}.${jeu.history[i]}$noir');
   }
-  return '[Date "2026-10-30"]\n'
-      '[Joueur1 "nino"]\n'
-      '[Joueur2 "celia"]\n'
-      '[Blanc "nino"]\n'
-      '[Cadence "15"]\n\n'
-      '${lignes.join('\n')}';
+  return (
+    nmc:
+        '[Date "2026-10-30"]\n'
+        '[Joueur1 "nino"]\n'
+        '[Joueur2 "celia"]\n'
+        '[Blanc "nino"]\n'
+        '[Cadence "15"]\n\n'
+        '${lignes.join('\n')}',
+    plateau: jeu.board,
+  );
 }
 
 final GlobalKey _cadre = GlobalKey();
+final GlobalKey _chronos = GlobalKey();
 
 /// Un lecteur de sons MUET : le vrai ouvre un canal de plateforme qui
 /// n'existe pas dans un test, et l'erreur tombe au milieu du dessin.
@@ -112,7 +120,7 @@ Future<void> main() async {
     await Settings.load();
     await Translations.load('fr');
     setScaleSize(_ecran);
-    final partie = _nmcAvecPrises();
+    final (nmc: partie, plateau: plateau) = _nmcAvecPrises();
     tester.view.physicalSize = _ecran;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -193,5 +201,39 @@ Future<void> main() async {
     File(
       'tool/apercus/plateau_tablette_immersion.png',
     ).writeAsBytesSync(Uint8List.view(octetsGrands!.buffer));
+
+    // ET LES CHRONOS, QUE LA LECTURE N'A PAS. Une partie relue n'a pas de
+    // pendule : pour juger de la plaque et de sa place, on dessine le
+    // plateau seul, en grand, avec deux heures dedans.
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: _chronos,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            body: GameBoardView(
+              board: plateau,
+              palette: paletteOf(Settings.instance.themeAxes.general),
+              flipped: true,
+              onTapCell: (_) {},
+              chronoHaut: '2:07',
+              chronoBas: '11:42',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final avecChronos =
+        _chronos.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final troisieme = await tester.runAsync(
+      () => avecChronos.toImage(pixelRatio: 2),
+    );
+    final octetsChronos = await tester.runAsync(
+      () => troisieme!.toByteData(format: ui.ImageByteFormat.png),
+    );
+    File(
+      'tool/apercus/plateau_tablette_chronos.png',
+    ).writeAsBytesSync(Uint8List.view(octetsChronos!.buffer));
   });
 }

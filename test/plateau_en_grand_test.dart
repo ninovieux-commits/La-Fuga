@@ -33,6 +33,7 @@ import 'package:lafuga/engine/board.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/widgets/board_geometry.dart';
 import 'package:lafuga/ui/widgets/game_board_view.dart';
+import 'package:lafuga/ui/widgets/move_strip.dart';
 import 'package:lafuga/ui/widgets/player_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,6 +152,18 @@ void main() {
       findsNothing,
       reason: 'les bandeaux de joueur ont disparu',
     );
+    // Nino : « les bandeaux fins doivent disparaître aussi, c'est un mode
+    // immersion. »
+    expect(
+      find.byType(MoveStrip),
+      findsNothing,
+      reason: 'la bande des coups aussi',
+    );
+    expect(
+      hauteurDuPlateau(tester),
+      kTablette.height,
+      reason: 'il ne reste que le plateau, sur toute la hauteur',
+    );
   });
 
   testWidgets('et les rapprocher le ramène', (tester) async {
@@ -246,6 +259,45 @@ void main() {
           reason: '$texte doit être dans la bande de ralliement',
         );
       }
+    });
+
+    // Nino : « les chronos en immersion doivent être à droite dans l'espace
+    // prévu pour le ralliement. »
+    testWidgets('à droite, dans la dernière case', (tester) async {
+      final g = await poseLePlateau(tester, haut: '5:00');
+      final plateau = tester.getRect(find.byType(GameBoardView));
+      final mot = tester.getRect(find.text('5:00'));
+
+      final borDroit = plateau.left + g.originX + g.cellSize * kCols;
+      expect(
+        mot.right,
+        lessThanOrEqualTo(borDroit + 0.5),
+        reason: 'il ne sort pas du plateau',
+      );
+      expect(
+        mot.center.dx,
+        greaterThan(borDroit - g.cellSize * 1.5),
+        reason: 'et il tient dans la dernière case, ou presque',
+      );
+    });
+
+    // Nino : « le chrono doit être sur un soulignage rectangle blanc
+    // transparent pour rester lisible peu importe le thème. »
+    testWidgets('sur une plaque blanche translucide', (tester) async {
+      await poseLePlateau(tester, haut: '5:00');
+      final plaques = tester
+          .widgetList<Container>(find.byType(Container))
+          .where((c) {
+            final d = c.decoration;
+            return d is BoxDecoration && d.color == kPlaqueDuChrono;
+          });
+      expect(plaques, hasLength(1));
+      expect(
+        kPlaqueDuChrono.a,
+        lessThan(1.0),
+        reason: 'on doit voir la case au travers',
+      );
+      expect(kPlaqueDuChrono.r, 1.0, reason: 'et elle est blanche');
     });
 
     testWidgets('et rien du tout quand on ne les donne pas', (tester) async {
