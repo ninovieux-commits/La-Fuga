@@ -309,10 +309,10 @@ void main() {
       await tester.tap(find.text(T('Retirer')));
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.star), findsNothing);
-      expect(find.text(T('Enregistrer')), findsOneWidget);
+      expect(find.text(T('Ajouter')), findsOneWidget);
 
       // Et elle se rallume.
-      await tester.tap(find.text(T('Enregistrer')));
+      await tester.tap(find.text(T('Ajouter')));
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.star), findsOneWidget);
     });
@@ -324,7 +324,7 @@ void main() {
       // le seul lien entre la fiche et ce qu'il y a derrière elle.
       await ouvre(tester, favori: false);
       expect(FavorisConnus.instance.connu('celia'), isFalse);
-      await tester.tap(find.text(T('Enregistrer')));
+      await tester.tap(find.text(T('Ajouter')));
       await tester.pumpAndSettle();
       expect(FavorisConnus.instance.connu('celia'), isTrue);
     });

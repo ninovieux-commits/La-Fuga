@@ -138,14 +138,36 @@ class _ConversationsScreenState extends State<ConversationsScreen>
               italic: true,
             ),
           ),
-        for (final f in favoris)
+        // LA LISTE DÉFILE, « FERMER » RESTE. Nino, devant le volet des
+        // favoris du menu : « et celui-là, il défile ? » Celui du menu
+        // défile depuis toujours, et sa touche « Fermer » se tient SOUS ce
+        // qui défile, toujours à l'écran. Ici la liste a donc son propre
+        // plafond, au lieu de pousser la touche hors de vue.
+        if (favoris.isNotEmpty)
           (
-            kTouchRow,
-            FugaButton(
-              text: f.pseudo,
-              color: palette.fonce,
-              fontSize: SF(15),
-              onPressed: () => Navigator.of(context).pop(f.pseudo),
+            0.6,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final f in favoris)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: S(8)),
+                      child: SizedBox(
+                        height: touchHeight(),
+                        child: FugaButton(
+                          text: f.pseudo,
+                          color: palette.fonce,
+                          fontSize: SF(15),
+                          onPressed: () => Navigator.of(context).pop(f.pseudo),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         (

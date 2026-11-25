@@ -32,9 +32,11 @@ import 'package:lafuga/ui/scale.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/screens/menu_screen.dart';
+import 'package:lafuga/theme/themes.dart';
+import 'package:lafuga/ui/widgets/player_card.dart';
+import 'package:lafuga/ui/widgets/volet_menu.dart';
 import 'package:lafuga/ui/widgets/choix_du_defi.dart';
 import 'package:lafuga/ui/widgets/fuga_button.dart';
-import 'package:lafuga/ui/widgets/fuga_popup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_realtime.dart';
@@ -111,9 +113,14 @@ void main() {
         'h2h_direct_lui': 8,
       };
 
-  Future<void> ecran(WidgetTester tester, Widget quoi) async {
+  Future<void> ecran(
+    WidgetTester tester,
+    Widget quoi, {
+    Size taille = ecranTeste,
+  }) async {
     await online.client.login('nino', 'mdp');
-    tester.view.physicalSize = const Size(393, 851);
+    setScaleSize(taille);
+    tester.view.physicalSize = taille;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(home: quoi));
@@ -265,6 +272,58 @@ void main() {
     });
   });
 
+  // Nino, devant le volet « Mes favoris » du menu : « et celui-là, il
+  // défile ? » Il défile depuis toujours — sa hauteur est un plafond et sa
+  // touche « Fermer » se tient SOUS ce qui défile —, mais rien ne le
+  // vérifiait.
+  group('Le volet des favoris, sur le menu', () {
+    testWidgets('vingt favoris : il défile, et « Fermer » reste', (
+      tester,
+    ) async {
+      reponses['/corr_list'] = {'ok': true, 'games': const []};
+      reponses['/list_favorites'] = {
+        'ok': true,
+        'favorites': [
+          for (var i = 0; i < 20; i++)
+            {'pseudo': 'joueur$i', 'melo': 1500, 'online': false},
+        ],
+      };
+      await ecran(tester, MenuScreen(online: online));
+      await tester.tap(find.widgetWithText(FugaButton, '★'));
+      await tester.pumpAndSettle();
+
+      final volet = tester.getRect(find.byType(PanneauDuVolet));
+      expect(volet.height, lessThanOrEqualTo(ecranTeste.height * 0.68 + 1));
+      expect(volet.bottom, lessThanOrEqualTo(ecranTeste.height));
+
+      final fermer = find.descendant(
+        of: find.byType(PanneauDuVolet),
+        matching: find.widgetWithText(FugaButton, T('Fermer')),
+      );
+      final place = tester.getRect(fermer);
+      expect(place.bottom, lessThanOrEqualTo(volet.bottom));
+
+      final dernier = find.text('joueur19');
+      expect(dernier, findsNothing, reason: 'il attend hors de la liste');
+      await tester.scrollUntilVisible(
+        dernier,
+        80,
+        scrollable: find.descendant(
+          of: find.byType(PanneauDuVolet),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(dernier, findsOneWidget);
+      expect(
+        tester.getRect(fermer),
+        place,
+        reason: 'la liste a défilé sous elle, elle est restée',
+      );
+    });
+  });
+
   group('Sur le profil de quelqu un', () {
     testWidgets('une ligne « Actions : » avec ses deux touches', (
       tester,
@@ -304,6 +363,71 @@ void main() {
 
       expect(find.text(T('Actions :')), findsNothing);
       expect(find.widgetWithText(FugaButton, T('Message')), findsNothing);
+    });
+  });
+
+  // Nino, devant la fiche et ses six touches : « et celui-là, il défile ? »
+  group('La fiche du joueur sur un petit écran', () {
+    /// Un écran COURT : six touches, deux scores et trois lignes de texte n'y
+    /// tiennent plus d'un seul tenant.
+    const petit = Size(393, 480);
+
+    Future<void> ouvreLaFiche(WidgetTester tester) async {
+      reponses['/get_profile'] = profil();
+      await ecran(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showPlayerCard(
+                  context,
+                  online: online,
+                  palette: paletteOf('original'),
+                  pseudo: 'mesange',
+                ),
+                child: const Text('ouvrir'),
+              ),
+            ),
+          ),
+        ),
+        taille: petit,
+      );
+      await tester.tap(find.text('ouvrir'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('elle défile, et rien ne déborde', (tester) async {
+      await ouvreLaFiche(tester);
+
+      final fiche = tester.getRect(find.byType(AlertDialog));
+      expect(fiche.top, greaterThanOrEqualTo(0));
+      expect(fiche.bottom, lessThanOrEqualTo(petit.height));
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(Scrollable),
+        ),
+        findsWidgets,
+        reason: 'ce qui ne tient pas se va chercher',
+      );
+    });
+
+    testWidgets('et la dernière touche s atteint quand même', (tester) async {
+      await ouvreLaFiche(tester);
+      final fermer = find.widgetWithText(FugaButton, T('Fermer'));
+      expect(
+        tester.getRect(fermer).bottom,
+        greaterThan(tester.getRect(find.byType(AlertDialog)).bottom),
+        reason: 'elle commence hors de vue : sans défilement, elle est perdue',
+      );
+
+      await tester.scrollUntilVisible(fermer, 60);
+      await tester.pumpAndSettle();
+      await tester.tap(fermer);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
     });
   });
 
@@ -362,25 +486,38 @@ void main() {
       await tester.pumpAndSettle();
 
       // Il ne dépasse pas de l'écran : sa hauteur est plafonnée.
-      // La PARTIE QUI DÉFILE, et non la boîte du `Dialog`, qui occupe tout
-      // l'écran pour centrer sa carte dedans.
-      final popup = tester.getRect(
-        find.descendant(
-          of: find.byType(FugaPopup),
-          matching: find.byType(SingleChildScrollView),
-        ),
-      );
-      expect(popup.height, lessThanOrEqualTo(ecranTeste.height * 0.7 + 1));
-      expect(popup.top, greaterThanOrEqualTo(0));
-      expect(popup.bottom, lessThanOrEqualTo(ecranTeste.height));
+      // Le popup ne déborde pas de l'écran.
+      final liste = tester.getRect(find.byType(ListView));
+      expect(liste.top, greaterThanOrEqualTo(0));
+      expect(liste.bottom, lessThanOrEqualTo(ecranTeste.height));
+      expect(liste.height, lessThanOrEqualTo(ecranTeste.height * 0.45 + 1));
 
-      // Le premier est là, le dernier attend VRAIMENT plus bas : son rang
-      // tombe sous le bord du popup, et seul un défilement l'amène.
+      // Le premier est là, le dernier n'est même pas encore dessiné : il
+      // attend hors de la liste, et seul un défilement l'amène.
       expect(find.widgetWithText(FugaButton, 'joueur0'), findsOneWidget);
       final dernier = find.widgetWithText(FugaButton, 'joueur19');
-      expect(tester.getRect(dernier).top, greaterThan(popup.bottom));
-      await tester.scrollUntilVisible(dernier, 80);
+      expect(dernier, findsNothing);
+
+      // ET « FERMER » NE BOUGE PAS : elle se tient sous ce qui défile.
+      final fermer = find.widgetWithText(FugaButton, T('Fermer'));
+      final place = tester.getRect(fermer);
+      expect(place.bottom, lessThanOrEqualTo(ecranTeste.height));
+      expect(place.top, greaterThanOrEqualTo(liste.bottom - 1));
+
+      await tester.scrollUntilVisible(
+        dernier,
+        80,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
       await tester.pumpAndSettle();
+      expect(
+        tester.getRect(fermer),
+        place,
+        reason: 'la liste a défilé sous elle, elle est restée',
+      );
       await tester.tap(dernier);
       await tester.pumpAndSettle();
 
