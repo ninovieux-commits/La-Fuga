@@ -20,12 +20,14 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/corr_slot.dart';
 import '../widgets/entete_profil.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/player_card.dart';
+import 'conversations_screen.dart';
 import 'corr_game_screen.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';
@@ -486,7 +488,46 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
         ),
       ],
     ),
+    // CE QU'ON PEUT FAIRE DE LUI, depuis son profil même.
+    //
+    // Nino : « sur le profil, ajoute d'une ligne : "actions : [défier]
+    // [message]". » Il fallait jusqu'ici redescendre au menu, le chercher
+    // dans ses favoris, et il n'y était pas forcément : son profil disait
+    // tout de lui sauf comment le joindre.
+    _title(T('Actions :')),
+    Row(
+      children: [
+        Expanded(
+          child: _action(
+            T('Défier'),
+            // Éteinte quand il n'y a aucune façon de défier — pendant une
+            // partie en direct, par exemple. La touche de sa fiche suit la
+            // même règle, et c'est la même : celle de [DefiRelais].
+            DefiRelais.disponible
+                ? () => lancerUnDefi(context, profile.pseudo)
+                : null,
+            couleur: paletteOf(_axes.general).clair,
+            encre: Colors.black,
+          ),
+        ),
+        SizedBox(width: S(8)),
+        Expanded(
+          child: _action(
+            T('Message'),
+            () => _openChat(profile.pseudo),
+            couleur: paletteOf(_axes.general).fonce,
+          ),
+        ),
+      ],
+    ),
   ];
+
+  /// Lui écrire, depuis son profil.
+  void _openChat(String pseudo) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ConversationScreen(online: widget.online, pseudo: pseudo),
+    ),
+  );
 
   /// Ses parties de correspondance EN COURS, aux aperçus du menu.
   ///
@@ -692,7 +733,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
       palette: palette,
       pseudo: pseudo,
     );
-    if (cible != null) await DefiRelais.defier(cible);
+    if (cible != null && mounted) await lancerUnDefi(context, cible);
   }
 
   Widget _title(String text) => Padding(
@@ -773,13 +814,15 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
   /// icône.
   Widget _action(
     String label,
-    VoidCallback onTap, {
+    VoidCallback? onTap, {
     Color couleur = kGrisTouche,
+    Color encre = Colors.white,
   }) => Padding(
     padding: EdgeInsets.symmetric(vertical: S(4)),
     child: FugaButton(
       text: label,
       color: couleur,
+      textColor: encre,
       fontSize: SF(14),
       onPressed: onTap,
     ),

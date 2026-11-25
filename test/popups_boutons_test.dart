@@ -311,13 +311,17 @@ void main() {
       }
     });
 
-    testWidgets('plus de touche « Message »', (tester) async {
+    // Nino : « sur le popup fiche joueur, ajout d'une touche [message]. Il
+    // sera donc possible de lancer une conversation avec un joueur qui n'est
+    // pas dans les favoris. » Elle avait été retirée quand la seule fiche
+    // qu'on ouvrait était celle d'un adversaire — la touche Chat du bandeau
+    // menait déjà à lui. La fiche s'ouvre maintenant sur n'importe quel nom,
+    // et c'est la seule porte vers une conversation neuve.
+    testWidgets('une touche « Message », pour lui écrire d où qu on vienne', (
+      tester,
+    ) async {
       await ouvre(tester);
-      expect(
-        find.text(T('Message')),
-        findsNothing,
-        reason: 'la touche Chat du bandeau du haut fait déjà cela',
-      );
+      expect(find.widgetWithText(FugaButton, T('Message')), findsOneWidget);
     });
 
     testWidgets('« Fermer » est une touche, pas un texte violet', (

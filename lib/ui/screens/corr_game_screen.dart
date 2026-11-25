@@ -29,6 +29,7 @@ import '../../net/favoris_connus.dart';
 import '../../net/online_service.dart';
 import '../../net/profils_connus.dart';
 import '../../net/resolution_profil.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/end_dialogs.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/game_board_view.dart';
@@ -38,7 +39,6 @@ import '../widgets/game_layout.dart';
 import '../../game/clock.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
-import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/draw_offer_panel.dart';
@@ -914,7 +914,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
       palette: palette,
       pseudo: pseudo,
     );
-    if (cible != null) await DefiRelais.defier(cible);
+    if (cible != null && mounted) await lancerUnDefi(context, cible);
   }
 
   @override

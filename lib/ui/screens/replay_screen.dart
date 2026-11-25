@@ -21,6 +21,7 @@ import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
@@ -32,7 +33,6 @@ import '../../engine/fug.dart';
 import '../widgets/nmc_dialog.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/auto_play_bar.dart';
-import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
@@ -416,7 +416,7 @@ class _ReplayScreenState extends State<ReplayScreen>
       palette: palette,
       pseudo: pseudo,
     );
-    if (cible != null) await DefiRelais.defier(cible);
+    if (cible != null && mounted) await lancerUnDefi(context, cible);
   }
 
   /// Chrono affiché en relecture : Kivy y remet la pendule de la cadence

@@ -176,6 +176,14 @@ void main() {
       await tester.tap(find.text('Défier'));
       await tester.pumpAndSettle();
 
+      // « Défier » demande d'abord LEQUEL des deux défis — Nino : « tous les
+      // boutons défier doivent lancer un popup avec [direct] et
+      // [correspondance] ». C'est ce qui permet de jouer par correspondance
+      // contre quelqu'un qu'on vient de chercher, sans passer par les
+      // favoris.
+      await tester.tap(find.text('En direct'));
+      await tester.pumpAndSettle();
+
       expect(socket.lastOf('defier')!['pseudo_cible'], 'Ana');
       expect(find.textContaining('En attente de sa réponse.'), findsOneWidget);
     });

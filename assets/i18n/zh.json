@@ -605,5 +605,9 @@
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "“对话”汇集你与其他玩家的聊天。有新消息时，上面会亮起一个小圆点。",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "“排行榜”显示最高的三十个 Mélo，底部固定你自己的一行，便于比较。它跟随模式：在 Random 下显示 Random 排行榜。",
   "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“更多”可访问本教程、你的对局历史、分析、设置，以及支持开发者（一点小额捐赠来帮助游戏）。",
-  "Aperçu": "预览"
+  "Aperçu": "预览",
+  "Nouveau": "新建",
+  "Nouveau message": "新消息",
+  "Actions :": "操作：",
+  "Défier %s": "挑战 %s"
 }

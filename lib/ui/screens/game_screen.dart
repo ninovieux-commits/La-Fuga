@@ -34,6 +34,7 @@ import '../../theme/themes.dart';
 import '../../state/ai_memory.dart';
 import '../../state/settings.dart';
 import '../retour_menu.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/deep_grey_dialog.dart';
 import '../widgets/game_board_view.dart';
@@ -46,7 +47,6 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/move_strip.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/slide_animation.dart';
-import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 import '../scale.dart';
@@ -1155,7 +1155,7 @@ class _GameScreenState extends State<GameScreen>
       palette: palette,
       pseudo: pseudo,
     );
-    if (cible != null) await DefiRelais.defier(cible);
+    if (cible != null && mounted) await lancerUnDefi(context, cible);
   }
 
   /// Panneau d'un joueur. Les trois gestes (↶ ½ X) ne s'affichent que du

@@ -605,5 +605,9 @@
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "„Unterhaltungen“ sammelt deine Gespräche mit anderen Spielern. Ein Punkt leuchtet darauf auf, sobald eine Nachricht auf dich wartet.",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "„Rangliste“ zeigt die dreißig besten Mélos, mit deiner eigenen Zeile unten, damit du dich einordnen kannst. Sie folgt dem Modus: im Random ist es die Random-Rangliste.",
   "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "„Mehr“ gibt Zugang zu diesem Tutorial, deinem Partienverlauf, der Analyse, den Einstellungen und dazu, DIE ENTWICKLER ZU UNTERSTÜTZEN (eine kleine Spende, um dem Spiel zu helfen).",
-  "Aperçu": "Vorschau"
+  "Aperçu": "Vorschau",
+  "Nouveau": "Neu",
+  "Nouveau message": "Neue Nachricht",
+  "Actions :": "Aktionen:",
+  "Défier %s": "%s herausfordern"
 }

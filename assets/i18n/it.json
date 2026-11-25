@@ -605,5 +605,9 @@
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "«Conversazioni» raccoglie le tue chat con gli altri giocatori. Un pallino si accende non appena un messaggio ti aspetta.",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "«Classifica» mostra i trenta migliori Mélo, con la tua riga in basso per collocarti. Segue la modalità: in Random è la classifica Random.",
   "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "«Altro» dà accesso a questo tutorial, alla cronologia delle tue partite, all'analisi, alle impostazioni e a SOSTENERE GLI SVILUPPATORI (una piccola donazione per aiutare il gioco).",
-  "Aperçu": "Anteprima"
+  "Aperçu": "Anteprima",
+  "Nouveau": "Nuovo",
+  "Nouveau message": "Nuovo messaggio",
+  "Actions :": "Azioni:",
+  "Défier %s": "Sfida %s"
 }

@@ -27,6 +27,7 @@ import '../scale.dart';
 import 'etoile_favori.dart';
 import 'fuga_button.dart';
 import '../screens/account_screen.dart';
+import '../screens/conversations_screen.dart';
 import '../screens/history_screen.dart';
 
 /// Rouge du blocage.
@@ -215,6 +216,22 @@ class _PlayerCardState extends State<_PlayerCard> {
     );
   }
 
+  /// Lui écrire — et depuis n'importe où, sans qu'il soit dans mes favoris.
+  ///
+  /// Nino : « sur le popup fiche joueur, ajout d'une touche [message]. Il
+  /// sera donc possible de lancer une conversation avec un joueur qui n'est
+  /// pas dans les favoris. » C'était jusqu'ici la seule porte d'entrée : la
+  /// liste des favoris du menu, et son icône de chat.
+  void _openChat() {
+    Navigator.of(context).pop();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            ConversationScreen(online: widget.online, pseudo: widget.pseudo),
+      ),
+    );
+  }
+
   void _openProfile() {
     Navigator.of(context).pop();
     Navigator.of(context).push(
@@ -229,6 +246,11 @@ class _PlayerCardState extends State<_PlayerCard> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    // ELLE DÉFILE PLUTÔT QUE DE DÉBORDER. Six touches, deux scores et trois
+    // lignes de texte : sur un petit écran — ou avec un gros réglage de
+    // police — la colonne dépassait du popup, et ce qui dépasse d'un
+    // `AlertDialog` n'est pas atteignable.
+    scrollable: true,
     // La fiche de Kivy commence par le pseudo seul : elle ne montre pas
     // d'avatar. L'étoile, elle, se range devant le nom, et change avec la
     // touche « Enregistrer / Retirer » plus bas.
@@ -307,13 +329,23 @@ class _PlayerCardState extends State<_PlayerCard> {
     // descendent du bandeau d'actions dans le corps, dont le `Column` est en
     // `stretch` : c'est lui qui les élargit, et le centrage vient de là.
     _touche(texte: T('Profil'), onPressed: _openProfile),
+    // « Défier » NE PROMET PLUS UNE PARTIE EN DIRECT, mais le choix entre
+    // les deux : elle ne s'éteint donc que s'il n'y a plus aucune façon de
+    // défier. Une partie en direct en cours n'en laisse qu'une — la
+    // correspondance —, et c'est le popup qui le dit.
     if (!_moi && !_blocked)
       _touche(
         texte: T('Défier'),
         couleur: widget.palette.clair,
         encre: Colors.black,
-        horsService: !DefiRelais.pret,
+        horsService: !DefiRelais.disponible,
         onPressed: () => Navigator.of(context).pop(widget.pseudo),
+      ),
+    if (!_moi && !_blocked)
+      _touche(
+        texte: T('Message'),
+        couleur: widget.palette.fonce,
+        onPressed: _openChat,
       ),
     if (!_moi)
       _touche(

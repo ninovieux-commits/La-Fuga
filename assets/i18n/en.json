@@ -605,5 +605,9 @@
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "“Conversations” gathers your chats with other players. A dot lights up on it as soon as a message is waiting for you.",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "“Leaderboard” shows the thirty best Mélos, with your own line at the bottom so you can place yourself. It follows the mode: in Random, it is the Random leaderboard.",
   "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "“More” gives access to this tutorial, your game history, analysis, settings, and to SUPPORTING THE DEVELOPERS (a small donation to help the game).",
-  "Aperçu": "Preview"
+  "Aperçu": "Preview",
+  "Nouveau": "New",
+  "Nouveau message": "New message",
+  "Actions :": "Actions:",
+  "Défier %s": "Challenge %s"
 }

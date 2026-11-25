@@ -107,6 +107,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
+  /// « Défier » ne lance plus un direct : elle DEMANDE lequel des deux.
+  ///
+  /// Nino : « tous les boutons défier doivent lancer un popup avec [direct] et
+  /// [correspondance] ». Ce qui suit vérifie le direct ; la correspondance a
+  /// son propre fichier.
+  Future<void> enDirect(WidgetTester tester) async {
+    await tester.tap(find.widgetWithText(FugaButton, T('En direct')));
+    await calme(tester);
+  }
+
   /// Pose un écran par-dessus ce qui est déjà là, sans attendre son retour.
   Future<void> pousse(WidgetTester tester, Widget ecran, Finder dessous) async {
     // SANS attendre : `push` ne rend la main qu'au retour de l'écran, et le
@@ -194,6 +204,7 @@ void main() {
 
       await tester.tap(defier);
       await calme(tester);
+      await enDirect(tester);
 
       expect(socket.lastOf('defier')?['pseudo_cible'], 'mesange');
       expect(
@@ -215,6 +226,7 @@ void main() {
       await calme(tester);
       await tester.tap(find.widgetWithText(FugaButton, T('Défier')));
       await calme(tester);
+      await enDirect(tester);
 
       expect(socket.lastOf('defier')?['pseudo_cible'], 'mesange');
       expect(
@@ -296,6 +308,7 @@ void main() {
 
       await tester.tap(defier);
       await calme(tester);
+      await enDirect(tester);
       expect(socket.lastOf('defier')?['pseudo_cible'], 'mesange');
     });
   });

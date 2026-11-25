@@ -21,16 +21,17 @@ import '../../net/favoris_connus.dart';
 import '../../net/message_hub.dart';
 import '../../net/messages.dart';
 import '../../net/online_service.dart';
+import '../../net/profile.dart';
 import '../../state/messages_caches.dart';
 import '../../state/settings.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import '../suit_les_reglages.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/message_bubble.dart';
-import '../../game/defi_relais.dart';
 import '../widgets/player_card.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
@@ -104,6 +105,63 @@ class _ConversationsScreenState extends State<ConversationsScreen>
     });
   }
 
+  /// « NOUVEAU » : à qui écrire ?
+  ///
+  /// Nino : « dans les boîtes de messages, ajout d'une touche [nouveau] qui
+  /// ouvre un popup avec tous les favoris. Cliquer sur un des pseudos ouvre
+  /// une boîte de messages. » Sans elle, on ne pouvait écrire qu'à quelqu'un
+  /// à qui l'on avait DÉJÀ écrit : la liste ne montre que les conversations
+  /// commencées. Pour les autres, c'est sa fiche qui a maintenant sa touche
+  /// « Message ».
+  Future<void> _nouveau() async {
+    final r = await widget.online.client.listFavorites();
+    if (!mounted) return;
+    final favoris = [
+      for (final f in r.get<List<dynamic>>('favorites') ?? const [])
+        if (f is Map) Person.fromJson(Map<String, dynamic>.from(f)),
+    ];
+    final palette = paletteOf(Settings.instance.themeAxes.general);
+
+    final pseudo = await showFugaPopup<String>(
+      context,
+      widthFactor: 0.86,
+      heightFactor: 0.7,
+      dismissible: true,
+      rows: [
+        (0.3, popupText(T('Nouveau message'), size: 17, bold: true)),
+        if (favoris.isEmpty)
+          (
+            0.3,
+            popupText(
+              T('Aucun favori.\nAjoutez des favoris via la recherche.'),
+              size: 13,
+              italic: true,
+            ),
+          ),
+        for (final f in favoris)
+          (
+            kTouchRow,
+            FugaButton(
+              text: f.pseudo,
+              color: palette.fonce,
+              fontSize: SF(15),
+              onPressed: () => Navigator.of(context).pop(f.pseudo),
+            ),
+          ),
+        (
+          kTouchRow,
+          FugaButton(
+            text: T('Fermer'),
+            fontSize: SF(15),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ],
+    );
+    if (pseudo == null || !mounted) return;
+    await _open(pseudo);
+  }
+
   Future<void> _open(String pseudo) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -131,6 +189,18 @@ class _ConversationsScreenState extends State<ConversationsScreen>
               titleSize: 18,
               bold: true,
               onBack: () => Navigator.of(context).pop(),
+              // LE RECTANGLE ROUGE DU DESSIN DE NINO : la place de droite du
+              // bandeau, en face du retour.
+              action: SizedBox(
+                height: touchHeight(),
+                child: FugaButton(
+                  text: T('Nouveau'),
+                  color: paletteOf(axes.general).clair,
+                  textColor: Colors.black,
+                  fontSize: SF(14),
+                  onPressed: () => unawaited(_nouveau()),
+                ),
+              ),
             ),
             Expanded(
               child: _loading
@@ -1029,7 +1099,7 @@ class _ConversationScreenState extends State<ConversationScreen>
       palette: palette,
       pseudo: pseudo,
     );
-    if (cible != null) await DefiRelais.defier(cible);
+    if (cible != null && mounted) await lancerUnDefi(context, cible);
   }
 
   /// Une bulle, et rien qu'une bulle.

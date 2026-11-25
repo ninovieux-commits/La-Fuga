@@ -38,6 +38,7 @@ import '../widgets/first_launch.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/picto_touche.dart';
 import '../widgets/touche_chat.dart';
+import '../widgets/choix_du_defi.dart';
 import '../widgets/corr_mode_dialog.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/unread_dot.dart';
@@ -429,8 +430,10 @@ class MenuScreenState extends State<MenuScreen>
     if (socket == null) return;
 
     // Tant que le menu écoute, la fiche d'un joueur peut défier depuis
-    // n'importe quel écran : c'est ici que le défi se mène.
-    DefiRelais.pose(_challenge);
+    // n'importe quel écran : c'est ici que le défi se mène. LES DEUX DÉFIS —
+    // le direct a besoin du salon, la correspondance du service et de la
+    // grille à rafraîchir, et le menu seul les a.
+    DefiRelais.pose(_challenge, correspondance: _corrChallengeAvec);
 
     final challenges = ChallengeService(socket);
     _challenges = challenges;
@@ -802,7 +805,7 @@ class MenuScreenState extends State<MenuScreen>
       player: Profile.fromJson(r.data!),
       palette: paletteOf(_axes.general),
     );
-    if (target != null) await _challenge(target);
+    if (target != null && mounted) await lancerUnDefi(context, target);
   }
 
   Future<void> _challenge(String pseudo) async {
@@ -890,7 +893,9 @@ class MenuScreenState extends State<MenuScreen>
     final choice = await _pickFavorite(favorites, T('Mes favoris'));
     if (choice == null || !mounted) return;
     if (await _handleFavoriteProfile(choice)) return;
-    await _challenge(choice.pseudo);
+    // Le profil a pu s'ouvrir et se refermer entre-temps.
+    if (!mounted) return;
+    await lancerUnDefi(context, choice.pseudo);
   }
 
   /// Volet de choix d'un favori : son nom mène à son profil, « Défier » le
@@ -1107,6 +1112,16 @@ class MenuScreenState extends State<MenuScreen>
     );
     if (choice == null || !mounted) return;
     if (await _handleFavoriteProfile(choice)) return;
+    await _corrChallengeAvec(choice.pseudo);
+  }
+
+  /// DÉFIER QUELQU'UN PAR CORRESPONDANCE, d'où que vienne la demande.
+  ///
+  /// Le menu la pose dans [DefiRelais] : la touche « Défier » d'une fiche de
+  /// joueur, d'un profil ou de la recherche arrive ici, et l'on n'a plus à
+  /// passer par une case vide de la grille — qui, elle, ne proposait que les
+  /// favoris.
+  Future<void> _corrChallengeAvec(String pseudo) async {
     // Le profil a pu être ouvert et refermé entre-temps : sans ce contrôle, on
     // ouvrirait une popup sur un écran qui n'existe plus.
     if (!mounted) return;
@@ -1136,7 +1151,7 @@ class MenuScreenState extends State<MenuScreen>
     if (couleur == null || !mounted) return;
 
     final error = await _corr.challenge(
-      choice.pseudo,
+      pseudo,
       'partie',
       mode: mode,
       position: position,

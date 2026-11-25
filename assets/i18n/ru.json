@@ -605,5 +605,9 @@
   "« Conversations » rassemble tes discussions avec les autres joueurs. Une pastille s'y allume dès qu'un message t'attend.": "«Беседы» собирает ваши переписки с другими игроками. Как только придёт сообщение, на кнопке загорится точка.",
   "« Classement » montre les trente meilleurs mélos, et ta propre ligne en bas pour te situer. Il suit le mode : en Random, c'est le classement Random.": "«Рейтинг» показывает тридцать лучших Mélo, а внизу закреплена ваша строка. Он следует режиму: в Random это рейтинг Random.",
   "« Autres » donne accès à ce tuto, à l'historique de tes parties, à l'analyse, aux réglages, et à SOUTENIR LES DÉVELOPPEURS (un petit don pour aider le jeu).": "«Ещё» даёт доступ к этому обучению, истории ваших партий, анализу, настройкам и к ПОДДЕРЖКЕ РАЗРАБОТЧИКОВ (небольшое пожертвование в помощь игре).",
-  "Aperçu": "Предпросмотр"
+  "Aperçu": "Предпросмотр",
+  "Nouveau": "Новое",
+  "Nouveau message": "Новое сообщение",
+  "Actions :": "Действия:",
+  "Défier %s": "Вызвать %s"
 }
