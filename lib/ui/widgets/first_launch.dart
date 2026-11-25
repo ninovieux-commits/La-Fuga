@@ -11,6 +11,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
+import 'texte.dart';
 
 /// Découpe une liste en paires, pour une grille de deux colonnes.
 List<List<T>> _byTwo<T>(List<T> items) => [
@@ -30,7 +31,7 @@ Future<void> askFirstLanguage(BuildContext context) async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            Texte(
               'Langue / Language',
               style: TextStyle(
                 fontSize: SF(20),

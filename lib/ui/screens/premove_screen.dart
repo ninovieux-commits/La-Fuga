@@ -36,6 +36,7 @@ import '../widgets/fuga_popup.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/slide_animation.dart';
+import '../widgets/texte.dart';
 
 class PremoveScreen extends StatefulWidget {
   const PremoveScreen({
@@ -473,7 +474,7 @@ class _PremoveScreenState extends State<PremoveScreen>
     }
     // Rien d'autre que le titre : l'explication tenait sur deux lignes
     // au-dessus du plateau, et il n'y a pas la place.
-    return Text(
+    return Texte(
       titre,
       textAlign: TextAlign.center,
       style: TextStyle(
@@ -518,7 +519,7 @@ class _PremoveScreenState extends State<PremoveScreen>
       color: mienne ? palette.clair : palette.fonceDim,
       borderRadius: BorderRadius.circular(S(6)),
     ),
-    child: Text(
+    child: Texte(
       notation,
       style: TextStyle(
         color: mienne ? Colors.black : Colors.white,
@@ -531,7 +532,7 @@ class _PremoveScreenState extends State<PremoveScreen>
   Widget _message(String texte, ThemePalette palette, {bool alerte = false}) =>
       Padding(
         padding: EdgeInsets.symmetric(vertical: S(4)),
-        child: Text(
+        child: Texte(
           texte,
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -566,7 +567,7 @@ class _PremoveScreenState extends State<PremoveScreen>
   Widget _variantes(ThemePalette palette) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(
+      Texte(
         '${T('Variantes préparées')} : '
         '${_plan.variantes.length} / $kPremoveMaxVariantes',
         style: TextStyle(

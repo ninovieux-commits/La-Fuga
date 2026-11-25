@@ -13,6 +13,7 @@ import '../../i18n/translations.dart';
 import '../scale.dart';
 import '../tuto/menu_tour.g.dart';
 import 'fuga_button.dart';
+import 'texte.dart';
 
 /// Une étape de la visite : ce qu'elle entoure, et ce qu'elle dit.
 final class MenuTourStop {
@@ -87,7 +88,7 @@ class MenuTourOverlay extends StatelessWidget {
                 // touches restent là où le doigt les attend.
                 Flexible(
                   child: SingleChildScrollView(
-                    child: Text(
+                    child: Texte(
                       T(stop.text),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white, fontSize: SF(14)),

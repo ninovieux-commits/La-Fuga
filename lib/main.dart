@@ -12,8 +12,9 @@ import 'net/online_service.dart';
 import 'net/push_notifications.dart';
 import 'state/settings.dart';
 import 'ui/scale.dart';
+import 'ui/theme_fuga.dart';
 import 'ui/screens/menu_screen.dart';
-import 'ui/widgets/fuga_button.dart';
+import 'ui/widgets/texte.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +78,7 @@ void _guardAgainstCrashes() {
     child: Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
+        child: Texte(
           T('Quelque chose n a pas pu s afficher.'),
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white70, fontSize: 14),
@@ -86,10 +87,6 @@ void _guardAgainstCrashes() {
     ),
   );
 }
-
-/// Épaisseur minimale d'une touche Material : celle de toutes les autres.
-/// La largeur reste libre — c'est bien l'épaisseur qui doit être la même.
-Size _touchSize() => Size(0, touchHeight());
 
 class FugaApp extends StatefulWidget {
   const FugaApp({super.key});
@@ -146,54 +143,10 @@ class _FugaAppState extends State<FugaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Même les textes que Material fournit par défaut (boîtes de dialogue,
-    // listes, boutons plats) suivent l'échelle de l'écran : Kivy ne laisse
-    // aucune taille en dur, et `SF` vaut ici un facteur global.
-    final base = ThemeData(
-      brightness: Brightness.dark,
-      fontFamily: 'NotoSansCJK',
-      useMaterial3: true,
-    );
-
     return MaterialApp(
       title: 'La Fuga',
       debugShowCheckedModeBanner: false,
-      theme: base.copyWith(
-        textTheme: scaleTextTheme(base.textTheme, scaleFactor * kFontBoost),
-        primaryTextTheme: scaleTextTheme(
-          base.primaryTextTheme,
-          scaleFactor * kFontBoost,
-        ),
-        // Une touche a la même épaisseur partout, y compris celles que
-        // Material fournit lui-même — les actions d'une boîte de dialogue,
-        // les touches plates d'un micromenu. Sans cela, elles gardaient la
-        // hauteur minimale de Material, deux fois plus fine que les touches
-        // du menu.
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(minimumSize: _touchSize()),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(minimumSize: _touchSize()),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(minimumSize: _touchSize()),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(minimumSize: _touchSize()),
-        ),
-        // LE TRAIT NOIR FAIT LE TOUR DE CHAQUE POPUP. Nino : « pour chaque
-        // popup je veux le trait noir qui fait le tour du popup stp. »
-        //
-        // Posé ici, dans le thème, et non sur les vingt-neuf boîtes de
-        // dialogue une par une : celles qu'on écrira demain l'auront aussi,
-        // et aucune ne peut l'oublier.
-        dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(S(28)),
-            side: kTraitDeTouche,
-          ),
-        ),
-      ),
+      theme: themeFuga(),
       // Le texte doit occuper la même proportion de l'écran quel que soit le
       // réglage système, comme en Kivy où l'on refuse l'unité « sp » au profit
       // de pixels purs mis à l'échelle sur la largeur.

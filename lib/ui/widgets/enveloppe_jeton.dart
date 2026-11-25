@@ -19,6 +19,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'picto_touche.dart';
+import 'texte.dart';
 
 /// L'angle de la secousse, en radians.
 ///
@@ -235,7 +236,7 @@ class _EnveloppeJetonState extends State<EnveloppeJeton>
       color: const Color(0xD9000000),
       borderRadius: BorderRadius.circular(cote * 0.1),
     ),
-    child: Text(
+    child: Texte(
       chronoEnveloppe(widget.enveloppe.restant(widget.maintenant)),
       maxLines: 1,
       style: TextStyle(

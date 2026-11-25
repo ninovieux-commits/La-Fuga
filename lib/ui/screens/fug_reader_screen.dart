@@ -33,6 +33,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'game_screen.dart';
+import '../widgets/texte.dart';
 
 class FugReaderScreen extends StatefulWidget {
   const FugReaderScreen({super.key});
@@ -99,7 +100,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(
+        title: Texte(
           T('Cette position ne peut pas se jouer'),
           style: const TextStyle(color: Colors.white),
         ),
@@ -107,7 +108,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            Texte(
               quoi,
               style: TextStyle(
                 color: Colors.white,
@@ -116,7 +117,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
               ),
             ),
             SizedBox(height: S(10)),
-            Text(
+            Texte(
               T(
                 'Une position jouable demande :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
@@ -131,7 +132,7 @@ class _FugReaderScreenState extends State<FugReaderScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Ok')),
+            child: Texte(T('Ok')),
           ),
         ],
       ),
@@ -163,15 +164,15 @@ class _FugReaderScreenState extends State<FugReaderScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(T('Erreur'), style: const TextStyle(color: Colors.white)),
-        content: Text(
+        title: Texte(T('Erreur'), style: const TextStyle(color: Colors.white)),
+        content: Texte(
           '$quoi$ou',
           style: TextStyle(color: Colors.white, fontSize: SF(13)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Ok')),
+            child: Texte(T('Ok')),
           ),
         ],
       ),

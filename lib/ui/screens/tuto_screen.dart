@@ -23,6 +23,7 @@ import '../widgets/game_board_view.dart';
 import '../widgets/slide_animation.dart';
 import '../widgets/tuto_overlay.dart';
 import 'settings_screen.dart';
+import '../widgets/texte.dart';
 
 class TutoScreen extends StatefulWidget {
   const TutoScreen({super.key, this.controller});
@@ -100,7 +101,7 @@ class _TutoScreenState extends State<TutoScreen>
         children: [
           ToucheDePause(palette: palette, onPause: _openPause),
           const Spacer(),
-          Text(
+          Texte(
             '${_tuto.index + 1} / ${_tuto.stepCount}',
             style: TextStyle(
               fontSize: SF(15),
@@ -120,7 +121,7 @@ class _TutoScreenState extends State<TutoScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(T('Pause'), style: const TextStyle(color: Colors.white)),
+        title: Texte(T('Pause'), style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -185,7 +186,7 @@ class _TutoScreenState extends State<TutoScreen>
   Widget _banner(String text) => Center(
     child: Padding(
       padding: EdgeInsets.all(S(24)),
-      child: Text(
+      child: Texte(
         T(text),
         textAlign: TextAlign.center,
         style: TextStyle(
@@ -209,7 +210,7 @@ class _TutoScreenState extends State<TutoScreen>
     // Les explications les plus longues dépassent la boîte sur un écran
     // étroit : elles défilent au lieu d'être tronquées.
     child: SingleChildScrollView(
-      child: Text(
+      child: Texte(
         T(_tuto.text),
         textAlign: TextAlign.center,
         style: TextStyle(color: const Color(0xFF1F1F1F), fontSize: SF(15)),

@@ -13,6 +13,7 @@ import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
+import 'texte.dart';
 
 /// Fin de partie (ou de match). Le popup se ferme d'une tape à côté : on peut
 /// vouloir regarder la position finale.
@@ -28,17 +29,17 @@ Future<void> showFinishDialog(
   context: context,
   builder: (context) => AlertDialog(
     backgroundColor: kFugaGrey,
-    title: Text(title, style: const TextStyle(color: Colors.white)),
+    title: Texte(title, style: const TextStyle(color: Colors.white)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
+        Texte(
           body,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: SF(14), color: Colors.white),
         ),
         SizedBox(height: S(10)),
-        Text(
+        Texte(
           winner == null
               ? T('Match nul')
               : T('Victoire de {name} !').replaceAll('{name}', winner),
@@ -65,7 +66,7 @@ Future<void> showFinishDialog(
                 ? const SizedBox.shrink()
                 : Padding(
                     padding: EdgeInsets.only(top: S(8)),
-                    child: Text(
+                    child: Texte(
                       texte,
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -105,17 +106,17 @@ Future<void> showContinueDialog(
   barrierDismissible: false,
   builder: (context) => AlertDialog(
     backgroundColor: kFugaGrey,
-    title: Text(title, style: const TextStyle(color: Colors.white)),
+    title: Texte(title, style: const TextStyle(color: Colors.white)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
+        Texte(
           body,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: SF(14), color: Colors.white),
         ),
         SizedBox(height: S(8)),
-        Text(
+        Texte(
           T(
             'Prochaine partie : {name} joue les Blancs',
           ).replaceAll('{name}', nextFirstBlanc),
@@ -159,17 +160,17 @@ Future<void> showOnlineContinueDialog(
       var ready = readySent;
       return AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(title, style: const TextStyle(color: Colors.white)),
+        title: Texte(title, style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            Texte(
               body,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: SF(14), color: Colors.white),
             ),
             SizedBox(height: S(8)),
-            Text(
+            Texte(
               ready
                   ? T("En attente de l'adversaire…")
                   : T(

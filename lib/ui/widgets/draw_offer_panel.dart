@@ -20,6 +20,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'player_panel.dart';
+import 'texte.dart';
 
 /// Vert de l'acceptation. Le refus garde le gris : c'est le geste neutre,
 /// celui qui laisse la partie continuer.
@@ -56,7 +57,7 @@ class DrawOfferPanel extends StatelessWidget {
       final texte = Row(
         children: [
           Expanded(
-            child: Text(
+            child: Texte(
               '$proposer ${T('propose la nulle')}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

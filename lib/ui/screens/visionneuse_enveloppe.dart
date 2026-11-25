@@ -30,6 +30,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'editeur_image_screen.dart';
+import '../widgets/texte.dart';
 
 /// Ce que la visionneuse rend à la conversation en se refermant.
 typedef SortieVisionneuse = ({Uint8List? renvoyer});
@@ -97,7 +98,7 @@ class _VisionneuseEnveloppeState extends State<VisionneuseEnveloppe>
             if (_dit != null)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: S(4)),
-                child: Text(
+                child: Texte(
                   _dit!,
                   style: TextStyle(color: palette.clair, fontSize: SF(13)),
                 ),

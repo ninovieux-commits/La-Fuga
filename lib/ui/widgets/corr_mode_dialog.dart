@@ -15,6 +15,7 @@ import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
+import 'texte.dart';
 
 /// D'où part une partie de correspondance.
 enum CorrMode {
@@ -50,7 +51,7 @@ enum CorrMode {
 Future<CorrMode?> askCorrMode(BuildContext context) => showDialog<CorrMode>(
   context: context,
   builder: (context) => AlertDialog(
-    title: Text(T('Position de départ'), style: TextStyle(fontSize: SF(17))),
+    title: Texte(T('Position de départ'), style: TextStyle(fontSize: SF(17))),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -79,7 +80,7 @@ Future<({Camp? camp})?> askCorrCouleur(BuildContext context) =>
     showDialog<({Camp? camp})>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(T('Votre couleur'), style: TextStyle(fontSize: SF(17))),
+        title: Texte(T('Votre couleur'), style: TextStyle(fontSize: SF(17))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -117,7 +118,7 @@ Future<({Camp? camp})?> askCorrCouleur(BuildContext context) =>
               ),
             ),
             SizedBox(height: S(8)),
-            Text(
+            Texte(
               T(
                 'Aléatoire : la couleur est tirée quand la partie démarre, et '
                 'aucun des deux joueurs ne la connaît avant.',

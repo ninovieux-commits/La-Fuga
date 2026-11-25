@@ -57,6 +57,7 @@ import 'challenge_screen.dart';
 import 'position_composer_screen.dart';
 import 'settings_screen.dart';
 import 'tuto_screen.dart';
+import '../widgets/texte.dart';
 
 /// Écart entre deux touches voisines d'une rangée de trois.
 const double kEcartDeLaBande = 6.0;
@@ -575,7 +576,7 @@ class MenuScreenState extends State<MenuScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(content: Texte(message)));
   }
 
   /// Exige un compte, comme Kivy qui bascule alors sur l'écran de connexion.
@@ -624,7 +625,7 @@ class MenuScreenState extends State<MenuScreen>
         final palette = paletteOf(_axes.general);
         return AlertDialog(
           backgroundColor: paletteOf(_axes.menu).menu,
-          title: Text(
+          title: Texte(
             T('Choisissez votre couleur'),
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white),
@@ -720,7 +721,7 @@ class MenuScreenState extends State<MenuScreen>
       builder: (dialogContext) {
         _waitingContext = dialogContext;
         return AlertDialog(
-          content: Text(
+          content: Texte(
             "${T("Recherche d'un adversaire…")}\n\n"
             '${T('Cadence')} : ${cadence.label}',
             textAlign: TextAlign.center,
@@ -732,7 +733,7 @@ class MenuScreenState extends State<MenuScreen>
                 _waitingContext = null;
                 Navigator.of(dialogContext).pop();
               },
-              child: Text(T('Annuler')),
+              child: Texte(T('Annuler')),
             ),
           ],
         );
@@ -829,8 +830,8 @@ class MenuScreenState extends State<MenuScreen>
       builder: (dialogContext) {
         _waitingContext = dialogContext;
         return AlertDialog(
-          title: Text(T('Défier')),
-          content: Text(
+          title: Texte(T('Défier')),
+          content: Texte(
             '${T("Défi envoyé à %s…").replaceAll('%s', pseudo)}\n\n'
             '${T("En attente de sa réponse.")}',
           ),
@@ -841,7 +842,7 @@ class MenuScreenState extends State<MenuScreen>
                 _waitingContext = null;
                 Navigator.of(dialogContext).pop();
               },
-              child: Text(T('Annuler')),
+              child: Texte(T('Annuler')),
             ),
           ],
         );
@@ -859,8 +860,8 @@ class MenuScreenState extends State<MenuScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(T('Défi')),
-        content: Text(
+        title: Texte(T('Défi')),
+        content: Texte(
           '${defi.from} (${T('Mélo : %d').replaceAll('%d', '${defi.melo}')})\n'
           '${T('vous défie !')}\n\n'
           '${T('Cadence')} : $cadence'
@@ -869,11 +870,11 @@ class MenuScreenState extends State<MenuScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Refuser')),
+            child: Texte(T('Refuser')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Accepter')),
+            child: Texte(T('Accepter')),
           ),
         ],
       ),
@@ -1012,7 +1013,7 @@ class MenuScreenState extends State<MenuScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                Texte(
                   f.pseudo,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1022,7 +1023,7 @@ class MenuScreenState extends State<MenuScreen>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
+                Texte(
                   T('Mélo : %d').replaceAll('%d', '${f.melo}'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1419,11 +1420,11 @@ class MenuScreenState extends State<MenuScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: paletteOf(_axes.menu).menu,
-        title: Text(T('Soutenir les devs')),
+        title: Texte(T('Soutenir les devs')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            Texte(
               T('Merci de soutenir le développement de La Fuga !\n') +
                   T('Votre aide compte beaucoup.'),
               textAlign: TextAlign.center,

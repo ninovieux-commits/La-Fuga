@@ -209,6 +209,22 @@ class PictoTouche extends StatelessWidget {
 /// qu'il se voie autant qu'autour d'un dessin. Une copie décalée, elle, ne
 /// dépasse que par dehors — c'est [kTraitPicto] tout rond, le même nombre
 /// que pour les symboles.
+/// La couronne de copies qui fait le contour d'un mot, en ombres sans flou.
+///
+/// Noires autour d'un mot clair, BLANCHES autour d'un mot sombre — voir
+/// [contourDe]. Nino : « les écritures aussi. » C'est [Texte] qui s'en sert
+/// pour toute l'application ; [MotTouche] le faisait déjà pour les touches.
+List<Shadow> contourDesLettres(Color encre) => [
+  for (var i = 0; i < kCopiesDuBord; i++)
+    Shadow(
+      color: contourDe(encre),
+      offset: Offset(
+        kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
+        kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
+      ),
+    ),
+];
+
 class MotTouche extends StatelessWidget {
   const MotTouche({
     super.key,
@@ -225,21 +241,6 @@ class MotTouche extends StatelessWidget {
   final TextStyle style;
 
   final int maxLines;
-
-  /// La couronne de copies, en ombres sans flou.
-  ///
-  /// Noires autour d'un mot clair, BLANCHES autour d'un mot noir — voir
-  /// [contourDe]. Nino : « les écritures aussi. »
-  static List<Shadow> contourDesLettres(Color encre) => [
-    for (var i = 0; i < kCopiesDuBord; i++)
-      Shadow(
-        color: contourDe(encre),
-        offset: Offset(
-          kTraitPicto * math.cos(2 * math.pi * i / kCopiesDuBord),
-          kTraitPicto * math.sin(2 * math.pi * i / kCopiesDuBord),
-        ),
-      ),
-  ];
 
   @override
   Widget build(BuildContext context) => Text(

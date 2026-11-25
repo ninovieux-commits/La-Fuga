@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'etoile_favori.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
+import 'texte.dart';
 
 class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
   const FugaHeader({
@@ -133,7 +134,7 @@ class FugaHeader extends StatelessWidget implements PreferredSizeWidget {
           Expanded(
             child: GestureDetector(
               onTap: onTitleTap,
-              child: Text.rich(
+              child: Texte.rich(
                 // L'étoile est un peu plus petite que les lettres du titre :
                 // elle accompagne le nom, elle ne le concurrence pas.
                 nomEtoile(title, favori: favori, taille: SF(titleSize) * 0.82),

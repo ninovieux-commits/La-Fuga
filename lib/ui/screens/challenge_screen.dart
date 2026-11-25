@@ -25,6 +25,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/game_board_view.dart';
 import '../widgets/game_top_bar.dart';
+import '../widgets/texte.dart';
 
 /// Ce que le joueur a répondu.
 enum ChallengeAnswer { accepte, refuse }
@@ -128,7 +129,7 @@ class ChallengeScreen extends StatelessWidget {
                     else
                       // Mon propre défi : rien à accepter, il est en attente.
                       Center(
-                        child: Text(
+                        child: Texte(
                           T('En attente…'),
                           style: TextStyle(
                             color: Colors.white,
@@ -152,7 +153,7 @@ class ChallengeScreen extends StatelessWidget {
   Widget _infos(ThemePalette palette) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(
+      Texte(
         game.isChallenger
             ? '${T('Défi à')} ${game.opponent}'
             : '${T('Défi de')} ${game.opponent}',
@@ -172,7 +173,7 @@ class ChallengeScreen extends StatelessWidget {
       ])
         Padding(
           padding: EdgeInsets.symmetric(vertical: S(1)),
-          child: Text(
+          child: Texte(
             '$cle : $valeur',
             textAlign: TextAlign.center,
             style: TextStyle(color: palette.clair, fontSize: SF(14)),

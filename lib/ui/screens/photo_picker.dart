@@ -19,6 +19,7 @@ import '../scale.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/grille_photos.dart';
+import '../widgets/texte.dart';
 
 /// Toutes les photos proposées, dans l'ordre où la galerie les montre.
 List<String> photoChoices() => photosDuCatalogue();
@@ -35,7 +36,7 @@ class PhotoPickerScreen extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.all(S(10)),
-              child: Text(
+              child: Texte(
                 T('Choisis ta photo de profil'),
                 style: TextStyle(
                   fontSize: SF(16),

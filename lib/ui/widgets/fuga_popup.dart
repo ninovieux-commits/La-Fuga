@@ -11,6 +11,7 @@ import '../../i18n/translations.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
+import 'texte.dart';
 
 /// Une ligne du popup : sa part de la hauteur (le `size_hint_y` de Kivy) et
 /// ce qu'elle contient.
@@ -122,7 +123,7 @@ class FugaPopup extends StatelessWidget {
                 SizedBox(
                   height: titleHeight,
                   child: Center(
-                    child: Text(
+                    child: Texte(
                       title,
                       style: TextStyle(
                         fontSize: SF(18),
@@ -174,7 +175,7 @@ Widget popupText(
   bool bold = false,
   bool italic = false,
 }) => Center(
-  child: Text(
+  child: Texte(
     text,
     textAlign: TextAlign.center,
     style: TextStyle(

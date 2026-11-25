@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../../game/date_locale.dart';
 import '../../i18n/translations.dart';
+import 'texte.dart';
 
 /// Ce que le tampon raconte : une date, deux noms, et qui avait les Blancs.
 final class Tampon {
@@ -149,7 +150,7 @@ class TamponPartie extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _prenable(
-            Text(
+            Texte(
               tampon.dateEcrite,
               style: TextStyle(
                 color: encre,
@@ -216,7 +217,7 @@ class TamponPartie extends StatelessWidget {
       ),
       SizedBox(width: rond * 0.4),
       _prenable(
-        Text(
+        Texte(
           nom,
           maxLines: 1,
           style: TextStyle(

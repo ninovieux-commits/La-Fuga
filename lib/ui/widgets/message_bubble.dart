@@ -57,6 +57,7 @@ import 'bulle_cri.dart';
 import 'fuga_button.dart';
 import 'picto_touche.dart';
 import 'profile_photo.dart';
+import 'texte.dart';
 
 /// Part de la largeur qu'une bulle peut occuper au plus.
 const double kBulleLargeurMax = 0.75;
@@ -155,7 +156,7 @@ class MessageBubble extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * kBulleLargeurMax,
           ),
-          child: Text.rich(
+          child: Texte.rich(
             TextSpan(children: _morceaux(texte, taille)),
             style: TextStyle(fontSize: taille),
             textAlign: deMoi ? TextAlign.right : TextAlign.left,
@@ -201,7 +202,7 @@ class MessageBubble extends StatelessWidget {
             style: style,
             textAlign: TextAlign.left,
           )
-        : Text.rich(
+        : Texte.rich(
             TextSpan(children: _morceaux(affiche, SF(16))),
             style: style,
             textAlign: TextAlign.left,

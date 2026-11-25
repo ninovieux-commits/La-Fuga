@@ -17,6 +17,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
+import 'texte.dart';
 
 /// Encres du parchemin — les couleurs de Kivy.
 const Color _titleInk = Color.fromRGBO(56, 33, 13, 1);
@@ -70,7 +71,7 @@ class StoryView extends StatelessWidget {
                 SizedBox(
                   height: screen.height * 0.09,
                   child: Center(
-                    child: Text(
+                    child: Texte(
                       T("L'histoire de La Fuga"),
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -84,7 +85,7 @@ class StoryView extends StatelessWidget {
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
-                      child: Text(
+                      child: Texte(
                         Translations.current.story,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: SF(17), color: _bodyInk),
@@ -129,7 +130,7 @@ class StoryView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(S(14)),
                   onTap: () => Navigator.of(context).pop(),
                   child: Center(
-                    child: Text(
+                    child: Texte(
                       'X',
                       style: TextStyle(
                         color: Colors.white,
@@ -177,7 +178,7 @@ class _PieceCell extends StatelessWidget {
       SizedBox(
         height: side * 0.7,
         child: Center(
-          child: Text(
+          child: Texte(
             T(piece.type.wire),
             textAlign: TextAlign.center,
             maxLines: 1,

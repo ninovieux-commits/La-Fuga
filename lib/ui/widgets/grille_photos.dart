@@ -28,6 +28,7 @@ import '../../engine/piece.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
 import 'profile_photo.dart';
+import 'texte.dart';
 
 /// Le thème dont Deep Grey porte les couleurs, et le nom.
 const String kThemeDeepGrey = 'deepgrey';
@@ -140,7 +141,7 @@ class GrilleDesPhotos extends StatelessWidget {
   );
 
   /// Le nom du thème, seul au-dessus de ses deux rangées.
-  Widget _entete(SectionPhotos s) => Text(
+  Widget _entete(SectionPhotos s) => Texte(
     s.label,
     style: TextStyle(fontSize: SF(12), color: couleurDuNom),
   );

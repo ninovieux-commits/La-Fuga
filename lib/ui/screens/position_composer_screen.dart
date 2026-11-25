@@ -35,6 +35,7 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/board_painter.dart';
 import '../widgets/picto_touche.dart';
 import '../widgets/piece_tile.dart';
+import '../widgets/texte.dart';
 
 /// Gris pile entre le noir et le blanc : le fond de la touche du trait, pour
 /// que « Blancs » et « Noirs » s'y lisent tous les deux.
@@ -196,7 +197,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: palette.fonce,
-        title: Text(
+        title: Texte(
           T('Cette position ne peut pas se jouer'),
           style: TextStyle(color: Colors.white, fontSize: SF(17)),
         ),
@@ -206,7 +207,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
           children: [
             // Ce qui cloche EN PREMIER, puis les deux règles : savoir qu'on a
             // tort sans savoir pourquoi n'aide personne.
-            Text(
+            Texte(
               switch (refus) {
                 FugRefus.heritier => T(
                   'Il manque un Héritier, ou il y en a plusieurs.',
@@ -228,7 +229,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
               ),
             ),
             SizedBox(height: S(10)),
-            Text(
+            Texte(
               T(
                 'Une position jouable demande :\n\n'
                 '• un Héritier dans chaque camp, ni plus ni moins ;\n'
@@ -245,7 +246,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Ok')),
+            child: Texte(T('Ok')),
           ),
         ],
       ),
@@ -494,7 +495,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              Texte(
                 T('Trait aux'),
                 style: TextStyle(
                   color: Colors.white,
@@ -502,7 +503,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
+              Texte(
                 _trait == Camp.blanc ? T('Blancs') : T('Noirs'),
                 style: TextStyle(
                   // Le mot porte sa propre couleur : c'est ce qui rend la
@@ -563,7 +564,7 @@ class _PositionComposerScreenState extends State<PositionComposerScreen>
       if (_erreurCollage != null)
         Padding(
           padding: EdgeInsets.only(top: S(4)),
-          child: Text(
+          child: Texte(
             _erreurCollage!,
             style: TextStyle(color: palette.clair, fontSize: SF(12)),
           ),

@@ -26,6 +26,7 @@ import '../widgets/fuga_button.dart';
 import '../widgets/instrument_preview.dart';
 import '../widgets/theme_preview.dart';
 import 'theme_composer_screen.dart';
+import '../widgets/texte.dart';
 
 /// Nom affiché de chaque instrument — `INSTRUMENT_LABELS` de Kivy.
 const Map<String, String> kInstrumentLabels = {
@@ -152,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Padding(
               padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(4)),
-              child: Text(
+              child: Texte(
                 T('Réglages'),
                 style: TextStyle(
                   fontSize: SF(20),
@@ -204,7 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           flex: 32,
                           child: Center(
-                            child: Text(
+                            child: Texte(
                               T(
                                 kInstrumentLabels[kInstruments[_instrumentIndex]] ??
                                     '',
@@ -269,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           flex: 32,
                           child: Center(
-                            child: Text(
+                            child: Texte(
                               T(
                                 kThemeLabels[kThemeOrder[_themeIndex]] ??
                                     kThemeOrder[_themeIndex],
@@ -355,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _label(String text, {double size = 17}) => Padding(
     padding: EdgeInsets.only(top: S(10), bottom: S(2)),
-    child: Text(
+    child: Texte(
       text,
       textAlign: TextAlign.center,
       style: TextStyle(
@@ -366,7 +367,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ),
   );
 
-  Widget _sub(String text) => Text(
+  Widget _sub(String text) => Texte(
     text,
     textAlign: TextAlign.center,
     style: TextStyle(
@@ -384,7 +385,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Expanded(
           flex: 68,
           child: Center(
-            child: Text(
+            child: Texte(
               value,
               textAlign: TextAlign.center,
               style: TextStyle(

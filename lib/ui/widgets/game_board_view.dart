@@ -14,6 +14,7 @@ import 'board_geometry.dart';
 import 'board_painter.dart';
 import 'picto_touche.dart';
 import 'theme_image_cache.dart';
+import 'texte.dart';
 
 /// La plaque sous un chrono d'immersion : du blanc qu'on voit à travers.
 ///
@@ -360,7 +361,7 @@ class _GameBoardViewState extends State<GameBoardView>
                               geometry.cellSize * 0.18,
                             ),
                           ),
-                          child: Text(
+                          child: Texte(
                             texte,
                             style: TextStyle(
                               color: const Color(0xFF000000),

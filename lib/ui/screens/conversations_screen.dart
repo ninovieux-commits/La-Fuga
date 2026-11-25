@@ -46,6 +46,7 @@ import '../widgets/choix_source_image.dart';
 import '../../game/enveloppe.dart';
 import 'editeur_image_screen.dart';
 import 'visionneuse_enveloppe.dart';
+import '../widgets/texte.dart';
 
 /// Liste de toutes mes conversations, avec la pastille des non-lus.
 class ConversationsScreen extends StatefulWidget {
@@ -252,7 +253,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
         padding: EdgeInsets.all(S(20)),
         child: Align(
           alignment: Alignment.topCenter,
-          child: Text(
+          child: Texte(
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -301,7 +302,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      Texte(
                         c.pseudo,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -319,7 +320,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                       // la liste montrait — « Vous : [imhn] », qui ne veut
                       // rien dire pour qui la lit. Les bulles le savaient
                       // déjà, la liste l'ignorait.
-                      Text.rich(
+                      Texte.rich(
                         TextSpan(children: _apercuEnMorceaux(preview)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1031,7 +1032,7 @@ class _ConversationScreenState extends State<ConversationScreen>
           color: const Color(0xB3000000),
           borderRadius: BorderRadius.circular(S(6)),
         ),
-        child: Text(
+        child: Texte(
           '$jour · $h:$mn',
           style: TextStyle(color: Colors.white, fontSize: SF(11)),
         ),
@@ -1103,8 +1104,8 @@ class _ConversationScreenState extends State<ConversationScreen>
       );
     }
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return Center(child: Text(_error!));
-    return Center(child: Text(T('Aucun message. Écrivez le premier !')));
+    if (_error != null) return Center(child: Texte(_error!));
+    return Center(child: Texte(T('Aucun message. Écrivez le premier !')));
   }
 
   /// LA fiche du joueur, la même que partout ailleurs — et le défi qu'elle
@@ -1281,7 +1282,7 @@ class _ConversationScreenState extends State<ConversationScreen>
       children: [
         SizedBox(
           height: hauteurDuMotDeLaBoite,
-          child: Text(
+          child: Texte(
             T('Boîte aux lettres'),
             style: TextStyle(
               color: Colors.white,
@@ -1679,7 +1680,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: Text(T('Envoyer')),
+              child: Texte(T('Envoyer')),
             ),
           ],
         ),

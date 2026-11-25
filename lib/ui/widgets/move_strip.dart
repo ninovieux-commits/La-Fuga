@@ -18,6 +18,7 @@ import '../scale.dart';
 import 'fuga_button.dart';
 import 'game_top_bar.dart';
 import 'picto_touche.dart';
+import 'texte.dart';
 
 class MoveStrip extends StatefulWidget {
   const MoveStrip({
@@ -144,7 +145,7 @@ class _MoveStripState extends State<MoveStrip> {
           padding: EdgeInsets.symmetric(horizontal: S(4)),
           child: Row(
             children: [
-              Text(
+              Texte(
                 '${i ~/ 2 + 1}.',
                 style: TextStyle(
                   color: Colors.white,
@@ -154,7 +155,7 @@ class _MoveStripState extends State<MoveStrip> {
               ),
               _half(i, moves[i], active == i),
               if (noir != null) ...[
-                Text(
+                Texte(
                   '/',
                   style: TextStyle(
                     color: Colors.white,
@@ -205,7 +206,7 @@ class _MoveStripState extends State<MoveStrip> {
                     Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: S(8)),
-                        child: Text(
+                        child: Texte(
                           widget.randomCode!,
                           style: TextStyle(
                             fontSize: SF(13),
@@ -244,7 +245,7 @@ class _MoveStripState extends State<MoveStrip> {
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       foregroundColor: actif ? Colors.black : Colors.white,
     ),
-    child: Text(
+    child: Texte(
       notation,
       style: TextStyle(fontSize: SF(14), fontWeight: FontWeight.bold),
     ),

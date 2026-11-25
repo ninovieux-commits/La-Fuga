@@ -36,6 +36,7 @@ import '../widgets/auto_play_bar.dart';
 import '../widgets/player_card.dart';
 import '../widgets/player_panel.dart';
 import 'game_screen.dart';
+import '../widgets/texte.dart';
 
 class ReplayScreen extends StatefulWidget {
   const ReplayScreen({
@@ -433,7 +434,7 @@ class _ReplayScreenState extends State<ReplayScreen>
     width: double.infinity,
     padding: EdgeInsets.symmetric(vertical: S(6), horizontal: S(16)),
     color: FugaColors.immobile.withValues(alpha: 0.85),
-    child: Text(
+    child: Texte(
       '${T("Lecture interrompue au coup")} ${_replay.brokenMoveNumber}',
       style: TextStyle(color: Colors.white, fontSize: SF(12)),
     ),

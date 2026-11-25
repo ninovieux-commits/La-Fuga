@@ -31,6 +31,7 @@ import 'package:lafuga/net/online_service.dart';
 import 'package:lafuga/state/settings.dart';
 import 'package:lafuga/theme/themes.dart';
 import 'package:lafuga/ui/scale.dart';
+import 'package:lafuga/ui/theme_fuga.dart';
 import 'package:lafuga/ui/screens/account_screen.dart';
 import 'package:lafuga/ui/screens/conversations_screen.dart';
 import 'package:lafuga/ui/widgets/player_card.dart';
@@ -155,12 +156,27 @@ void main() {
           ).readAsBytes().then((o) => ByteData.view(o.buffer)),
         );
       await police.load();
+      // ET CELLE DE L'APPLICATION : le thème la nomme, et sans elle tout
+      // sort en rectangles blancs.
+      final sienne = FontLoader('NotoSansCJK')
+        ..addFont(
+          File(
+            'assets/fonts/NotoSansCJKsc-Regular.otf',
+          ).readAsBytes().then((o) => ByteData.view(o.buffer)),
+        );
+      await sienne.load();
     });
 
     await tester.pumpWidget(
       RepaintBoundary(
         key: _cadre,
-        child: MaterialApp(debugShowCheckedModeBanner: false, home: ecran),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          // LE VRAI THÈME DE L'APPLICATION : sans lui, l'aperçu montrerait
+          // les couleurs d'usine de Material et ne prouverait rien.
+          theme: themeFuga(),
+          home: ecran,
+        ),
       ),
     );
     await tester.pumpAndSettle();

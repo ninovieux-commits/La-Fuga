@@ -23,6 +23,7 @@ import '../widgets/picto_touche.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/profile_photo.dart';
 import 'replay_screen.dart';
+import '../widgets/texte.dart';
 
 /// Laquelle des deux listes de Kivy.
 enum HistoryMode { online, local }
@@ -194,15 +195,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: kFugaGrey,
-      title: Text(T('Erreur'), style: const TextStyle(color: Colors.white)),
-      content: Text(
+      title: Texte(T('Erreur'), style: const TextStyle(color: Colors.white)),
+      content: Texte(
         message,
         style: TextStyle(color: Colors.white, fontSize: SF(13)),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('OK')),
+          child: Texte(T('OK')),
         ),
       ],
     ),
@@ -305,7 +306,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: EdgeInsets.all(S(24)),
         child: Align(
           alignment: Alignment.topCenter,
-          child: Text(
+          child: Texte(
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -548,14 +549,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         variation1 == null &&
         variation2 == null &&
         rond1 == null) {
-      return Text(
+      return Texte(
         '$player1  vs  $player2',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: nom,
       );
     }
-    return Text.rich(
+    return Texte.rich(
       TextSpan(
         children: [
           ?rond1,
@@ -627,7 +628,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 SizedBox(
                   width: S(40),
-                  child: Text(
+                  child: Texte(
                     sym,
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -647,7 +648,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         flex: 3,
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text(
+                          child: Texte(
                             date,
                             style: TextStyle(
                               fontSize: SF(11),
@@ -660,7 +661,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         flex: 3,
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text(
+                          child: Texte(
                             info,
                             style: TextStyle(
                               fontSize: SF(11),

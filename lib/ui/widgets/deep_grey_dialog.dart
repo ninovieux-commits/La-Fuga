@@ -11,16 +11,17 @@ import '../../engine/piece.dart';
 import '../../i18n/translations.dart';
 import 'fuga_button.dart';
 import '../scale.dart';
+import 'texte.dart';
 
 /// Renvoie le camp choisi par le joueur, ou `null` s'il a refermé la popup.
 Future<Camp?> askDeepGreyCamp(BuildContext context) => showDialog<Camp>(
   context: context,
   builder: (context) => AlertDialog(
-    title: const Text('Deep Grey'),
+    title: const Texte('Deep Grey'),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
+        Texte(
           T('Jouer contre Deep Grey depuis cette position.\n') +
               T('Choisissez votre camp :'),
           textAlign: TextAlign.center,

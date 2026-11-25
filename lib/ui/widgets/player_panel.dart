@@ -29,6 +29,7 @@ import 'bandeau_prises.dart';
 import 'piece_painter.dart';
 import 'profile_photo.dart';
 import 'theme_image_cache.dart';
+import 'texte.dart';
 
 /// Encre des panneaux : le `(0.05, 0.05, 0.05)` de Kivy, sur le gris des
 /// menus.
@@ -454,7 +455,7 @@ class PlayerPanel extends StatelessWidget {
                   children: [
                     // UN SEUL texte, étoile comprise, et non une rangée : voir
                     // `nomEtoile`, qui dit pourquoi.
-                    Text.rich(
+                    Texte.rich(
                       nomEtoile(name, favori: favori, taille: SF(16)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -468,7 +469,7 @@ class PlayerPanel extends StatelessWidget {
                       ),
                     ),
                     if (_ligneBasse != null)
-                      Text(
+                      Texte(
                         _ligneBasse!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -496,7 +497,7 @@ class PlayerPanel extends StatelessWidget {
         ),
       Expanded(
         flex: 36,
-        child: Text(
+        child: Texte(
           clock,
           textAlign: TextAlign.right,
           style: TextStyle(
@@ -510,7 +511,7 @@ class PlayerPanel extends StatelessWidget {
       if (score != null)
         Expanded(
           flex: 22,
-          child: Text(
+          child: Texte(
             score!,
             textAlign: TextAlign.right,
             style: TextStyle(

@@ -14,6 +14,8 @@ import 'package:flutter/services.dart';
 import '../../i18n/translations.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
+import 'texte.dart';
+import 'picto_touche.dart';
 
 /// Met [content] dans le presse-papiers, puis le montre, sélectionnable.
 Future<void> showNmcDialog(BuildContext context, String content) async {
@@ -23,7 +25,7 @@ Future<void> showNmcDialog(BuildContext context, String content) async {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: kFugaGrey,
-      title: Text(
+      title: Texte(
         T('Contenu .nmc'),
         style: const TextStyle(color: Colors.white),
       ),
@@ -32,14 +34,21 @@ Future<void> showNmcDialog(BuildContext context, String content) async {
         child: SingleChildScrollView(
           child: SelectableText(
             content,
-            style: TextStyle(color: Colors.white, fontSize: SF(13)),
+            // Le contour de partout. [SelectableText] ne passe pas par
+            // [Texte] — on doit pouvoir choisir ces lignes à la main pour
+            // les copier —, il le porte donc lui-même.
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: SF(13),
+              shadows: contourDesLettres(Colors.white),
+            ),
           ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('Fermer')),
+          child: Texte(T('Fermer')),
         ),
       ],
     ),
@@ -57,7 +66,7 @@ Future<void> showFugDialog(BuildContext context, String fug) async {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: kFugaGrey,
-      title: Text(
+      title: Texte(
         T('Position .fug'),
         style: const TextStyle(color: Colors.white),
       ),
@@ -69,6 +78,7 @@ Future<void> showFugDialog(BuildContext context, String fug) async {
             style: TextStyle(
               color: Colors.white,
               fontSize: SF(14),
+              shadows: contourDesLettres(Colors.white),
               // Huit lignes de sept caractères ne s'alignent qu'en chasse
               // fixe : c'est ce qui rend le plateau reconnaissable.
               fontFamily: 'monospace',
@@ -79,7 +89,7 @@ Future<void> showFugDialog(BuildContext context, String fug) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('Fermer')),
+          child: Texte(T('Fermer')),
         ),
       ],
     ),

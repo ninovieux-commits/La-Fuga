@@ -29,6 +29,7 @@ import 'etoile_favori.dart';
 import 'player_panel.dart';
 import 'picto_touche.dart';
 import 'profile_photo.dart';
+import 'texte.dart';
 
 class AutoPlayBar extends StatelessWidget {
   const AutoPlayBar({
@@ -123,7 +124,7 @@ class AutoPlayBar extends StatelessWidget {
           onTap: onNameTap,
           // UN SEUL texte, étoile comprise, comme dans un bandeau de
           // joueur : voir `nomEtoile`, qui dit pourquoi.
-          child: Text.rich(
+          child: Texte.rich(
             nomEtoile(nom, favori: favori, taille: SF(16)),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -185,7 +186,7 @@ class AutoPlayBar extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Text(
+      Texte(
         '${secondes.toStringAsFixed(1)} s',
         maxLines: 1,
         style: TextStyle(

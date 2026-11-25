@@ -48,6 +48,7 @@ import '../widgets/game_top_bar.dart';
 import '../widgets/pause_dialog.dart';
 import '../widgets/player_panel.dart';
 import '../widgets/slide_animation.dart';
+import '../widgets/texte.dart';
 
 class OnlineGameScreen extends StatefulWidget {
   const OnlineGameScreen({
@@ -459,16 +460,16 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final accept = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(T('Nulle')),
-        content: Text('${_g.info.opponent} ${T('propose la nulle')}'),
+        title: Texte(T('Nulle')),
+        content: Texte('${_g.info.opponent} ${T('propose la nulle')}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Refuser')),
+            child: Texte(T('Refuser')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Accepter')),
+            child: Texte(T('Accepter')),
           ),
         ],
       ),
@@ -732,15 +733,15 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        content: Text(T('Quitter le match ?')),
+        content: Texte(T('Quitter le match ?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(T('Annuler')),
+            child: Texte(T('Annuler')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(T('Quitter le match')),
+            child: Texte(T('Quitter le match')),
           ),
         ],
       ),

@@ -19,6 +19,7 @@ import '../scale.dart';
 import 'fuga_button.dart';
 import 'piece_painter.dart';
 import 'theme_image_cache.dart';
+import 'texte.dart';
 
 /// Une case du damier de correspondance.
 class CorrSlot extends StatelessWidget {
@@ -248,7 +249,7 @@ class CorrSlot extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(S(6)),
         ),
-        child: Text(
+        child: Texte(
           text,
           textAlign: TextAlign.center,
           style: TextStyle(

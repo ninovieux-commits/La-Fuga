@@ -20,6 +20,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'fuga_popup.dart';
+import 'texte.dart';
 
 /// Qualité JPEG demandée au greffon. Quatre-vingts : la limite au-delà de
 /// laquelle le poids monte vite sans que l'œil y gagne.
@@ -107,7 +108,7 @@ Widget _choix(IconData icone, String mot, Color encre) => Row(
     Icon(icone, size: SF(18), color: encre),
     SizedBox(width: S(6)),
     Flexible(
-      child: Text(
+      child: Texte(
         mot,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

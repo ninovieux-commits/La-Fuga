@@ -21,6 +21,7 @@ import '../widgets/fuga_header.dart';
 import '../widgets/picto_touche.dart';
 import '../widgets/profile_photo.dart';
 import '../widgets/theme_preview.dart';
+import '../widgets/texte.dart';
 
 /// Les cinq axes, dans l'ordre de Kivy.
 const List<(String, String)> kThemeAxisLabels = [
@@ -161,7 +162,7 @@ class _ThemeComposerScreenState extends State<ThemeComposerScreen>
       children: [
         Padding(
           padding: EdgeInsets.fromLTRB(S(16), S(12), S(16), S(4)),
-          child: Text(
+          child: Texte(
             T(label),
             style: const TextStyle(
               color: Colors.white,

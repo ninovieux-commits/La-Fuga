@@ -21,6 +21,7 @@ import 'package:lafuga/ui/screens/editeur_image_screen.dart';
 import 'package:lafuga/ui/widgets/palette_couleurs.dart';
 import 'package:lafuga/ui/widgets/tampon_partie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lafuga/ui/widgets/texte.dart';
 
 /// Un PNG d'un pixel : l'éditeur a besoin d'une image qui se décode.
 final Uint8List kPixel = Uint8List.fromList([
@@ -1003,7 +1004,7 @@ void main() {
       for (final champ in encadres) {
         expect(
           champ.child,
-          isA<Text>(),
+          isA<Texte>(),
           reason: 'un champ ne contient que son mot',
         );
       }

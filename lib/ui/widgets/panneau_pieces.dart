@@ -26,6 +26,7 @@ import '../../i18n/translations.dart';
 import '../../state/settings.dart';
 import '../scale.dart';
 import 'grille_photos.dart';
+import 'texte.dart';
 
 /// Côté d'une image dans la grille : assez grand pour se viser au doigt.
 double get kCotePieceChoix => touchHeight();
@@ -93,7 +94,7 @@ class PanneauDesPieces extends StatelessWidget {
                   children: [
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: S(6)),
-                      child: Text(
+                      child: Texte(
                         T('Envoyer une pièce'),
                         style: TextStyle(
                           fontSize: SF(15),

@@ -52,6 +52,7 @@ import '../suit_les_reglages.dart';
 import 'premove_screen.dart';
 import 'conversations_screen.dart';
 import 'game_screen.dart';
+import '../widgets/texte.dart';
 
 class CorrGameScreen extends StatefulWidget {
   const CorrGameScreen({
@@ -737,7 +738,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
 
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(T("Impossible d'envoyer le coup."))),
+        SnackBar(content: Texte(T("Impossible d'envoyer le coup."))),
       );
       return;
     }
@@ -1037,7 +1038,7 @@ class _CorrGameScreenState extends State<CorrGameScreen>
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: palette.fonce,
-          content: Text(
+          content: Texte(
             '${_g.premovePar} '
             '${T('avait préjoué son coup, c\'est encore à vous.')}',
             style: TextStyle(color: Colors.white, fontSize: SF(16)),
@@ -1045,11 +1046,11 @@ class _CorrGameScreenState extends State<CorrGameScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text(T('Ok')),
+              child: Texte(T('Ok')),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(T('Menu')),
+              child: Texte(T('Menu')),
             ),
           ],
         ),

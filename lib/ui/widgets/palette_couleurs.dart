@@ -32,6 +32,7 @@ import '../../theme/themes.dart';
 import '../scale.dart';
 import 'fuga_button.dart';
 import 'fuga_popup.dart';
+import 'texte.dart';
 
 /// Les gris, du blanc au noir : ils se lisent sur tout.
 const List<Color> kGrisDeLaPalette = [
@@ -220,7 +221,7 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
                 color: Colors.white,
               ),
               SizedBox(width: S(6)),
-              Text(
+              Texte(
                 _nuances ? T('Carreaux') : T('Nuances'),
                 style: TextStyle(
                   color: Colors.white,
@@ -267,7 +268,7 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
                 // six couleurs pour une septième rangée de plus.
                 SizedBox(
                   height: _hauteurDeLEtiquette,
-                  child: Text(
+                  child: Texte(
                     T('Mon thème'),
                     style: TextStyle(
                       color: Colors.white70,
@@ -342,7 +343,7 @@ class _CorpsDeLaPaletteState extends State<CorpsDeLaPalette> {
         children: [
           _rond(widget.actuelle),
           SizedBox(width: S(6)),
-          Text(
+          Texte(
             codeHexa(widget.actuelle),
             style: TextStyle(
               color: Colors.white70,

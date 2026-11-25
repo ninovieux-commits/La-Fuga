@@ -31,6 +31,7 @@ import 'conversations_screen.dart';
 import 'corr_game_screen.dart';
 import 'history_screen.dart';
 import 'photo_picker.dart';
+import '../widgets/texte.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({
@@ -155,11 +156,11 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(
+        title: Texte(
           T('Notifications'),
           style: const TextStyle(color: Colors.white),
         ),
-        content: Text(
+        content: Texte(
           T(
             'Pour recevoir des notifications, autorisez La Fuga dans les réglages de votre téléphone.',
           ),
@@ -199,7 +200,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: Texte(title),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -210,11 +211,11 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Annuler')),
+            child: Texte(T('Annuler')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(T('Enregistrer')),
+            child: Texte(T('Enregistrer')),
           ),
         ],
       ),
@@ -327,7 +328,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : profile == null
-          ? Center(child: Text(_error ?? T('Profil indisponible.')))
+          ? Center(child: Texte(_error ?? T('Profil indisponible.')))
           // LE MÊME ÉCRAN POUR SOI ET POUR LES AUTRES.
           //
           // Nino : « le profil perso et le profil d'autrui doivent être
@@ -550,7 +551,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
       );
     }
     if (parties.isEmpty) {
-      return Text(
+      return Texte(
         T('Pas de partie en cours'),
         style: TextStyle(
           color: _encre.withValues(alpha: 0.5),
@@ -619,7 +620,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
 
   List<Widget> _selfSettings(Profile profile) => [
     _title(T('Adresse mail')),
-    Text(
+    Texte(
       profile.email.isEmpty ? T('Aucune adresse mail') : profile.email,
       style: TextStyle(color: _encre),
     ),
@@ -652,7 +653,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
         value: _notif[key] && enabled,
         onChanged: enabled ? (_) => _toggleNotif(key) : null,
         controlAffinity: ListTileControlAffinity.leading,
-        title: Text(
+        title: Texte(
           label,
           style: TextStyle(
             color: enabled ? _encre : _encre.withValues(alpha: 0.5),
@@ -678,7 +679,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
   }) {
     if (gens.isEmpty) {
       return [
-        Text(
+        Texte(
           vide,
           style: TextStyle(color: Colors.white38, fontSize: SF(12)),
         ),
@@ -738,7 +739,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
 
   Widget _title(String text) => Padding(
     padding: EdgeInsets.only(top: S(18), bottom: S(6)),
-    child: Text(
+    child: Texte(
       text,
       style: TextStyle(
         color: _encre,
@@ -769,7 +770,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
+        content: Texte(
           r.isOk
               ? (etait
                         ? T('%s retiré des favoris.')
@@ -798,7 +799,7 @@ class _AccountScreenState extends State<AccountScreen> with SuitLesReglages {
     if (r.isOk) setState(() => _bloqueLocal = !etait);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
+        content: Texte(
           r.isOk
               ? (etait ? T('%s débloqué.') : T('%s bloqué.')).replaceFirst(
                   '%s',

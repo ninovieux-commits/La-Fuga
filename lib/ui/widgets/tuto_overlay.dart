@@ -14,6 +14,7 @@ import '../../engine/board.dart';
 import '../../game/tuto.dart';
 import '../../theme/themes.dart';
 import 'board_geometry.dart';
+import 'picto_touche.dart';
 
 /// Les couleurs des encadrés, reprises de Kivy.
 const Color kTutoFramed = Color(0xFFD93A3A);
@@ -155,6 +156,9 @@ class TutoOverlayPainter extends CustomPainter {
           color: Colors.white,
           fontSize: h * 0.52,
           fontWeight: FontWeight.bold,
+          // Le contour de partout : ce mot-là est peint sur une capture du
+          // menu, dont on ne sait pas la couleur.
+          shadows: contourDesLettres(Colors.white),
         ),
       ),
       textAlign: TextAlign.center,

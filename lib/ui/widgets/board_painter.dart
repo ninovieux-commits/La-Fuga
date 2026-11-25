@@ -228,6 +228,11 @@ final class BoardBackgroundPainter extends CustomPainter {
           color: color,
           fontSize: fontSize,
           fontWeight: FontWeight.bold,
+          // Les repères du plateau portent le contour comme le reste.
+          // Nino : « il faut [...] mettre ce contour noir de partout. De
+          // partout. » Ils passent sur un fond de thème quelconque, et le
+          // blanc seul s'y perdait sur les cases claires.
+          shadows: contourDesLettres(color),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -280,12 +285,11 @@ final class BoardBackgroundPainter extends CustomPainter {
           color: const Color(0xFFFFFFFF),
           fontSize: g.cellSize * 0.34,
           fontWeight: FontWeight.bold,
-          // Un liseré sombre : le mot passe sur la bande claire des Blancs
-          // comme sur le fond du plateau là où la zone s'arrête.
-          shadows: const [
-            Shadow(color: Color(0xCC000000), blurRadius: 3),
-            Shadow(color: Color(0xCC000000), blurRadius: 6),
-          ],
+          // Le contour de l'application, et non plus un flou : le mot passe
+          // sur la bande claire des Blancs comme sur le fond du plateau là
+          // où la zone s'arrête, et le trait net est celui de partout
+          // ailleurs.
+          shadows: contourDesLettres(const Color(0xFFFFFFFF)),
         ),
       ),
       maxLines: 1,

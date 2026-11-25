@@ -21,6 +21,7 @@ import '../../i18n/translations.dart';
 import '../../net/online_service.dart';
 import '../../theme/themes.dart';
 import '../scale.dart';
+import 'texte.dart';
 
 /// Ouvre le composeur rapide. Rend le texte écrit, ou `null` si on renonce.
 ///
@@ -66,7 +67,7 @@ Future<void> envoyerMessageRapide(
   if (!context.mounted || r.isOk) return;
   ScaffoldMessenger.of(
     context,
-  ).showSnackBar(SnackBar(content: Text(T('Message non envoyé.'))));
+  ).showSnackBar(SnackBar(content: Texte(T('Message non envoyé.'))));
 }
 
 class _MessageRapide extends StatefulWidget {
@@ -130,7 +131,7 @@ class _MessageRapideState extends State<_MessageRapide> {
               style: FilledButton.styleFrom(
                 backgroundColor: widget.palette.clair,
               ),
-              child: Text(T('Envoyer')),
+              child: Texte(T('Envoyer')),
             ),
           ],
         ),

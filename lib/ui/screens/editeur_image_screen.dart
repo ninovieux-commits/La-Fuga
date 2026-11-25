@@ -73,6 +73,7 @@ import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import '../widgets/palette_couleurs.dart';
 import '../widgets/tampon_partie.dart';
+import '../widgets/texte.dart';
 
 /// Le bleu du cadre de sélection. Celui des sélections, partout : il ne
 /// désigne rien dans le jeu, donc on ne le confond avec rien.
@@ -513,7 +514,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
                 ? () => unawaited(_changerUnNom(o, gauche: false))
                 : null,
           )
-        : Text(
+        : Texte(
             o.texte!,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -1187,7 +1188,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: kFugaGrey,
-      title: Text(titre, style: const TextStyle(color: Colors.white)),
+      title: Texte(titre, style: const TextStyle(color: Colors.white)),
       content: TextField(
         controller: controleur,
         autofocus: true,
@@ -1205,11 +1206,11 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('Annuler')),
+          child: Texte(T('Annuler')),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(controleur.text),
-          child: Text(T('Poser')),
+          child: Texte(T('Poser')),
         ),
       ],
     ),
@@ -1228,7 +1229,7 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kFugaGrey,
-        title: Text(
+        title: Texte(
           T('Texte à poser'),
           style: const TextStyle(color: Colors.white),
         ),
@@ -1254,11 +1255,11 @@ class _EditeurImageScreenState extends State<EditeurImageScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(T('Annuler')),
+            child: Texte(T('Annuler')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controleur.text),
-            child: Text(T('Poser')),
+            child: Texte(T('Poser')),
           ),
         ],
       ),

@@ -17,6 +17,7 @@ import '../widgets/fuga_header.dart';
 import 'history_screen.dart';
 import 'fug_reader_screen.dart';
 import 'reader_screen.dart';
+import '../widgets/texte.dart';
 
 class PartiesMenuScreen extends StatelessWidget {
   const PartiesMenuScreen({super.key, required this.online});
@@ -34,7 +35,7 @@ class PartiesMenuScreen extends StatelessWidget {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: kFugaGrey,
-          content: Text(
+          content: Texte(
             T('Connectez-vous à un compte\npour voir vos parties en ligne.'),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontSize: SF(15)),

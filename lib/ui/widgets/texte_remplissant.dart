@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'texte.dart';
 
 /// Interligne de tous les textes remplissants.
 ///
@@ -129,7 +130,7 @@ class TexteRemplissant extends StatelessWidget {
         }
       }
 
-      return Text(
+      return Texte(
         texte,
         maxLines: maxLignes,
         overflow: TextOverflow.ellipsis,

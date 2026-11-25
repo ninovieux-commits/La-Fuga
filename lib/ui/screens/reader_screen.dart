@@ -17,6 +17,7 @@ import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
 import '../widgets/fuga_header.dart';
 import 'replay_screen.dart';
+import '../widgets/texte.dart';
 
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({super.key});
@@ -50,8 +51,8 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: kFugaGrey,
-      title: Text(T('Erreur'), style: const TextStyle(color: Colors.white)),
-      content: Text(
+      title: Texte(T('Erreur'), style: const TextStyle(color: Colors.white)),
+      content: Texte(
         T(
           'désolé, le fichier nmc est invalide,\nla lecture ne peut pas s effectuer',
         ),
@@ -60,7 +61,7 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(T('OK')),
+          child: Texte(T('OK')),
         ),
       ],
     ),
@@ -85,7 +86,7 @@ class _ReaderScreenState extends State<ReaderScreen> with SuitLesReglages {
             // étroit, et une bande figée la coupait en deux.
             Padding(
               padding: EdgeInsets.symmetric(horizontal: S(12), vertical: S(6)),
-              child: Text(
+              child: Texte(
                 T("Collez le contenu d'un fichier .nmc ci-dessous :"),
                 textAlign: TextAlign.center,
                 style: TextStyle(

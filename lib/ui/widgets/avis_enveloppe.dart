@@ -27,6 +27,7 @@ import 'package:flutter/material.dart';
 
 import '../scale.dart';
 import 'fuga_button.dart';
+import 'texte.dart';
 
 class AvisEnveloppe extends StatelessWidget {
   const AvisEnveloppe({
@@ -55,7 +56,7 @@ class AvisEnveloppe extends StatelessWidget {
         borderRadius: BorderRadius.circular(S(8)),
         border: const Border.fromBorderSide(kTraitDeTouche),
       ),
-      child: Text(
+      child: Texte(
         texte,
         style: TextStyle(
           color: Colors.white,

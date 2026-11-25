@@ -19,6 +19,7 @@ import '../scale.dart';
 import '../suit_les_reglages.dart';
 import '../widgets/fuga_background.dart';
 import '../widgets/fuga_button.dart';
+import '../widgets/texte.dart';
 
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key, required this.online, LocalGamesStore? local})
@@ -140,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                 ),
               ),
               SizedBox(height: S(20)),
-              Text(
+              Texte(
                 _registering ? T('Inscription') : T('Connexion'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -230,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> with SuitLesReglages {
                 onPressed: _busy ? null : _submit,
               ),
               SizedBox(height: S(14)),
-              Text(
+              Texte(
                 _status,
                 textAlign: TextAlign.center,
                 style: TextStyle(

@@ -29,6 +29,7 @@ import 'fuga_button.dart';
 import '../screens/account_screen.dart';
 import '../screens/conversations_screen.dart';
 import '../screens/history_screen.dart';
+import 'texte.dart';
 
 /// Rouge du blocage.
 const Color kRougeBloquer = Color(0xFFB84343);
@@ -257,7 +258,7 @@ class _PlayerCardState extends State<_PlayerCard> {
     //
     // Taille en dur : le titre d'un `AlertDialog` prend le `titleLarge` du
     // thème, qui ne passe pas par `SF`. L'étoile suit ses lettres.
-    title: Text.rich(nomEtoile(widget.pseudo, favori: _favorite, taille: 18)),
+    title: Texte.rich(nomEtoile(widget.pseudo, favori: _favorite, taille: 18)),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -271,7 +272,7 @@ class _PlayerCardState extends State<_PlayerCard> {
     SizedBox(height: S(16)),
     Center(
       child: _echec
-          ? Text(T('Joueur introuvable'), textAlign: TextAlign.center)
+          ? Texte(T('Joueur introuvable'), textAlign: TextAlign.center)
           : const CircularProgressIndicator(),
     ),
     SizedBox(height: S(16)),
@@ -279,14 +280,14 @@ class _PlayerCardState extends State<_PlayerCard> {
   ];
 
   List<Widget> _fiche(Profile p) => [
-    Text(
+    Texte(
       '${T("Mélo : %d").replaceAll('%d', '${p.melo}')}'
       '   ·   '
       '${T("Random : %d").replaceAll('%d', '${p.meloRandom}')}',
       textAlign: TextAlign.center,
     ),
     SizedBox(height: S(6)),
-    Text(
+    Texte(
       p.online ? T('En ligne') : T('Hors ligne'),
       textAlign: TextAlign.center,
       style: TextStyle(
@@ -296,7 +297,7 @@ class _PlayerCardState extends State<_PlayerCard> {
     ),
     if (!_moi) ...[
       SizedBox(height: S(12)),
-      Text(
+      Texte(
         T('Moi contre %s :').replaceAll('%s', widget.pseudo),
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
@@ -306,14 +307,14 @@ class _PlayerCardState extends State<_PlayerCard> {
       TextButton(
         onPressed: () => _openHistory('direct'),
         style: TextButton.styleFrom(foregroundColor: Colors.white),
-        child: Text(
+        child: Texte(
           '${T("En direct")} : ${p.direct.mine} - ${p.direct.theirs}',
         ),
       ),
       TextButton(
         onPressed: () => _openHistory('corr'),
         style: TextButton.styleFrom(foregroundColor: Colors.white),
-        child: Text(
+        child: Texte(
           '${T("Correspondance")} : '
           '${p.correspondence.mine} - ${p.correspondence.theirs}',
         ),
